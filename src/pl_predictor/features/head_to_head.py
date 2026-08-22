@@ -47,3 +47,24 @@ def build_h2h_features(matches_df: pd.DataFrame, window: int = H2H_WINDOW) -> pd
         index=df.index,
     )
     return out.reindex(matches_df.index)
+
+
+def recent_meetings(matches_df: pd.DataFrame, home: str, away: str, n: int = H2H_WINDOW) -> list[dict]:
+    """The last `n` actual meetings between this exact pair (most recent
+    first), regardless of which side was home in those meetings — for
+    display (a head-to-head list), not model features."""
+    pair = _pair_key(home, away)
+    df = matches_df.copy()
+    df["pair"] = [_pair_key(h, a) for h, a in zip(df["team_home"], df["team_away"])]
+    past = df[df["pair"] == pair].sort_values("date").tail(n).sort_values("date", ascending=False)
+
+    return [
+        {
+            "date": row["date"].date().isoformat(),
+            "team_home": row["team_home"],
+            "team_away": row["team_away"],
+            "goals_home": int(row["goals_home"]),
+            "goals_away": int(row["goals_away"]),
+        }
+        for _, row in past.iterrows()
+    ]

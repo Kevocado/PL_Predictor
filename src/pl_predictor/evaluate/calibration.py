@@ -23,10 +23,11 @@ CLOSING_ODDS_COLS = ["b365_h", "b365_d", "b365_a"]
 
 
 def model_calibration(model, val_df: pd.DataFrame) -> dict:
-    preds = [
-        scoreline.predict_fixture(model, h, a)
-        for h, a in zip(val_df["team_home"], val_df["team_away"])
-    ]
+    # feature_row=row lets an ML scoreline model use this fixture's own
+    # point-in-time features (already present as columns on val_df) instead
+    # of re-deriving "current" form/Elo/xG — see scoreline.predict_fixture's
+    # docstring. Dixon-Coles/Bivariate-Poisson ignore the extra argument.
+    preds = [scoreline.predict_fixture(model, row["team_home"], row["team_away"], feature_row=row) for _, row in val_df.iterrows()]
     probs = np.array([[p["home_win"], p["draw"], p["away_win"]] for p in preds])
     outcomes = val_df["ftr"].map(RESULT_CODE).to_numpy()
     return {

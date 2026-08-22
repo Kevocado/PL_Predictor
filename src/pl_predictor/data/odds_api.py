@@ -4,6 +4,14 @@ Free tier is 500 credits/month (cost = markets x regions per call), so calls
 are cached to disk per-gameweek and reused rather than re-fetched on every
 notebook/app run. Missing API key raises `OddsAPIKeyMissing` rather than
 crashing callers — see `data/fixtures.py` for the graceful fallback.
+
+Note: the bulk `/sports/{sport}/odds` endpoint used here only serves "core"
+markets (h2h, spreads, totals). BTTS, corners, and cards are "additional
+markets" that The Odds API only exposes per-event via
+`/sports/{sport}/events/{event_id}/odds` (confirmed by hitting the bulk
+endpoint directly — requesting `btts` in bulk returns a 422 "Markets not
+supported by this endpoint"). Not implemented here — those stay model-only
+predictions, same as corners/cards.
 """
 
 from __future__ import annotations
@@ -18,7 +26,7 @@ import requests
 from ..config import ODDS_API_BASE_URL, ODDS_API_KEY, ODDS_API_SPORT_KEY, ODDS_CACHE_DIR
 from .team_names import to_canonical
 
-DEFAULT_MARKETS = ["h2h", "totals", "btts"]
+DEFAULT_MARKETS = ["h2h", "totals"]
 DEFAULT_REGIONS = "uk"
 CACHE_TTL_SECONDS = 12 * 3600
 

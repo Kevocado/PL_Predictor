@@ -1,0 +1,2 @@
+{"trained_at": "2026-08-22T23:14:54.731568+00:00", "n_train": 2660, "n_current_season_matches": 0, "chosen_model": "ml_scoreline", "rps": 0.20730375998445766, "brier": 0.6158840636481058}
+{"trained_at": "2026-08-22T23:23:01.499706+00:00", "n_train": 2660, "n_current_season_matches": 0, "chosen_model": "ml_scoreline", "rps": 0.20730375998445766, "brier": 0.6158840636481058}

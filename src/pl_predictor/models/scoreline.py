@@ -21,6 +21,7 @@ import pandas as pd
 import penaltyblog as pb
 
 from ..config import MODELS_DIR
+from ..features import rolling_form
 
 
 def _writable_inputs(df: pd.DataFrame) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
@@ -56,12 +57,18 @@ def _top_n_scorelines(grid: pb.models.FootballProbabilityGrid, n: int = 5, max_g
     return sorted(scores, key=lambda s: s["prob"], reverse=True)[:n]
 
 
-# League-average goals-per-team-per-match, used as a same-strength-as-average
-# fallback for teams the model has never seen (newly-promoted clubs, or any
-# club absent from the training seasons window). Dixon-Coles/Bivariate-Poisson
-# can only score teams present at fit time; this keeps predictions available
-# from matchday one rather than crashing, at the cost of not yet knowing
-# anything specific about that team's actual strength.
+# League-average goals-per-team-per-match — the fallback for models that
+# genuinely have no way to score an unseen team (Dixon-Coles/Bivariate-Poisson
+# only have fitted attack/defence parameters for teams present at fit time).
+# Feature-driven models (MLScorelineModel) don't need this: Elo/Pi both
+# return a sane league-average default (Elo 1500, Pi 0.0) for a team they've
+# never seen, and rolling-form/xG cold-start-blend toward the league average
+# the same way they already do for any team with few recent matches — so
+# they can score literally any team from day one, and that prediction
+# improves as the season goes rather than staying flat all year. See
+# `_data_confidence` for the caveat this still leaves: the *prediction* is no
+# longer a blind fallback, but it's still low-confidence until real matches
+# accumulate.
 FALLBACK_GOAL_EXPECTANCY = 1.35
 
 
@@ -69,14 +76,54 @@ def is_known_team(model, team: str) -> bool:
     return team in set(model.teams)
 
 
-def predict_fixture(model, home: str, away: str, max_goals: int = 10) -> dict:
+def _data_confidence(model, home: str, away: str) -> str | None:
+    """How much real, observed data this fixture's prediction is actually
+    resting on, for feature-driven models only (`None` for Dixon-Coles/
+    Bivariate-Poisson, which don't have a live per-fixture feature context to
+    measure this from). 'new' means both Elo/Pi/rolling-form are at or near
+    their league-average defaults for at least one side (e.g. a newly
+    promoted team's first few matches); 'limited' means a partial cold-start
+    blend; 'established' means a full rolling window of real matches. Purely
+    informational — never changes what's predicted, just how much to trust
+    it."""
+    if not hasattr(model, "context"):
+        return None
+    games_played = model.context.games_played
+    min_games = min(games_played.get(home, 0), games_played.get(away, 0))
+    if min_games >= max(rolling_form.LAG_WINDOWS):
+        return "established"
+    if min_games > 0:
+        return "limited"
+    return "new"
+
+
+def predict_fixture(model, home: str, away: str, max_goals: int = 10, feature_row=None) -> dict:
+    """`feature_row` (a full row from `features.build.build_training_frame`'s
+    output, e.g. a validation-set row) is only relevant for models that need
+    point-in-time features to avoid leakage — currently `MLScorelineModel`
+    via its `predict_from_row`. Pass it when scoring a fixture that already
+    happened (calibration, backtest); omit it for a genuine upcoming fixture,
+    where there's no historical row to draw from and `.predict(home, away)`
+    correctly uses each team's current state instead. Dixon-Coles/Bivariate-
+    Poisson ignore it either way — their fitted attack/defence params are
+    static regardless of when `.predict` is called.
+
+    A model exposing `.context` (currently `MLScorelineModel`) is
+    feature-driven rather than needing fixed per-team learned parameters, so
+    it's never sent through the flat fallback below, however new a team is —
+    see `FALLBACK_GOAL_EXPECTANCY`'s docstring and `_data_confidence`."""
+    uses_live_features = hasattr(model, "context")
     known_home, known_away = is_known_team(model, home), is_known_team(model, away)
-    if known_home and known_away:
-        grid = model.predict(home, away, max_goals=max_goals)
-    else:
+    fallback = not uses_live_features and not (known_home and known_away)
+
+    if fallback:
         grid = pb.models.create_dixon_coles_grid(
             FALLBACK_GOAL_EXPECTANCY, FALLBACK_GOAL_EXPECTANCY, rho=0.0, max_goals=max_goals
         )
+    elif feature_row is not None and hasattr(model, "predict_from_row"):
+        grid = model.predict_from_row(feature_row, max_goals=max_goals)
+    else:
+        grid = model.predict(home, away, max_goals=max_goals)
 
     return {
         "home_win": grid.home_win,
@@ -86,9 +133,12 @@ def predict_fixture(model, home: str, away: str, max_goals: int = 10) -> dict:
         "btts_no": grid.btts_no,
         "over_2_5": grid.total_goals("over", 2.5),
         "under_2_5": grid.total_goals("under", 2.5),
+        "home_goal_expectation": grid.home_goal_expectation,
+        "away_goal_expectation": grid.away_goal_expectation,
         "top_scorelines": _top_n_scorelines(grid),
         "grid": grid.grid,
-        "fallback": not (known_home and known_away),
+        "fallback": fallback,
+        "data_confidence": _data_confidence(model, home, away),
     }
 
 

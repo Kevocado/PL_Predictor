@@ -68,6 +68,9 @@ _FPL_API_ALIASES: dict[str, str] = {
 _SOURCE_ALIASES = {
     "odds_api": _ODDS_API_ALIASES,
     "fpl": _FPL_API_ALIASES,
+    # Understat uses the same full-name convention as The Odds API
+    # ("Manchester City", "Nottingham Forest", ...) — same alias table.
+    "understat": _ODDS_API_ALIASES,
 }
 
 CANONICAL_TEAMS: set[str] = set(_ODDS_API_ALIASES.values())

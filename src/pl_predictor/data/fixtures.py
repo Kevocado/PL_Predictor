@@ -70,3 +70,13 @@ def get_upcoming_fixtures(gameweek_key: str = "current", force_refresh: bool = F
         return _fixtures_from_odds_api(gameweek_key=gameweek_key, force_refresh=force_refresh)
     except OddsAPIKeyMissing:
         return _fixtures_from_fpl_api()
+
+
+def get_all_remaining_fixtures() -> pd.DataFrame:
+    """Every unplayed fixture for the rest of the season, regardless of
+    whether live odds exist for it yet. The Odds API only lists matches
+    close enough to kickoff to have a posted line, which is fine for the
+    Fixtures tab but wrong for anything projecting the *whole* remaining
+    season (e.g. the projected table) — this always uses the FPL API's full
+    fixture list instead."""
+    return _fixtures_from_fpl_api()

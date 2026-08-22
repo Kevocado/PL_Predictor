@@ -16,8 +16,8 @@ dependencies = [
     "scikit-learn",
     "requests",
     "python-dotenv",
-    "streamlit",
-    "plotly",
+    "fastapi",
+    "uvicorn[standard]",
 ]
 
 [project.optional-dependencies]

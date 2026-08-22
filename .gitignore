@@ -5,6 +5,7 @@ __pycache__/
 .DS_Store
 data/cache/*
 !data/cache/.gitkeep
+data/tracking.db
 .ipynb_checkpoints/
 *.egg-info/
 build/

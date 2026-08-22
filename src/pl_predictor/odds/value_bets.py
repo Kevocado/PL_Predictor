@@ -1,10 +1,12 @@
 """value_bets.py — join model predictions to live bookmaker odds and surface
 edges (model probability - de-vigged implied probability) above a threshold.
 
-Corners/cards predictions are included in the output table but with no live
-market (The Odds API's free markets don't cover them) — labeled as such
-rather than silently omitted, per the plan's requirement to be transparent
-about what can and can't be compared to a real market.
+Live edges are computed for h2h (1X2) and totals (over/under 2.5 goals) —
+the two "core" markets The Odds API's bulk endpoint serves. BTTS, corners,
+and cards predictions are still included in the output table, but with no
+live market to compare against (those need The Odds API's per-event
+"additional markets" endpoint, not implemented here) — labeled as such
+rather than silently omitted.
 """
 
 from __future__ import annotations
@@ -15,12 +17,6 @@ import penaltyblog as pb
 
 from ..models import scoreline
 from ..models.market_models import price_over_under
-
-MARKET_OUTCOME_MAP = {
-    "h2h": {"home_win": None, "draw": "Draw", "away_win": None},  # team names filled in per-fixture
-    "totals": {"over_2_5": "Over", "under_2_5": "Under"},
-    "btts": {"btts_yes": "Yes", "btts_no": "No"},
-}
 
 
 def _best_price(odds_df: pd.DataFrame, event_id, market: str, outcome_name: str, point: float | None = None):
@@ -46,6 +42,17 @@ def _devig_h2h(odds_df: pd.DataFrame, event_id, home: str, away: str) -> dict | 
     return {k: implied.get_probability_by_name(k) for k in ["home_win", "draw", "away_win"]}
 
 
+def _devig_totals(odds_df: pd.DataFrame, event_id, line: float = 2.5) -> dict | None:
+    over_price = _best_price(odds_df, event_id, "totals", "Over", point=line)
+    under_price = _best_price(odds_df, event_id, "totals", "Under", point=line)
+    if None in (over_price, under_price):
+        return None
+    implied = pb.implied.calculate_implied(
+        [over_price, under_price], method="shin", market_names=["over_2_5", "under_2_5"]
+    )
+    return {k: implied.get_probability_by_name(k) for k in ["over_2_5", "under_2_5"]}
+
+
 def build_value_bet_table(
     fixtures_df: pd.DataFrame,
     odds_df: pd.DataFrame,
@@ -58,6 +65,7 @@ def build_value_bet_table(
         pred = scoreline.predict_fixture(models["scoreline"], home, away)
 
         row = {
+            "event_id": event_id,
             "commence_time": fixture["commence_time"],
             "team_home": home,
             "team_away": away,
@@ -66,19 +74,24 @@ def build_value_bet_table(
             "away_win_prob": pred["away_win"],
             "btts_yes_prob": pred["btts_yes"],
             "over_2_5_prob": pred["over_2_5"],
+            "under_2_5_prob": pred["under_2_5"],
             "top_scoreline": f"{pred['top_scorelines'][0]['home']}-{pred['top_scorelines'][0]['away']}",
             "is_fallback_prediction": pred["fallback"],
+            "data_confidence": pred["data_confidence"],
         }
 
         implied_h2h = _devig_h2h(odds_df, event_id, home, away) if not odds_df.empty else None
-        for side in ["home_win", "draw", "away_win"]:
-            implied = implied_h2h.get(side) if implied_h2h else None
-            row[f"{side}_implied"] = implied
-            row[f"{side}_edge"] = (row[f"{side}_prob"] - implied) if implied is not None else None
+        implied_totals = _devig_totals(odds_df, event_id) if not odds_df.empty else None
+        implied = {**(implied_h2h or {}), **(implied_totals or {})}
+
+        for side in ["home_win", "draw", "away_win", "over_2_5", "under_2_5"]:
+            side_implied = implied.get(side)
+            row[f"{side}_implied"] = side_implied
+            row[f"{side}_edge"] = (row[f"{side}_prob"] - side_implied) if side_implied is not None else None
 
         row["value_bet_flags"] = [
             side
-            for side in ["home_win", "draw", "away_win"]
+            for side in ["home_win", "draw", "away_win", "over_2_5", "under_2_5"]
             if row[f"{side}_edge"] is not None and row[f"{side}_edge"] > edge_threshold
         ]
 

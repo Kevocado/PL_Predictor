@@ -167,3 +167,16 @@ def build_rolling_form(matches_df: pd.DataFrame) -> tuple[pd.DataFrame, list[str
     long_df = long_df.drop(columns=home_cols)
 
     return long_df, feature_cols
+
+
+_RESULT_LETTER = {3: "W", 1: "D", 0: "L"}
+
+
+def recent_form(matches_df: pd.DataFrame, team: str, n: int = 5) -> list[str]:
+    """This team's last `n` results as `["W","D","L",...]`, most recent
+    first — for a form strip on the fixture card/drawer, not a model
+    feature."""
+    long_df = to_team_perspective(matches_df)
+    team_rows = long_df[long_df["team"] == team].sort_values("date")
+    recent = team_rows["points"].tail(n).iloc[::-1]
+    return [_RESULT_LETTER[int(p)] for p in recent]

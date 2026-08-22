@@ -75,6 +75,28 @@ def fit_pi_ratings(matches_df: pd.DataFrame) -> pb.ratings.PiRatingSystem:
     return pi
 
 
+def team_rating_timeseries(matches_df: pd.DataFrame, k: float = 20.0, home_field_advantage: float = 100.0) -> pd.DataFrame:
+    """Long-format *post*-match Elo/Pi rating for both sides of every match
+    — for charting a team's rating trend over time. `replay_elo`/
+    `replay_pi_ratings` return *pre*-match values instead, since those feed
+    model training and must never see the match's own outcome; here the
+    match's outcome is exactly what we want reflected."""
+    df = matches_df.sort_values("date")
+    elo = pb.ratings.Elo(k=k, home_field_advantage=home_field_advantage)
+    pi = pb.ratings.PiRatingSystem()
+
+    rows = []
+    for _, row in df.iterrows():
+        home, away = row["team_home"], row["team_away"]
+        elo.update_ratings(home, away, _RESULT_CODE[row["ftr"]])
+        pi.update_ratings(home, away, int(row["goals_home"] - row["goals_away"]), date=row["date"])
+
+        for team in (home, away):
+            rows.append({"date": row["date"], "team": team, "elo": elo.get_team_rating(team), "pi": pi.get_team_rating(team)})
+
+    return pd.DataFrame(rows)
+
+
 def massey_colley_snapshot(matches_df: pd.DataFrame, as_of_date) -> dict:
     """Massey and Colley ratings computed on matches strictly before
     `as_of_date` — a point-in-time snapshot, not a per-match replay."""
