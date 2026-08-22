@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pl_predictor"
+version = "0.1.0"
+description = "Premier League match outcome, scoreline, and betting-market predictor"
+requires-python = ">=3.10"
+dependencies = [
+    "penaltyblog>=1.12.0",
+    "pandas",
+    "numpy",
+    "scipy",
+    "xgboost",
+    "scikit-learn",
+    "requests",
+    "python-dotenv",
+    "streamlit",
+    "plotly",
+]
+
+[project.optional-dependencies]
+dev = ["jupyter", "pytest"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
