@@ -4,17 +4,22 @@ import pandas as pd
 import penaltyblog as pb
 import pytest
 
-from pl_predictor.config import TRACKING_DB_PATH
 from pl_predictor.tracking import store
 
 
 @pytest.fixture
-def clean_db():
-    if TRACKING_DB_PATH.exists():
-        TRACKING_DB_PATH.unlink()
+def clean_db(tmp_path, monkeypatch):
+    # Must patch the name as imported into `store` (`from ..config import
+    # TRACKING_DB_PATH`), not `config.TRACKING_DB_PATH` itself — that's a
+    # separate binding and patching it wouldn't affect what `store._connect`
+    # actually opens. Previously this fixture deleted and rebuilt the real
+    # `config.TRACKING_DB_PATH` (data/tracking.db) directly — every pytest
+    # run was silently wiping this install's actual live prediction history,
+    # discovered when a real live-captured (non-backfilled) prediction lost
+    # its "captured before kickoff" distinction after a test run rebuilt it
+    # via the self-healing backfill path instead.
+    monkeypatch.setattr(store, "TRACKING_DB_PATH", tmp_path / "test_tracking.db")
     yield
-    if TRACKING_DB_PATH.exists():
-        TRACKING_DB_PATH.unlink()
 
 
 def test_record_is_idempotent(clean_db):
@@ -105,6 +110,54 @@ def test_reconcile_resolves_against_actual_result(clean_db):
     assert row["predicted_away_win"] == pytest.approx(0.15)
     assert row["hit"] is True
     assert row["backfilled"] is False
+
+
+def test_reconcile_resolves_against_tz_aware_matches_df(clean_db):
+    # football-data.org's `commence_time` (renamed to `date` before being
+    # passed here — see api/routes.py::_run_tracking_bookkeeping) is
+    # tz-aware, unlike this test suite's other synthetic naive timestamps.
+    # A live-captured (non-backfilled) prediction whose match only shows up
+    # in a tz-aware matches_df previously failed to reconcile at all —
+    # comparing a naive commence_time against a tz-aware `date` column
+    # raised inside reconcile_predictions, silently swallowed by its only
+    # caller, so the fixture just vanished from the app instead of erroring
+    # loudly. Regression test for that bug.
+    table = pd.DataFrame(
+        [
+            {
+                "event_id": "e1",
+                "team_home": "Newcastle",
+                "team_away": "Liverpool",
+                "commence_time": pd.Timestamp("2026-08-23T15:30:00Z"),
+                "home_win_prob": 0.3,
+                "draw_prob": 0.3,
+                "away_win_prob": 0.4,
+                "over_2_5_prob": 0.6,
+                "under_2_5_prob": 0.4,
+                "btts_yes_prob": 0.6,
+                "top_scoreline": "2-2",
+            }
+        ]
+    )
+    store.record_predictions(table)
+
+    matches_df = pd.DataFrame(
+        [
+            {
+                "team_home": "Newcastle",
+                "team_away": "Liverpool",
+                "date": pd.Timestamp("2026-08-23T15:30:00", tz="UTC"),
+                "goals_home": 2,
+                "goals_away": 2,
+                "ftr": "D",
+                "matchday": 1,
+            }
+        ]
+    )
+    assert store.reconcile_predictions(matches_df) == 6
+
+    record = store.get_track_record()
+    assert record["n_resolved_fixtures"] == 1
 
 
 def test_backfill_missing_predictions(clean_db):

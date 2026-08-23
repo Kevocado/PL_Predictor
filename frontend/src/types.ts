@@ -203,6 +203,7 @@ export interface BiggestUpset {
 }
 
 export interface GameweekResult {
+  event_id: string;
   team_home: string;
   team_away: string;
   commence_time: string;

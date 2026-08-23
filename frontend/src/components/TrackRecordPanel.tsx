@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { TrackRecordResponse } from "../types";
 import { InfoTooltip } from "./InfoTooltip";
 import { MissesTable } from "./MissesTable";
-import { RecentResultsTable } from "./RecentResultsTable";
+import { GameweekResultsGrid } from "./GameweekResultsGrid";
+import { FixtureModal } from "./FixtureModal";
 import { GLOSSARY } from "../lib/glossary";
 
 function StatCard({ label, value, info }: { label: string; value: string; info?: string }) {
@@ -23,6 +25,7 @@ function pct(value: number | null): string {
 
 export function TrackRecordPanel({ data }: { data: TrackRecordResponse }) {
   const { summary, biggest_upsets, gameweeks } = data;
+  const [selected, setSelected] = useState<string | null>(null);
 
   if (summary.n_resolved_fixtures === 0) {
     return (
@@ -106,10 +109,12 @@ export function TrackRecordPanel({ data }: { data: TrackRecordResponse }) {
                 — {pct(group.pct_correct)} correct ({Math.round(group.pct_correct * group.n_fixtures)}/{group.n_fixtures})
               </span>
             </h3>
-            <RecentResultsTable results={group.fixtures} />
+            <GameweekResultsGrid results={group.fixtures} onSelect={setSelected} />
           </div>
         ))}
       </div>
+
+      {selected && <FixtureModal eventId={selected} onClose={() => setSelected(null)} />}
     </div>
   );
 }

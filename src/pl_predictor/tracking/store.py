@@ -163,6 +163,18 @@ def reconcile_predictions(matches_df: pd.DataFrame, lookback_days: int = 3) -> i
     has_matchday = "matchday" in matches_df.columns
     now = _naive(pd.Timestamp.now(tz="UTC"))
 
+    # `commence_time` in the predictions table is always stored naive (see
+    # record_predictions), but football-data.org's own `date`/`commence_time`
+    # column is tz-aware (UTC) — comparing the two raises "Cannot compare
+    # tz-naive and tz-aware datetime-like objects", which this function's
+    # only caller (_run_tracking_bookkeeping) swallows silently, so a
+    # football-data.org-sourced finished match could never actually
+    # reconcile. Normalize to naive here rather than relying on every
+    # caller to pre-strip tz info.
+    if isinstance(matches_df["date"].dtype, pd.DatetimeTZDtype):
+        matches_df = matches_df.copy()
+        matches_df["date"] = matches_df["date"].dt.tz_localize(None)
+
     with _connect() as conn:
         unresolved = pd.read_sql(
             "SELECT * FROM predictions WHERE resolved = 0", conn, parse_dates=["commence_time"]
