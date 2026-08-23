@@ -10,6 +10,7 @@ import type {
   ProjectedTableResponse,
   RankingsResponse,
   TrackRecordResponse,
+  ValueBetTrackRecordResponse,
 } from "../types";
 
 // Derived from wherever this page was loaded from, not hardcoded to
@@ -46,6 +47,8 @@ export const api = {
   manifestHistory: () => get<ManifestHistoryResponse>("/manifest/history"),
   calibration: () => get<CalibrationResponse>("/calibration"),
   backtest: (staking: "kelly" | "flat" = "kelly") => post<BacktestResponse>("/backtest", { staking }),
+  valueBetTrackRecord: (staking: "kelly" | "flat" = "kelly") =>
+    get<ValueBetTrackRecordResponse>(`/value-bets/track-record?staking=${staking}`),
   retrain: () => post<ManifestResponse>("/retrain"),
   refreshOdds: () => post<{ status: string }>("/refresh-odds"),
   refreshFixtures: () => post<{ status: string }>("/refresh-fixtures"),

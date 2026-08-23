@@ -3,6 +3,7 @@ import { api } from "../api/client";
 import type { CalibrationResponse, ManifestResponse } from "../types";
 import { CalibrationPanel } from "../components/CalibrationPanel";
 import { BacktestPanel } from "../components/BacktestPanel";
+import { LiveValueBetPanel } from "../components/LiveValueBetPanel";
 import { InfoTooltip } from "../components/InfoTooltip";
 import { FeatureImportanceChart } from "../components/FeatureImportanceChart";
 import { ModelFreshnessPanel } from "../components/ModelFreshnessPanel";
@@ -195,6 +196,11 @@ export function CalibrationPage() {
           </div>
         </div>
       )}
+
+      <div>
+        <h2 className="mb-3 text-lg font-semibold text-pl-text">Live value-bet track record</h2>
+        <LiveValueBetPanel />
+      </div>
 
       <div>
         <h2 className="mb-3 text-lg font-semibold text-pl-text">Value-bet backtest</h2>

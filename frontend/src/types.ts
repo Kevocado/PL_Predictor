@@ -125,6 +125,15 @@ export interface BacktestResponse {
   staking: "kelly" | "flat";
 }
 
+export interface ValueBetTrackRecordResponse {
+  n_flagged: number;
+  n_resolved: number;
+  n_pending: number;
+  results: BacktestResults | null;
+  bankroll_curve: number[];
+  staking: "kelly" | "flat";
+}
+
 export interface FeatureImportance {
   gain: Record<string, number>;
   permutation: Record<string, number>;

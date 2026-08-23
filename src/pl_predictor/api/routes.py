@@ -26,6 +26,7 @@ from ..models import player_goals, power_rankings as power_rankings_mod, project
 from ..models.manifest import chronological_split
 from ..odds import value_bets
 from ..tracking import store as tracking_store
+from ..tracking import value_bet_ledger
 from .schemas import (
     FixtureDetail,
     FixturePlayers,
@@ -304,12 +305,15 @@ def _run_tracking_bookkeeping(table: pd.DataFrame) -> None:
         )
         if not fd_org_finished.empty:
             tracking_store.reconcile_predictions(fd_org_finished)
+            value_bet_ledger.reconcile_value_bets(fd_org_finished)
         # Fallback/mop-up: anything football-data.org didn't have yet (e.g.
         # its own scrape running behind) still gets resolved here, just
         # without a gameweek number.
         tracking_store.reconcile_predictions(_get_matches_df())
+        value_bet_ledger.reconcile_value_bets(_get_matches_df())
         trained_at = manifest_lib.load_manifest().get("trained_at") if manifest_lib.MANIFEST_PATH.exists() else None
         tracking_store.record_predictions(table, model_trained_at=trained_at)
+        value_bet_ledger.record_value_bets(table)
 
         # Catch up on any match that finished before this app was ever
         # polling for tracking to snapshot it live (e.g. the handful of
@@ -741,6 +745,18 @@ def run_backtest(edge_threshold: float = 0.05, staking: str = "kelly"):
         val_df, models["scoreline"], start, end, edge_threshold=edge_threshold, staking=staking
     )
     return {"results": bt.results(), "bankroll_curve": bt.account.tracker, "staking": staking}
+
+
+@router.get("/value-bets/track-record")
+def get_value_bet_track_record(staking: str = "kelly"):
+    """Live counterpart to /backtest: not a synthetic held-out-season
+    replay, but the real fixtures the app actually flagged as "Value bet"
+    (via /api/fixtures and /api/fixtures/gameweek's shared bookkeeping),
+    tracked from the moment each was first flagged and reconciled once the
+    match finishes. Answers "have the value-bet recommendations actually
+    shown to the user been worth following," not "is this a good strategy
+    in principle." """
+    return value_bet_ledger.get_value_bet_track_record(staking=staking)
 
 
 @router.post("/retrain")

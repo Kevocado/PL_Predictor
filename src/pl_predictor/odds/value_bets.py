@@ -95,10 +95,25 @@ def build_value_bet_table(
         implied_totals = _devig_totals(odds_df, event_id) if not odds_df.empty else None
         implied = {**(implied_h2h or {}), **(implied_totals or {})}
 
+        # Raw (non-devigged) best price per side — the implied probabilities
+        # above have the bookmaker's margin stripped out, which is the right
+        # thing to compare a model probability against for edge detection,
+        # but it's not what a real bet actually pays out on. Kept alongside
+        # the edge so a live value-bet tracker can compute real profit/ROI
+        # from what was actually flagged, not just whether it "looked" good.
+        price = {
+            "home_win": _best_price(odds_df, event_id, "h2h", home) if not odds_df.empty else None,
+            "draw": _best_price(odds_df, event_id, "h2h", "Draw") if not odds_df.empty else None,
+            "away_win": _best_price(odds_df, event_id, "h2h", away) if not odds_df.empty else None,
+            "over_2_5": _best_price(odds_df, event_id, "totals", "Over", point=2.5) if not odds_df.empty else None,
+            "under_2_5": _best_price(odds_df, event_id, "totals", "Under", point=2.5) if not odds_df.empty else None,
+        }
+
         for side in ["home_win", "draw", "away_win", "over_2_5", "under_2_5"]:
             side_implied = implied.get(side)
             row[f"{side}_implied"] = side_implied
             row[f"{side}_edge"] = (row[f"{side}_prob"] - side_implied) if side_implied is not None else None
+            row[f"{side}_price"] = price[side]
 
         row["value_bet_flags"] = [
             side
