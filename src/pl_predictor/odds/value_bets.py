@@ -36,9 +36,17 @@ def _devig_h2h(odds_df: pd.DataFrame, event_id, home: str, away: str) -> dict | 
     away_price = _best_price(odds_df, event_id, "h2h", away)
     if None in (home_price, draw_price, away_price):
         return None
-    implied = pb.implied.calculate_implied(
-        [home_price, draw_price, away_price], method="shin", market_names=["home_win", "draw", "away_win"]
-    )
+    try:
+        implied = pb.implied.calculate_implied(
+            [home_price, draw_price, away_price], method="shin", market_names=["home_win", "draw", "away_win"]
+        )
+    except ValueError:
+        # penaltyblog's Shin solver can fail to converge on some real
+        # live-odds combinations (root-finder needs opposite-signed
+        # endpoints, which isn't guaranteed for every price triple) — treat
+        # exactly like "no live odds for this fixture" rather than taking
+        # down the whole fixtures response over one bad price set.
+        return None
     return {k: implied.get_probability_by_name(k) for k in ["home_win", "draw", "away_win"]}
 
 
@@ -47,9 +55,12 @@ def _devig_totals(odds_df: pd.DataFrame, event_id, line: float = 2.5) -> dict | 
     under_price = _best_price(odds_df, event_id, "totals", "Under", point=line)
     if None in (over_price, under_price):
         return None
-    implied = pb.implied.calculate_implied(
-        [over_price, under_price], method="shin", market_names=["over_2_5", "under_2_5"]
-    )
+    try:
+        implied = pb.implied.calculate_implied(
+            [over_price, under_price], method="shin", market_names=["over_2_5", "under_2_5"]
+        )
+    except ValueError:
+        return None
     return {k: implied.get_probability_by_name(k) for k in ["over_2_5", "under_2_5"]}
 
 
@@ -60,9 +71,9 @@ def build_value_bet_table(
     edge_threshold: float = 0.05,
 ) -> pd.DataFrame:
     rows = []
-    for _, fixture in fixtures_df.iterrows():
+    preds = scoreline.predict_fixtures_batch(models["scoreline"], fixtures_df) if not fixtures_df.empty else []
+    for (_, fixture), pred in zip(fixtures_df.iterrows(), preds):
         home, away, event_id = fixture["team_home"], fixture["team_away"], fixture["event_id"]
-        pred = scoreline.predict_fixture(models["scoreline"], home, away)
 
         row = {
             "event_id": event_id,

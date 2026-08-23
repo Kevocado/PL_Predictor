@@ -18,6 +18,7 @@ dependencies = [
     "python-dotenv",
     "fastapi",
     "uvicorn[standard]",
+    "optuna",
 ]
 
 [project.optional-dependencies]

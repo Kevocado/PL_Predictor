@@ -1,48 +1,38 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../api/client";
-import type { FixtureSummary } from "../types";
-import { FixturesGrid } from "../components/FixturesGrid";
+import type { CurrentGameweekResponse } from "../types";
 import { FixtureModal } from "../components/FixtureModal";
-import { InfoTooltip } from "../components/InfoTooltip";
-import { GLOSSARY } from "../lib/glossary";
+import { CurrentGameweekSection } from "../components/CurrentGameweekSection";
 
 export function FixturesPage() {
-  const [fixtures, setFixtures] = useState<FixtureSummary[]>([]);
+  const [gameweek, setGameweek] = useState<CurrentGameweekResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
-  const [valueBetsOnly, setValueBetsOnly] = useState(false);
-  const [search, setSearch] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
+  // undefined = "current gameweek" (server decides); once the user
+  // navigates, this pins to whichever gameweek they're browsing.
+  const [viewGameweek, setViewGameweek] = useState<number | undefined>(undefined);
 
-  const load = () => {
+  const load = (gw?: number) => {
     setLoading(true);
     setError(null);
     api
-      .fixtures()
-      .then((data) => setFixtures([...data].sort((a, b) => a.commence_time.localeCompare(b.commence_time))))
+      .currentGameweek(gw)
+      .then(setGameweek)
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   };
 
-  useEffect(load, []);
+  useEffect(() => load(viewGameweek), [viewGameweek]);
 
-  const filtered = useMemo(() => {
-    return fixtures.filter((f) => {
-      if (valueBetsOnly && f.value_bet_flags.length === 0) return false;
-      if (search) {
-        const s = search.toLowerCase();
-        if (!f.team_home.toLowerCase().includes(s) && !f.team_away.toLowerCase().includes(s)) return false;
-      }
-      return true;
-    });
-  }, [fixtures, valueBetsOnly, search]);
+  const navigate = (gw: number) => setViewGameweek(gw);
 
   const runAction = async (key: string, fn: () => Promise<unknown>) => {
     setBusy(key);
     try {
       await fn();
-      load();
+      load(viewGameweek);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -53,26 +43,6 @@ export function FixturesPage() {
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center gap-3">
-        <input
-          type="text"
-          placeholder="Search team…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="rounded-lg border border-pl-border bg-pl-850/70 px-3 py-2 text-sm text-pl-text placeholder:text-pl-text-faint focus:border-pl-pink focus:outline-none"
-        />
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={() => setValueBetsOnly((v) => !v)}
-            className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
-              valueBetsOnly
-                ? "bg-pl-pink text-white"
-                : "border border-pl-border bg-pl-850/70 text-pl-text-dim hover:text-pl-text"
-            }`}
-          >
-            Value bets only
-          </button>
-          <InfoTooltip text={GLOSSARY.valueBetThreshold} />
-        </div>
         <div className="ml-auto flex gap-2">
           <button
             disabled={busy !== null}
@@ -95,10 +65,10 @@ export function FixturesPage() {
         <div className="mb-4 rounded-lg border border-loss/40 bg-loss/10 px-4 py-3 text-sm text-loss">{error}</div>
       )}
 
-      {loading ? (
+      {loading && !gameweek ? (
         <div className="py-16 text-center text-pl-text-faint">Loading fixtures…</div>
       ) : (
-        <FixturesGrid fixtures={filtered} onSelect={setSelected} />
+        gameweek && <CurrentGameweekSection data={gameweek} onSelect={setSelected} onNavigate={navigate} />
       )}
 
       {selected && <FixtureModal eventId={selected} onClose={() => setSelected(null)} />}

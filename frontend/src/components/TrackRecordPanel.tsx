@@ -1,7 +1,8 @@
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { TrackRecordResponse } from "../types";
 import { InfoTooltip } from "./InfoTooltip";
 import { MissesTable } from "./MissesTable";
+import { RecentResultsTable } from "./RecentResultsTable";
 import { GLOSSARY } from "../lib/glossary";
 
 function StatCard({ label, value, info }: { label: string; value: string; info?: string }) {
@@ -16,10 +17,14 @@ function StatCard({ label, value, info }: { label: string; value: string; info?:
   );
 }
 
-export function TrackRecordPanel({ data }: { data: TrackRecordResponse }) {
-  const { summary, biggest_misses } = data;
+function pct(value: number | null): string {
+  return value === null ? "—" : `${(value * 100).toFixed(0)}%`;
+}
 
-  if (summary.n_resolved === 0) {
+export function TrackRecordPanel({ data }: { data: TrackRecordResponse }) {
+  const { summary, biggest_upsets, gameweeks } = data;
+
+  if (summary.n_resolved_fixtures === 0) {
     return (
       <div>
         <h3 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">
@@ -37,35 +42,73 @@ export function TrackRecordPanel({ data }: { data: TrackRecordResponse }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatCard label="Predictions resolved" value={String(summary.n_resolved)} />
-        <StatCard label="Fixtures covered" value={String(summary.n_fixtures ?? "—")} />
-        <StatCard label="RPS (result market)" value={summary.rps !== null ? summary.rps.toFixed(4) : "—"} info={GLOSSARY.trackRecordScore} />
-        <StatCard label="Brier (goals/BTTS)" value={summary.brier !== null ? summary.brier.toFixed(4) : "—"} info={GLOSSARY.trackRecordScore} />
+        <StatCard
+          label={summary.current_gameweek ? `Gameweek ${summary.current_gameweek}` : "This gameweek"}
+          value={
+            summary.pct_correct_current_gameweek === null
+              ? "—"
+              : `${pct(summary.pct_correct_current_gameweek)} (${Math.round(
+                  summary.pct_correct_current_gameweek * summary.n_fixtures_current_gameweek
+                )}/${summary.n_fixtures_current_gameweek})`
+          }
+          info={GLOSSARY.trackRecordScore}
+        />
+        <StatCard
+          label="Correct overall"
+          value={`${pct(summary.pct_correct_overall)} (${Math.round(
+            (summary.pct_correct_overall ?? 0) * summary.n_resolved_fixtures
+          )}/${summary.n_resolved_fixtures})`}
+          info={GLOSSARY.trackRecordScore}
+        />
       </div>
 
-      {summary.weekly_trend.length > 1 && (
+      {summary.gameweek_trend.length > 1 && (
         <div className="clip-corner-lg h-64 rounded-xl border border-pl-border bg-pl-850/70 p-4">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={summary.weekly_trend} margin={{ top: 10, right: 20, bottom: 0, left: 0 }}>
+            <BarChart data={summary.gameweek_trend} margin={{ top: 10, right: 20, bottom: 0, left: 0 }}>
               <CartesianGrid stroke="var(--color-pl-border)" strokeDasharray="3 3" />
-              <XAxis dataKey="week" tick={{ fill: "var(--color-pl-text-faint)", fontSize: 10 }} />
-              <YAxis tick={{ fill: "var(--color-pl-text-faint)", fontSize: 11 }} />
+              <XAxis
+                dataKey="gameweek"
+                tick={{ fill: "var(--color-pl-text-faint)", fontSize: 10 }}
+                tickFormatter={(gw) => `GW${gw}`}
+              />
+              <YAxis
+                tick={{ fill: "var(--color-pl-text-faint)", fontSize: 11 }}
+                tickFormatter={(v) => `${Math.round(v * 100)}%`}
+                domain={[0, 1]}
+              />
               <Tooltip
                 contentStyle={{ background: "var(--color-pl-900)", border: "1px solid var(--color-pl-border)", borderRadius: 8 }}
                 labelStyle={{ color: "var(--color-pl-text-faint)" }}
+                labelFormatter={(gw) => `Gameweek ${gw}`}
+                formatter={(v) => [`${(Number(v) * 100).toFixed(0)}%`, "Correct"]}
               />
-              <Line type="monotone" dataKey="mean_squared_error" stroke="var(--color-pl-pink)" strokeWidth={2} dot={{ r: 3 }} />
-            </LineChart>
+              <Bar dataKey="pct_correct" fill="var(--color-pl-pink)" radius={[4, 4, 0, 0]} />
+            </BarChart>
           </ResponsiveContainer>
         </div>
       )}
 
       <div>
         <h3 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">
-          Biggest misses
+          Biggest upset
           <InfoTooltip text={GLOSSARY.biggestMisses} align="left" />
         </h3>
-        <MissesTable misses={biggest_misses} />
+        <MissesTable misses={biggest_upsets.slice(0, 3)} />
+      </div>
+
+      <div className="flex flex-col gap-5">
+        {gameweeks.map((group) => (
+          <div key={group.gameweek ?? "none"}>
+            <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">
+              {group.gameweek ? `Gameweek ${group.gameweek}` : "No gameweek data"}
+              <span className="text-pl-text-dim">
+                — {pct(group.pct_correct)} correct ({Math.round(group.pct_correct * group.n_fixtures)}/{group.n_fixtures})
+              </span>
+            </h3>
+            <RecentResultsTable results={group.fixtures} />
+          </div>
+        ))}
       </div>
     </div>
   );

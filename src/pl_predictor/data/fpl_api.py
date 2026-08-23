@@ -10,6 +10,7 @@ plus a few-hours TTL within a gameweek).
 from __future__ import annotations
 
 import json
+import os
 import time
 
 import pandas as pd
@@ -22,7 +23,16 @@ HISTORY_CACHE_TTL_SECONDS = 6 * 3600
 # a=available, i=injured, d=doubtful, s=suspended, u=unavailable
 UNAVAILABLE_STATUSES = {"i", "s", "u"}
 
-NUMERIC_STRING_COLS = ["influence", "creativity", "threat", "ict_index", "expected_goals", "expected_assists"]
+NUMERIC_STRING_COLS = [
+    "influence",
+    "creativity",
+    "threat",
+    "ict_index",
+    "expected_goals",
+    "expected_assists",
+    "expected_goal_involvements",
+    "expected_goals_conceded",
+]
 
 
 def fetch_bootstrap() -> dict:
@@ -78,11 +88,24 @@ def fetch_player_summary(player_id: int, current_event: int | None = None) -> tu
     cache_path = FPL_PLAYER_CACHE_DIR / f"{player_id}.json"
 
     if cache_path.exists():
-        cached = json.loads(cache_path.read_text())
-        fresh_gw = cached.get("current_event") == current_event
-        fresh_time = (time.time() - cached.get("fetched_at", 0)) < HISTORY_CACHE_TTL_SECONDS
-        if fresh_gw and fresh_time:
-            return _normalize_history(pd.DataFrame(cached["history"])), cached.get("prior_season")
+        try:
+            cached = json.loads(cache_path.read_text())
+        except json.JSONDecodeError:
+            # A concurrent request for the same player (routes.py's
+            # rank_team_players fans out one fetch per squad member, and
+            # FastAPI runs sync endpoints in a thread pool — two overlapping
+            # requests for the same team can race on the same cache file)
+            # can interleave two writes into one corrupt file — confirmed
+            # directly: several cache files found with two JSON documents
+            # concatenated back to back. Treated as a cache miss rather than
+            # crashing the request; the atomic write below (temp file +
+            # os.replace) prevents new corruption going forward.
+            cached = None
+        if cached is not None:
+            fresh_gw = cached.get("current_event") == current_event
+            fresh_time = (time.time() - cached.get("fetched_at", 0)) < HISTORY_CACHE_TTL_SECONDS
+            if fresh_gw and fresh_time:
+                return _normalize_history(pd.DataFrame(cached["history"])), cached.get("prior_season")
 
     resp = requests.get(f"{FPL_API_BASE_URL}/element-summary/{player_id}/", timeout=30)
     resp.raise_for_status()
@@ -91,9 +114,12 @@ def fetch_player_summary(player_id: int, current_event: int | None = None) -> tu
     history_past = data.get("history_past", [])
     prior_season = history_past[-1] if history_past else None
 
-    cache_path.write_text(
-        json.dumps({"current_event": current_event, "fetched_at": time.time(), "history": history, "prior_season": prior_season})
+    payload = json.dumps(
+        {"current_event": current_event, "fetched_at": time.time(), "history": history, "prior_season": prior_season}
     )
+    tmp_path = cache_path.with_suffix(f".{os.getpid()}.tmp")
+    tmp_path.write_text(payload)
+    os.replace(tmp_path, cache_path)  # atomic on POSIX — no interleaved-write corruption possible
     return _normalize_history(pd.DataFrame(history)), prior_season
 
 

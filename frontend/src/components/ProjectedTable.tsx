@@ -16,6 +16,39 @@ function zoneFor(position: number): string | null {
   return null;
 }
 
+function ordinal(n: number): string {
+  const rem100 = n % 100;
+  if (rem100 >= 11 && rem100 <= 13) return `${n}th`;
+  switch (n % 10) {
+    case 1:
+      return `${n}st`;
+    case 2:
+      return `${n}nd`;
+    case 3:
+      return `${n}rd`;
+    default:
+      return `${n}th`;
+  }
+}
+
+function PositionDelta({ position, delta }: { position: number | null; delta: number | null }) {
+  if (position === null || delta === null) {
+    return <span className="text-pl-text-faint">—</span>;
+  }
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span className="text-pl-text-dim">{ordinal(position)}</span>
+      {delta === 0 ? (
+        <span className="text-pl-text-faint">on track</span>
+      ) : (
+        <span className={`inline-flex items-center gap-0.5 font-semibold ${delta > 0 ? "text-win" : "text-loss"}`}>
+          {delta > 0 ? "▲" : "▼"} {Math.abs(delta)}
+        </span>
+      )}
+    </span>
+  );
+}
+
 export function ProjectedTable({ data }: { data: ProjectedTableResponse }) {
   return (
     <div>
@@ -33,6 +66,15 @@ export function ProjectedTable({ data }: { data: ProjectedTableResponse }) {
               <th className="px-3 py-2 text-right">Pts</th>
               <th className="px-3 py-2 text-right">Proj. Pts</th>
               <th className="px-3 py-2 text-right">Proj. GD</th>
+              <th className="px-3 py-2 text-right">
+                <span className="inline-flex items-center gap-1">
+                  vs. projection
+                  <InfoTooltip
+                    text="Their real current league position, plus how many places that differs from the model's end-of-season projection for them — a green ▲ means they're currently sitting better than the model expects them to finish, a red ▼ means worse. Blank until they've played their first match this season."
+                    align="left"
+                  />
+                </span>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -56,6 +98,9 @@ export function ProjectedTable({ data }: { data: ProjectedTableResponse }) {
                   <td className="px-3 py-2 text-right text-pl-text-dim">
                     {row.projected_goal_diff > 0 ? "+" : ""}
                     {row.projected_goal_diff}
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    <PositionDelta position={row.current_position} delta={row.position_delta} />
                   </td>
                 </tr>
               );

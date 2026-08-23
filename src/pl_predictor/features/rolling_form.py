@@ -27,6 +27,8 @@ BASE_STATS = [
     "shots_on_target_against",
     "corners_for",
     "corners_against",
+    "fouls_for",
+    "fouls_against",
     "cards_for",
     "cards_against",
     "points",
@@ -64,6 +66,8 @@ def to_team_perspective(matches_df: pd.DataFrame) -> pd.DataFrame:
             "shots_on_target_against": df.get("ast"),
             "corners_for": df.get("hc"),
             "corners_against": df.get("ac"),
+            "fouls_for": df.get("hf"),
+            "fouls_against": df.get("af"),
             "cards_for": df.get("hy", zeros).fillna(0) + df.get("hr", zeros).fillna(0),
             "cards_against": df.get("ay", zeros).fillna(0) + df.get("ar", zeros).fillna(0),
         }
@@ -85,6 +89,8 @@ def to_team_perspective(matches_df: pd.DataFrame) -> pd.DataFrame:
             "shots_on_target_against": df.get("hst"),
             "corners_for": df.get("ac"),
             "corners_against": df.get("hc"),
+            "fouls_for": df.get("af"),
+            "fouls_against": df.get("hf"),
             "cards_for": df.get("ay", zeros).fillna(0) + df.get("ar", zeros).fillna(0),
             "cards_against": df.get("hy", zeros).fillna(0) + df.get("hr", zeros).fillna(0),
         }

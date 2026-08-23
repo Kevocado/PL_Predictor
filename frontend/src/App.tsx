@@ -41,10 +41,20 @@ function App() {
         </nav>
       </header>
 
+      {/* All three pages mount immediately on page load (not on first
+          click) and stay mounted for the rest of the session — hidden with
+          CSS rather than unmounted, so switching tabs never re-fetches data
+          that's already loaded. */}
       <main>
-        {tab === "fixtures" && <FixturesPage />}
-        {tab === "hub" && <DataHubPage />}
-        {tab === "calibration" && <CalibrationPage />}
+        <div style={{ display: tab === "fixtures" ? "block" : "none" }}>
+          <FixturesPage />
+        </div>
+        <div style={{ display: tab === "hub" ? "block" : "none" }}>
+          <DataHubPage />
+        </div>
+        <div style={{ display: tab === "calibration" ? "block" : "none" }}>
+          <CalibrationPage />
+        </div>
       </main>
     </div>
   );

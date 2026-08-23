@@ -1,6 +1,7 @@
 import type {
   BacktestResponse,
   CalibrationResponse,
+  CurrentGameweekResponse,
   FixtureDetail,
   FixturePlayers,
   FixtureSummary,
@@ -37,6 +38,8 @@ async function post<T>(path: string, params?: Record<string, string>): Promise<T
 
 export const api = {
   fixtures: () => get<FixtureSummary[]>("/fixtures"),
+  currentGameweek: (gameweek?: number) =>
+    get<CurrentGameweekResponse>(gameweek ? `/fixtures/gameweek?gameweek=${gameweek}` : "/fixtures/gameweek"),
   fixtureDetail: (eventId: string) => get<FixtureDetail>(`/fixtures/${eventId}`),
   fixturePlayers: (eventId: string) => get<FixturePlayers>(`/fixtures/${eventId}/players`),
   manifest: () => get<ManifestResponse>("/manifest"),

@@ -16,6 +16,7 @@ from typing import Dict
 import numpy as np
 import pandas as pd
 import penaltyblog as pb
+import xgboost as xgb
 from sklearn.inspection import permutation_importance
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
@@ -84,15 +85,31 @@ def _evaluate_count_model(model, X_val, y_val) -> dict:
 
 
 def _feature_importance(model, X_val, y_val, feature_cols: list[str]) -> dict:
-    """Gain (XGBoost's internal split-value metric) and permutation
-    importance (how much held-out R^2 drops when a feature is shuffled —
-    more trustworthy, since gain can overrate a feature the model merely
-    splits on often without it actually driving accuracy). Same two-metric
-    pattern already proven in FPL_Optimizer/model.py."""
+    """Three views of the same question, "what does the model actually
+    rely on":
+    - gain: XGBoost's own internal split-value metric. Can overrate a
+      feature the model merely splits on often without it truly driving
+      accuracy.
+    - permutation: how much held-out R^2 drops when a feature is shuffled.
+      More trustworthy than gain, but only a magnitude, no sense of "why."
+    - shap: mean *signed* SHAP value per feature — each prediction's output
+      decomposed into exactly how much each feature pushed it up (positive)
+      or down (negative) from the average, then averaged (keeping sign)
+      across the holdout. Computed via XGBoost's own exact TreeSHAP
+      (`pred_contribs=True`), not the separate `shap` package — same
+      algorithm, no extra dependency. Signed (not just magnitude) so the
+      frontend can render it the way SHAP output is normally read: colored
+      by direction, ranked by |value|."""
     gain = dict(zip(feature_cols, model.feature_importances_.astype(float)))
     perm = permutation_importance(model, X_val, y_val, n_repeats=5, random_state=42, scoring="r2")
     permutation = dict(zip(feature_cols, perm.importances_mean.astype(float)))
-    return {"gain": gain, "permutation": permutation}
+
+    dmatrix = xgb.DMatrix(X_val, feature_names=feature_cols)
+    contribs = model.get_booster().predict(dmatrix, pred_contribs=True)
+    mean_signed_shap = contribs[:, :-1].mean(axis=0)  # last column is the bias/expected-value term
+    shap = dict(zip(feature_cols, mean_signed_shap.astype(float)))
+
+    return {"gain": gain, "permutation": permutation, "shap": shap}
 
 
 def train_all(seasons: list[str] | None = None, include_current_season: bool = True) -> Dict:
@@ -123,6 +140,17 @@ def train_all(seasons: list[str] | None = None, include_current_season: bool = T
     train_df, val_df = chronological_split(df)
     X_train, X_val = train_df[feature_cols].fillna(0), val_df[feature_cols].fillna(0)
 
+    # fouls (`*_fouls_for`/`*_fouls_against`) are in `feature_cols` for
+    # corners/cards, where they're a real signal (fouls -> cards). Measured
+    # directly: including them in the scoreline (goals) regressors' shared
+    # feature set made ml_scoreline's held-out RPS/Brier measurably worse
+    # (0.2073->0.2088 RPS, 0.6159->0.6193 Brier) — 18 extra mostly-irrelevant
+    # columns add variance on ~2280 training rows without adding goals
+    # signal. So ml_scoreline trains on a fouls-excluded subset while
+    # corners/cards keep the full set.
+    ml_feature_cols = [c for c in feature_cols if "fouls" not in c]
+    X_train_ml, X_val_ml = train_df[ml_feature_cols].fillna(0), val_df[ml_feature_cols].fillna(0)
+
     print(
         f"Training on {len(train_df)} matches ({n_current_season_matches} from the in-progress season), "
         f"validating on {len(val_df)} (held-out season)."
@@ -133,9 +161,21 @@ def train_all(seasons: list[str] | None = None, include_current_season: bool = T
     dc_metrics = _evaluate_scoreline_model(dc_model, val_df)
     bp_metrics = _evaluate_scoreline_model(bp_model, val_df)
 
-    ml_home_model, ml_away_model = ml_scoreline.train_goal_regressors(X_train, train_df["goals_home"], train_df["goals_away"])
-    ml_metrics = ml_scoreline.evaluate_on_holdout(ml_home_model, ml_away_model, X_val, val_df)
+    # NOTE: `dates=train_df["date"]` would add the same recency weighting
+    # DC/BP use, but a direct experiment on this 8-season window showed it
+    # makes ml_scoreline measurably worse (RPS 0.2088->0.2115, Brier
+    # 0.6193->0.6247) — unlike DC/BP, ml_scoreline's rolling-form features
+    # already encode recency directly, so the extra decay only shrinks
+    # effective sample size. Left unweighted here; `dates` stays available
+    # on train_goal_regressors for the historic-window experiment, where a
+    # much wider (unweighted) window is the actual risk it guards against.
+    ml_home_model, ml_away_model = ml_scoreline.train_goal_regressors(
+        X_train_ml, train_df["goals_home"], train_df["goals_away"]
+    )
+    ml_metrics = ml_scoreline.evaluate_on_holdout(ml_home_model, ml_away_model, X_val_ml, val_df)
     ml_teams = sorted(set(train_df["team_home"]) | set(train_df["team_away"]))
+    ml_importance_home = _feature_importance(ml_home_model, X_val_ml, val_df["goals_home"], ml_feature_cols)
+    ml_importance_away = _feature_importance(ml_away_model, X_val_ml, val_df["goals_away"], ml_feature_cols)
 
     candidates = {"dixon_coles": dc_metrics["rps"], "bivariate_poisson": bp_metrics["rps"], "ml_scoreline": ml_metrics["rps"]}
     chosen = min(candidates, key=candidates.get)
@@ -178,8 +218,11 @@ def train_all(seasons: list[str] | None = None, include_current_season: bool = T
             "ml_scoreline": {
                 "home_path": ML_HOME_MODEL_PATH.name,
                 "away_path": ML_AWAY_MODEL_PATH.name,
+                "feature_cols": ml_feature_cols,
                 "metrics": ml_metrics,
                 "teams": ml_teams,
+                "importance_home": ml_importance_home,
+                "importance_away": ml_importance_away,
             },
         },
         "corners": {
@@ -259,7 +302,7 @@ def load_models(matches_df: pd.DataFrame | None = None) -> Dict:
         scoreline_model = ml_scoreline.MLScorelineModel(
             home_model=market_models.load_regressor(ML_HOME_MODEL_PATH),
             away_model=market_models.load_regressor(ML_AWAY_MODEL_PATH),
-            feature_cols=manifest["features"],
+            feature_cols=manifest["scoreline"]["ml_scoreline"]["feature_cols"],
             teams=manifest["scoreline"]["ml_scoreline"]["teams"],
             context=context,
         )

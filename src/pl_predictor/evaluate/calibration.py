@@ -23,12 +23,25 @@ CLOSING_ODDS_COLS = ["b365_h", "b365_d", "b365_a"]
 
 
 def model_calibration(model, val_df: pd.DataFrame) -> dict:
-    # feature_row=row lets an ML scoreline model use this fixture's own
-    # point-in-time features (already present as columns on val_df) instead
-    # of re-deriving "current" form/Elo/xG — see scoreline.predict_fixture's
-    # docstring. Dixon-Coles/Bivariate-Poisson ignore the extra argument.
-    preds = [scoreline.predict_fixture(model, row["team_home"], row["team_away"], feature_row=row) for _, row in val_df.iterrows()]
-    probs = np.array([[p["home_win"], p["draw"], p["away_win"]] for p in preds])
+    if hasattr(model, "predict_many_from_rows"):
+        # Batched: one XGBoost .predict() call for the whole holdout instead
+        # of one call per row in a Python loop — the latter is what made
+        # this endpoint take ~5-6s on every single page load (measured:
+        # ~13ms/row XGBoost call overhead x 380 rows). See
+        # ml_scoreline.predict_grids_batch's docstring.
+        grids = model.predict_many_from_rows(val_df)
+        probs = np.array([[g.home_win, g.draw, g.away_win] for g in grids])
+    else:
+        # Dixon-Coles/Bivariate-Poisson: no live feature context, no
+        # XGBoost overhead to batch away — feature_row=row lets an ML model
+        # use this fixture's own point-in-time features instead of
+        # re-deriving "current" form/Elo/xG (see scoreline.predict_fixture's
+        # docstring); these two models just ignore the extra argument.
+        preds = [
+            scoreline.predict_fixture(model, row["team_home"], row["team_away"], feature_row=row)
+            for _, row in val_df.iterrows()
+        ]
+        probs = np.array([[p["home_win"], p["draw"], p["away_win"]] for p in preds])
     outcomes = val_df["ftr"].map(RESULT_CODE).to_numpy()
     return {
         "rps": pb.metrics.rps_average(probs, outcomes),

@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 
 from pl_predictor.data.football_data import load_training_data
-from pl_predictor.features.build import build_training_frame
+from pl_predictor.features.build import FixtureFeatureContext, build_training_frame
 from pl_predictor.features.rolling_form import build_rolling_form
 
 
@@ -43,3 +43,15 @@ def test_cold_start_confidence_present(matches):
     df, feature_cols = build_training_frame(matches_df=matches)
     assert "confidence_home" in df.columns
     assert set(df["confidence_home"].unique()) <= {"current", "blended", "none"}
+
+
+def test_build_row_accepts_tz_aware_commence_time(matches):
+    """A live fixtures source (e.g. the Odds API) hands commence_time as a
+    tz-aware UTC timestamp; matches_df's own `date` column is tz-naive.
+    build_row must not blow up computing rest days from that mismatch —
+    regression test for a real 500 this exact combination caused."""
+    ctx = FixtureFeatureContext(matches)
+    home, away = matches["team_home"].iloc[-1], matches["team_away"].iloc[-1]
+    tz_aware_commence_time = pd.Timestamp.now(tz="UTC") + pd.Timedelta(days=3)
+    row = ctx.build_row(home, away, commence_time=tz_aware_commence_time)
+    assert row["rest_days_home"] is not None or row["is_first_match_of_season_home"]

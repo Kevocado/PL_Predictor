@@ -1,14 +1,40 @@
 import { useState } from "react";
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, Cell, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { FeatureImportance } from "../types";
 import { InfoTooltip } from "./InfoTooltip";
-import { formatFeatureName } from "../lib/featureNames";
+import { explainFeatureName, formatFeatureName } from "../lib/featureNames";
 
-const METRIC_INFO: Record<"permutation" | "gain", string> = {
+const METRIC_INFO: Record<"shap" | "permutation" | "gain", string> = {
+  shap: "Each prediction decomposed into exactly how much every feature pushed it up or down from the average (SHAP values), then averaged — keeping the sign — across held-out matches. Pink bars push the prediction up, blue bars push it down; bar length is the size of that average push. Grounded in real per-prediction effects, which usually makes it the most intuitive of the three at a glance.",
   permutation:
     "How much held-out accuracy (R²) drops when this one feature's values are randomly shuffled — the more it drops, the more the model actually relies on it. More trustworthy than gain, but slower to compute.",
   gain: "XGBoost's own internal score for how useful a feature was for splitting decisions while training. Can overstate a feature the model happens to split on often without it truly driving accuracy.",
 };
+
+interface Entry {
+  raw: string;
+  name: string;
+  value: number;
+}
+
+interface TooltipPayloadItem {
+  payload: Entry;
+}
+
+function ChartTooltip({ active, payload, metric }: { active?: boolean; payload?: TooltipPayloadItem[]; metric: "shap" | "permutation" | "gain" }) {
+  if (!active || !payload || payload.length === 0) return null;
+  const entry = payload[0].payload;
+  const valueLabel = metric === "shap" ? "Avg. contribution" : metric === "gain" ? "Gain" : "Accuracy drop when shuffled";
+  return (
+    <div className="max-w-xs rounded-lg border border-pl-border bg-pl-900 px-3 py-2 text-xs shadow-xl">
+      <div className="mb-1 font-semibold text-pl-text">{entry.name}</div>
+      <div className="mb-1.5 text-pl-text-dim">
+        {valueLabel}: <span className="font-semibold text-pl-text">{entry.value >= 0 && metric === "shap" ? "+" : ""}{entry.value.toFixed(4)}</span>
+      </div>
+      <p className="leading-snug text-pl-text-faint">{explainFeatureName(entry.raw)}</p>
+    </div>
+  );
+}
 
 interface Props {
   title: string;
@@ -17,13 +43,13 @@ interface Props {
 }
 
 export function FeatureImportanceChart({ title, importance, topN = 10 }: Props) {
-  const [metric, setMetric] = useState<"permutation" | "gain">("permutation");
+  const [metric, setMetric] = useState<"shap" | "permutation" | "gain">("shap");
 
-  const entries = Object.entries(importance[metric])
-    .sort((a, b) => b[1] - a[1])
+  const entries: Entry[] = Object.entries(importance[metric])
+    .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
     .slice(0, topN)
     .reverse()
-    .map(([name, value]) => ({ name: formatFeatureName(name), value }));
+    .map(([raw, value]) => ({ raw, name: formatFeatureName(raw), value }));
 
   return (
     <div>
@@ -33,7 +59,7 @@ export function FeatureImportanceChart({ title, importance, topN = 10 }: Props) 
           <InfoTooltip text={METRIC_INFO[metric]} align="left" />
         </h4>
         <div className="flex gap-1 rounded-md border border-pl-border bg-pl-850/60 p-0.5">
-          {(["permutation", "gain"] as const).map((m) => (
+          {(["shap", "permutation", "gain"] as const).map((m) => (
             <button
               key={m}
               onClick={() => setMetric(m)}
@@ -58,14 +84,27 @@ export function FeatureImportanceChart({ title, importance, topN = 10 }: Props) 
               tick={{ fill: "var(--color-pl-text-dim)", fontSize: 10 }}
             />
             <Tooltip
-              contentStyle={{ background: "var(--color-pl-900)", border: "1px solid var(--color-pl-border)", borderRadius: 8 }}
-              labelStyle={{ color: "var(--color-pl-text)" }}
-              formatter={(value) => (typeof value === "number" ? value.toFixed(4) : value)}
+              content={(props) => <ChartTooltip active={props.active} payload={props.payload as unknown as TooltipPayloadItem[] | undefined} metric={metric} />}
+              cursor={{ fill: "var(--color-pl-border)", opacity: 0.15 }}
             />
-            <Bar dataKey="value" fill="var(--color-pl-pink)" radius={[0, 4, 4, 0]} />
+            <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+              {entries.map((entry, i) => (
+                <Cell key={i} fill={metric === "shap" && entry.value < 0 ? "var(--color-pl-cyan)" : "var(--color-pl-pink)"} />
+              ))}
+            </Bar>
           </BarChart>
         </ResponsiveContainer>
       </div>
+      {metric === "shap" && (
+        <div className="mt-2 flex items-center gap-4 text-[10px] text-pl-text-faint">
+          <span className="flex items-center gap-1">
+            <span className="h-2 w-2 rounded-sm" style={{ background: "var(--color-pl-pink)" }} /> pushes prediction up
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="h-2 w-2 rounded-sm" style={{ background: "var(--color-pl-cyan)" }} /> pushes prediction down
+          </span>
+        </div>
+      )}
     </div>
   );
 }

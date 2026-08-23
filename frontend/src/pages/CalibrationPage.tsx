@@ -12,26 +12,36 @@ export function CalibrationPage() {
   const [calibration, setCalibration] = useState<CalibrationResponse | null>(null);
   const [manifest, setManifest] = useState<ManifestResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [retraining, setRetraining] = useState(false);
 
   const load = () => {
     setError(null);
-    Promise.all([api.calibration(), api.manifest()])
+    return Promise.all([api.calibration(), api.manifest()])
       .then(([cal, man]) => {
         setCalibration(cal);
         setManifest(man);
       })
-      .catch((e) => setError(e.message));
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false));
   };
 
-  useEffect(load, []);
+  useEffect(() => {
+    load();
+  }, []);
+
+  const busy = loading || retraining;
 
   const retrain = async () => {
     setRetraining(true);
     setError(null);
     try {
       await api.retrain();
-      load();
+      // Keep the busy state through the post-retrain refetch too — this is
+      // what "Retrain" actually pulling the latest result means end to
+      // end, not just the training step. Without this the button briefly
+      // looked clickable again while stale numbers were still on screen.
+      await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -54,14 +64,19 @@ export function CalibrationPage() {
         </div>
         <button
           onClick={retrain}
-          disabled={retraining}
+          disabled={busy}
+          title={loading && !retraining ? "Still loading the current numbers — hang on a moment" : undefined}
           className="rounded-lg bg-pl-pink px-4 py-2 text-sm font-semibold text-white transition hover:bg-pl-pink-soft disabled:opacity-50"
         >
-          {retraining ? "Retraining… (~1-2 min)" : "Retrain models"}
+          {retraining ? "Retraining… (~1-2 min)" : loading ? "Loading…" : "Retrain models"}
         </button>
       </div>
 
       {error && <div className="rounded-lg border border-loss/40 bg-loss/10 px-4 py-3 text-sm text-loss">{error}</div>}
+
+      {loading && !calibration && !error && (
+        <div className="py-16 text-center text-pl-text-faint">Loading calibration data…</div>
+      )}
 
       {calibration && <CalibrationPanel data={calibration} />}
 
@@ -148,12 +163,30 @@ export function CalibrationPage() {
         </div>
       )}
 
+      {manifest?.scoreline.chosen_model === "ml_scoreline" &&
+        manifest.scoreline.ml_scoreline.importance_home &&
+        manifest.scoreline.ml_scoreline.importance_away && (
+          <div>
+            <h2 className="mb-3 text-lg font-semibold text-pl-text">What drives the scoreline predictions</h2>
+            <p className="mb-3 max-w-2xl text-xs text-pl-text-faint">
+              The live scoreline model is two XGBoost regressors — one predicts the home team's expected goals, one
+              the away team's — each ranked separately below. Toggle between Permutation (how much held-out accuracy
+              drops when a feature is shuffled — more trustworthy) and Gain (XGBoost's own internal split-usefulness
+              score — can overstate a feature the model happens to split on often).
+            </p>
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <FeatureImportanceChart title="Home goals model" importance={manifest.scoreline.ml_scoreline.importance_home} />
+              <FeatureImportanceChart title="Away goals model" importance={manifest.scoreline.ml_scoreline.importance_away} />
+            </div>
+          </div>
+        )}
+
       {manifest?.corners.importance && manifest?.cards.importance && (
         <div>
           <h2 className="mb-3 text-lg font-semibold text-pl-text">What drives the corners/cards predictions</h2>
           <p className="mb-3 max-w-2xl text-xs text-pl-text-faint">
             {manifest.scoreline.chosen_model === "ml_scoreline"
-              ? "The scoreline (1X2) model is currently the XGBoost variant above, which shares the same rolling-form/Elo/xG features as corners and cards — but its own feature ranking isn't broken out separately yet. Corners and cards are shown below."
+              ? "Corners and cards are separate XGBoost models sharing the same rolling-form/Elo/xG features as the scoreline model above."
               : "The scoreline (1X2) model doesn't have \"features\" to rank this way right now — it's a Dixon-Coles/Bivariate-Poisson model that fits each team's attack/defence strength directly (see Power Rankings in the Data Hub for that model's own transparency view). Corners and cards are separate XGBoost models trained on rolling-form features, so their importance can be ranked directly."}
           </p>
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

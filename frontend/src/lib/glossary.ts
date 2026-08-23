@@ -40,7 +40,7 @@ export const GLOSSARY = {
   projectedTable:
     "Current actual points plus each team's *expected* points (3×P(win) + 1×P(draw), summed) from the scoreline model over every fixture left in the season — not a single simulated run, but the mathematical average across all the ways the rest of the season could go.",
   trackRecordScore:
-    "RPS (match result) and Brier score (goals/BTTS) computed only on predictions that were actually logged before kickoff and have since been resolved against the real result — not a backtest on old seasons, a live, ongoing record starting from when this feature shipped.",
+    "Whether the model's highest-probability result (home win / draw / away win) matched what actually happened — computed only on predictions that were logged before kickoff (or honestly backfilled the same way) and have since been resolved against the real result. Not a backtest on old seasons: a live, ongoing record.",
   biggestMisses:
-    "Resolved predictions ranked by how far off they were (squared error) — the fixtures/markets where the model was most confidently wrong, worth a manual look for patterns (a particular market, a particular kind of team) worth improving.",
+    "The biggest genuine upsets — results the model gave the lowest chance of happening, and they happened anyway. Only the match-result market; goals/BTTS misses aren't shown here.",
 };

@@ -71,6 +71,9 @@ _SOURCE_ALIASES = {
     # Understat uses the same full-name convention as The Odds API
     # ("Manchester City", "Nottingham Forest", ...) — same alias table.
     "understat": _ODDS_API_ALIASES,
+    # pulselive.com's club names are the same full-name convention too
+    # ("Tottenham Hotspur", "Brentford", ...) — confirmed live.
+    "pulselive": _ODDS_API_ALIASES,
 }
 
 CANONICAL_TEAMS: set[str] = set(_ODDS_API_ALIASES.values())
@@ -86,6 +89,23 @@ def to_canonical(name: str, source: str = "odds_api") -> str:
 
     if source == "football_data":
         return name
+
+    if source == "football_data_org":
+        # football-data.org's names are the same full names as The Odds
+        # API's, just with a "FC"/"AFC" club-suffix (or, for Bournemouth
+        # specifically, an "AFC " prefix) that the Odds-API alias table
+        # doesn't carry — strip it and reuse that table rather than
+        # duplicating all 20+ entries.
+        base = name
+        if base.startswith("AFC "):
+            base = base[4:]
+        elif base.endswith(" FC"):
+            base = base[:-3]
+        elif base.endswith(" AFC"):
+            base = base[:-4]
+        if base in _ODDS_API_ALIASES:
+            return _ODDS_API_ALIASES[base]
+        name = base
 
     aliases = _SOURCE_ALIASES.get(source, {})
     if name in aliases:

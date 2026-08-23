@@ -1,53 +1,28 @@
-import type { MissedPrediction } from "../types";
+import type { BiggestUpset } from "../types";
 
-const MARKET_LABELS: Record<string, string> = {
-  "1x2": "Result",
-  totals_2_5: "Goals O/U 2.5",
-  btts: "BTTS",
-};
+function outcomeLabel(u: BiggestUpset): string {
+  if (u.actual_outcome === "home_win") return `${u.team_home} win`;
+  if (u.actual_outcome === "away_win") return `${u.team_away} win`;
+  return "Draw";
+}
 
-const OUTCOME_LABELS: Record<string, string> = {
-  home_win: "Home",
-  draw: "Draw",
-  away_win: "Away",
-  over: "Over",
-  under: "Under",
-  yes: "Yes",
-};
-
-export function MissesTable({ misses }: { misses: MissedPrediction[] }) {
+export function MissesTable({ misses }: { misses: BiggestUpset[] }) {
   if (misses.length === 0) {
     return <p className="text-xs text-pl-text-faint">No resolved predictions to review yet.</p>;
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-pl-border">
-      <table className="w-full min-w-[560px] text-sm">
-        <thead>
-          <tr className="border-b border-pl-border bg-pl-850/70 text-left text-[11px] uppercase tracking-wide text-pl-text-faint">
-            <th className="px-3 py-2">Fixture</th>
-            <th className="px-3 py-2">Market</th>
-            <th className="px-3 py-2 text-right">Predicted</th>
-            <th className="px-3 py-2 text-right">Actual</th>
-          </tr>
-        </thead>
-        <tbody>
-          {misses.map((m, i) => (
-            <tr key={i} className="border-b border-pl-border/60 bg-pl-850/40">
-              <td className="px-3 py-2 text-pl-text">
-                {m.team_home} v {m.team_away}
-              </td>
-              <td className="px-3 py-2 text-pl-text-dim">
-                {MARKET_LABELS[m.market] ?? m.market}: {OUTCOME_LABELS[m.outcome_name] ?? m.outcome_name}
-              </td>
-              <td className="px-3 py-2 text-right font-semibold text-pl-text">{(m.predicted_prob * 100).toFixed(0)}%</td>
-              <td className={`px-3 py-2 text-right font-semibold ${m.actual_outcome ? "text-win" : "text-loss"}`}>
-                {m.actual_outcome ? "Happened" : "Didn't happen"}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <ul className="flex flex-col gap-1.5">
+      {misses.map((u, i) => (
+        <li key={i} className="flex items-baseline justify-between gap-3 text-xs">
+          <span className="text-pl-text-dim">
+            <span className="font-mono font-semibold text-pl-text">
+              {u.team_home} {u.actual_goals_home}-{u.actual_goals_away} {u.team_away}
+            </span>{" "}
+            — model gave {outcomeLabel(u)} a {(u.predicted_prob * 100).toFixed(0)}% chance
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }

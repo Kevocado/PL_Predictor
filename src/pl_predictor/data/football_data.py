@@ -71,10 +71,37 @@ def load_training_data(seasons: list[str] | None = None, force_refresh: bool = F
 
 def fetch_current_season_partial(force_refresh: bool = True) -> pd.DataFrame | None:
     """Matches played so far in the current (in-progress) season. Refreshes
-    by default since this data changes weekly; returns None if the season
-    hasn't started / football-data.co.uk has no file for it yet."""
+    by default since this data changes weekly.
+
+    football-data.co.uk's own CSV for the current season is the preferred
+    source when it exists (it has richer stats and is what
+    `default_completed_seasons`'s historical window already relies on), but
+    its publishing cadence is unpredictable and can lag for a long time —
+    confirmed directly: it can show zero rows for a season even after a full
+    gameweek has been played. When that happens, falls back to
+    `data/pulselive.py` (the Premier League's own site backend) instead,
+    which carries the same shots/shots-on-target/corners/fouls/cards detail
+    and has been confirmed available within hours of full time — a real
+    freshness upgrade for the in-progress season specifically. Historical
+    seasons (`default_completed_seasons`) are untouched by this; they stay
+    on football-data.co.uk exclusively.
+
+    Local import to avoid a module-load-time cycle: `pulselive.py` imports
+    this module's `season_str`/`CURRENT_SEASON_START_YEAR`, so importing it
+    back at module scope here would be circular."""
     season = season_str(CURRENT_SEASON_START_YEAR)
     try:
-        return fetch_season(season, force_refresh=force_refresh)
+        df = fetch_season(season, force_refresh=force_refresh)
+        if not df.empty:
+            return df
     except RuntimeError:
+        pass
+
+    from . import pulselive
+
+    try:
+        df = pulselive.fetch_current_season_matches()
+    except Exception as exc:  # noqa: BLE001 - never let a pulselive hiccup break training
+        print(f"[pulselive] current-season fallback skipped: {exc}")
         return None
+    return df if not df.empty else None

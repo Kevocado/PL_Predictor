@@ -45,6 +45,27 @@ def _kelly_stake(prob: float, odds: float, fraction: float, max_stake_fraction: 
     return max(0.0, min(fraction * f_star, max_stake_fraction)) * bankroll
 
 
+def _precompute_predictions(model, df: pd.DataFrame) -> dict:
+    """One prediction per fixture, computed once before the sequential
+    per-fixture backtest loop runs — for a feature-driven model (has
+    `predict_many_from_rows`) this is a single batched XGBoost call instead
+    of one call per fixture inside the loop, which is dramatically slower
+    (see ml_scoreline.predict_grids_batch's docstring). Keyed by `df`'s own
+    index, which `pb.backtest.Backtest` preserves through its internal
+    date-filtering, so `logic()` can look a fixture's prediction up by
+    `ctx.fixture.name` instead of recomputing it."""
+    if hasattr(model, "predict_many_from_rows"):
+        grids = model.predict_many_from_rows(df)
+        return {
+            idx: {"home_win": g.home_win, "draw": g.draw, "away_win": g.away_win, "fallback": False}
+            for idx, g in zip(df.index, grids)
+        }
+    return {
+        idx: scoreline.predict_fixture(model, row["team_home"], row["team_away"], feature_row=row)
+        for idx, row in df.iterrows()
+    }
+
+
 def build_value_bet_backtest(
     df_with_odds: pd.DataFrame,
     model,
@@ -69,13 +90,12 @@ def build_value_bet_backtest(
     fixed `flat_stake` regardless of edge size — kept for comparison against
     the smarter default, not because it bets "with more sense")."""
     df = df_with_odds.dropna(subset=list(ODDS_COLS.values())).copy()
+    predictions = _precompute_predictions(model, df)
     bt = pb.backtest.Backtest(df, start_date, end_date)
 
     def logic(ctx):
         fixture = ctx.fixture
-        # feature_row=fixture: see scoreline.predict_fixture's docstring —
-        # this is what makes an ML scoreline model's backtest leakage-safe.
-        pred = scoreline.predict_fixture(model, fixture["team_home"], fixture["team_away"], feature_row=fixture)
+        pred = predictions[fixture.name]
         if pred["fallback"]:
             return  # no reliable edge estimate for an unseen team
 

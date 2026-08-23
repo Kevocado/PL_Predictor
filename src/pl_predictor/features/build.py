@@ -11,8 +11,20 @@ from __future__ import annotations
 
 import pandas as pd
 
-from ..data import football_data, understat
-from . import cold_start, head_to_head, ratings, referee, rest_days, rolling_form, xg_form
+from ..data import football_data, understat, understat_shots
+from ..models.projected_table import compute_standings
+from . import (
+    cold_start,
+    head_to_head,
+    ratings,
+    referee,
+    rest_days,
+    rolling_form,
+    shot_situation,
+    streaks,
+    table_context,
+    xg_form,
+)
 
 # Targets / raw-outcome columns that must never appear in the feature list
 # (that would be leaking the match's own result into its own features).
@@ -79,8 +91,30 @@ def build_training_frame(
     xg_feats, xg_cols = xg_form.attach_xg_features(matches_df, xg_data)
     xg_feats = xg_feats.reset_index(drop=True)
 
+    streak_feats, streak_cols = streaks.attach_streak_features(matches_df)
+    streak_feats = streak_feats.reset_index(drop=True)
+
+    stakes_feats, stakes_cols = table_context.attach_table_context_features(matches_df)
+    stakes_feats = stakes_feats.reset_index(drop=True)
+
+    shot_situation_data = understat_shots.load_shot_situation_data(seasons=understat_seasons)
+    situation_feats, situation_cols = shot_situation.attach_shot_situation_features(matches_df, shot_situation_data)
+    situation_feats = situation_feats.reset_index(drop=True)
+
     df = pd.concat(
-        [df.reset_index(drop=True), elo_feats, pi_feats, h2h_feats, rest_feats, referee_feats, xg_feats], axis=1
+        [
+            df.reset_index(drop=True),
+            elo_feats,
+            pi_feats,
+            h2h_feats,
+            rest_feats,
+            referee_feats,
+            xg_feats,
+            streak_feats,
+            stakes_feats,
+            situation_feats,
+        ],
+        axis=1,
     )
     df["elo_diff"] = df["elo_home"] - df["elo_away"]
     df["pi_diff"] = df["pi_home"] - df["pi_away"]
@@ -97,6 +131,33 @@ def build_training_frame(
         + [referee.FEATURE_COL]
         + xg_cols
         + xg_delta_cols
+        + streak_cols
+        # NOTE: stakes_cols (table_context.py — points off top4/relegation,
+        # games played) is deliberately *not* included here. Measured
+        # directly: it made ml_scoreline's held-out RPS/Brier measurably
+        # worse (0.2074->0.2087 RPS, 0.6157->0.6190 Brier) and also
+        # regressed Cards MAE (1.6173->1.6343), with zero presence in
+        # ml_scoreline's top-15 SHAP features either. Unlike fouls (which
+        # earned a place in the cards feature set specifically), this
+        # doesn't clearly help any of the three current markets, so — same
+        # "keep only if it earns it" discipline — it stays computed (still
+        # in `df`, just not in `feature_cols`) but unused for now. Revisit
+        # if a market where genuine table-position stakes plausibly matter
+        # more directly (e.g. a future BTTS/goals-total submodel) gets built.
+        #
+        # situation_cols (shot_situation.py — rolling set-piece xG share)
+        # is excluded the same way, for the same reason: measured directly,
+        # it made ml_scoreline's held-out RPS/Brier measurably worse
+        # (0.2074->0.2087 RPS, 0.6157->0.6190 Brier, despite genuinely
+        # showing up in ml_scoreline's own top-15 SHAP — it's used, just not
+        # helpfully) and regressed Cards MAE too (1.6173->1.6444, no SHAP
+        # presence there). Corners MAE ticked down slightly (2.68->2.657)
+        # but with zero SHAP presence in corners either, so that's most
+        # likely noise from the extra columns changing tree structure, not
+        # a real effect — not enough to justify keeping it anywhere. Stays
+        # computed (in `df`) but unused; the one-time Understat shot-level
+        # fetch this required is fully cached either way, so revisiting
+        # this costs nothing if a future market wants it.
     )
 
     return df, feature_cols
@@ -128,8 +189,15 @@ def _current_rest_days(matches_df: pd.DataFrame, team: str, as_of_date) -> dict:
     same_season = (
         team_matches[team_matches["date"] == last_date]["season"].iloc[0] == matches_df["season"].iloc[-1]
     )
+    # commence_time from a live fixtures source (e.g. the Odds API) is
+    # tz-aware (UTC); matches_df's own `date` column is always tz-naive —
+    # same mismatch tracking/store.py's `_naive` and data/fixtures.py's
+    # `_future_only` already normalize elsewhere.
+    as_of = pd.Timestamp(as_of_date)
+    if as_of.tzinfo is not None:
+        as_of = as_of.tz_localize(None)
     return {
-        "rest_days": (pd.Timestamp(as_of_date) - last_date).days,
+        "rest_days": (as_of - last_date).days,
         "is_first_match_of_season": not same_season,
     }
 
@@ -164,6 +232,25 @@ class FixtureFeatureContext:
         self.xg_current = xg_form.latest_xg_form(xg_data)
         self.xg_league_avg = self.xg_current.mean() if not self.xg_current.empty else pd.Series(dtype=float)
         self.xg_stat_cols = {f"{stat}_last_{w}": w for stat in ("xg_for", "xg_against") for w in xg_form.WINDOWS}
+
+        self.current_streaks = streaks.latest_streaks(self.matches_df)
+
+        # compute_standings sums whatever rows it's given with no season
+        # filtering of its own (see its docstring) — matches_df here can
+        # span 8+ seasons, so this must be scoped to the current season
+        # only, same as routes.py::get_projected_table's own call.
+        current_season = football_data.season_str(football_data.CURRENT_SEASON_START_YEAR)
+        season_matches = self.matches_df[self.matches_df["season"] == current_season]
+        standings = compute_standings(season_matches) if not season_matches.empty else pd.DataFrame()
+        self.current_stakes = table_context.live_stakes(standings)
+
+        shot_situation_seasons = sorted({str(s)[:4] for s in self.matches_df["season"].unique()})
+        shot_situation_data = understat_shots.load_shot_situation_data(seasons=shot_situation_seasons)
+        self.shot_situation_current = shot_situation.latest_shot_situation_form(shot_situation_data)
+        self.shot_situation_league_avg = (
+            self.shot_situation_current.mean() if not self.shot_situation_current.empty else pd.Series(dtype=float)
+        )
+        self.shot_situation_stat_cols = {f"set_piece_xg_share_last_{w}": w for w in shot_situation.WINDOWS}
 
     def build_row(self, home: str, away: str, commence_time=None) -> dict:
         row = {"team_home": home, "team_away": away, "commence_time": commence_time}
@@ -223,6 +310,33 @@ class FixtureFeatureContext:
                 row[f"{side}_xg_delta_against_last_{w}"] = (
                     row[f"{side}_last_{w}_goals_against"] - row[f"{side}_xg_against_last_{w}"]
                 )
+
+        row["home_current_streak"] = int(self.current_streaks.get(home, 0))
+        row["away_current_streak"] = int(self.current_streaks.get(away, 0))
+
+        for team, prefix in [(home, "home"), (away, "away")]:
+            stakes = self.current_stakes.loc[team] if team in self.current_stakes.index else None
+            row[f"{prefix}_points_off_top4"] = float(stakes["points_off_top4"]) if stakes is not None else 0.0
+            row[f"{prefix}_points_off_relegation"] = (
+                float(stakes["points_off_relegation"]) if stakes is not None else 0.0
+            )
+            row[f"{prefix}_games_played_this_season"] = float(stakes["played"]) if stakes is not None else 0.0
+
+        for team, prefix in [(home, "home"), (away, "away")]:
+            n_games = int(self.games_played.get(team, 0))
+            team_situation = (
+                self.shot_situation_current.loc[team]
+                if team in self.shot_situation_current.index
+                else pd.Series(dtype=float)
+            )
+            for stat_col, w in self.shot_situation_stat_cols.items():
+                weight = min(n_games / w, 1.0)
+                avg = self.shot_situation_league_avg.get(stat_col)
+                current_val = team_situation.get(stat_col)
+                if pd.isna(current_val):
+                    current_val = avg
+                blended = weight * current_val + (1 - weight) * avg if avg is not None and not pd.isna(avg) else current_val
+                row[f"{prefix}_{stat_col}"] = blended
 
         return row
 

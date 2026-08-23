@@ -22,6 +22,32 @@ export interface FixtureSummary {
   has_live_odds: boolean;
 }
 
+export interface CurrentGameweekFixture {
+  event_id: string;
+  team_home: string;
+  team_away: string;
+  commence_time: string;
+  finished: boolean;
+  actual_goals_home: number | null;
+  actual_goals_away: number | null;
+  predicted_home_win: number;
+  predicted_draw: number;
+  predicted_away_win: number;
+  predicted_scoreline: string | null;
+  hit: boolean | null;
+  backfilled: boolean;
+  has_live_odds: boolean;
+  value_bet_flags: string[];
+}
+
+export interface CurrentGameweekResponse {
+  gameweek: number | null;
+  fixtures: CurrentGameweekFixture[];
+  is_current: boolean;
+  min_gameweek: number | null;
+  max_gameweek: number | null;
+}
+
 export interface OverUnderPrediction {
   lambda_: number;
   line: number;
@@ -102,6 +128,7 @@ export interface BacktestResponse {
 export interface FeatureImportance {
   gain: Record<string, number>;
   permutation: Record<string, number>;
+  shap: Record<string, number>;
 }
 
 export interface ManifestModelMetrics {
@@ -116,6 +143,9 @@ export interface TeamRanking {
   attack: number;
   defence: number;
   net_strength: number;
+  games_played: number | null;
+  confidence: "new" | "limited" | "established";
+  fitted: boolean;
 }
 
 export interface RatingPoint {
@@ -134,9 +164,11 @@ export interface ProjectedTableRow {
   team: string;
   played: number;
   current_points: number;
+  current_position: number | null;
   projected_points: number;
   projected_goal_diff: number;
   projected_position: number;
+  position_delta: number | null;
 }
 
 export interface ProjectedTableResponse {
@@ -144,32 +176,58 @@ export interface ProjectedTableResponse {
   season: string;
 }
 
-export interface WeeklyTrendPoint {
-  week: string;
-  mean_squared_error: number;
+export interface GameweekTrendPoint {
+  gameweek: number;
+  pct_correct: number;
+  n_fixtures: number;
 }
 
 export interface TrackRecordSummary {
-  n_resolved: number;
-  n_fixtures?: number;
-  rps: number | null;
-  brier: number | null;
-  weekly_trend: WeeklyTrendPoint[];
+  n_resolved_fixtures: number;
+  pct_correct_overall: number | null;
+  current_gameweek: number | null;
+  pct_correct_current_gameweek: number | null;
+  n_fixtures_current_gameweek: number;
+  gameweek_trend: GameweekTrendPoint[];
 }
 
-export interface MissedPrediction {
+export interface BiggestUpset {
   team_home: string;
   team_away: string;
   commence_time: string;
-  market: string;
-  outcome_name: string;
+  gameweek: number | null;
+  actual_goals_home: number | null;
+  actual_goals_away: number | null;
+  actual_outcome: "home_win" | "draw" | "away_win";
   predicted_prob: number;
-  actual_outcome: number;
+}
+
+export interface GameweekResult {
+  team_home: string;
+  team_away: string;
+  commence_time: string;
+  predicted_scoreline: string | null;
+  actual_goals_home: number | null;
+  actual_goals_away: number | null;
+  predicted_home_win: number;
+  predicted_draw: number;
+  predicted_away_win: number;
+  actual_outcome: "home_win" | "draw" | "away_win" | null;
+  hit: boolean;
+  backfilled: boolean;
+}
+
+export interface GameweekGroup {
+  gameweek: number | null;
+  pct_correct: number;
+  n_fixtures: number;
+  fixtures: GameweekResult[];
 }
 
 export interface TrackRecordResponse {
   summary: TrackRecordSummary;
-  biggest_misses: MissedPrediction[];
+  biggest_upsets: BiggestUpset[];
+  gameweeks: GameweekGroup[];
 }
 
 export interface ManifestResponse {
@@ -183,7 +241,11 @@ export interface ManifestResponse {
     chosen_model: string;
     dixon_coles: ManifestModelMetrics;
     bivariate_poisson: ManifestModelMetrics;
-    ml_scoreline: ManifestModelMetrics & { teams?: string[] };
+    ml_scoreline: ManifestModelMetrics & {
+      teams?: string[];
+      importance_home?: FeatureImportance;
+      importance_away?: FeatureImportance;
+    };
   };
   corners: ManifestModelMetrics;
   cards: ManifestModelMetrics;

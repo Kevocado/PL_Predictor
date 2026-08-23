@@ -142,6 +142,45 @@ def predict_fixture(model, home: str, away: str, max_goals: int = 10, feature_ro
     }
 
 
+def predict_fixtures_batch(model, fixtures_df: pd.DataFrame, max_goals: int = 10) -> list[dict]:
+    """Same per-fixture dict shape as `predict_fixture`, for many fixtures
+    at once. For a feature-driven model (has `.context` + `predict_many_
+    from_rows` — currently `MLScorelineModel`), builds every fixture's
+    feature row via the context once, then does a single batched XGBoost
+    call instead of looping one `.predict()` per fixture — the difference
+    between a fraction of a second and several seconds once there's more
+    than a handful of fixtures (a full remaining season for the projected
+    table, or the main fixtures list once the Odds API is returning many).
+    Dixon-Coles/Bivariate-Poisson have no such benefit (static per-team
+    params, no XGBoost call) and just fall back to the per-fixture loop."""
+    if hasattr(model, "context") and hasattr(model, "predict_many_from_rows"):
+        fixtures = list(fixtures_df.itertuples(index=False))
+        rows = [
+            model.context.build_row(f.team_home, f.team_away, getattr(f, "commence_time", None)) for f in fixtures
+        ]
+        X = pd.DataFrame(rows).reindex(columns=model.feature_cols, fill_value=0).fillna(0).astype(float)
+        grids = model.predict_many_from_rows(X, max_goals=max_goals)
+        return [
+            {
+                "home_win": g.home_win,
+                "draw": g.draw,
+                "away_win": g.away_win,
+                "btts_yes": g.btts_yes,
+                "btts_no": g.btts_no,
+                "over_2_5": g.total_goals("over", 2.5),
+                "under_2_5": g.total_goals("under", 2.5),
+                "home_goal_expectation": g.home_goal_expectation,
+                "away_goal_expectation": g.away_goal_expectation,
+                "top_scorelines": _top_n_scorelines(g),
+                "grid": g.grid,
+                "fallback": False,
+                "data_confidence": _data_confidence(model, f.team_home, f.team_away),
+            }
+            for g, f in zip(grids, fixtures)
+        ]
+    return [predict_fixture(model, row["team_home"], row["team_away"], max_goals=max_goals) for _, row in fixtures_df.iterrows()]
+
+
 def predict_many(model, fixtures_df: pd.DataFrame, max_goals: int = 10) -> pd.DataFrame:
     rows = []
     for _, row in fixtures_df.iterrows():
