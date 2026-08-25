@@ -4,6 +4,15 @@ export interface MarketEdge {
   edge: number | null;
 }
 
+export interface SingleBetRecommendation {
+  market: string;
+  probability: number;
+  implied_probability: number;
+  edge: number;
+  price: number;
+  bookmaker: string;
+}
+
 export interface FixtureSummary {
   event_id: string;
   commence_time: string;
@@ -20,6 +29,9 @@ export interface FixtureSummary {
   data_confidence: "new" | "limited" | "established" | null;
   value_bet_flags: string[];
   has_live_odds: boolean;
+  odds_fetched_at: string | null;
+  odds_is_stale: boolean;
+  recommended_bet: SingleBetRecommendation | null;
 }
 
 export interface CurrentGameweekFixture {
@@ -38,6 +50,15 @@ export interface CurrentGameweekFixture {
   backfilled: boolean;
   has_live_odds: boolean;
   value_bet_flags: string[];
+  home_player_events?: FixturePlayerEvent[];
+  away_player_events?: FixturePlayerEvent[];
+  player_events_pending?: boolean;
+}
+
+export interface FixturePlayerEvent {
+  name: string;
+  goals: number;
+  assists: number;
 }
 
 export interface CurrentGameweekResponse {
@@ -77,6 +98,78 @@ export interface FixtureDetail extends FixtureSummary {
   head_to_head: H2HMeeting[];
   home_recent_form: string[];
   away_recent_form: string[];
+  home_context: FixtureTeamContext;
+  away_context: FixtureTeamContext;
+  post_match: FixturePostMatch | null;
+  actual_stats: FixtureActualStats | null;
+}
+
+export interface PostMatchVerdict {
+  label: string;
+  prediction: string;
+  actual: string;
+  hit: boolean;
+}
+
+export interface PostMatchPlayerCall {
+  name: string;
+  team: string;
+  goal_probability: number;
+  assist_probability: number;
+  contribution_probability: number;
+  goals: number;
+  assists: number;
+  goal_hit: boolean;
+  assist_hit: boolean;
+  goal_called: boolean;
+  assist_called: boolean;
+  contribution_called: boolean;
+  is_recommended: boolean;
+  contribution_hit: boolean;
+  provenance: "snapshot" | "reconstructed";
+}
+
+export interface FixturePostMatch {
+  final_score: string;
+  provenance: "snapshot" | "reconstructed";
+  verdicts: PostMatchVerdict[];
+  player_calls: PostMatchPlayerCall[];
+}
+
+export interface FixturePlayerReviewCall {
+  name: string;
+  team: string;
+  goal_probability: number;
+  assist_probability: number;
+  contribution_probability: number;
+  goals: number;
+  assists: number;
+  hit: boolean;
+  is_recommended: boolean;
+  review_label: "Goal call" | "Assist call" | "G+A call" | "Recommended player" | "Overperformer";
+  review_probability: number;
+  review_market: "Goal" | "Assist" | "G+A";
+}
+
+export interface FixturePlayerReview {
+  provenance: "snapshot" | "reconstructed";
+  correct: FixturePlayerReviewCall[];
+  missed: FixturePlayerReviewCall[];
+  overperformed: FixturePlayerReviewCall[];
+}
+
+export interface FixtureTeamContext {
+  rest_days: number | null;
+  xg_for_last_5: number | null;
+  xg_against_last_5: number | null;
+  corners_last_5: number | null;
+  cards_last_5: number | null;
+  set_piece_xg_share_last_5: number | null;
+}
+
+export interface FixtureActualStats {
+  home: Record<string, number | null>;
+  away: Record<string, number | null>;
 }
 
 export interface PlayerPrediction {
@@ -85,9 +178,15 @@ export interface PlayerPrediction {
   position: string;
   anytime_goal_prob: number;
   anytime_assist_prob: number;
+  anytime_goal_contribution_prob: number;
   status: string;
   news: string;
   confidence: string;
+  predicted_starter: boolean;
+  confirmed_starter: boolean;
+  expected_minutes: number;
+  is_penalty_taker: boolean;
+  is_set_piece_taker: boolean;
 }
 
 export interface FixturePlayers {
@@ -123,15 +222,68 @@ export interface BacktestResponse {
   results: BacktestResults;
   bankroll_curve: number[];
   staking: "kelly" | "flat";
+  season: string | null;
+  selections: HistoricalValueBet[];
+}
+
+export interface HistoricalValueBet {
+  date: string;
+  fixture: string;
+  selection: string;
+  price: number;
+  model_probability: number;
+  implied_probability: number;
+  edge: number;
+  won: boolean;
+}
+
+export interface BettingValidationSummary {
+  bets: number;
+  wins: number;
+  win_rate: number | null;
+  yield: number | null;
+  yield_ci_95: [number, number] | null;
+}
+
+export interface BettingValidationBreakdown {
+  label: string;
+  bets: number;
+  wins: number;
+  win_rate: number | null;
+  yield: number | null;
+}
+
+export interface WalkForwardBettingResponse {
+  model: string;
+  min_train_seasons: number;
+  summary: BettingValidationSummary;
+  folds: Array<BettingValidationBreakdown & { season: string; train_matches: number }>;
+  by_market: BettingValidationBreakdown[];
+  by_odds_band: BettingValidationBreakdown[];
 }
 
 export interface ValueBetTrackRecordResponse {
   n_flagged: number;
   n_resolved: number;
   n_pending: number;
+  confirmed_wins: number;
+  confirmed_losses: number;
+  confirmed_win_rate: number | null;
+  confirmed_bets: ConfirmedValueBet[];
   results: BacktestResults | null;
   bankroll_curve: number[];
   staking: "kelly" | "flat";
+}
+
+export interface ConfirmedValueBet {
+  fixture: string;
+  market: string;
+  selection: string;
+  price: number;
+  edge: number;
+  won: boolean;
+  result_source: string;
+  resolved_at: string | null;
 }
 
 export interface FeatureImportance {
@@ -153,7 +305,7 @@ export interface TeamRanking {
   defence: number;
   net_strength: number;
   games_played: number | null;
-  confidence: "new" | "limited" | "established";
+  confidence: "new" | "limited" | "preseason" | "established";
   fitted: boolean;
 }
 
@@ -167,6 +319,88 @@ export interface RankingsResponse {
   rankings: TeamRanking[];
   ratings_history: Record<string, RatingPoint[]>;
   season: string;
+}
+
+export interface TeamHubRecentMatch {
+  date: string;
+  opponent: string;
+  venue: "Home" | "Away";
+  result: "W" | "D" | "L";
+  score: string;
+  xg_for: number | null;
+  xg_against: number | null;
+}
+
+export interface TeamHubTeam {
+  team: string;
+  played: number;
+  points: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  goals_for: number;
+  goals_against: number;
+  points_per_match: number | null;
+  form_points_per_match: number | null;
+  form_trend: "up" | "down" | "steady" | "new";
+  goals_for_per_match: number | null;
+  goals_against_per_match: number | null;
+  shots_per_match: number | null;
+  shots_on_target_per_match: number | null;
+  corners_per_match: number | null;
+  fouls_per_match: number | null;
+  cards_per_match: number | null;
+  xg_for: number | null;
+  xg_against: number | null;
+  goals_minus_xg: number | null;
+  goals_conceded_minus_xg: number | null;
+  set_piece_xg_share: number | null;
+  streak: number;
+  recent_matches: TeamHubRecentMatch[];
+}
+
+export interface TeamHubResponse {
+  season: string;
+  teams: TeamHubTeam[];
+}
+
+export interface PlayerHubPlayer {
+  id: number;
+  name: string;
+  team: string;
+  position: string;
+  status: string;
+  chance_of_playing: number | null;
+  minutes: number;
+  starts: number;
+  goals: number;
+  assists: number;
+  xg: number | null;
+  xa: number | null;
+  xgi: number | null;
+  threat: number | null;
+  creativity: number | null;
+  ict: number | null;
+  bps: number;
+  bonus: number;
+  news: string;
+}
+
+export interface PlayerHubResponse {
+  players: PlayerHubPlayer[];
+}
+
+export interface ScorerAccuracyGroup {
+  calls: number;
+  call_hits: number;
+  call_hit_rate: number | null;
+  goal_brier: number | null;
+  calibration: Array<{ range: string; n: number; predicted: number; actual: number }>;
+}
+
+export interface ScorerAccuracyResponse {
+  snapshot: ScorerAccuracyGroup;
+  reconstructed: ScorerAccuracyGroup;
 }
 
 export interface ProjectedTableRow {

@@ -1,4 +1,5 @@
 import { TeamBadge } from "./TeamBadge";
+import type { FixturePlayerEvent } from "../types";
 
 function formatKickoff(iso: string): { date: string; time: string } {
   const d = new Date(iso);
@@ -20,7 +21,16 @@ interface Props {
   predicted_away_win: number;
   hit: boolean | null;
   backfilled: boolean;
+  home_player_events?: FixturePlayerEvent[];
+  away_player_events?: FixturePlayerEvent[];
+  player_events_pending?: boolean;
   onClick: () => void;
+}
+
+function playerSummary(events: FixturePlayerEvent[], key: "goals" | "assists", label: string) {
+  const contributors = events.filter((event) => event[key] > 0);
+  if (!contributors.length) return null;
+  return `${label}: ${contributors.map((event) => `${event.name}${event[key] > 1 ? ` (${event[key]})` : ""}`).join(", ")}`;
 }
 
 // Shared "already-played fixture" card — same visual language wherever a
@@ -40,6 +50,9 @@ export function FinishedFixtureCard({
   predicted_away_win,
   hit,
   backfilled,
+  home_player_events = [],
+  away_player_events = [],
+  player_events_pending = false,
   onClick,
 }: Props) {
   const { date, time } = formatKickoff(commence_time);
@@ -84,6 +97,15 @@ export function FinishedFixtureCard({
           <span className="text-xs font-semibold leading-tight text-pl-text">{team_away}</span>
         </div>
       </div>
+      {(home_player_events.length > 0 || away_player_events.length > 0) && (
+        <div className="grid grid-cols-2 gap-3 border-t border-pl-border/70 pt-2 text-[10px] leading-relaxed text-pl-text-dim">
+          <div>{playerSummary(home_player_events, "goals", "Goals") && <p>{playerSummary(home_player_events, "goals", "Goals")}</p>}{playerSummary(home_player_events, "assists", "Assists") && <p>{playerSummary(home_player_events, "assists", "Assists")}</p>}</div>
+          <div className="text-right">{playerSummary(away_player_events, "goals", "Goals") && <p>{playerSummary(away_player_events, "goals", "Goals")}</p>}{playerSummary(away_player_events, "assists", "Assists") && <p>{playerSummary(away_player_events, "assists", "Assists")}</p>}</div>
+        </div>
+      )}
+      {player_events_pending && (
+        <p className="border-t border-pl-border/70 pt-2 text-center text-[10px] text-pl-text-faint">Refreshing official scorers and assists…</p>
+      )}
       <div className="flex items-center justify-between border-t border-pl-border/70 pt-2.5 text-[11px] text-pl-text-dim">
         <span>
           We predicted <span className="font-mono font-semibold text-pl-text">{predicted_scoreline ?? "?"}</span>

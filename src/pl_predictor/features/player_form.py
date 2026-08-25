@@ -34,7 +34,8 @@ from __future__ import annotations
 
 import pandas as pd
 
-WINDOWS = (5, 10)
+WINDOWS = (3, 5, 10)
+START_WINDOWS = (3, 5, 10)
 
 # "Counting" stats — accumulate with playing time, so per-90 normalization
 # makes sense the same way it does for goals/assists.
@@ -79,6 +80,71 @@ def build_historical_player_form(df: pd.DataFrame, windows: tuple[int, ...] = WI
             feature_cols.append(col)
 
     return played, feature_cols
+
+
+def _group_keys(df: pd.DataFrame) -> list[str]:
+    """Element ids are only unique within an FPL season."""
+    return ["season", "element"] if "season" in df.columns else ["element"]
+
+
+def build_historical_start_features(df: pd.DataFrame, windows: tuple[int, ...] = START_WINDOWS) -> tuple[pd.DataFrame, list[str]]:
+    """Leakage-safe features for whether a player starts the *next* match.
+
+    Unlike scoring form, this deliberately retains zero-minute rows: an
+    unused substitute is the most important negative example for a lineup
+    model. Every feature is shifted before its rolling calculation.
+    """
+    rows = df.sort_values(_group_keys(df) + ["kickoff_time"]).copy()
+    if "starts" not in rows:
+        rows["starts"] = (rows["minutes"] >= 60).astype(int)
+    rows["started"] = pd.to_numeric(rows["starts"], errors="coerce").fillna(0).clip(0, 1)
+    rows["sub_appearance"] = ((rows["minutes"] > 0) & (rows["started"] == 0)).astype(int)
+    grouped = rows.groupby(_group_keys(rows), sort=False)
+
+    feature_cols = []
+    for window in windows:
+        for source, name in (("started", f"starts_last{window}"), ("sub_appearance", f"sub_rate_last{window}"), ("minutes", f"minutes_last{window}")):
+            rows[name] = grouped[source].transform(lambda series, w=window: series.shift(1).rolling(w, min_periods=1).mean())
+            feature_cols.append(name)
+
+    rows["minutes_ema"] = grouped["minutes"].transform(lambda series: series.shift(1).ewm(span=5, adjust=False, min_periods=1).mean())
+    feature_cols.append("minutes_ema")
+    rows["start_streak"] = grouped["started"].transform(_prior_start_streak)
+    feature_cols.append("start_streak")
+    return rows, feature_cols
+
+
+def _prior_start_streak(starts: pd.Series) -> pd.Series:
+    streak = 0
+    values = []
+    for started in starts:
+        values.append(streak if values else float("nan"))
+        streak = streak + 1 if started else 0
+    return pd.Series(values, index=starts.index, dtype=float)
+
+
+def current_start_features(history_df: pd.DataFrame, fallback_minutes: float = 60.0) -> dict[str, float]:
+    """The next-fixture counterpart of `build_historical_start_features`."""
+    if history_df.empty:
+        return {**{f"starts_last{w}": 0.0 for w in START_WINDOWS}, **{f"sub_rate_last{w}": 0.0 for w in START_WINDOWS}, **{f"minutes_last{w}": fallback_minutes for w in START_WINDOWS}, "minutes_ema": fallback_minutes, "start_streak": 0.0}
+
+    rows = history_df.sort_values("GW").copy()
+    started = pd.to_numeric(rows.get("starts", (rows["minutes"] >= 60).astype(int)), errors="coerce").fillna(0).clip(0, 1)
+    sub_appearance = ((rows["minutes"] > 0) & (started == 0)).astype(float)
+    result: dict[str, float] = {}
+    for window in START_WINDOWS:
+        recent = rows.tail(window)
+        result[f"starts_last{window}"] = float(started.tail(window).mean())
+        result[f"sub_rate_last{window}"] = float(sub_appearance.tail(window).mean())
+        result[f"minutes_last{window}"] = float(recent["minutes"].mean())
+    result["minutes_ema"] = float(rows["minutes"].ewm(span=5, adjust=False).mean().iloc[-1])
+    streak = 0
+    for started_last in reversed(started.tolist()):
+        if not started_last:
+            break
+        streak += 1
+    result["start_streak"] = float(streak)
+    return result
 
 
 def position_rate_priors(df: pd.DataFrame) -> dict[str, dict[str, float]]:
@@ -186,6 +252,15 @@ def blended_current_form(
         )
         rates[stat] = _blend(current_rate, fallback_rate) or 0.0
 
+    # Keep each time scale as a separate live feature for the position
+    # models; the older unsuffixed rates above remain the stable fallback.
+    for window in windows:
+        window_rows = played.tail(window)
+        minutes = window_rows["minutes"].sum()
+        for stat, col in [("goals_per90", "goals_scored"), ("assists_per90", "assists")]:
+            if minutes > 0:
+                rates[f"{stat}_last{window}"] = float(window_rows[col].sum() / minutes * 90)
+
     for stat in RATE_STATS:
         key = f"{stat}_per90"
         fallback_rate = fallback.get(key) if fallback else None
@@ -197,6 +272,11 @@ def blended_current_form(
         blended = _blend(current_rate, fallback_rate)
         if blended is not None:
             rates[key] = blended
+        for window in windows:
+            window_rows = played.tail(window)
+            minutes = window_rows["minutes"].sum()
+            if stat in window_rows.columns and minutes > 0:
+                rates[f"{key}_last{window}"] = float(window_rows[stat].sum() / minutes * 90)
 
     for stat in MEAN_STATS:
         fallback_val = fallback.get(stat) if fallback else None
@@ -208,6 +288,10 @@ def blended_current_form(
         blended = _blend(current_val, fallback_val)
         if blended is not None:
             rates[stat] = blended
+        for window in windows:
+            window_rows = played.tail(window)
+            if stat in window_rows.columns and not window_rows.empty:
+                rates[f"{stat}_last{window}"] = float(window_rows[stat].mean())
 
     # Average minutes per recent appearance — used to discount rotation/
     # fringe players' expected goals by their typical playing time, since a

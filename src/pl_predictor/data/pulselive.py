@@ -51,6 +51,7 @@ _STAT_MAP = {
     "fk_foul_lost": "f",
     "total_yel_card": "y",
     "total_red_card": "r",
+    "possession_percentage": "possession",
 }
 
 
@@ -160,7 +161,9 @@ def fetch_match_stats(pulselive_id: int, force_refresh: bool = False) -> dict:
     result = {}
     for team_id, block in data.get("data", {}).items():
         stat_values = {m["name"]: m.get("value") for m in block.get("M", [])}
-        result[team_id] = {short: stat_values.get(long) for long, short in _STAT_MAP.items()}
+        values = {short: stat_values.get(long) for long, short in _STAT_MAP.items()}
+        values["possession"] = values["possession"] if values["possession"] is not None else stat_values.get("possession")
+        result[team_id] = values
 
     cache_path.parent.mkdir(parents=True, exist_ok=True)
     cache_path.write_text(json.dumps(result))
@@ -244,6 +247,8 @@ def fetch_current_season_matches(comp_season_id: int | None = None) -> pd.DataFr
                 "ay": away_stats.get("y"),
                 "hr": home_stats.get("r"),
                 "ar": away_stats.get("r"),
+                "hp": home_stats.get("possession"),
+                "ap": away_stats.get("possession"),
                 "referee": referee,
             }
         )

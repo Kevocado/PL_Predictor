@@ -39,11 +39,15 @@ from ..features import player_form
 # rate this project already computes — the question is whether each
 # candidate adds signal beyond that, not whether it correlates in isolation.
 CANDIDATES = {
+    "expected_goals_per90_last3": ("goals_scored", "goals_per90_last3"),
+    "expected_goals_per90_last5": ("goals_scored", "goals_per90_last5"),
     "ict_index_last10": ("goal_involvement", "goals_per90_last10"),
     "influence_last10": ("goal_involvement", "goals_per90_last10"),
     "creativity_last10": ("assists", "assists_per90_last10"),
     "threat_last10": ("goals_scored", "goals_per90_last10"),
     "expected_goals_per90_last10": ("goals_scored", "goals_per90_last10"),
+    "expected_assists_per90_last3": ("assists", "assists_per90_last3"),
+    "expected_assists_per90_last5": ("assists", "assists_per90_last5"),
     "expected_assists_per90_last10": ("assists", "assists_per90_last10"),
     "expected_goal_involvements_per90_last10": ("goal_involvement", "goals_per90_last10"),
     "bps_last10": ("goal_involvement", "goals_per90_last10"),

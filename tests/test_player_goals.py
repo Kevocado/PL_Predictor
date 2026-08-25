@@ -17,8 +17,11 @@ def test_falls_back_to_plain_rate_without_coefficients():
 
     # No coefficients passed -> plain rate * scale (strength=1.5/1.5=1.0 given LEAGUE_AVERAGE_TEAM_GOALS defaults)
     expected_goals_lam = 0.5 * (1.5 / player_goals.LEAGUE_AVERAGE_TEAM_GOALS) * 1.0 * 1.0
+    expected_assists_lam = 0.2 * (1.5 / player_goals.LEAGUE_AVERAGE_TEAM_GOALS) * 1.0 * 1.0
     assert pred["expected_goals"] == expected_goals_lam
+    assert pred["expected_assists"] == expected_assists_lam
     assert pred["anytime_goal_prob"] == 1 - math.exp(-expected_goals_lam)
+    assert pred["anytime_goal_contribution_prob"] == 1 - math.exp(-(expected_goals_lam + expected_assists_lam))
 
 
 def test_falls_back_to_plain_rate_when_extra_stat_missing():
@@ -56,6 +59,24 @@ def test_reliability_estimate_never_goes_negative():
     pred = player_goals.predict_player(rates, team_goal_expectation=1.5, availability=1.0, reliability_coeffs=coeffs)
     assert pred["expected_goals"] >= 0.0
     assert 0.0 <= pred["anytime_goal_prob"] < 1.0
+
+
+def test_position_model_does_not_replace_prior_rate_without_current_form():
+    class ZeroModel:
+        def predict(self, _):
+            return [0.0]
+
+    rates = {"goals_per90": 0.5, "assists_per90": 0.2, "avg_minutes": 90}
+    models = {("FWD", "goals"): ZeroModel(), ("FWD", "assists"): ZeroModel()}
+    pred = player_goals.predict_player(rates, team_goal_expectation=1.5, availability=1.0, position="FWD", position_rate_models=models)
+    strength = 1.5 / player_goals.LEAGUE_AVERAGE_TEAM_GOALS
+    assert pred["expected_goals"] == 0.5 * strength
+    assert pred["expected_assists"] == 0.2 * strength
+
+
+def test_confirmed_name_matching_accepts_longer_fpl_legal_names():
+    element = {"first_name": "Robert", "second_name": "Lynch Sánchez", "web_name": "Sánchez"}
+    assert player_goals._element_matches_confirmed_name(element, {player_goals._normalise_name("Robert Sánchez")})
 
 
 def test_fit_reliability_coefficients_against_real_history():
