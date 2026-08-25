@@ -225,6 +225,51 @@ def evaluate_scoreline_player_aggregates(seasons: list[str] | None = None) -> pd
     return pd.DataFrame(rows)
 
 
+def evaluate_scoreline_player_aggregates_walk_forward(
+    seasons: list[str] | None = None, min_train_seasons: int = 3
+) -> pd.DataFrame:
+    """Re-test EXP-2026-03's projected player aggregates across every
+    multi-season walk-forward fold, not just the one fixed 2025-26 holdout
+    `evaluate_scoreline_player_aggregates` checks — this is the "expand to
+    walk-forward folds first" follow-up the continuity log calls for before
+    any promotion decision. One row per (fold, model); average across folds
+    before deciding anything, and check for a material single-fold
+    regression, same promotion bar as every other experiment here.
+
+    `seasons` (if given) is `football_data`'s season format
+    (`"2018-2019"`) and only governs the walk-forward fold range — player
+    aggregates always pull the FPL history archive's own full season format
+    (`"2018-19"`) independently, since the two data sources use different
+    season-string conventions (mixing them here would silently produce an
+    empty/wrong merge rather than an error). Folds outside FPL history's
+    coverage simply get 0-filled aggregate columns via the existing left
+    merge, same as `evaluate_scoreline_player_aggregates` already does for
+    its own single holdout."""
+    from ..data import fpl_history
+    from . import walk_forward
+
+    aggregates = build_projected_team_player_features(seasons=fpl_history.default_completed_seasons(n=8))
+    aggregate_cols = [
+        column
+        for column in aggregates.columns
+        if column.startswith(("home_projected_", "away_projected_", "home_top_", "away_top_"))
+    ]
+
+    baseline_folds = walk_forward.prepare_folds(seasons=seasons, min_train_seasons=min_train_seasons)
+    candidate_folds = walk_forward.prepare_folds(
+        seasons=seasons,
+        min_train_seasons=min_train_seasons,
+        extra_feature_frame=aggregates,
+        extra_feature_cols=aggregate_cols,
+    )
+
+    baseline = walk_forward.evaluate_folds(baseline_folds)
+    baseline["model"] = "production_features"
+    candidate = walk_forward.evaluate_folds(candidate_folds)
+    candidate["model"] = "projected_player_aggregates"
+    return pd.concat([baseline, candidate], ignore_index=True)
+
+
 def evaluate_market_probability_calibration(seasons: list[str] | None = None) -> pd.DataFrame:
     """Check count-model O/U probabilities, including shot-situation ablation.
 

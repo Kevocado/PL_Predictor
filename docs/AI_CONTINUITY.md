@@ -323,9 +323,11 @@ experiment; negative evidence prevents repeated work.
 2. **EXP-2026-02: final-probability calibration.** Apply leakage-safe Platt,
    beta, and isotonic candidates to 1X2 and O/U 2.5; retain only a stable
    multi-fold Brier/log-loss improvement.
-3. **EXP-2026-03: early vs confirmed-XI.** Build the planned player aggregates
-   and measure whether a confirmed-XI update improves RPS/calibration compared
-   with the early forecast.
+3. **EXP-2026-03: early vs confirmed-XI.** The early-projection half is done
+   and rejected (see Completed experiment log — regressed on every
+   walk-forward fold). Still open: measure whether a confirmed-XI update
+   (ESPN lineups, not shifted historical rates) improves RPS/calibration
+   over the early forecast — no code exists for this yet.
 4. **EXP-2026-04: weather archive.** Add stadium coordinates and Open-Meteo
    archived forecast features. Start with wind, rain, temperature, and humidity
    interactions; run ablations per market.
@@ -522,16 +524,42 @@ experiment; negative evidence prevents repeated work.
   pre-kickoff information source; do not tune more variants on these folds.
 
 ### EXP-2026-03 — projected player aggregates
-- **Status:** promising but unpromoted; expand to walk-forward folds first.
-- **Protocol:** existing strictly pre-kickoff player aggregates (prior start
-  rate weighting, rolling goal/assist/Threat/Creativity rates, and top-player
-  concentration) were added to the production ML feature set for the fixed
-  2025-26 holdout only.
-- **Result:** a very small improvement: RPS `0.2069397 → 0.2069334`, Brier
-  `0.6144294 → 0.6143059` (265 → 281 features). This is far too small and
-  single-season-specific to deploy.
-- **Decision:** build the same feature comparison into the multi-season
-  walk-forward module and add a distinct confirmed-XI snapshot experiment.
+- **Status:** completed and rejected for production.
+- **Protocol (single-holdout, original):** existing strictly pre-kickoff
+  player aggregates (prior start rate weighting, rolling goal/assist/Threat/
+  Creativity rates, and top-player concentration) were added to the
+  production ML feature set for the fixed 2025-26 holdout only.
+- **Result (single-holdout):** a very small improvement: RPS
+  `0.2069397 → 0.2069334`, Brier `0.6144294 → 0.6143059` (265 → 281
+  features). Flagged as far too small and single-season-specific to deploy
+  on its own.
+- **Follow-up protocol (walk-forward):** `evaluate.walk_forward.
+  prepare_folds` gained an optional `extra_feature_frame`/`extra_feature_cols`
+  merge so a candidate feature set can be tested across every walk-forward
+  fold, not one fixed season (`evaluate.goal_contribution_research.
+  evaluate_scoreline_player_aggregates_walk_forward`). Re-ran the same
+  aggregates against all 5 default walk-forward folds (2021-22 through
+  2025-26, 8 seasons of history).
+- **Follow-up result (walk-forward, RPS / Brier):**
+
+  | Val season | Production | +Aggregates |
+  | --- | ---: | ---: |
+  | 2021-22 | `0.199186` / `0.574089` | `0.199299` / `0.574584` |
+  | 2022-23 | `0.200823` / `0.578529` | `0.202084` / `0.580763` |
+  | 2023-24 | `0.190876` / `0.549089` | `0.192080` / `0.551615` |
+  | 2024-25 | `0.199535` / `0.583653` | `0.199887` / `0.584327` |
+  | 2025-26 | `0.206559` / `0.613363` | `0.207047` / `0.614629` |
+  | **Mean** | `0.199396` / `0.579745` | `0.200079` / `0.581183` |
+
+  The candidate regressed in **every single fold** on both RPS and Brier,
+  not just on average — a materially cleaner rejection than the original
+  single-season result suggested.
+- **Decision:** do not add projected player aggregates to the production
+  scoreline feature set. This closes out the "expand to walk-forward folds
+  first" instruction with a clear negative result. A distinct confirmed-XI
+  snapshot experiment (early projection vs. confirmed lineup, P1 #3) remains
+  a separate, not-yet-built idea — this result does not speak to it, since
+  it never used ESPN's confirmed lineups, only shifted historical rates.
 
 ### EXP-2026-04 — shot-situation features for corners/cards
 - **Status:** corners candidate; cards rejected; neither promoted.

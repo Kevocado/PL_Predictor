@@ -27,7 +27,13 @@ from ..features.build import build_training_frame
 from ..models import ml_scoreline
 
 
-def prepare_folds(seasons: list[str] | None = None, min_train_seasons: int = 3) -> list[dict]:
+def prepare_folds(
+    seasons: list[str] | None = None,
+    min_train_seasons: int = 3,
+    extra_feature_frame: pd.DataFrame | None = None,
+    extra_feature_cols: list[str] | None = None,
+    extra_merge_keys: list[str] | None = None,
+) -> list[dict]:
     """The expensive, hyperparameter-independent part of walk-forward
     validation: builds the full feature frame once and slices it into
     per-fold (train_df, val_df, ml_feature_cols) splits. Split out from
@@ -48,11 +54,28 @@ def prepare_folds(seasons: list[str] | None = None, min_train_seasons: int = 3) 
     Uses the same fouls-excluded feature subset `models/manifest.py::
     train_all` actually trains `ml_scoreline` on (`ml_feature_cols`) —
     matching production exactly matters here since this is also the
-    evaluation Optuna tunes against."""
+    evaluation Optuna tunes against.
+
+    `extra_feature_frame`/`extra_feature_cols` optionally left-merge a
+    candidate feature set (e.g. `evaluate.goal_contribution_research.
+    build_projected_team_player_features`'s output) onto every fold, the
+    same way `evaluate_scoreline_player_aggregates` does for a single
+    holdout — this is what lets a candidate be walk-forward tested across
+    every fold instead of one fixed season. Defaults to the production
+    `(kickoff_date, team_home, team_away)` merge keys; a row with no match in
+    `extra_feature_frame` gets NaN (filled to 0 below, same as every other
+    missing feature value here)."""
     seasons = seasons or football_data.default_completed_seasons()
     matches_df = football_data.load_training_data(seasons=seasons)
     df, feature_cols = build_training_frame(matches_df=matches_df)
     ml_feature_cols = [c for c in feature_cols if "fouls" not in c]
+
+    if extra_feature_frame is not None:
+        df = df.copy()
+        df["kickoff_date"] = pd.to_datetime(df["date"]).dt.normalize()
+        merge_keys = extra_merge_keys or ["kickoff_date", "team_home", "team_away"]
+        df = df.merge(extra_feature_frame, on=merge_keys, how="left")
+        ml_feature_cols = ml_feature_cols + list(extra_feature_cols or [])
 
     folds = []
     for i in range(min_train_seasons, len(seasons)):
