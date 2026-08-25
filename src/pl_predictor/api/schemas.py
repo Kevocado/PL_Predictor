@@ -18,6 +18,15 @@ class MarketEdge(BaseModel):
     edge: float | None = None
 
 
+class SingleBetRecommendation(BaseModel):
+    market: str
+    probability: float
+    implied_probability: float
+    edge: float
+    price: float
+    bookmaker: str
+
+
 class FixtureSummary(BaseModel):
     event_id: str
     commence_time: datetime
@@ -34,6 +43,9 @@ class FixtureSummary(BaseModel):
     data_confidence: str | None = None
     value_bet_flags: list[str]
     has_live_odds: bool
+    odds_fetched_at: datetime | None = None
+    odds_is_stale: bool = False
+    recommended_bet: SingleBetRecommendation | None = None
 
 
 class OverUnderPrediction(BaseModel):
@@ -57,9 +69,29 @@ class PlayerPrediction(BaseModel):
     position: str
     anytime_goal_prob: float
     anytime_assist_prob: float
+    anytime_goal_contribution_prob: float
     status: str
     news: str
     confidence: str
+    predicted_starter: bool
+    confirmed_starter: bool
+    expected_minutes: float
+    is_penalty_taker: bool
+    is_set_piece_taker: bool
+
+
+class FixtureTeamContext(BaseModel):
+    rest_days: int | None = None
+    xg_for_last_5: float | None = None
+    xg_against_last_5: float | None = None
+    corners_last_5: float | None = None
+    cards_last_5: float | None = None
+    set_piece_xg_share_last_5: float | None = None
+
+
+class FixtureActualStats(BaseModel):
+    home: dict[str, float | int | None]
+    away: dict[str, float | int | None]
 
 
 class FixtureDetail(FixtureSummary):
@@ -70,6 +102,10 @@ class FixtureDetail(FixtureSummary):
     head_to_head: list[H2HMeeting]
     home_recent_form: list[str]
     away_recent_form: list[str]
+    home_context: FixtureTeamContext
+    away_context: FixtureTeamContext
+    post_match: dict | None = None
+    actual_stats: FixtureActualStats | None = None
 
 
 class FixturePlayers(BaseModel):

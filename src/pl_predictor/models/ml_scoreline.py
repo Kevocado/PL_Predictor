@@ -75,6 +75,7 @@ def train_goal_regressors(
     dates: pd.Series | None = None,
     xi: float = 0.0018,
     hyperparams: dict | None = None,
+    sample_weight: np.ndarray | pd.Series | None = None,
 ) -> tuple[xgb.XGBRegressor, xgb.XGBRegressor]:
     """`dates` (each row's match date, same length/order as `X_train`) is
     optional but should always be passed in production: without it every
@@ -86,9 +87,13 @@ def train_goal_regressors(
 
     `hyperparams` overrides any subset of `DEFAULT_HYPERPARAMS` (e.g. from
     an Optuna trial) — omit for production defaults."""
-    sample_weight = None
+    if sample_weight is not None:
+        sample_weight = np.asarray(sample_weight, dtype=np.float64)
+        if len(sample_weight) != len(X_train):
+            raise ValueError("sample_weight must have one value per training row")
     if dates is not None:
-        sample_weight = np.asarray(pb.models.dixon_coles_weights(dates, xi=xi), dtype=np.float64)
+        date_weights = np.asarray(pb.models.dixon_coles_weights(dates, xi=xi), dtype=np.float64)
+        sample_weight = date_weights if sample_weight is None else sample_weight * date_weights
     home_model = _regressor(hyperparams)
     home_model.fit(X_train, goals_home_train, sample_weight=sample_weight)
     away_model = _regressor(hyperparams)

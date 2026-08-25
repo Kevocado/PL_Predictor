@@ -14,7 +14,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routes import router, maybe_auto_retrain, warm_caches
+from .routes import (
+    backfill_completed_player_reviews,
+    background_tracking_tick,
+    maybe_auto_retrain,
+    prewarm_current_gameweek_player_details,
+    router,
+    warm_caches,
+)
 
 # How often to check whether the current season has new played matches the
 # model hasn't trained on yet (see routes.warm_caches's / maybe_auto_retrain's
@@ -24,12 +31,25 @@ from .routes import router, maybe_auto_retrain, warm_caches
 # season (matches come in batches on matchdays, not continuously) without
 # spending a retrain's ~10-30s of CPU needlessly often.
 _AUTO_RETRAIN_INTERVAL_SECONDS = 3600
+_TRACKING_INTERVAL_SECONDS = 300
 
 
 async def _auto_retrain_loop():
     while True:
         await asyncio.sleep(_AUTO_RETRAIN_INTERVAL_SECONDS)
         await asyncio.to_thread(maybe_auto_retrain)
+
+
+async def _tracking_loop():
+    while True:
+        await asyncio.sleep(_TRACKING_INTERVAL_SECONDS)
+        await asyncio.to_thread(background_tracking_tick)
+
+
+async def _initial_sync():
+    await asyncio.to_thread(warm_caches)
+    await asyncio.to_thread(backfill_completed_player_reviews)
+    await asyncio.to_thread(prewarm_current_gameweek_player_details)
 
 
 @asynccontextmanager
@@ -39,10 +59,12 @@ async def lifespan(_app: FastAPI):
     # docstring), without delaying the server from accepting connections —
     # matters most for uvicorn --reload, which re-runs this on every file
     # save during development.
-    asyncio.create_task(asyncio.to_thread(warm_caches))
+    asyncio.create_task(_initial_sync())
     retrain_task = asyncio.create_task(_auto_retrain_loop())
+    tracking_task = asyncio.create_task(_tracking_loop())
     yield
     retrain_task.cancel()
+    tracking_task.cancel()
 
 
 app = FastAPI(title="PL Predictor API", lifespan=lifespan)

@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
-import type { CalibrationResponse, ManifestResponse } from "../types";
+import type { CalibrationResponse, ManifestResponse, ScorerAccuracyGroup, ScorerAccuracyResponse } from "../types";
 import { CalibrationPanel } from "../components/CalibrationPanel";
 import { BacktestPanel } from "../components/BacktestPanel";
 import { LiveValueBetPanel } from "../components/LiveValueBetPanel";
+import { WalkForwardBettingPanel } from "../components/WalkForwardBettingPanel";
 import { InfoTooltip } from "../components/InfoTooltip";
 import { FeatureImportanceChart } from "../components/FeatureImportanceChart";
 import { ModelFreshnessPanel } from "../components/ModelFreshnessPanel";
@@ -12,16 +13,18 @@ import { GLOSSARY } from "../lib/glossary";
 export function CalibrationPage() {
   const [calibration, setCalibration] = useState<CalibrationResponse | null>(null);
   const [manifest, setManifest] = useState<ManifestResponse | null>(null);
+  const [scorerAccuracy, setScorerAccuracy] = useState<ScorerAccuracyResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [retraining, setRetraining] = useState(false);
 
   const load = () => {
     setError(null);
-    return Promise.all([api.calibration(), api.manifest()])
-      .then(([cal, man]) => {
+    return Promise.all([api.calibration(), api.manifest(), api.scorerTrackRecord()])
+      .then(([cal, man, scorer]) => {
         setCalibration(cal);
         setManifest(man);
+        setScorerAccuracy(scorer);
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
@@ -82,6 +85,8 @@ export function CalibrationPage() {
       {calibration && <CalibrationPanel data={calibration} />}
 
       {manifest && <ModelFreshnessPanel manifest={manifest} />}
+
+      {scorerAccuracy && <ScorerTrackRecord data={scorerAccuracy} />}
 
       {manifest && (
         <div>
@@ -197,15 +202,53 @@ export function CalibrationPage() {
         </div>
       )}
 
+      <div className="clip-corner rounded-xl border border-pl-border bg-pl-850/70 p-4">
+        <h2 className="text-lg font-semibold text-pl-text">Recommendation scope</h2>
+        <p className="mt-2 max-w-3xl text-sm text-pl-text-dim">
+          Live recommendations only compare the scoreline model’s match-result and goals-total probabilities with de-vigged bookmaker prices. Corners, cards, and player calls remain model projections because this app does not receive a comparable live market for them. Parlays are intentionally excluded: single-market probabilities do not establish a joint probability or a bookmaker-specific parlay edge.
+        </p>
+      </div>
+
       <div>
         <h2 className="mb-3 text-lg font-semibold text-pl-text">Live value-bet track record</h2>
         <LiveValueBetPanel />
       </div>
 
       <div>
-        <h2 className="mb-3 text-lg font-semibold text-pl-text">Value-bet backtest</h2>
+        <h2 className="mb-3 text-lg font-semibold text-pl-text">Historical value-bet replay</h2>
         <BacktestPanel />
       </div>
+
+      <div>
+        <h2 className="mb-3 text-lg font-semibold text-pl-text">Walk-forward betting validation</h2>
+        <WalkForwardBettingPanel />
+      </div>
+
     </div>
+  );
+}
+
+function ScorerTrackRecord({ data }: { data: ScorerAccuracyResponse }) {
+  const groups: Array<[string, ScorerAccuracyGroup]> = [
+    ["Live pre-match snapshots", data.snapshot],
+    ["Reconstructed history", data.reconstructed],
+  ];
+  return (
+    <section>
+      <div className="mb-2 flex items-center gap-1.5">
+        <h2 className="text-lg font-semibold text-pl-text">Goalscorer model track record</h2>
+        <InfoTooltip text="A qualifying call is a confirmed starter with at least a 20% G+A probability. Goal Brier score tests probability accuracy for every resolved confirmed starter; lower is better." align="left" />
+      </div>
+      <div className="grid gap-3 md:grid-cols-2">
+        {groups.map(([label, stats]) => <div key={label} className="clip-corner rounded-xl border border-pl-border bg-pl-850/70 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-pl-text-faint">{label}</p>
+          {stats.calls === 0 ? <p className="mt-2 text-sm text-pl-text-faint">No resolved calls yet.</p> : <>
+            <p className="mt-2 text-sm text-pl-text"><span className="font-semibold text-win">{stats.call_hits}/{stats.calls}</span> qualifying calls hit {stats.call_hit_rate === null ? "" : `(${(stats.call_hit_rate * 100).toFixed(0)}%)`}</p>
+            <p className="mt-1 text-xs text-pl-text-faint">Goal Brier: {stats.goal_brier?.toFixed(3) ?? "—"} · {stats.calibration.reduce((total, bucket) => total + bucket.n, 0)} confirmed starters</p>
+          </>}
+        </div>)}
+      </div>
+      <p className="mt-2 text-[11px] text-pl-text-faint">Reconstructed rows were created after the fixture and stay separate from prospective live evidence.</p>
+    </section>
   );
 }

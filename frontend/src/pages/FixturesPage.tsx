@@ -26,6 +26,12 @@ export function FixturesPage() {
 
   useEffect(() => load(viewGameweek), [viewGameweek]);
 
+  useEffect(() => {
+    if (!gameweek?.fixtures.some((fixture) => fixture.finished && fixture.player_events_pending)) return;
+    const timer = window.setTimeout(() => load(viewGameweek), 5000);
+    return () => window.clearTimeout(timer);
+  }, [gameweek, viewGameweek]);
+
   const navigate = (gw: number) => setViewGameweek(gw);
 
   const runAction = async (key: string, fn: () => Promise<unknown>) => {

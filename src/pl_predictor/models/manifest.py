@@ -10,6 +10,7 @@ load_models() helpers.
 from __future__ import annotations
 
 import json
+import hashlib
 from datetime import datetime, timezone
 from typing import Dict
 
@@ -35,6 +36,13 @@ ML_HOME_MODEL_PATH = MODELS_DIR / "ml_scoreline_home.json"
 ML_AWAY_MODEL_PATH = MODELS_DIR / "ml_scoreline_away.json"
 
 RESULT_CODE = {"H": 0, "D": 1, "A": 2}
+
+
+def manifest_fingerprint() -> str | None:
+    """Return the exact manifest content hash for live prediction lineage."""
+    if not MANIFEST_PATH.exists():
+        return None
+    return hashlib.sha256(MANIFEST_PATH.read_bytes()).hexdigest()
 
 
 def chronological_split(df: pd.DataFrame, val_season: str | None = None):

@@ -16,6 +16,7 @@ FOOTBALL_DATA_CACHE_DIR = CACHE_DIR / "football_data"
 ODDS_CACHE_DIR = CACHE_DIR / "odds"
 FPL_HISTORY_CACHE_DIR = CACHE_DIR / "fpl_history"
 FPL_PLAYER_CACHE_DIR = CACHE_DIR / "fpl_players"
+FPL_EVENT_CACHE_DIR = CACHE_DIR / "fpl_events"
 UNDERSTAT_CACHE_DIR = CACHE_DIR / "understat"
 # One file per MATCH, not per season (unlike every other cache dir here) —
 # see data/understat_shots.py's module docstring.
@@ -38,6 +39,8 @@ FOOTBALL_DATA_KEY = os.getenv("FOOTBALL_DATA_KEY")
 FOOTBALL_DATA_ORG_BASE_URL = "https://api.football-data.org/v4"
 FOOTBALL_DATA_ORG_COMPETITION_ID = 2021  # Premier League
 
+ESPN_SCOREBOARD_URL = "https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1"
+
 # pulselive.com: the Premier League's own site backend — no key, no
 # documented terms. Used only as a fast current-season supplement to
 # football-data.co.uk (whose CSV publishing can lag indefinitely) — private,
@@ -59,6 +62,7 @@ for _d in (
     ODDS_CACHE_DIR,
     FPL_HISTORY_CACHE_DIR,
     FPL_PLAYER_CACHE_DIR,
+    FPL_EVENT_CACHE_DIR,
     UNDERSTAT_CACHE_DIR,
     UNDERSTAT_SHOTS_CACHE_DIR,
     PULSELIVE_CACHE_DIR,
