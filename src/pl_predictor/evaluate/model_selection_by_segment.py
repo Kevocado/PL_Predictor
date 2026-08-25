@@ -26,7 +26,7 @@ import penaltyblog as pb
 from ..data import football_data
 from ..features.build import build_training_frame
 from ..models import ml_scoreline, scoreline
-from .scoreline_dominance_arms import _metrics_from_grids
+from ..models.scoreline import evaluate_grids_multi_market
 
 
 def prepare_folds(seasons: list[str] | None = None, min_train_seasons: int = 3) -> list[dict]:
@@ -59,7 +59,7 @@ def _dc_bp_grids(model, val_df: pd.DataFrame) -> list:
     team the model never saw in training — the same fallback
     `scoreline.predict_fixture` uses, replicated here (rather than reused
     directly) because that function returns an already-extracted dict, not
-    the raw grid object `_metrics_from_grids` needs. Exactly the case a
+    the raw grid object `evaluate_grids_multi_market` needs. Exactly the case a
     cold-start-fixture segment needs to handle gracefully rather than
     erroring; DC/BP have no batch-predict path (see `predict_fixtures_
     batch`'s own docstring), so a Python loop is already how these two
@@ -113,7 +113,7 @@ def evaluate_models_by_segment(seasons: list[str] | None = None, min_train_seaso
                 segment_grids = [g for g, keep in zip(grids, mask) if keep]
                 if segment_val_df.empty:
                     continue
-                metrics = _metrics_from_grids(segment_grids, segment_val_df)
+                metrics = evaluate_grids_multi_market(segment_grids, segment_val_df)
                 rows.append(
                     {
                         "model": model_name,

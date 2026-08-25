@@ -24,7 +24,7 @@ def test_historical_replay_records_qualified_de_vigged_selection(monkeypatch):
     monkeypatch.setattr(
         backtest,
         "_precompute_predictions",
-        lambda _model, frame: {
+        lambda _model, frame, market_overrides=None: {
             frame.index[0]: {
                 "home_win": 0.40,
                 "draw": 0.30,

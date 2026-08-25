@@ -330,7 +330,9 @@ def has_unlogged_finished_matches(finished_matches: pd.DataFrame) -> bool:
     return any(key not in already_logged for key in _finished_matches_lookup(finished_matches))
 
 
-def backfill_missing_predictions(finished_matches: pd.DataFrame, model, model_trained_at: str | None = None) -> int:
+def backfill_missing_predictions(
+    finished_matches: pd.DataFrame, model, model_trained_at: str | None = None, market_overrides: dict | None = None
+) -> int:
     """One-time (and self-healing) catch-up for matches that finished
     before this app was polling `/api/fixtures` to snapshot them live —
     e.g. the handful of matches already played when prediction tracking
@@ -374,7 +376,7 @@ def backfill_missing_predictions(finished_matches: pd.DataFrame, model, model_tr
         key = (row["team_home"], row["team_away"], _naive(row["date"]).date())
         if key in already_logged:
             continue
-        pred = scoreline.predict_fixture(model, row["team_home"], row["team_away"])
+        pred = scoreline.predict_fixture(model, row["team_home"], row["team_away"], market_overrides=market_overrides)
         event_id = f"backfill-{row['team_home']}-{row['team_away']}-{key[2]}"
         top = pred["top_scorelines"][0]
         prediction_rows.append(

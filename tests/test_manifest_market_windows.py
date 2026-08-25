@@ -15,6 +15,7 @@ def test_train_all_reuses_the_same_frame_when_windows_match(monkeypatch, tmp_pat
     monkeypatch.setattr(manifest, "ML_AWAY_MODEL_PATH", tmp_path / "ml_away.json")
     monkeypatch.setattr(manifest, "CORNERS_MODEL_PATH", tmp_path / "corners.json")
     monkeypatch.setattr(manifest, "CARDS_MODEL_PATH", tmp_path / "cards.json")
+    monkeypatch.setattr(manifest, "COVARIATE_POISSON_PATH", tmp_path / "covariate_poisson.pkl")
 
     build_calls = []
     real_build_frame = manifest._build_frame
@@ -46,6 +47,7 @@ def test_train_all_gives_corners_its_own_window_by_default(monkeypatch, tmp_path
     monkeypatch.setattr(manifest, "ML_AWAY_MODEL_PATH", tmp_path / "ml_away.json")
     monkeypatch.setattr(manifest, "CORNERS_MODEL_PATH", tmp_path / "corners.json")
     monkeypatch.setattr(manifest, "CARDS_MODEL_PATH", tmp_path / "cards.json")
+    monkeypatch.setattr(manifest, "COVARIATE_POISSON_PATH", tmp_path / "covariate_poisson.pkl")
     monkeypatch.setattr(manifest, "MARKET_TRAINING_WINDOWS", {"scoreline": 3, "corners": 4, "cards": 3})
 
     build_calls = []

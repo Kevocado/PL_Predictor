@@ -35,7 +35,7 @@ def test_recommendation_uses_one_best_qualified_quote(monkeypatch):
     monkeypatch.setattr(
         value_bets.scoreline,
         "predict_fixtures_batch",
-        lambda *_: [
+        lambda *_, **__: [
             {
                 "home_win": 0.90,
                 "draw": 0.16,
@@ -61,7 +61,7 @@ def test_recommendation_excludes_tail_prices_and_fallback(monkeypatch):
     monkeypatch.setattr(
         value_bets.scoreline,
         "predict_fixtures_batch",
-        lambda *_: [
+        lambda *_, **__: [
             {
                 "home_win": 0.70,
                 "draw": 0.16,
@@ -84,7 +84,7 @@ def test_stale_odds_do_not_create_a_value_recommendation(monkeypatch):
     monkeypatch.setattr(
         value_bets.scoreline,
         "predict_fixtures_batch",
-        lambda *_: [{"home_win": 0.90, "draw": 0.06, "away_win": 0.04, "btts_yes": 0.5, "over_2_5": 0.5, "under_2_5": 0.5, "top_scorelines": [{"home": 2, "away": 0}], "fallback": False, "data_confidence": "established"}],
+        lambda *_, **__: [{"home_win": 0.90, "draw": 0.06, "away_win": 0.04, "btts_yes": 0.5, "over_2_5": 0.5, "under_2_5": 0.5, "top_scorelines": [{"home": 2, "away": 0}], "fallback": False, "data_confidence": "established"}],
     )
     odds = _odds_frame().assign(odds_fetched_at=pd.Timestamp.now(tz="UTC") - pd.Timedelta(hours=2))
 

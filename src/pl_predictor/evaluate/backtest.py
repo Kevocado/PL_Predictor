@@ -51,7 +51,7 @@ def _kelly_stake(prob: float, odds: float, fraction: float, max_stake_fraction: 
     return max(0.0, min(fraction * f_star, max_stake_fraction)) * bankroll
 
 
-def _precompute_predictions(model, df: pd.DataFrame) -> dict:
+def _precompute_predictions(model, df: pd.DataFrame, market_overrides: dict | None = None) -> dict:
     """One prediction per fixture, computed once before the sequential
     per-fixture backtest loop runs — for a feature-driven model (has
     `predict_many_from_rows`) this is a single batched XGBoost call instead
@@ -59,10 +59,16 @@ def _precompute_predictions(model, df: pd.DataFrame) -> dict:
     (see ml_scoreline.predict_grids_batch's docstring). Keyed by `df`'s own
     index, which `pb.backtest.Backtest` preserves through its internal
     date-filtering, so `logic()` can look a fixture's prediction up by
-    `ctx.fixture.name` instead of recomputing it."""
+    `ctx.fixture.name` instead of recomputing it.
+
+    `market_overrides` (see `models/scoreline.py::predict_fixture`) is
+    applied afterward via each override model's own leakage-safe
+    `feature_row`-based evaluation — this backtest should reflect what
+    production actually serves, not just the primary scoreline model in
+    isolation."""
     if hasattr(model, "predict_many_from_rows"):
         grids = model.predict_many_from_rows(df)
-        return {
+        results = {
             idx: {
                 "home_win": g.home_win,
                 "draw": g.draw,
@@ -73,10 +79,21 @@ def _precompute_predictions(model, df: pd.DataFrame) -> dict:
             }
             for idx, g in zip(df.index, grids)
         }
-    return {
-        idx: scoreline.predict_fixture(model, row["team_home"], row["team_away"], feature_row=row)
-        for idx, row in df.iterrows()
-    }
+    else:
+        results = {
+            idx: scoreline.predict_fixture(model, row["team_home"], row["team_away"], feature_row=row)
+            for idx, row in df.iterrows()
+        }
+
+    if market_overrides:
+        for market, override_model in market_overrides.items():
+            for idx, row in df.iterrows():
+                override_result = scoreline.predict_fixture(
+                    override_model, row["team_home"], row["team_away"], feature_row=row
+                )
+                for field in scoreline.MARKET_FIELDS[market]:
+                    results[idx][field] = override_result[field]
+    return results
 
 
 def _implied_probabilities(fixture: pd.Series) -> dict[str, float] | None:
@@ -120,6 +137,7 @@ def build_value_bet_backtest(
     max_stake_fraction: float = 0.05,
     max_odds: float | None = 6.0,
     selections: list[dict] | None = None,
+    market_overrides: dict | None = None,
 ) -> pb.backtest.Backtest:
     """Simulates betting the held-out season whenever the model's probability
     for a side exceeds the de-vigged Bet365 closing probability by more than
@@ -130,9 +148,12 @@ def build_value_bet_backtest(
 
     `staking="kelly"` (default, see module docstring) or `"flat"` (bets a
     fixed `flat_stake` regardless of edge size — kept for comparison against
-    the smarter default, not because it bets "with more sense")."""
+    the smarter default, not because it bets "with more sense"). Pass
+    `market_overrides` (e.g. `models["scoreline_market_overrides"]`) so
+    this reflects what production actually serves for a given market, not
+    just `model` in isolation — see `_precompute_predictions`."""
     df = df_with_odds.dropna(subset=list(ODDS_COLS.values())).copy()
-    predictions = _precompute_predictions(model, df)
+    predictions = _precompute_predictions(model, df, market_overrides=market_overrides)
     bt = pb.backtest.Backtest(df, start_date, end_date)
 
     def logic(ctx):

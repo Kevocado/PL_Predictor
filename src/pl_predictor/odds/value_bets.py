@@ -80,7 +80,13 @@ def build_value_bet_table(
     edge_threshold: float = 0.05,
 ) -> pd.DataFrame:
     rows = []
-    preds = scoreline.predict_fixtures_batch(models["scoreline"], fixtures_df) if not fixtures_df.empty else []
+    preds = (
+        scoreline.predict_fixtures_batch(
+            models["scoreline"], fixtures_df, market_overrides=models.get("scoreline_market_overrides")
+        )
+        if not fixtures_df.empty
+        else []
+    )
     for (_, fixture), pred in zip(fixtures_df.iterrows(), preds):
         home, away, event_id = fixture["team_home"], fixture["team_away"], fixture["event_id"]
 

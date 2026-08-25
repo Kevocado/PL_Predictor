@@ -24,7 +24,7 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error
 from ..config import MODELS_DIR
 from ..data import football_data
 from ..features.build import FixtureFeatureContext, build_training_frame
-from . import market_models, ml_scoreline, scoreline
+from . import covariate_poisson, market_models, ml_scoreline, scoreline
 
 MANIFEST_PATH = MODELS_DIR / "manifest.json"
 MANIFEST_HISTORY_PATH = MODELS_DIR / "manifest_history.jsonl"
@@ -34,6 +34,29 @@ DIXON_COLES_PATH = MODELS_DIR / "dixon_coles.pkl"
 BIVARIATE_POISSON_PATH = MODELS_DIR / "bivariate_poisson.pkl"
 ML_HOME_MODEL_PATH = MODELS_DIR / "ml_scoreline_home.json"
 ML_AWAY_MODEL_PATH = MODELS_DIR / "ml_scoreline_away.json"
+COVARIATE_POISSON_PATH = MODELS_DIR / "covariate_poisson.pkl"
+
+# Which model actually serves a given non-1X2 market, when a real,
+# multi-fold, most-recent-season-corroborated study found a different
+# model beats whichever wins the overall 1X2 comparison for that specific
+# market. Like MARKET_TRAINING_WINDOWS below, this is a fixed,
+# research-decision constant — never re-derived from a single train_all()
+# call's one holdout fold, which would risk flip-flopping on single-season
+# noise (this project's own walk-forward studies repeatedly found average-
+# vs-most-recent-season disagreements; see EXP-2026-11/13/14).
+#
+# EXP-2026-16 (docs/AI_CONTINUITY.md) found the covariate-Poisson model
+# beats ml_scoreline on Over/Under 2.5 goals on the walk-forward average
+# AND the single most recent completed season — clearing this project's
+# two-part bar on paper. Be aware the margin is thin (<0.001 log-loss and
+# Brier on both checks) and NOT monotonic: it wins 3 of 5 folds
+# (2021-22, 2022-23, 2025-26) but loses 2023-24 and 2024-25 by a
+# comparable-or-larger margin than it wins by elsewhere. Kept live as a
+# deliberate, informed call despite the thin margin — revisit if a
+# stronger, more consistent result appears, or tighten the promotion bar
+# (e.g. a minimum-margin/CI requirement) before adding any further
+# market override on evidence this equivocal.
+MARKET_MODEL_OVERRIDES = {"over_2_5": "covariate_poisson"}
 
 RESULT_CODE = {"H": 0, "D": 1, "A": 2}
 
@@ -216,17 +239,48 @@ def train_all(seasons: list[str] | None = None, include_current_season: bool = T
     ml_importance_home = _feature_importance(ml_home_model, X_val_ml, val_df["goals_home"], ml_feature_cols)
     ml_importance_away = _feature_importance(ml_away_model, X_val_ml, val_df["goals_away"], ml_feature_cols)
 
-    candidates = {"dixon_coles": dc_metrics["rps"], "bivariate_poisson": bp_metrics["rps"], "ml_scoreline": ml_metrics["rps"]}
+    # Covariate-Poisson (EXP-2026-15): a 4th scoreline candidate, never
+    # chosen for 1X2 (ml_scoreline wins that outright), but the source of
+    # MARKET_MODEL_OVERRIDES' Over/Under 2.5 override. `market_metrics`
+    # below is per-model per-market on *this* retrain's one holdout fold —
+    # informational/auditable in manifest.json, never what decides
+    # MARKET_MODEL_OVERRIDES itself (see that constant's own docstring for
+    # why: a single fold isn't a safe basis for that decision).
+    covariate_poisson_model = covariate_poisson.fit(train_df)
+    dc_grids = scoreline.predict_grids_for_fixed_param_model(dc_model, val_df)
+    bp_grids = scoreline.predict_grids_for_fixed_param_model(bp_model, val_df)
+    ml_grids_for_markets = ml_scoreline.predict_grids_batch(ml_home_model, ml_away_model, X_val_ml)
+    cp_grids = covariate_poisson.predict_grids_batch(covariate_poisson_model, val_df)
+    market_metrics = {
+        "dixon_coles": scoreline.evaluate_grids_multi_market(dc_grids, val_df),
+        "bivariate_poisson": scoreline.evaluate_grids_multi_market(bp_grids, val_df),
+        "ml_scoreline": scoreline.evaluate_grids_multi_market(ml_grids_for_markets, val_df),
+        "covariate_poisson": scoreline.evaluate_grids_multi_market(cp_grids, val_df),
+    }
+    cp_metrics = market_metrics["covariate_poisson"]
+
+    candidates = {
+        "dixon_coles": dc_metrics["rps"],
+        "bivariate_poisson": bp_metrics["rps"],
+        "ml_scoreline": ml_metrics["rps"],
+        "covariate_poisson": cp_metrics["rps"],
+    }
     chosen = min(candidates, key=candidates.get)
+    market_overrides = {
+        market: model_name for market, model_name in MARKET_MODEL_OVERRIDES.items() if model_name != chosen
+    }
     print(
         f"  > Dixon-Coles RPS={dc_metrics['rps']:.4f}  Bivariate-Poisson RPS={bp_metrics['rps']:.4f}  "
-        f"ML-scoreline RPS={ml_metrics['rps']:.4f}  (chosen: {chosen})"
+        f"ML-scoreline RPS={ml_metrics['rps']:.4f}  Covariate-Poisson RPS={cp_metrics['rps']:.4f}  (chosen: {chosen})"
     )
+    if market_overrides:
+        print(f"  > Market overrides: {market_overrides}")
 
     scoreline.save(dc_model, DIXON_COLES_PATH)
     scoreline.save(bp_model, BIVARIATE_POISSON_PATH)
     market_models.save_regressor(ml_home_model, ML_HOME_MODEL_PATH)
     market_models.save_regressor(ml_away_model, ML_AWAY_MODEL_PATH)
+    covariate_poisson.save(covariate_poisson_model, COVARIATE_POISSON_PATH)
 
     # Corners trains on its own window (see MARKET_TRAINING_WINDOWS) only
     # when it actually differs from the default — reuses the already-built
@@ -274,6 +328,8 @@ def train_all(seasons: list[str] | None = None, include_current_season: bool = T
         "market_training_windows": MARKET_TRAINING_WINDOWS,
         "scoreline": {
             "chosen_model": chosen,
+            "market_overrides": market_overrides,
+            "market_metrics": market_metrics,
             "dixon_coles": {"path": DIXON_COLES_PATH.name, "metrics": dc_metrics},
             "bivariate_poisson": {"path": BIVARIATE_POISSON_PATH.name, "metrics": bp_metrics},
             "ml_scoreline": {
@@ -285,6 +341,7 @@ def train_all(seasons: list[str] | None = None, include_current_season: bool = T
                 "importance_home": ml_importance_home,
                 "importance_away": ml_importance_away,
             },
+            "covariate_poisson": {"path": COVARIATE_POISSON_PATH.name, "metrics": cp_metrics},
         },
         "corners": {
             "path": CORNERS_MODEL_PATH.name,
@@ -341,27 +398,40 @@ def load_manifest() -> Dict:
     return json.loads(MANIFEST_PATH.read_text())
 
 
+_OVERRIDE_MODEL_LOADERS = {"covariate_poisson": lambda: covariate_poisson.load(COVARIATE_POISSON_PATH)}
+
+
 def load_models(matches_df: pd.DataFrame | None = None) -> Dict:
-    """`matches_df` is only required if the chosen scoreline model is
-    `ml_scoreline` (it needs a `FixtureFeatureContext` built from current
-    data to serve live predictions) — callers that only need corners/cards/
-    the manifest can omit it. `dixon_coles_for_rankings` is always loaded
-    regardless of `chosen_model`, since Power Rankings reads its fitted
-    attack/defence parameters directly and an ML-based scoreline model
-    doesn't have an equivalent to show there."""
+    """`matches_df` is required whenever a `FixtureFeatureContext` is
+    needed for live serving — either because `chosen_model` is
+    `ml_scoreline`, or because `scoreline.market_overrides` (see
+    `MARKET_MODEL_OVERRIDES`) names a feature-driven override model
+    (currently `covariate_poisson`); omit it only when neither applies.
+    `dixon_coles_for_rankings` is always loaded regardless of
+    `chosen_model`, since Power Rankings reads its fitted attack/defence
+    parameters directly and an ML-based scoreline model doesn't have an
+    equivalent to show there."""
     manifest = load_manifest()
     chosen = manifest["scoreline"]["chosen_model"]
+    market_override_names = manifest["scoreline"].get("market_overrides", {})
 
     dixon_coles_for_rankings = pb.models.DixonColesGoalModel.load(str(DIXON_COLES_PATH))
+
+    needs_context = chosen == "ml_scoreline" or "covariate_poisson" in market_override_names.values()
+    context = None
+    if needs_context:
+        if matches_df is None:
+            raise ValueError(
+                "load_models(matches_df=...) is required when ml_scoreline is chosen_model "
+                "or a market override needs a live feature context."
+            )
+        context = FixtureFeatureContext(matches_df)
 
     if chosen == "dixon_coles":
         scoreline_model = dixon_coles_for_rankings
     elif chosen == "bivariate_poisson":
         scoreline_model = pb.models.BivariatePoissonGoalModel.load(str(BIVARIATE_POISSON_PATH))
     else:
-        if matches_df is None:
-            raise ValueError("load_models(matches_df=...) is required when chosen_model is 'ml_scoreline'.")
-        context = FixtureFeatureContext(matches_df)
         scoreline_model = ml_scoreline.MLScorelineModel(
             home_model=market_models.load_regressor(ML_HOME_MODEL_PATH),
             away_model=market_models.load_regressor(ML_AWAY_MODEL_PATH),
@@ -370,8 +440,20 @@ def load_models(matches_df: pd.DataFrame | None = None) -> Dict:
             context=context,
         )
 
+    # Resolve MARKET_MODEL_OVERRIDES' model *names* (what manifest.json
+    # stores — plain strings, so the manifest stays a readable, diffable
+    # record) into actual loaded model objects (what scoreline.predict_
+    # fixture/predict_fixtures_batch's market_overrides parameter needs).
+    scoreline_market_overrides = {}
+    for market, model_name in market_override_names.items():
+        override_model = _OVERRIDE_MODEL_LOADERS[model_name]()
+        if hasattr(override_model, "context"):
+            override_model.context = context
+        scoreline_market_overrides[market] = override_model
+
     return {
         "scoreline": scoreline_model,
+        "scoreline_market_overrides": scoreline_market_overrides,
         "dixon_coles_for_rankings": dixon_coles_for_rankings,
         "corners": market_models.load_regressor(CORNERS_MODEL_PATH),
         "cards": market_models.load_regressor(CARDS_MODEL_PATH),

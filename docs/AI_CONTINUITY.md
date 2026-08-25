@@ -116,13 +116,18 @@ field instead of relying on a display-only summary). As of this retrain,
 `manifest.py::MARKET_TRAINING_WINDOWS` gives corners its own 12-season
 training window (4,190 matches) per EXP-2026-11 — scoreline and cards stay
 on the 8-season default; see `manifest.json`'s `market_training_windows`
-and `corners.seasons`/`corners.n_train` fields.
+and `corners.seasons`/`corners.n_train` fields. Per EXP-2026-16,
+`manifest.py::MARKET_MODEL_OVERRIDES` serves Over/Under 2.5 goals from the
+covariate-Poisson model instead of `chosen_model` — every other market
+still comes from `chosen_model`; see `manifest.json`'s `scoreline.
+market_overrides`/`market_metrics` fields for the live-current values.
 
 | Model/market | Latest holdout result |
 | --- | ---:|
-| ML scoreline | RPS `0.2082`, Brier `0.6171` |
+| ML scoreline (`chosen_model`) | RPS `0.2082`, Brier `0.6171` |
 | Dixon-Coles | RPS `0.2257`, Brier `0.6542` |
 | Bivariate Poisson | RPS `0.2260`, Brier `0.6545` |
+| Covariate-Poisson (serves Over/Under 2.5 only) | RPS `0.2103` |
 | Corners (12-season window) | MAE `2.67`, RMSE `3.30` |
 | Cards | MAE `1.62`, RMSE `2.01` |
 
@@ -977,6 +982,81 @@ experiment; negative evidence prevents repeated work.
   family, (3) if promoted, decide explicitly whether it *replaces*
   Dixon-Coles for the Power Rankings display, becomes a fourth
   `manifest.py` candidate, or both.
+
+### EXP-2026-16 — promote covariate-Poisson to production, wire up per-market model selection
+- **Question:** EXP-2026-15 found a corroborated (if partial) Dixon-Coles
+  win via Elo/Pi covariates; EXP-2026-14 found no per-market/per-segment
+  edge across DC/BP/`ml_scoreline`. Does the covariate-Poisson model beat
+  `ml_scoreline` on any *specific* market once it's actually compared to
+  it (not just to DC/BP), and if so, is a general "serve a different model
+  per market" mechanism worth building?
+- **Status:** promoted, with an explicit caveat (see Decision) — this is a
+  softer promotion than most entries in this log.
+- **Candidate:** (1) `models/covariate_poisson.py` — `evaluate/
+  covariate_poisson_research.py`'s `team_effects_plus_elo_pi` spec,
+  productionized as a real module (`fit`/`predict`/`predict_from_row`/
+  `predict_grids_batch`/`save`/`load`), a 4th candidate in `manifest.py::
+  train_all` alongside Dixon-Coles/Bivariate-Poisson/`ml_scoreline`. (2)
+  `MARKET_MODEL_OVERRIDES` in `manifest.py` — a fixed dict mapping market
+  name to override model name, applied via a new `market_overrides`
+  parameter on `scoreline.py::predict_fixture`/`predict_fixtures_batch`
+  (recursively re-invoked per overridden market, so XGBoost's batched fast
+  path for every other market is untouched). `load_models()` resolves
+  override names into loaded, context-attached model objects
+  (`scoreline_market_overrides`), threaded through every serving call site
+  (`odds/value_bets.py`, `api/routes.py` — gameweek list, fixture detail,
+  further-out lookup, player ranking, team fixtures, tracking backfill,
+  `/api/backtest` — plus `tracking/store.py` and `evaluate/backtest.py`).
+- **Protocol:** same 5-fold chronological walk-forward
+  (2021-22 through 2025-26, `model_selection_by_segment.py::prepare_folds`)
+  as every other candidate this session, scored via the shared
+  `scoreline.py::evaluate_grids_multi_market` on every market (1X2, BTTS,
+  O/U 2.5, exact scoreline) for `covariate_poisson` vs `ml_scoreline`
+  specifically (EXP-2026-14 already ruled out DC/BP winning anywhere).
+- **Results — Over/Under 2.5 goals, covariate-Poisson vs ml_scoreline:**
+
+  | Val season | CP log-loss | ML log-loss | CP Brier | ML Brier | Winner |
+  | --- | ---: | ---: | ---: | ---: | --- |
+  | 2021-22 | 0.686906 | 0.700873 | 0.246958 | 0.253621 | CP |
+  | 2022-23 | 0.679133 | 0.682485 | 0.243295 | 0.244851 | CP |
+  | 2023-24 | 0.672151 | 0.666202 | 0.239607 | 0.236743 | **ML** |
+  | 2024-25 | 0.684834 | 0.673814 | 0.245651 | 0.240545 | **ML** |
+  | 2025-26 | 0.690040 | 0.691073 | 0.248351 | 0.248971 | CP |
+  | **Mean** | 0.682613 | 0.682890 | 0.244772 | 0.244946 | CP |
+
+  CP wins the mean and the single most-recent-season check — this
+  project's two-part promotion bar — on both log-loss and Brier. But
+  **read the margin honestly**: the mean gap is under 0.0003 (log-loss)
+  and 0.0002 (Brier), the 2025-26 gap is under 0.0011/0.0007, and CP
+  actually *loses* 2 of the 5 folds (2023-24, 2024-25) by a larger margin
+  than it wins by in any single fold. This is a much thinner, less
+  consistent signal than "wins on average and on the most recent season"
+  sounds like in isolation — it clears the letter of the bar, not a
+  strong version of it. Every other market (1X2, BTTS, exact scoreline)
+  was checked and CP does not win any of them — consistent with
+  EXP-2026-15's finding that CP still trails `ml_scoreline` overall.
+- **Decision:** kept live as a deliberate, informed call, not a confident
+  win — `MARKET_MODEL_OVERRIDES = {"over_2_5": "covariate_poisson"}`,
+  confirmed correctly resolved end-to-end after a real production retrain
+  (`manifest.json`'s `scoreline.market_overrides` matches; `load_models()`
+  → `predict_fixture()`/`predict_fixtures_batch()` both apply it, changing
+  only `over_2_5`/`under_2_5` and leaving `home_win`/`draw`/`away_win`
+  untouched, with `market_model_overrides: ["over_2_5"]` flagged in the
+  result). The general mechanism (arbitrary per-market override, not just
+  this one case) is the more durable value of this experiment — it's
+  evidence-gated and reversible (set the dict back to `{}` to fully revert
+  to single-model serving) if a future retrain or a tighter promotion bar
+  (e.g. requiring the win margin to clear a bootstrap CI, not just be
+  directionally positive twice) says this shouldn't have qualified.
+- **Follow-up:** (1) don't add another market override on evidence this
+  equivocal without first tightening the bar with a margin/CI requirement;
+  (2) if a future covariate-Poisson refinement (e.g. fitting `rho` instead
+  of fixing it at 0, or adding match-dominance covariates per EXP-2026-15's
+  own follow-up note) widens the over_2_5 margin and makes it monotonic
+  across folds, that's a much stronger candidate for keeping this override
+  long-term; (3) Dixon-Coles still serves the Power Rankings display
+  unconditionally regardless of `chosen_model`/`market_overrides` — revisit
+  only as its own explicit decision, not implicitly via this change.
 
 ## Change checklist for future agents
 

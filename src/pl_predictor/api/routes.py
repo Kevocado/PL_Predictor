@@ -427,8 +427,12 @@ def _run_tracking_bookkeeping(table: pd.DataFrame) -> None:
             matches_df = _get_matches_df()
             finished_matches = matches_df[(matches_df["season"] == current_season) & matches_df["goals_home"].notna()]
         if tracking_store.has_unlogged_finished_matches(finished_matches):
+            models = _get_models()
             tracking_store.backfill_missing_predictions(
-                finished_matches, _get_models()["scoreline"], model_trained_at=trained_at
+                finished_matches,
+                models["scoreline"],
+                model_trained_at=trained_at,
+                market_overrides=models.get("scoreline_market_overrides"),
             )
     except Exception as exc:  # noqa: BLE001
         print(f"[tracking] skipped: {exc}")
@@ -564,7 +568,9 @@ def current_gameweek_fixtures(gameweek: int | None = None):
         upcoming_rows = fd_org_matches[(fd_org_matches["matchday"] == target_gameweek) & (~fd_org_matches["finished"])]
         if not upcoming_rows.empty:
             models = _get_models()
-            preds = scoreline.predict_fixtures_batch(models["scoreline"], upcoming_rows)
+            preds = scoreline.predict_fixtures_batch(
+                models["scoreline"], upcoming_rows, market_overrides=models.get("scoreline_market_overrides")
+            )
             # The Odds API only covers a rolling ~1-2 gameweek window, so
             # not every upcoming fixture here will have a live-odds match —
             # prefer it (real event_id, model prob, value-bet flags) when
@@ -639,7 +645,9 @@ def _build_fixture_detail(summary: FixtureSummary, home: str, away: str) -> Fixt
     models = _get_models()
     matches_df = _get_matches_df()
 
-    pred = scoreline.predict_fixture(models["scoreline"], home, away, max_goals=6)
+    pred = scoreline.predict_fixture(
+        models["scoreline"], home, away, max_goals=6, market_overrides=models.get("scoreline_market_overrides")
+    )
     feature_row = build_features_for_fixtures(
         pd.DataFrame([{"team_home": home, "team_away": away, "commence_time": summary.commence_time}]), matches_df=matches_df
     ).iloc[0]
@@ -749,7 +757,9 @@ def fixture_detail(event_id: str):
         fixture = remaining_match.iloc[0]
         home, away = fixture["team_home"], fixture["team_away"]
         models = _get_models()
-        pred = scoreline.predict_fixture(models["scoreline"], home, away)
+        pred = scoreline.predict_fixture(
+            models["scoreline"], home, away, market_overrides=models.get("scoreline_market_overrides")
+        )
         return _build_fixture_detail(_team_fixture_to_summary(fixture, pred), home, away)
 
     # Neither odds-windowed nor still-upcoming — likely a finished fixture
@@ -817,7 +827,9 @@ def _rank_fixture_players(
     confirmed_starter_ids: set[int] | None = None,
 ) -> FixturePlayers:
     models = _get_models()
-    pred = scoreline.predict_fixture(models["scoreline"], home, away)
+    pred = scoreline.predict_fixture(
+        models["scoreline"], home, away, market_overrides=models.get("scoreline_market_overrides")
+    )
 
     bootstrap = _get_bootstrap()
     current_event = fpl_api.get_current_event(bootstrap)
@@ -1116,7 +1128,13 @@ def team_fixtures(team: str, limit: int = 5):
     models = _get_models()
     return [
         _team_fixture_to_summary(
-            fixture, scoreline.predict_fixture(models["scoreline"], fixture["team_home"], fixture["team_away"])
+            fixture,
+            scoreline.predict_fixture(
+                models["scoreline"],
+                fixture["team_home"],
+                fixture["team_away"],
+                market_overrides=models.get("scoreline_market_overrides"),
+            ),
         )
         for _, fixture in team_df.iterrows()
     ]
@@ -1155,7 +1173,14 @@ def run_backtest(edge_threshold: float = 0.05, staking: str = "kelly"):
     start, end = str(val_df["date"].min().date()), str(val_df["date"].max().date())
     selections: list[dict] = []
     bt = backtest_lib.build_value_bet_backtest(
-        val_df, models["scoreline"], start, end, edge_threshold=edge_threshold, staking=staking, selections=selections
+        val_df,
+        models["scoreline"],
+        start,
+        end,
+        edge_threshold=edge_threshold,
+        staking=staking,
+        selections=selections,
+        market_overrides=models.get("scoreline_market_overrides"),
     )
     return {
         "results": bt.results(),

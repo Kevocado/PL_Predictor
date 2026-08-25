@@ -14,11 +14,12 @@ scikit-learn — no new dependency needed) with the same
 External features (Elo/Pi difference, the match-dominance rolling stats)
 sit alongside the team dummies as ordinary regression coefficients.
 
-Research-only: this is not `models/covariate_poisson.py` because it has
-not earned production status. Promote it there only if a chronological/
-walk-forward comparison shows it beats Dixon-Coles/Bivariate-Poisson (the
-two models it's structurally closest to) by enough to matter, corroborated
-on the most recent season per this project's established bar.
+Research module for exploring covariate specs beyond the two (Elo/Pi
+difference) that were promoted to `models/covariate_poisson.py` after
+EXP-2026-15/16 (docs/AI_CONTINUITY.md) — e.g. the match-dominance rolling
+stats via `dominance_extra_cols`. A new spec promotes out of here only
+after the same chronological/walk-forward-plus-most-recent-season bar the
+existing production model cleared.
 """
 
 from __future__ import annotations
@@ -30,7 +31,7 @@ from sklearn.linear_model import PoissonRegressor
 
 from ..models import scoreline
 from .model_selection_by_segment import prepare_folds
-from .scoreline_dominance_arms import _metrics_from_grids
+from ..models.scoreline import evaluate_grids_multi_market
 
 MIN_LAMBDA = 0.05
 
@@ -160,7 +161,7 @@ def evaluate_covariate_specs(seasons: list[str] | None = None, min_train_seasons
         for spec_name, covariate_cols in COVARIATE_SPECS.items():
             model, columns, team_categories = fit(fold["train_df"], covariate_cols)
             grids = predict_grids_batch(model, columns, team_categories, fold["val_df"], covariate_cols)
-            metrics = _metrics_from_grids(grids, fold["val_df"])
+            metrics = evaluate_grids_multi_market(grids, fold["val_df"])
             rows.append({"spec": spec_name, "val_season": fold["val_season"], **metrics})
     return pd.DataFrame(rows)
 
