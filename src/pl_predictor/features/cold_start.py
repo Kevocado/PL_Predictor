@@ -36,6 +36,10 @@ def apply_cold_start_fallback(long_df: pd.DataFrame, feature_cols: list[str]) ->
 
     league_avg = {col: long_df[col].mean() for col in feature_cols}
 
+    # Reassigning ~100 existing columns one at a time (long_df[col] = ...)
+    # fragments the block manager as badly as inserting new ones; blend them
+    # into a dict and swap the whole block in with one concat instead.
+    blended_cols = {}
     for col in feature_cols:
         window = _window_of(col)
         if window is None or col not in long_df.columns:
@@ -46,7 +50,11 @@ def apply_cold_start_fallback(long_df: pd.DataFrame, feature_cols: list[str]) ->
 
         weight = (games_played / window).clip(upper=1.0)
         current = long_df[col]
-        long_df[col] = weight * current.fillna(avg) + (1 - weight) * avg
+        blended_cols[col] = weight * current.fillna(avg) + (1 - weight) * avg
+
+    if blended_cols:
+        long_df = long_df.drop(columns=list(blended_cols.keys()))
+        long_df = pd.concat([long_df, pd.DataFrame(blended_cols, index=long_df.index)], axis=1)
 
     max_window = max((w for w in (_window_of(c) for c in feature_cols) if w), default=1)
     confidence = pd.Series("current", index=long_df.index)

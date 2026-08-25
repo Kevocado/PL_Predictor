@@ -103,16 +103,21 @@ def to_team_perspective(matches_df: pd.DataFrame) -> pd.DataFrame:
 
 def _add_rolling(long_df: pd.DataFrame, group_cols: list[str], prefix: str) -> tuple[pd.DataFrame, list[str]]:
     lag_cols = []
+    new_cols = {}
     grouped = long_df.groupby(group_cols, sort=False)
     for feat in BASE_STATS:
         if feat not in long_df.columns:
             continue
         for w in LAG_WINDOWS:
             col = f"{prefix}last_{w}_{feat}"
-            long_df[col] = grouped[feat].transform(
+            new_cols[col] = grouped[feat].transform(
                 lambda s, w=w: s.shift(1).rolling(w, min_periods=1).mean()
             )
             lag_cols.append(col)
+    # Assigning ~40 columns one at a time (long_df[col] = ...) fragments the
+    # block manager badly enough that pandas warns on the next read; build
+    # them in a dict and concat once instead.
+    long_df = pd.concat([long_df, pd.DataFrame(new_cols, index=long_df.index)], axis=1)
     return long_df, lag_cols
 
 
@@ -164,13 +169,15 @@ def build_rolling_form(matches_df: pd.DataFrame) -> tuple[pd.DataFrame, list[str
     # split_ columns mix in both was_home=True and was_home=False groups;
     # relabel into home_/away_ and null out the irrelevant side per row.
     feature_cols = list(overall_cols)
+    relabeled_cols = {}
     for col in home_cols:
         stat = col[len("split_") :]
         home_col, away_col = f"home_{stat}", f"away_{stat}"
-        long_df[home_col] = np.where(long_df["was_home"], long_df[col], np.nan)
-        long_df[away_col] = np.where(~long_df["was_home"], long_df[col], np.nan)
+        relabeled_cols[home_col] = np.where(long_df["was_home"], long_df[col], np.nan)
+        relabeled_cols[away_col] = np.where(~long_df["was_home"], long_df[col], np.nan)
         feature_cols += [home_col, away_col]
     long_df = long_df.drop(columns=home_cols)
+    long_df = pd.concat([long_df, pd.DataFrame(relabeled_cols, index=long_df.index)], axis=1)
 
     return long_df, feature_cols
 
