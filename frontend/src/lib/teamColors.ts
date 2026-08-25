@@ -1,5 +1,4 @@
-// Deterministic color + initials per team name, so badges are stable across
-// reloads without needing a crest-image dependency.
+// Fallback colour + initials for a local crest asset that is unavailable.
 
 const PALETTE = [
   "#E90052", // pink
@@ -38,6 +37,34 @@ const OVERRIDES: Record<string, string> = {
   "Sheffield United": "SHU",
   "West Ham": "WHU",
 };
+
+const CREST_FILES: Record<string, string> = {
+  Arsenal: "arsenal-logo-footylogos.svg",
+  "Aston Villa": "aston-villa-logo-footylogos.svg",
+  Bournemouth: "afc-bournemouth-logo-footylogos.svg",
+  Brentford: "brentford-logo-footylogos.svg",
+  Brighton: "brighton-and-hove-albion-logo-footylogos.svg",
+  Chelsea: "chelsea-logo-footylogos.svg",
+  Coventry: "coventry-city-logo-footylogos.svg",
+  "Crystal Palace": "crystal-palace-logo-footylogos.svg",
+  Everton: "everton-logo-footylogos.svg",
+  Fulham: "fulham-logo-footylogos.svg",
+  Hull: "hull-city-logo-footylogos.svg",
+  Ipswich: "ipswich-town-logo-footylogos.svg",
+  Leeds: "leeds-united-logo-footylogos.svg",
+  Liverpool: "liverpool-fc-logo-footylogos.svg",
+  "Man City": "manchester-city-logo-footylogos.svg",
+  "Man United": "manchester-united-logo-footylogos.svg",
+  Newcastle: "newcastle-united-logo-footylogos.svg",
+  "Nott'm Forest": "nottingham-forest-logo-footylogos.svg",
+  Sunderland: "sunderland-logo-footylogos.svg",
+  Tottenham: "tottenham-hotspur-logo-footylogos.svg",
+};
+
+export function teamCrestUrl(team: string): string | null {
+  const filename = CREST_FILES[team];
+  return filename ? `/badges/${filename}` : null;
+}
 
 export function teamInitials(team: string): string {
   if (OVERRIDES[team]) return OVERRIDES[team];

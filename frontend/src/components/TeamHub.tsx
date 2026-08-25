@@ -1,0 +1,114 @@
+import { useMemo, useState } from "react";
+import type { TeamHubResponse } from "../types";
+import { TeamBadge } from "./TeamBadge";
+import { InfoTooltip } from "./InfoTooltip";
+import { GLOSSARY } from "../lib/glossary";
+
+function value(number: number | null, suffix = "") {
+  return number === null ? "—" : `${number.toFixed(2)}${suffix}`;
+}
+
+function trend(number: number | null) {
+  if (number === null) return "text-pl-text-faint";
+  return number > 0 ? "text-win" : number < 0 ? "text-loss" : "text-pl-text-dim";
+}
+
+const FORM_TREND = {
+  up: { arrow: "↑", label: "Improving form", className: "text-win" },
+  down: { arrow: "↓", label: "Declining form", className: "text-loss" },
+  steady: { arrow: "→", label: "Steady form", className: "text-pl-text-dim" },
+  new: { arrow: "•", label: "Not enough current-season matches for a trend", className: "text-pl-text-faint" },
+} as const;
+
+export function TeamHub({ data }: { data: TeamHubResponse }) {
+  const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
+  const teams = useMemo(
+    () => [...data.teams].sort((left, right) => (right.form_points_per_match ?? -1) - (left.form_points_per_match ?? -1) || (right.points_per_match ?? 0) - (left.points_per_match ?? 0)),
+    [data.teams],
+  );
+  const selected = teams.find((team) => team.team === selectedTeam) ?? teams[0];
+
+  if (!selected) return <p className="text-sm text-pl-text-faint">No current-season team data is available yet.</p>;
+
+  const metrics = [
+    ["Points / match", value(selected.points_per_match)],
+    ["Goals", `${selected.goals_for}-${selected.goals_against}`],
+    ["Shots / target", `${value(selected.shots_per_match)} / ${value(selected.shots_on_target_per_match)}`],
+    ["Corners / cards", `${value(selected.corners_per_match)} / ${value(selected.cards_per_match)}`],
+  ];
+
+  return (
+    <div className="flex flex-col gap-5">
+      <p className="text-sm text-pl-text-dim">Season-to-date form, underlying chance quality, and style. Select a club for a deeper view.</p>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-5">
+        {teams.map((team) => (
+          <button
+            key={team.team}
+            onClick={() => setSelectedTeam(team.team)}
+            className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-left transition ${
+              team.team === selected.team ? "border-pl-pink bg-pl-pink/10" : "border-pl-border bg-pl-850/50 hover:border-pl-pink/40"
+            }`}
+          >
+            <TeamBadge team={team.team} size="sm" />
+            <span className="min-w-0">
+              <span className="block truncate text-xs font-semibold text-pl-text">{team.team}</span>
+              <span className="flex items-center gap-1 text-[11px] text-pl-text-faint">Form {value(team.form_points_per_match)} PPG <span title={FORM_TREND[team.form_trend].label} className={`font-bold ${FORM_TREND[team.form_trend].className}`}>{FORM_TREND[team.form_trend].arrow}</span></span>
+            </span>
+          </button>
+        ))}
+      </div>
+
+      <section className="rounded-xl border border-pl-border bg-pl-850/50 p-4">
+        <div className="mb-4 flex items-center gap-3">
+          <TeamBadge team={selected.team} size="lg" />
+          <div>
+            <h3 className="text-lg font-semibold text-pl-text">{selected.team}</h3>
+            <p className="text-xs text-pl-text-faint">{selected.wins}W · {selected.draws}D · {selected.losses}L · Form {value(selected.form_points_per_match)} PPG <span title={FORM_TREND[selected.form_trend].label} className={`font-bold ${FORM_TREND[selected.form_trend].className}`}>{FORM_TREND[selected.form_trend].arrow}</span> · streak {selected.streak > 0 ? `+${selected.streak}` : selected.streak}</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+          {metrics.map(([label, metric]) => (
+            <div key={label} className="rounded-lg bg-pl-900/60 px-3 py-2">
+              <p className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-pl-text-faint">{label}{label === "Points / match" && <InfoTooltip text={GLOSSARY.pointsPerMatch} align="left" />}</p>
+              <p className="mt-1 text-sm font-semibold text-pl-text">{metric}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+          <div>
+            <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">Underlying performance</h4>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-lg bg-pl-900/60 px-3 py-2"><span className="flex items-center gap-1 text-xs text-pl-text-faint">xG for <InfoTooltip text={GLOSSARY.expectedGoals} align="left" /></span><p className="font-semibold text-pl-text">{value(selected.xg_for)}</p></div>
+              <div className="rounded-lg bg-pl-900/60 px-3 py-2"><span className="flex items-center gap-1 text-xs text-pl-text-faint">xG against <InfoTooltip text={GLOSSARY.expectedGoals} align="left" /></span><p className="font-semibold text-pl-text">{value(selected.xg_against)}</p></div>
+              <div className="rounded-lg bg-pl-900/60 px-3 py-2"><span className="flex items-center gap-1 text-xs text-pl-text-faint">Goals − xG <InfoTooltip text={GLOSSARY.goalsMinusXg} align="left" /></span><p className={`font-semibold ${trend(selected.goals_minus_xg)}`}>{selected.goals_minus_xg === null ? "—" : `${selected.goals_minus_xg > 0 ? "+" : ""}${value(selected.goals_minus_xg)}`}</p></div>
+              <div className="rounded-lg bg-pl-900/60 px-3 py-2"><span className="flex items-center gap-1 text-xs text-pl-text-faint">Conceded − xGA <InfoTooltip text={GLOSSARY.concededMinusXga} align="left" /></span><p className={`font-semibold ${trend(selected.goals_conceded_minus_xg)}`}>{selected.goals_conceded_minus_xg === null ? "—" : `${selected.goals_conceded_minus_xg > 0 ? "+" : ""}${value(selected.goals_conceded_minus_xg)}`}</p></div>
+            </div>
+          </div>
+          <div>
+            <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">Style</h4>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-lg bg-pl-900/60 px-3 py-2"><span className="flex items-center gap-1 text-xs text-pl-text-faint">Set-piece xG share <InfoTooltip text={GLOSSARY.setPieceShare} align="left" /></span><p className="font-semibold text-pl-text">{value(selected.set_piece_xg_share === null ? null : selected.set_piece_xg_share * 100, "%")}</p></div>
+              <div className="rounded-lg bg-pl-900/60 px-3 py-2"><span className="text-xs text-pl-text-faint">Fouls / match</span><p className="font-semibold text-pl-text">{value(selected.fouls_per_match)}</p></div>
+              <div className="rounded-lg bg-pl-900/60 px-3 py-2"><span className="text-xs text-pl-text-faint">Corners / match</span><p className="font-semibold text-pl-text">{value(selected.corners_per_match)}</p></div>
+              <div className="rounded-lg bg-pl-900/60 px-3 py-2"><span className="text-xs text-pl-text-faint">Cards / match</span><p className="font-semibold text-pl-text">{value(selected.cards_per_match)}</p></div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">Recent matches</h4>
+          <div className="grid gap-1 sm:grid-cols-2">
+            {selected.recent_matches.map((match) => (
+              <div key={`${match.date}-${match.opponent}-${match.venue}`} className="flex items-center justify-between rounded-lg bg-pl-900/60 px-3 py-2 text-xs">
+                <span className="text-pl-text-faint">{match.date} · {match.venue === "Home" ? "vs" : "@"} {match.opponent}</span>
+                <span className="flex items-center gap-2"><span className={`font-semibold ${match.result === "W" ? "text-win" : match.result === "L" ? "text-loss" : "text-pl-text-dim"}`}>{match.result} {match.score}</span><span className="text-pl-text-faint">xG {value(match.xg_for)}-{value(match.xg_against)}</span></span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}

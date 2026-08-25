@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../api/client";
-import type { ProjectedTableResponse, RankingsResponse, TrackRecordResponse } from "../types";
+import type { PlayerHubResponse, ProjectedTableResponse, RankingsResponse, TeamHubResponse, TrackRecordResponse } from "../types";
 import { PowerRankings } from "../components/PowerRankings";
 import { ProjectedTable } from "../components/ProjectedTable";
 import { TrackRecordPanel } from "../components/TrackRecordPanel";
+import { TeamHub } from "../components/TeamHub";
+import { PlayerHub } from "../components/PlayerHub";
 
-const TABS = ["Track Record", "Power Rankings", "Projected Table"] as const;
+const TABS = ["Track Record", "Team Hub", "Player Hub", "Power Rankings", "Projected Table"] as const;
 type Tab = (typeof TABS)[number];
 
 // Data Hub pages stay mounted once loaded (see App.tsx) rather than
@@ -21,7 +23,11 @@ export function DataHubPage() {
   const [rankings, setRankings] = useState<RankingsResponse | null>(null);
   const [table, setTable] = useState<ProjectedTableResponse | null>(null);
   const [trackRecord, setTrackRecord] = useState<TrackRecordResponse | null>(null);
+  const [teamHub, setTeamHub] = useState<TeamHubResponse | null>(null);
+  const [playerHub, setPlayerHub] = useState<PlayerHubResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [teamHubError, setTeamHubError] = useState<string | null>(null);
+  const [playerHubError, setPlayerHubError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [tab, setTab] = useState<Tab>("Track Record");
 
@@ -42,6 +48,15 @@ export function DataHubPage() {
     const id = setInterval(load, REFRESH_INTERVAL_MS);
     return () => clearInterval(id);
   }, [load]);
+
+  useEffect(() => {
+    if (tab === "Team Hub" && !teamHub) {
+      api.teamHub().then(setTeamHub).catch((e) => setTeamHubError(e.message));
+    }
+    if (tab === "Player Hub" && !playerHub) {
+      api.playerHub().then(setPlayerHub).catch((e) => setPlayerHubError(e.message));
+    }
+  }, [tab, teamHub, playerHub]);
 
   if (error) {
     return <div className="rounded-lg border border-loss/40 bg-loss/10 px-4 py-3 text-sm text-loss">{error}</div>;
@@ -87,6 +102,24 @@ export function DataHubPage() {
         <section>
           <h2 className="mb-3 text-lg font-semibold text-pl-text">Power Rankings</h2>
           <PowerRankings data={rankings} />
+        </section>
+      )}
+
+      {tab === "Team Hub" && (
+        <section>
+          <h2 className="mb-3 text-lg font-semibold text-pl-text">Team Hub</h2>
+          {teamHubError && <p className="text-sm text-loss">{teamHubError}</p>}
+          {!teamHub && !teamHubError && <p className="py-10 text-center text-sm text-pl-text-faint">Loading team analytics…</p>}
+          {teamHub && <TeamHub data={teamHub} />}
+        </section>
+      )}
+
+      {tab === "Player Hub" && (
+        <section>
+          <h2 className="mb-3 text-lg font-semibold text-pl-text">Player Hub</h2>
+          {playerHubError && <p className="text-sm text-loss">{playerHubError}</p>}
+          {!playerHub && !playerHubError && <p className="py-10 text-center text-sm text-pl-text-faint">Loading player analytics…</p>}
+          {playerHub && <PlayerHub data={playerHub} />}
         </section>
       )}
 

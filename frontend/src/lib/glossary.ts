@@ -34,7 +34,7 @@ export const GLOSSARY = {
   playerAvailability:
     "Live status from the official FPL API. A doubtful player's probability is already discounted by their listed chance of playing; an injured/suspended player's probability is zeroed out. There's no live check for a very recent, not-yet-reflected change — a player who just picked up an injury could take a match or two to fully drop out of their own recent-form numbers.",
   powerRankings:
-    "The scoreline model's own fitted attack and defence strength per team — not an opinion layered on top, but literally the numbers it uses internally to price every match. Net strength = attack minus defence. Higher attack = more goals scored; more negative defence = fewer goals conceded (it's a suppression term in the model, so more negative is better defensively).",
+    "A display-only live-strength ranking: 75% history-seeded Elo/Pi form (updated after each result) plus 25% pre-season Dixon-Coles strength. Attack and defence are fixed 0–100 conversions of the underlying Dixon-Coles values: 50 means a typical league-level strength, and higher is always stronger. They are not rescaled against this week's teams. The ranking is separate from the scoreline and value-bet models, so it helps describe current relative form without changing match probabilities.",
   ratingsTrend:
     "Elo and Pi ratings, replayed match-by-match through this season so far — two independent, simpler ways of tracking form over time (both reward wins and account for opponent strength) alongside the main model's own attack/defence numbers.",
   projectedTable:
@@ -43,4 +43,18 @@ export const GLOSSARY = {
     "Whether the model's highest-probability result (home win / draw / away win) matched what actually happened — computed only on predictions that were logged before kickoff (or honestly backfilled the same way) and have since been resolved against the real result. Not a backtest on old seasons: a live, ongoing record.",
   biggestMisses:
     "The biggest genuine upsets — results the model gave the lowest chance of happening, and they happened anyway. Only the match-result market; goals/BTTS misses aren't shown here.",
+  pointsPerMatch: "League points won per match played: three for a win, one for a draw, and none for a loss.",
+  expectedGoals: "Expected goals (xG) estimates chance quality. A value of 1.5 means the chances created would typically produce about 1.5 goals.",
+  goalsMinusXg: "Actual goals minus expected goals. A positive value means a team has scored more than its chances would normally produce; a negative value means fewer.",
+  concededMinusXga: "Goals conceded minus expected goals against. A negative value is better: the team has conceded fewer than the chances allowed would normally produce.",
+  setPieceShare: "The percentage of a team's expected goals that came from corners, free-kicks, penalties, and other set pieces.",
+  playerMinutes: "Premier League minutes played this season.",
+  playerXg: "Expected goals from the quality and location of a player's shots. It is not a prediction of their next match by itself.",
+  playerXa: "Expected assists: the expected-goal value of chances a player created for team-mates.",
+  playerXgi: "Expected goal involvements: expected goals plus expected assists. It summarizes a player's attacking chance quality.",
+  playerThreat: "FPL's shot and goal-threat indicator. Higher values generally indicate more dangerous scoring positions and volume.",
+  playerCreativity: "FPL's chance-creation indicator. It reflects the quality and volume of opportunities a player creates, not a model probability.",
+  playerIct: "FPL's combined Influence, Creativity and Threat score. It is a proprietary descriptive index, so compare it within a season rather than treating it as a probability.",
+  playerBps: "FPL's Bonus Points System score, built from on-ball actions such as goals, assists, chances created, defensive actions and passing. It is not the same as bonus points.",
+  playerBonus: "FPL bonus points actually awarded after matches to the leading BPS players.",
 };
