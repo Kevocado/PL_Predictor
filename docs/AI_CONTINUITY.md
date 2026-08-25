@@ -755,6 +755,25 @@ experiment; negative evidence prevents repeated work.
      historical window than scoreline/cards is a new capability, not a
      parameter flip — scope it as its own follow-up if pursued, not a
      silent change here.
+     - **Live check added** (`evaluate/current_season_check.py`): trains
+       each arm on strictly pre-season data and scores it against the
+       *actual* current (2026-27) season's completed fixtures — a
+       genuinely live signal, distinct from the historical walk-forward
+       folds above, that grows more informative every gameweek.
+       `MIN_FIXTURES_FOR_A_DECISION = 60` is an explicit, printed
+       rule-of-thumb floor (this data's typical arm-to-arm MAE gaps are
+       small enough that a single-digit-to-low-double-digit fixture count
+       can't reliably distinguish them) — the tool reports `n_fixtures`
+       and whether that floor is met rather than presenting a small-n
+       result as decisive.
+     - **First run, 10 completed 2026-27 fixtures** (below the floor, not
+       decisive on its own): corners MAE — A `2.562`, B `2.446`, C
+       `2.444`. Directionally consistent with the historical corroborated
+       finding (B beats A) even at this size, which is reassuring but not
+       proof. Re-run as the season progresses.
+     - Given the historical result already passes the full corroboration
+       bar on its own, this follow-up proceeds: build per-market
+       training-window selection (see EXP-2026-12).
   3. Match-dominance features are not promoted for any market from this
      result. Cards' signal is the most interesting remaining thread —
      worth a second look with more folds/seasons before either promoting
