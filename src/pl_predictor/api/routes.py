@@ -441,6 +441,34 @@ def list_fixtures():
     return [_row_to_summary(row) for _, row in table.iterrows()]
 
 
+def _resolve_current_gameweek(current_gameweek: int | None, fd_org_matches: pd.DataFrame, now: pd.Timestamp | None = None) -> int | None:
+    """`current_gameweek` (from `tracking_store.get_track_record()`, or the
+    lowest-unfinished-matchday fallback) still points at a gameweek once
+    every one of its matches is resolved, until the *next* gameweek produces
+    its own first resolved match — which can be days later (e.g. a Sunday
+    finish, Friday restart). Advances to the next gameweek a day early
+    instead of waiting for kickoff, so the default view doesn't sit on a
+    fully-finished gameweek for days. `now` is injectable for tests; real
+    callers always use the default (actual current time)."""
+    if current_gameweek is None or fd_org_matches.empty:
+        return current_gameweek
+
+    this_gw_matches = fd_org_matches[fd_org_matches["matchday"] == current_gameweek]
+    this_gw_fully_finished = not this_gw_matches.empty and bool(this_gw_matches["finished"].all())
+    if not this_gw_fully_finished:
+        return current_gameweek
+
+    next_gw_matches = fd_org_matches[fd_org_matches["matchday"] == current_gameweek + 1]
+    if next_gw_matches.empty:
+        return current_gameweek
+
+    now = now if now is not None else pd.Timestamp.now(tz="UTC")
+    next_kickoff = pd.to_datetime(next_gw_matches["commence_time"], utc=True).min()
+    if next_kickoff <= now + pd.Timedelta(days=1):
+        return current_gameweek + 1
+    return current_gameweek
+
+
 @router.get("/fixtures/gameweek")
 def current_gameweek_fixtures(gameweek: int | None = None):
     """Every match in one gameweek, finished and upcoming together — the
@@ -452,19 +480,22 @@ def current_gameweek_fixtures(gameweek: int | None = None):
     number among resolved matches) for consistency between the two views;
     falls back to the lowest not-yet-finished matchday from football-data.org
     when nothing's resolved yet at all (e.g. brand new season, gameweek 1
-    hasn't kicked off). Finished fixtures reuse `tracking_store`'s already-
-    recorded pre-match predictions (honest — never recomputed live, which
-    for an already-finished match could leak that match's own result into
-    what's "predicted"); upcoming fixtures get a fresh live prediction the
-    same way `/fixtures` does, joined against the odds-windowed value-bet
-    table by team pair when a live market covers that fixture (so the same
-    market-edge/value-bet-flag data `/fixtures` shows is available here
-    too, not just a bare model prediction) — falls back to a model-only
-    prediction for fixtures further out than the odds window. `event_id` is
-    included on every fixture (the Odds API's id when a live-odds match was
-    found, football-data.org's id otherwise for upcoming ones, and the id
-    `fixture_detail` already knows how to resolve for finished ones) so
-    each card can open the same fixture-detail view `/fixtures` does."""
+    hasn't kicked off) — then `_resolve_current_gameweek` advances that a
+    day early once it's fully finished, rather than waiting on the next
+    gameweek's own first result. Finished fixtures reuse `tracking_store`'s
+    already-recorded pre-match predictions (honest — never recomputed live,
+    which for an already-finished match could leak that match's own result
+    into what's "predicted"); upcoming fixtures get a fresh live prediction
+    the same way `/fixtures` does, joined against the odds-windowed
+    value-bet table by team pair when a live market covers that fixture (so
+    the same market-edge/value-bet-flag data `/fixtures` shows is available
+    here too, not just a bare model prediction) — falls back to a
+    model-only prediction for fixtures further out than the odds window.
+    `event_id` is included on every fixture (the Odds API's id when a
+    live-odds match was found, football-data.org's id otherwise for
+    upcoming ones, and the id `fixture_detail` already knows how to resolve
+    for finished ones) so each card can open the same fixture-detail view
+    `/fixtures` does."""
     value_bet_table = _value_bet_table()
     _run_tracking_bookkeeping(value_bet_table)
 
@@ -476,6 +507,8 @@ def current_gameweek_fixtures(gameweek: int | None = None):
     if current_gameweek is None and not fd_org_matches.empty:
         unfinished = fd_org_matches[~fd_org_matches["finished"]]
         current_gameweek = int(unfinished["matchday"].min()) if not unfinished.empty else None
+
+    current_gameweek = _resolve_current_gameweek(current_gameweek, fd_org_matches)
 
     target_gameweek = gameweek if gameweek is not None else current_gameweek
     if target_gameweek is None:
