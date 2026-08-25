@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import time
 
+import numpy as np
 import pandas as pd
 import penaltyblog as pb
 
@@ -150,6 +151,136 @@ def _load_season_shot_situation(season: str, force_refresh: bool, request_delay:
     df = pd.DataFrame(rows, columns=_SHOT_SITUATION_COLS)
     df.to_csv(agg_cache_path, index=False)
     return df
+
+
+_DOMINANCE_COLS = [
+    "date",
+    "team_home",
+    "team_away",
+    "home_total_xg",
+    "away_total_xg",
+    "home_non_penalty_xg",
+    "away_non_penalty_xg",
+    "home_shots",
+    "away_shots",
+    "home_xg_per_shot",
+    "away_xg_per_shot",
+    "home_open_play_xg_share",
+    "away_open_play_xg_share",
+    "home_set_piece_xg_share",
+    "away_set_piece_xg_share",
+    "home_avg_shot_distance",
+    "away_avg_shot_distance",
+]
+
+
+def _aggregate_match_dominance(shots: pd.DataFrame) -> tuple[dict, dict]:
+    """Richer per-side match aggregate than `_aggregate_match`: total and
+    non-penalty xG, shot count, xG per shot, open-play/set-piece xG share,
+    and average shot distance-to-goal. Distance (not a "quality" score) is
+    deliberate: Understat's `x`/`y` are already normalized pitch
+    coordinates (`x=1` is the opponent's goal line, `y=0.5` is the pitch's
+    vertical center), so a *lower* average distance means shots taken from
+    better positions on average — no separate scale to define or justify.
+    Player names and free-text action labels (`player`, `player_assisted`,
+    `last_action`, `shot_type`) are deliberately excluded, per the numeric-
+    only, no-unstable-free-text-features rule for this feature set's v1."""
+    shots = shots.copy()
+    shots["x_g"] = shots["x_g"].astype(float)
+    shots["x"] = shots["x"].astype(float)
+    shots["y"] = shots["y"].astype(float)
+    shots["is_set_piece"] = shots["situation"].isin(SET_PIECE_SITUATIONS)
+    shots["is_penalty"] = shots["situation"] == "Penalty"
+    shots["is_open_play"] = shots["situation"] == "OpenPlay"
+    shots["distance_to_goal"] = np.sqrt((1 - shots["x"]) ** 2 + (shots["y"] - 0.5) ** 2)
+
+    def _side(h_a: str) -> dict:
+        side_shots = shots[shots["h_a"] == h_a]
+        n_shots = len(side_shots)
+        total_xg = float(side_shots["x_g"].sum())
+        non_penalty_xg = float(side_shots.loc[~side_shots["is_penalty"], "x_g"].sum())
+        set_piece_xg = float(side_shots.loc[side_shots["is_set_piece"], "x_g"].sum())
+        open_play_xg = float(side_shots.loc[side_shots["is_open_play"], "x_g"].sum())
+        return {
+            "total_xg": total_xg,
+            "non_penalty_xg": non_penalty_xg,
+            "shots": n_shots,
+            "xg_per_shot": total_xg / n_shots if n_shots > 0 else None,
+            "open_play_xg_share": open_play_xg / total_xg if total_xg > 0 else None,
+            "set_piece_xg_share": set_piece_xg / total_xg if total_xg > 0 else None,
+            "avg_shot_distance": float(side_shots["distance_to_goal"].mean()) if n_shots > 0 else None,
+        }
+
+    return _side("h"), _side("a")
+
+
+def _load_season_match_dominance(season: str, force_refresh: bool, request_delay: float) -> pd.DataFrame:
+    """Same one-row-per-match, cache-per-season shape as
+    `_load_season_shot_situation`, but built via `_aggregate_match_dominance`
+    and cached to a separately-versioned file (`_aggregate_v2_{season}.csv`)
+    so the older `set_piece_xg_share`-only cache is never silently
+    reinterpreted as this richer shape. Reuses the exact same per-match
+    fetch-or-cache raw files (`{understat_id}.csv`) `_load_season_shot_
+    situation` already populates — for any season already fetched, this
+    makes zero new network calls."""
+    agg_cache_path = UNDERSTAT_SHOTS_CACHE_DIR / f"_aggregate_v2_{season}.csv"
+    if agg_cache_path.exists() and not force_refresh:
+        return pd.read_csv(agg_cache_path, parse_dates=["date"])
+
+    fixtures = _fetch_season_fixtures_with_id(season, force_refresh=force_refresh)
+    scraper = pb.scrapers.Understat(COMPETITION, season)
+    rows = []
+    for _, fx in fixtures.iterrows():
+        understat_id = str(fx["understat_id"])
+        cache_path = UNDERSTAT_SHOTS_CACHE_DIR / f"{understat_id}.csv"
+        was_cached = cache_path.exists()
+        try:
+            shots = fetch_match_shots(scraper, understat_id, force_refresh=force_refresh)
+        except RuntimeError as exc:
+            print(f"  ! Skipping dominance aggregate for match {understat_id}: {exc}")
+            continue
+        if not was_cached and request_delay:
+            time.sleep(request_delay)
+
+        if shots.empty:
+            continue
+        home_row, away_row = _aggregate_match_dominance(shots)
+        row = {
+            "date": fx["date"],
+            "team_home": to_canonical(str(fx["team_home"]), source="understat"),
+            "team_away": to_canonical(str(fx["team_away"]), source="understat"),
+        }
+        row.update({f"home_{key}": value for key, value in home_row.items()})
+        row.update({f"away_{key}": value for key, value in away_row.items()})
+        rows.append(row)
+
+    df = pd.DataFrame(rows, columns=_DOMINANCE_COLS)
+    df.to_csv(agg_cache_path, index=False)
+    return df
+
+
+def load_match_dominance_data(
+    seasons: list[str] | None = None, force_refresh: bool = False, request_delay: float = 0.3
+) -> pd.DataFrame:
+    """One row per match with the richer dominance aggregate (see
+    `_DOMINANCE_COLS`) — the match-dominance research candidate feature
+    set. Same caching/refresh caveats as `load_shot_situation_data`."""
+    from . import understat as understat_mod
+
+    seasons = seasons or understat_mod.default_completed_seasons()
+    frames = []
+    for season in seasons:
+        try:
+            frames.append(_load_season_match_dominance(season, force_refresh, request_delay))
+        except RuntimeError as exc:
+            print(f"  ! Skipping match-dominance {season}: {exc}")
+
+    if not frames:
+        return pd.DataFrame(columns=_DOMINANCE_COLS)
+
+    df = pd.concat(frames, ignore_index=True)
+    df["date"] = pd.to_datetime(df["date"])
+    return df.sort_values("date").reset_index(drop=True)
 
 
 def load_shot_situation_data(
