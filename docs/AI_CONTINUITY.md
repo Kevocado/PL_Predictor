@@ -249,6 +249,22 @@ profitability claim.
 5. **Promotion/relegation priors.** Test promoted-team estimates from prior
    Championship form and/or ClubElo at the season boundary. This attacks the
    known cold-start fallback rather than papering over it with league average.
+6. **Tune Dixon-Coles/Bivariate-Poisson themselves — never done.** Confirmed
+   (2026-08-25) via `models/scoreline.py`: both are fit with penaltyblog's
+   library defaults and a hardcoded `xi=0.0018` time-decay, evaluated as
+   fixed baselines every retrain, but never themselves the subject of a
+   tuning pass — unlike `ml_scoreline`, which has a dedicated Optuna search
+   (`evaluate/tune_hyperparams.py`). Candidates worth testing on the
+   existing chronological/walk-forward folds: `xi` itself (a faster or
+   slower recency decay), a team-specific rather than single global
+   home-field-advantage constant, and whether either model's role
+   (currently: comparison baseline + Dixon-Coles alone feeding the Data Hub
+   attack/defence display) would benefit from either change. Since
+   `ml_scoreline` currently wins the holdout RPS and is what's actually
+   served, an improved DC/BP would need to close most of that gap before it
+   changes which model gets served — but Dixon-Coles is served today
+   regardless for the Power Rankings display, so even a display-only
+   improvement isn't nothing.
 
 ### P2 — engineering and UX improvements
 
