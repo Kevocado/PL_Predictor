@@ -832,6 +832,39 @@ experiment; negative evidence prevents repeated work.
   scoreline or cards specifically, add it to `MARKET_TRAINING_WINDOWS`
   the same way — the mechanism is already general, not corners-specific.
 
+### EXP-2026-13 — Dixon-Coles/Bivariate-Poisson xi (recency decay) tuning
+- **Status:** rejected. `xi` stays at `0.0018` for both models.
+- **Motivation:** P1 #6 flagged that neither model has ever had its `xi`
+  tuned — both just inherited penaltyblog's suggested default. This is the
+  direct DC/BP analogue of `ml_scoreline`'s existing Optuna search, against
+  DC/BP's one real tunable parameter.
+- **Protocol:** `evaluate/tune_dc_bp_xi.py` grid-searches
+  `xi in [0, 0.0005, 0.001, 0.0018, 0.003, 0.005, 0.008, 0.012, 0.02]` for
+  both models independently across the same 5-fold chronological
+  walk-forward (2021-22 through 2025-26) used everywhere else.
+- **Result:** both models show a smooth, unimodal RPS curve peaking at
+  `xi=0.003` (mean RPS: Dixon-Coles `0.20967 -> 0.20946`, Bivariate-Poisson
+  `0.20973 -> 0.20954`) — the shared optimum between two independently
+  fit models is a good sign this isn't noise. **But it fails the
+  most-recent-season corroboration bar**: on 2025-26 specifically, `xi=0.003`
+  is *worse* for both models (Dixon-Coles `0.211747 -> 0.212631`,
+  Bivariate-Poisson `0.211741 -> 0.212627`) — the average gain is almost
+  entirely driven by a large improvement on 2024-25 masking a regression on
+  2025-26 (and a smaller one on 2021-22).
+- **Pattern worth flagging on its own:** this is the *third* tuning attempt
+  in this session with the exact same signature — average-across-folds
+  improves, 2025-26 specifically regresses (`ml_scoreline`'s post-OPS-2026-03
+  hyperparameter retune, the scoreline 12-season window in EXP-2026-11, and
+  now this). Three independent tunings converging on the same failure mode
+  is itself evidence that 2025-26 is a genuinely different-shaped season
+  for this data (not a bug in any one of these attempts), and reinforces
+  that the walk-forward average alone is not a safe promotion signal for
+  this project without the fixed-recent-season check every time.
+- **Decision:** keep `xi=0.0018` for both models. Do not retune again on
+  this same 5-fold protocol without either more seasons in the walk-forward
+  set or a different, pre-registered validation design — repeating this
+  exact search would just rediscover the same non-corroborated optimum.
+
 ## Change checklist for future agents
 
 - Read this file, `README.md`, and relevant tests before editing.
