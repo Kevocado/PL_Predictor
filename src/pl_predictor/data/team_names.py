@@ -41,6 +41,7 @@ _ODDS_API_ALIASES: dict[str, str] = {
     "Newcastle United": "Newcastle",
     "Norwich City": "Norwich",
     "Nottingham Forest": "Nott'm Forest",
+    "Queens Park Rangers": "QPR",
     "Sheffield United": "Sheffield United",
     "Southampton": "Southampton",
     "Stoke City": "Stoke",
