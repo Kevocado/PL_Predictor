@@ -1,5 +1,5 @@
 {
-  "trained_at": "2026-08-25T19:06:48.101806+00:00",
+  "trained_at": "2026-08-25T20:34:46.469374+00:00",
   "seasons": [
     "2018-2019",
     "2019-2020",
@@ -288,6 +288,63 @@
   },
   "scoreline": {
     "chosen_model": "ml_scoreline",
+    "market_overrides": {
+      "over_2_5": "covariate_poisson"
+    },
+    "market_metrics": {
+      "dixon_coles": {
+        "rps": 0.22567348915431862,
+        "rps_ci_low": 0.21004575372424225,
+        "rps_ci_high": 0.24131794509966079,
+        "brier_1x2": 0.6542340803950686,
+        "log_loss_1x2": 1.0926898607179476,
+        "ece_1x2": 0.08797573980424911,
+        "exact_scoreline_log_loss": 2.952050496500776,
+        "over_2_5_log_loss": 0.6966041819602355,
+        "over_2_5_brier": 0.2505514776017566,
+        "btts_log_loss": 0.6814949935172573,
+        "btts_brier": 0.2442853455837658
+      },
+      "bivariate_poisson": {
+        "rps": 0.22600978645640107,
+        "rps_ci_low": 0.2100147579864127,
+        "rps_ci_high": 0.24181720901512255,
+        "brier_1x2": 0.6545369285845092,
+        "log_loss_1x2": 1.0944518932516718,
+        "ece_1x2": 0.08441014645074843,
+        "exact_scoreline_log_loss": 2.9539865326660717,
+        "over_2_5_log_loss": 0.6971526125956613,
+        "over_2_5_brier": 0.25074926928678526,
+        "btts_log_loss": 0.6812064862655423,
+        "btts_brier": 0.24413849975133933
+      },
+      "ml_scoreline": {
+        "rps": 0.20819726367509533,
+        "rps_ci_low": 0.195103002469149,
+        "rps_ci_high": 0.22069124071381882,
+        "brier_1x2": 0.6170597305384347,
+        "log_loss_1x2": 1.026849311058394,
+        "ece_1x2": 0.026041842040537916,
+        "exact_scoreline_log_loss": 2.890027431962127,
+        "over_2_5_log_loss": 0.6910673939080193,
+        "over_2_5_brier": 0.24901363977324512,
+        "btts_log_loss": 0.6887206079319205,
+        "btts_brier": 0.24780571789289915
+      },
+      "covariate_poisson": {
+        "rps": 0.21029165937377703,
+        "rps_ci_low": 0.19819619724871312,
+        "rps_ci_high": 0.22168964965599927,
+        "brier_1x2": 0.621396198814708,
+        "log_loss_1x2": 1.032711977865478,
+        "ece_1x2": 0.05032765383626078,
+        "exact_scoreline_log_loss": 2.895383296704164,
+        "over_2_5_log_loss": 0.6898737831213272,
+        "over_2_5_brier": 0.24827261062290482,
+        "btts_log_loss": 0.6845210174954103,
+        "btts_brier": 0.24569969137951914
+      }
+    },
     "dixon_coles": {
       "path": "dixon_coles.pkl",
       "metrics": {
@@ -1967,6 +2024,22 @@
           "home_current_streak": -0.0002447881852276623,
           "away_current_streak": -5.400033842306584e-05
         }
+      }
+    },
+    "covariate_poisson": {
+      "path": "covariate_poisson.pkl",
+      "metrics": {
+        "rps": 0.21029165937377703,
+        "rps_ci_low": 0.19819619724871312,
+        "rps_ci_high": 0.22168964965599927,
+        "brier_1x2": 0.621396198814708,
+        "log_loss_1x2": 1.032711977865478,
+        "ece_1x2": 0.05032765383626078,
+        "exact_scoreline_log_loss": 2.895383296704164,
+        "over_2_5_log_loss": 0.6898737831213272,
+        "over_2_5_brier": 0.24827261062290482,
+        "btts_log_loss": 0.6845210174954103,
+        "btts_brier": 0.24569969137951914
       }
     }
   },
