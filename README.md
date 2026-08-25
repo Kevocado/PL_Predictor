@@ -180,11 +180,14 @@ mid-session.
 python -m pl_predictor.models.manifest
 ```
 
-Fetches the last 8 completed EPL seasons from football-data.co.uk (cached
-to `data/cache/` after the first run), builds features, fits the
-scoreline model (Dixon-Coles vs. Bivariate-Poisson vs. XGBoost, picks
-whichever has the better held-out RPS) and the corners/cards XGBoost
-regressors, and writes `models/manifest.json` + the trained model files.
+Fetches the last 8 completed EPL seasons from football-data.co.uk for
+scoreline and cards (cached to `data/cache/` after the first run), builds
+features, fits the scoreline model (Dixon-Coles vs. Bivariate-Poisson vs.
+XGBoost, picks whichever has the better held-out RPS) and the corners/cards
+XGBoost regressors, and writes `models/manifest.json` + the trained model
+files. Corners trains on a longer 12-season window instead — a corroborated
+improvement (see `docs/AI_CONTINUITY.md`'s EXP-2026-11/12) — configurable
+per market via `models/manifest.py::MARKET_TRAINING_WINDOWS`.
 
 Want to re-tune the XGBoost scoreline model's hyperparameters instead of
 using the defaults already checked in? `python -m

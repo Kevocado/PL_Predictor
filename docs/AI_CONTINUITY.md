@@ -109,18 +109,22 @@ it.
 
 ### Production evaluation snapshot
 
-The manifest generated 2026-08-23 trained on 2,669 matches and held out 380
+The manifest generated 2026-08-25 trained on 2,670 matches and held out 380
 matches from 2025-26. The currently selected scoreline model is XGBoost goal
 regression (the API model selector uses `scoreline.chosen_model`; confirm that
-field instead of relying on a display-only summary).
+field instead of relying on a display-only summary). As of this retrain,
+`manifest.py::MARKET_TRAINING_WINDOWS` gives corners its own 12-season
+training window (4,190 matches) per EXP-2026-11 — scoreline and cards stay
+on the 8-season default; see `manifest.json`'s `market_training_windows`
+and `corners.seasons`/`corners.n_train` fields.
 
 | Model/market | Latest holdout result |
 | --- | ---:|
-| ML scoreline | RPS `0.2071`, Brier `0.6149` |
-| Dixon-Coles | RPS `0.2256`, Brier `0.6541` |
-| Bivariate Poisson | RPS `0.2259`, Brier `0.6544` |
-| Corners | MAE `2.69`, RMSE `3.35` |
-| Cards | MAE `1.64`, RMSE `2.03` |
+| ML scoreline | RPS `0.2082`, Brier `0.6171` |
+| Dixon-Coles | RPS `0.2257`, Brier `0.6542` |
+| Bivariate Poisson | RPS `0.2260`, Brier `0.6545` |
+| Corners (12-season window) | MAE `2.67`, RMSE `3.30` |
+| Cards | MAE `1.62`, RMSE `2.01` |
 
 The player research records that rolling Threat had the largest tested
 goal-signal increment (`R² +0.0208`), Creativity the assist increment
@@ -706,9 +710,11 @@ experiment; negative evidence prevents repeated work.
   effect the next time `models.manifest.train_all()` actually runs.
 
 ### EXP-2026-11 — 12-season window and match-dominance features (three arms)
-- **Status:** completed. Corners' 12-season window is a corroborated
-  candidate (not yet promoted — needs new per-market training-window
-  plumbing, see Decision). Scoreline and cards results are rejected or
+- **Status:** completed. Corners' 12-season window is corroborated and
+  **promoted** (see EXP-2026-12 — `manifest.py::MARKET_TRAINING_WINDOWS`,
+  live in `models/manifest.json` since the 2026-08-25 retrain: corners MAE
+  `2.69 -> 2.67` on the real production holdout). Scoreline and cards
+  results are rejected or
   inconclusive. No production feature or manifest change.
 - **Protocol:** three arms — A) current 8-season production-equivalent
   baseline, B) 12-season historical window (2014-15 through 2025-26,
@@ -749,12 +755,9 @@ experiment; negative evidence prevents repeated work.
   not a clean win either way.
 - **Decision:**
   1. Do not change scoreline's training window or feature set.
-  2. Corners' 12-season window is worth pursuing, but promoting it as-is
-     isn't possible today: `models/manifest.py::train_all` trains every
-     market from one shared season window. Making corners use a different
-     historical window than scoreline/cards is a new capability, not a
-     parameter flip — scope it as its own follow-up if pursued, not a
-     silent change here.
+  2. Corners' 12-season window is promoted — see EXP-2026-12 for the
+     per-market training-window mechanism that made this possible and the
+     real production retrain result.
      - **Live check added** (`evaluate/current_season_check.py`): trains
        each arm on strictly pre-season data and scores it against the
        *actual* current (2026-27) season's completed fixtures — a
@@ -782,6 +785,52 @@ experiment; negative evidence prevents repeated work.
   4. `features/match_dominance.py` and the underlying
      `understat_shots.py::load_match_dominance_data` stay research-only,
      not imported by `features/build.py`.
+
+### EXP-2026-12 — per-market training-window selection; corners promoted
+- **Status:** promoted and live. `models/manifest.json` reflects this from
+  the 2026-08-25 retrain onward.
+- **Motivation:** EXP-2026-11 corroborated a real corners-specific
+  improvement from a 12-season training window (won on the 5-fold
+  walk-forward average AND the single most recent completed season), but
+  `models/manifest.py::train_all` had only ever trained every market from
+  one shared season window — there was no way to give corners a different
+  window without also changing scoreline/cards, which the same study
+  showed did *not* help (scoreline regressed, cards was inconclusive).
+- **Implementation:** `manifest.py::MARKET_TRAINING_WINDOWS = {"scoreline":
+  8, "corners": 12, "cards": 8}`. `train_all` builds the default (8-season)
+  frame once as before; it only builds a second, corners-specific frame
+  when `MARKET_TRAINING_WINDOWS["corners"]` actually differs from the
+  default (avoiding a redundant rebuild otherwise). An explicit
+  `assert corners_feature_cols == feature_cols` guards the one thing
+  serving depends on but never previously checked: `odds/value_bets.py::
+  predict_market_models_for_fixture` reindexes one shared feature row onto
+  `models["feature_cols"]` for *both* corners and cards, which is only
+  safe because `build_training_frame`'s `feature_cols` is a fixed list of
+  column names independent of how many seasons were loaded — true today,
+  now enforced rather than assumed. `manifest.json` gained
+  `market_training_windows` (top-level) and `corners.seasons`/
+  `corners.n_train` (so corners' actual training window is auditable, not
+  inferred from the shared top-level `seasons` field, which still
+  describes scoreline/cards' window only).
+- **Verified before promoting:** two unit tests
+  (`tests/test_manifest_market_windows.py`) confirm an explicit `seasons`
+  override still applies uniformly (one shared build, no redundant corners
+  rebuild) and that the default path gives corners a genuinely larger,
+  further-back window while scoreline/cards are untouched. A full
+  end-to-end serving smoke test (`load_models` -> `predict_market_models_
+  for_fixture` -> `predict_fixture`) confirmed no runtime errors and
+  sensible output before the real retrain.
+- **Real production retrain result (2026-08-25):** corners trained on
+  4,190 matches (12-season window + current partial) vs. 2,670 for
+  scoreline/cards (8-season window + current partial). Corners MAE on the
+  real 2025-26 holdout: `2.69 -> 2.67` (RMSE `3.35 -> 3.30`) — consistent
+  with EXP-2026-11's corroborated result. Scoreline/cards numbers are
+  otherwise consistent with the prior snapshot (small movement from
+  OPS-2026-03's xg_form fix and the current season's 10 additional
+  matches folding in, not from this change).
+- **Next:** if a future study corroborates a differing window for
+  scoreline or cards specifically, add it to `MARKET_TRAINING_WINDOWS`
+  the same way — the mechanism is already general, not corners-specific.
 
 ## Change checklist for future agents
 
