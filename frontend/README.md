@@ -1,32 +1,35 @@
-# React + TypeScript + Vite
+# PL Predictor frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React 19, TypeScript, Vite, and Tailwind client for the FastAPI service in
+`../src/pl_predictor/api/main.py`.
 
-Currently, two official plugins are available:
+## Development
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install
+npm run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Vite prints the local URL (normally `http://127.0.0.1:5173`; it selects the
+next free port when that port is busy). The API must be running on port `8000`.
+Set `VITE_API_BASE_URL` only when the API is on another host.
+
+```bash
+npm run build
+```
+
+Builds the production bundle and type-checks the client.
+
+## UI responsibilities
+
+- `pages/FixturesPage.tsx` renders gameweeks and polls only while official
+  player outcomes are pending.
+- `components/FixtureModal.tsx` keeps pre-match projections, completed-match
+  reviews, and player-call review provenance visibly distinct.
+- `components/TeamHub.tsx` and `components/PlayerHub.tsx` are descriptive
+  analytics only; they must not change prediction or value-bet decisions.
+- `components/TeamBadge.tsx` resolves local crest assets and has an initials
+  fallback. See `public/badges/README.md` before adding assets.
+
+Keep API types in `src/types.ts` aligned with Pydantic schemas. For any UI/API
+change, run `npm run build` and the focused backend tests.

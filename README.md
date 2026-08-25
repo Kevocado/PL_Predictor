@@ -21,6 +21,8 @@ rather than taken on faith.
 [Run the dashboard](#run-the-dashboard) · [Using it from your phone](#using-it-from-your-phone-tailscale) ·
 [Notebooks](#notebooks) · [Project layout](#project-layout) · [Notes / limitations](#notes--current-limitations)
 
+**Continuing development:** see [AI continuity and improvement log](docs/AI_CONTINUITY.md) for the current architecture, model evidence, review findings, data-source rules, and the required experiment protocol for future contributors/agents.
+
 ## Screenshots
 
 <table>
@@ -72,24 +74,35 @@ much of the current season has folded into training so far.
   since the goal models can't derive these markets on their own.
 - **Live value bets** — [The Odds API](https://the-odds-api.com/) odds are
   de-vigged (Shin's method) and compared against the model's own
-  probabilities; a fixture is flagged when the model's edge over the
-  market clears a threshold.
+  probabilities; the fixture detail surfaces at most one qualified
+  match-result or goals-total single, never a parlay.
 - **Player-level predictions** — anytime goalscorer/assist probabilities
-  per squad, blended from FPL's rolling per-90 rates and the FPL stat
-  measures a walk-forward reliability study actually found predictive
-  (Threat, Creativity, ICT Index) — not just whichever stat sounded
-  plausible. Live injury/suspension status from the official FPL API.
+  per squad, with confirmed lineups when available and primary penalty/
+  set-piece takers. Goal + assist uses a direct, chronologically-calibrated
+  classifier that beat the prior Poisson-union baseline; Goal and Assist keep
+  their specialised rate models. Live injury/suspension status from the
+  official FPL API gates every prediction.
 - **Weekly-fresh current season** — the historical training set comes from
   football-data.co.uk (deep, reliable, but slow to publish new-season
   data), supplemented with the Premier League's own backend
   (`pulselive.com`) for fixtures/stats from the *current* season, so a
   result from this weekend can be training data within hours, not whenever
   a third-party CSV catches up.
+- **Seasonal retraining research** — Calibration compares frozen, season-
+  weighted, season-only, and consensus challengers across several retraining
+  cadences. These are tracked with immutable pre-kickoff snapshots and remain
+  research-only until they satisfy the documented multi-season promotion gate.
 - **Honest tracking** — every prediction is snapshotted *before* kickoff
   into a local SQLite store and reconciled against results as they land.
   The Track Record and Backtest tabs report what the model actually said
   in advance, not a re-run of its current (possibly retrained) state
-  against old data.
+  against old data. The value-bet record separately shows confirmed W-L,
+  final score, and the result-feed source for every settled recommendation.
+- **Post-match review** — completed fixture details resolve scorers and
+  assists from FPL's fixture/event feed, show actual team statistics, and
+  review recorded result, totals, corners, cards, and tiered player calls.
+  Historical player/corner reviews are labelled reconstructed when no true
+  pre-kickoff snapshot existed.
 
 ## How it's built
 
@@ -213,20 +226,23 @@ Open the URL Vite prints (`http://localhost:5173`). Three pages:
   live recompute that could leak the result back in — and opens the full
   detail view: scoreline heatmap, full market breakdown with live-odds
   edges, corners/cards, head-to-head, recent form, and likely
-  goalscorers/assists per squad with live injury/suspension status.
-- **Data Hub** — power rankings (the model's own fitted attack/defence
-  strength per team, plus an Elo rating trend chart), a projected final
-  table (current standings + each team's expected points summed over
-  their remaining fixtures), and a live track record (predictions
-  snapshotted before kickoff and checked against results as they come
-  in, with a "biggest misses" table for reviewing what to improve).
+  goalscorers/assists per squad with live injury/suspension status. Completed
+  fixtures add a prediction review showing the final score and which recorded
+  match, goals, corners, cards, and qualifying player calls were correct.
+- **Data Hub** — a Team Hub for current-season form, underlying performance,
+  playing style, and set-piece xG share; a searchable, sortable Player Hub
+  for season-to-date FPL performance; plus power rankings, a projected final
+  table, and a live track record. Team/player Hub data is descriptive only and
+  does not change predictions or betting recommendations.
 - **Calibration & Backtest** — model vs. bookmaker RPS/Brier, corners/cards
   model metrics, how much of the current season has folded into training,
   and a value-bet backtest with a bankroll chart, plus buttons to retrain
   models or refresh fixtures/odds.
 
-The first fixture detail you open per team will take a few seconds while
-player data is fetched live (cached to disk for 6 hours afterward).
+The first request for an upcoming fixture can take a few seconds while player
+data is fetched and cached. Completed fixtures in the current gameweek are
+warmed in the background after API startup so their reviews should open
+quickly once that job finishes.
 
 The backend also serves interactive API docs at `http://localhost:8000/docs`.
 
@@ -256,9 +272,9 @@ internet:
 
 ## Notebooks
 
-Numbered `notebooks/01`–`06` walk through data exploration → feature
+Numbered `notebooks/01`–`07` walk through data exploration → feature
 engineering → the scoreline model → corners/cards models → backtest/
-calibration → live predictions. Each one only calls functions from the
+calibration → live predictions → evidence research. Each one only calls functions from the
 `pl_predictor` package — never redefines logic inline — so they can't
 drift out of sync with what's actually trained/served. Open them in
 VSCode's Jupyter extension, or `jupyter lab`.
@@ -271,12 +287,12 @@ src/pl_predictor/
 ├── features/        rolling team/player form, Elo/Pi ratings, h2h, rest days, cold-start, table context
 ├── models/          scoreline (Dixon-Coles/Bivariate-Poisson/XGBoost), corners/cards, player goals, manifest
 ├── evaluate/        calibration (RPS/Brier vs. bookmaker), backtest, walk-forward validation, Optuna tuning,
-│                    player-stat reliability study
+│                    player/seasonal/power-ranking research and betting validation
 ├── odds/            de-vig live odds, surface value bets
 ├── tracking/        SQLite-backed live prediction track record (snapshot → reconcile)
 └── api/             FastAPI app — thin JSON layer over everything above
 frontend/            React + TypeScript + Vite + Tailwind dashboard
-notebooks/           01-06, see above
+notebooks/           01-07, see above
 tests/               feature-leakage and no-lookahead checks (pytest)
 ```
 
@@ -313,35 +329,35 @@ against.
 mean overfitting/leakage than a genuine edge. Expect roughly break-even to
 slightly negative — that's the healthy outcome, not a bug.
 
+The app never recommends a parlay: standalone market edges do not provide a
+joint probability or the bookmaker-specific price required to assess a
+multi-leg bet. Player, corners, and cards outputs remain model projections,
+not live-odds recommendations.
+
 </details>
 
 <details>
 <summary><strong>Player predictions have a live-status lag</strong></summary>
 
-<br>Injured/suspended/doubtful players are correctly zeroed/discounted
-using the official FPL API's live `status` and
-`chance_of_playing_next_round` — but a change from a few hours ago may not
-be reflected instantly, and there's no live minutes-per-match feed, so
-"did they play" is inferred from recent gameweek history rather than a
-real-time lineup. A walk-forward reliability study (`evaluate/
-player_stat_reliability.py`) validated which FPL stats predict *future*
-output before wiring them into predictions, but the player predictions
-themselves aren't calibrated/backtested against a held-out season yet, the
-way the match-level model is.
+<br>Injured/suspended/doubtful players are correctly zeroed/discounted using
+the official FPL API's live `status` and `chance_of_playing_next_round` — but
+a recent change may not be reflected instantly. When ESPN publishes a
+confirmed starting eleven, the player surface switches to it; otherwise it
+uses the start model. Only confirmed starters are snapshotted for the player
+review, so a late lineup change can still invalidate an earlier projection.
 
 </details>
 
 <details>
-<summary><strong>Track record starts from zero, on purpose</strong></summary>
+<summary><strong>Snapshot provenance matters</strong></summary>
 
-<br>Predictions are snapshotted the moment a fixture first shows up in the
-app (into `data/tracking.db`, gitignored — it's this install's own live
-history, not something to ship in the repo), then reconciled once results
-come in. There's no retroactive backfill of matches already played before
-this feature existed on a *fresh* install — the alternative (re-fitting a
-model as of each past date to reconstruct what it "would have" predicted)
-is a meaningfully bigger undertaking and only an approximation of a real
-record anyway.
+<br>Core predictions and qualified live value-bet calls are captured before
+kickoff into `data/tracking.db` (gitignored — it is local personal history),
+then reconciled once results arrive. Older core rows may be clearly marked
+backfilled. Player and corners/cards reviews can be reconstructed from saved
+inputs after a match to keep the archive useful, but these rows remain
+labelled reconstructed and are never proof of prospective accuracy or
+profitability.
 
 </details>
 
