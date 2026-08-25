@@ -911,6 +911,73 @@ experiment; negative evidence prevents repeated work.
   or if EXP-2026-05's ClubElo prior becomes evaluable and changes the
   picture), revisit with a segment that isn't dominated by a single team.
 
+### EXP-2026-15 — covariate-augmented Poisson goal model (Part 3b)
+- **Status:** completed with a clean, fully corroborated result. Research
+  code only (`evaluate/covariate_poisson_research.py`) — not yet promoted
+  to `models/`; see Decision for what promotion would actually require.
+- **Motivation:** penaltyblog's `DixonColesGoalModel`/
+  `BivariatePoissonGoalModel` cannot accept covariates at all (confirmed by
+  direct inspection of their constructors — only goals/teams/weights/
+  neutral_venue). Every prior attempt to improve on DC/BP this session
+  (`xi` tuning, EXP-2026-13) worked only within that closed API. This
+  builds a genuinely new Dixon-Coles-*style* model from scratch — team
+  attack/defence strength via one-hot dummies (the classical
+  reshape-to-two-rows-per-match GLM parameterization), fit as a real
+  Poisson GLM via `sklearn.linear_model.PoissonRegressor` (already a
+  project dependency via scikit-learn — no new dependency needed) with the
+  same `dixon_coles_weights(xi=0.0018)` recency weighting DC/BP already
+  use — so external covariates (Elo/Pi difference now; the match-dominance
+  rolling stats are already wired as an option via `dominance_extra_cols`)
+  can sit alongside team effects as ordinary coefficients.
+- **Protocol:** two specs on the same 5-fold walk-forward
+  (2021-22 through 2025-26) `model_selection_by_segment.py` already uses —
+  `team_effects_only` (attack/defence dummies + home indicator, a sanity-
+  check baseline structurally closest to vanilla Dixon-Coles) and
+  `team_effects_plus_elo_pi` (+ signed Elo/Pi difference, this side minus
+  opponent). Scored identically to every other scoreline candidate this
+  session via the shared `scoreline_dominance_arms.py::_metrics_from_grids`.
+- **Result — team_effects_plus_elo_pi beats both Dixon-Coles and
+  Bivariate-Poisson on every single fold, no exceptions**:
+
+  | Val season | Dixon-Coles | Bivariate-Poisson | Covariate-Poisson |
+  | --- | ---: | ---: | ---: |
+  | 2021-22 | `0.198835` | `0.198766` | `0.196133` |
+  | 2022-23 | `0.222608` | `0.222906` | `0.210731` |
+  | 2023-24 | `0.197737` | `0.197701` | `0.193499` |
+  | 2024-25 | `0.217427` | `0.217528` | `0.202321` |
+  | 2025-26 | `0.211747` | `0.211741` | `0.210546` |
+  | **Mean** | `0.209671` | `0.209729` | `0.202646` |
+
+  `team_effects_only` (no covariates) is materially *worse* than real
+  Dixon-Coles on average (`0.231066`) — expected, since it also lacks
+  penaltyblog's own low-score correlation (`rho`) adjustment (fixed at
+  `rho=0.0` here, same simplification `ml_scoreline` already uses). The
+  entire win comes from the two Elo/Pi covariates, not the reimplementation
+  itself being a better Dixon-Coles.
+- **Still behind `ml_scoreline`** (mean RPS `0.199891` from EXP-2026-14's
+  overall segment) by about `0.0028` — closes roughly 70% of the prior
+  gap between vanilla DC/BP and XGBoost using two covariates, but does not
+  overtake it.
+- **Decision:** this is real, corroborated evidence that Dixon-Coles/
+  Bivariate-Poisson specifically benefit from covariates — but promoting
+  it to `models/covariate_poisson.py` and wiring it into `manifest.py`'s
+  candidate comparison is a bigger step than a parameter change (a new
+  model class in production, and a decision about what replaces
+  `dixon_coles_for_rankings`'s hard-coded reference for the Power Rankings
+  display, which currently always uses raw Dixon-Coles regardless of
+  `chosen_model`). Not promoted in this pass — flagged as a strong,
+  ready-to-build candidate specifically for that display role (structurally
+  closest to what it already shows, empirically stronger), pending an
+  explicit decision to take that step.
+- **Next, if pursued:** (1) fit `rho` properly instead of fixing it at
+  `0.0` (penaltyblog's own DC does; a real low-score correlation term might
+  close more of the gap), (2) test whether the match-dominance covariates
+  add anything on top of Elo/Pi here specifically — a different question
+  than EXP-2026-11's rejection, since those tested XGBoost, not this model
+  family, (3) if promoted, decide explicitly whether it *replaces*
+  Dixon-Coles for the Power Rankings display, becomes a fourth
+  `manifest.py` candidate, or both.
+
 ## Change checklist for future agents
 
 - Read this file, `README.md`, and relevant tests before editing.
