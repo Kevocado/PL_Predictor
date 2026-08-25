@@ -705,6 +705,65 @@ experiment; negative evidence prevents repeated work.
   and the trained model files are untouched by this entry; the fix takes
   effect the next time `models.manifest.train_all()` actually runs.
 
+### EXP-2026-11 — 12-season window and match-dominance features (three arms)
+- **Status:** completed. Corners' 12-season window is a corroborated
+  candidate (not yet promoted — needs new per-market training-window
+  plumbing, see Decision). Scoreline and cards results are rejected or
+  inconclusive. No production feature or manifest change.
+- **Protocol:** three arms — A) current 8-season production-equivalent
+  baseline, B) 12-season historical window (2014-15 through 2025-26,
+  same features otherwise), C) 12-season window plus the new
+  `features/match_dominance.py` features (non-penalty xG, shots, xG/shot,
+  open-play/set-piece xG share, average shot distance) — evaluated on
+  identical validation seasons (2021-22 through 2025-26) for all three arms
+  via paired `min_train_seasons` offsets in `evaluate/walk_forward.py::
+  prepare_folds`. Scored with RPS (primary), Brier, log loss, ECE,
+  exact-scoreline log loss, and per-market (1X2/O-U-2.5/BTTS) log-loss/
+  Brier, all from the same fitted grids — see
+  `evaluate/scoreline_dominance_arms.py`. Corners and cards repeated
+  independently with the same three arms, not assumed to inherit the
+  scoreline result.
+- **Corroboration bar applied** (same one that just rejected the
+  OPS-2026-03 retune): an arm's average-across-folds improvement is
+  only trusted if it *also* holds on 2025-26 specifically, the single most
+  recent season — an average win driven by older folds while the most
+  recent one regresses is treated as a walk-forward-specific artifact, not
+  a real gain.
+- **Scoreline result (mean RPS — A 0.199891, B 0.199415, C 0.199626):** B
+  looks like a small win on average, but **fails corroboration** — on
+  2025-26 specifically, A (`0.207318`) beats both B (`0.209354`) and C
+  (`0.209425`). C is worse than B on 4 of 5 folds outright. **Reject both
+  the 12-season window and the dominance features for scoreline.**
+- **Corners result (mean MAE — A 2.761954, B 2.742246, C 2.755298):** B
+  beats A on 4 of 5 folds and **passes corroboration** — B also wins on
+  2025-26 (`2.655616` vs A's `2.698566`). C adds no further benefit over B
+  (worse MAE, effectively tied log-loss). **The 12-season window is a
+  genuine, corroborated candidate for corners specifically — dominance
+  features are not.**
+- **Cards result (mean MAE — A 1.665949, B 1.666199, C 1.655043; mean
+  log-loss — A 0.695660, B 0.691690, C 0.688743):** C has the best MAE and
+  log-loss on average and wins outright on 3 of 5 folds, but is
+  **inconclusive on corroboration** — on 2025-26, B has the best log-loss
+  (`0.682874`) with C a close second (`0.684729`), while C's MAE win there
+  is by a hair (`1.625610` vs B's `1.628007`). Directionally interesting,
+  not a clean win either way.
+- **Decision:**
+  1. Do not change scoreline's training window or feature set.
+  2. Corners' 12-season window is worth pursuing, but promoting it as-is
+     isn't possible today: `models/manifest.py::train_all` trains every
+     market from one shared season window. Making corners use a different
+     historical window than scoreline/cards is a new capability, not a
+     parameter flip — scope it as its own follow-up if pursued, not a
+     silent change here.
+  3. Match-dominance features are not promoted for any market from this
+     result. Cards' signal is the most interesting remaining thread —
+     worth a second look with more folds/seasons before either promoting
+     or fully closing it out, since one recent-season near-miss isn't
+     enough folds to be confident it's noise.
+  4. `features/match_dominance.py` and the underlying
+     `understat_shots.py::load_match_dominance_data` stay research-only,
+     not imported by `features/build.py`.
+
 ## Change checklist for future agents
 
 - Read this file, `README.md`, and relevant tests before editing.

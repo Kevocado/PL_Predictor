@@ -55,7 +55,13 @@ def build_rolling_dominance(dominance_df: pd.DataFrame, windows: tuple[int, ...]
     feature_cols = []
     for stat in _STATS:
         for w in windows:
-            col = f"{stat}_last_{w}"
+            # "dominance_" prefix is deliberate: `set_piece_xg_share` would
+            # otherwise collide with the existing (unused-in-feature_cols
+            # but present-in-df) column of the same base name from
+            # features/shot_situation.py's narrower, already-shipped
+            # feature — namespacing every stat here avoids any ambiguity
+            # about which module a column came from, not just this one.
+            col = f"dominance_{stat}_last_{w}"
             new_cols[col] = grouped[stat].transform(lambda s, w=w: s.rolling(w, min_periods=1).mean())
             feature_cols.append(col)
 
@@ -77,7 +83,7 @@ def latest_dominance_form(dominance_df: pd.DataFrame, windows: tuple[int, ...] =
         row = {}
         for stat in _STATS:
             for w in windows:
-                row[f"{stat}_last_{w}"] = group[stat].tail(w).mean()
+                row[f"dominance_{stat}_last_{w}"] = group[stat].tail(w).mean()
         rows[team] = row
     return pd.DataFrame.from_dict(rows, orient="index")
 

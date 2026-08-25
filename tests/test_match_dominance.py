@@ -42,7 +42,7 @@ def test_build_rolling_dominance_includes_each_row_own_match():
     for the actual leakage-safety check."""
     long_df, cols = match_dominance.build_rolling_dominance(_dominance_df())
     first_rows = long_df.sort_values("date").groupby("team", sort=False).head(1)
-    assert first_rows["total_xg_last_5"].tolist() == pytest.approx(first_rows["total_xg"].tolist())
+    assert first_rows["dominance_total_xg_last_5"].tolist() == pytest.approx(first_rows["total_xg"].tolist())
 
 
 def test_attach_dominance_features_includes_the_most_recent_prior_match():
@@ -53,7 +53,7 @@ def test_attach_dominance_features_includes_the_most_recent_prior_match():
     out, _ = match_dominance.attach_dominance_features(matches_df, dominance_df)
 
     # Team A's total_xg across its 3 matches (as home on i=0,2, away on i=1): 1.0, 0.5, 3.0
-    assert out.loc[0, "home_total_xg_last_5"] == pytest.approx((1.0 + 0.5 + 3.0) / 3)
+    assert out.loc[0, "home_dominance_total_xg_last_5"] == pytest.approx((1.0 + 0.5 + 3.0) / 3)
 
 
 def test_attach_dominance_features_empty_input_returns_nan_columns():
