@@ -135,13 +135,19 @@ wins on held-out RPS is what actually gets served.
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -e .
+pip install -e . -c requirements-lock.txt
 
 cp .env.example .env
 # then add:
 #   ODDS_API_KEY=...      — free key, no card, from https://the-odds-api.com/
 #   FOOTBALL_DATA_KEY=... — free key, no card, from https://www.football-data.org/client/register
 ```
+
+`requirements-lock.txt` pins every dependency (direct and transitive) to the
+versions this project is actually developed and tested against — a plain
+`pip freeze`, used as a constraints file so `pyproject.toml` stays the
+readable source of direct dependencies. Regenerate it after intentionally
+upgrading a package: `pip freeze --exclude-editable > requirements-lock.txt`.
 
 `ODDS_API_KEY` powers live odds/value-bet detection; without it, predictions
 still work but with no market to compare against. `FOOTBALL_DATA_KEY`

@@ -215,7 +215,10 @@ profitability claim.
    recommendation allegedly made much earlier in the day.
 3. **Version data and environments.** Save source URLs, response/file hashes,
    row counts, feature list/hash, package versions, random seeds, and commit
-   SHA with every model manifest. Pin Python dependencies with a lockfile.
+   SHA with every model manifest. Python dependencies are now pinned via
+   `requirements-lock.txt` (a `pip freeze`, used as a constraints file); the
+   per-manifest provenance (source hashes, row counts, commit SHA) is still
+   open.
 4. **Regression and contract coverage.** Add API schema tests, fixture-detail
    latency/cache tests, frontend component tests, source-normalization tests,
    SQLite migration tests, and a golden prediction fixture. Continue testing
