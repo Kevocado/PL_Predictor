@@ -112,6 +112,122 @@ def test_reconcile_resolves_against_actual_result(clean_db):
     assert row["backfilled"] is False
 
 
+def test_post_match_review_keeps_market_and_player_snapshot_provenance(clean_db):
+    table = pd.DataFrame(
+        [{
+            "event_id": "e1", "team_home": "Arsenal", "team_away": "Chelsea",
+            "commence_time": pd.Timestamp("2020-01-01T15:00:00Z"), "home_win_prob": 0.6,
+            "draw_prob": 0.25, "away_win_prob": 0.15, "over_2_5_prob": 0.7,
+            "under_2_5_prob": 0.3, "btts_yes_prob": 0.55, "top_scoreline": "2-1",
+        }]
+    )
+    store.record_predictions(table)
+    store.record_fixture_market_predictions("e1", "Arsenal", "Chelsea", table.iloc[0]["commence_time"], {
+        "corners": {"lambda": 10.2, "line": 9.5, "over": 0.61, "under": 0.39},
+        "cards": {"lambda": 3.5, "line": 3.5, "over": 0.45, "under": 0.55},
+    })
+    store.record_player_prediction_snapshots("e1", [{
+        "player_id": 7, "name": "Saka", "team": "Arsenal", "confirmed_starter": True,
+        "anytime_goal_prob": 0.32, "anytime_assist_prob": 0.24, "anytime_goal_contribution_prob": 0.48,
+    }])
+    matches = pd.DataFrame([{
+        "team_home": "Arsenal", "team_away": "Chelsea", "date": pd.Timestamp("2020-01-01"),
+        "goals_home": 2, "goals_away": 1, "ftr": "H", "hc": 7, "ac": 5, "hy": 1, "ay": 2, "hr": 0, "ar": 0,
+    }])
+    store.reconcile_predictions(matches)
+    assert store.reconcile_fixture_market_predictions(matches) == 2
+    assert store.reconcile_player_prediction_snapshots("e1", {7: {"goals": 1, "assists": 0}}) == 1
+    review = store.get_fixture_post_match("e1")
+    assert review is not None
+    assert review["provenance"] == "snapshot"
+    assert next(row for row in review["verdicts"] if row["label"] == "Corners O/U 9.5")["hit"] is True
+    assert len(review["player_calls"]) == 1
+    assert review["player_calls"][0]["contribution_hit"] is True
+    assert review["player_calls"][0]["is_recommended"] is True
+    assert store.has_player_prediction_snapshots("e1") is True
+    player_review = store.get_fixture_player_review("e1")
+    assert player_review is not None
+    assert player_review["correct"][0]["name"] == "Saka"
+    assert player_review["missed"] == []
+    # An after-the-fact reconstruction cannot replace a stored live row.
+    assert store.record_fixture_market_predictions("e1", "Arsenal", "Chelsea", table.iloc[0]["commence_time"], {"corners": {"lambda": 1, "line": 1.5, "over": 0.1, "under": 0.9}}, provenance="reconstructed") == 0
+    accuracy = store.get_scorer_accuracy()
+    assert accuracy["snapshot"]["calls"] == 1
+    assert accuracy["snapshot"]["call_hit_rate"] == pytest.approx(1.0)
+
+
+def test_has_player_prediction_snapshots_is_false_before_capture(clean_db):
+    assert store.has_player_prediction_snapshots("missing") is False
+
+
+def test_goal_probability_qualifies_a_player_call_even_when_ga_is_lower(clean_db):
+    store.record_player_prediction_snapshots("e1", [{
+        "player_id": 7, "name": "Saka", "team": "Arsenal", "confirmed_starter": True,
+        "anytime_goal_prob": 0.46, "anytime_assist_prob": 0.08, "anytime_goal_contribution_prob": 0.19,
+    }])
+    with store._connect() as conn:
+        qualifies_call, contribution_probability = conn.execute(
+            "SELECT qualifies_call, contribution_probability FROM player_prediction_snapshots WHERE event_id = 'e1' AND player_id = 7"
+        ).fetchone()
+    assert qualifies_call == 1
+    assert contribution_probability == pytest.approx(0.19)
+
+
+def test_player_review_uses_relevant_signal_and_separates_long_shots(clean_db):
+    store.record_player_prediction_snapshots("e1", [
+        {
+            "player_id": 7, "name": "Saka", "team": "Arsenal", "confirmed_starter": True,
+            "anytime_goal_prob": 0.46, "anytime_assist_prob": 0.18, "anytime_goal_contribution_prob": 0.46,
+        },
+        {
+            "player_id": 8, "name": "Odegaard", "team": "Arsenal", "confirmed_starter": True,
+            "anytime_goal_prob": 0.12, "anytime_assist_prob": 0.24, "anytime_goal_contribution_prob": 0.24,
+        },
+        {
+            "player_id": 9, "name": "Castagne", "team": "Fulham", "confirmed_starter": True,
+            "anytime_goal_prob": 0.04, "anytime_assist_prob": 0.11, "anytime_goal_contribution_prob": 0.11,
+        },
+        {
+            "player_id": 10, "name": "Toney", "team": "Brentford", "confirmed_starter": True,
+            "anytime_goal_prob": 0.12, "anytime_assist_prob": 0.08, "anytime_goal_contribution_prob": 0.23,
+        },
+    ])
+    store.reconcile_player_prediction_snapshots("e1", {
+        7: {"goals": 1, "assists": 0},
+        8: {"goals": 0, "assists": 0},
+        9: {"goals": 0, "assists": 2},
+        10: {"goals": 1, "assists": 0},
+    })
+
+    review = store.get_fixture_player_review("e1")
+
+    assert review is not None
+    assert [(player["name"], player["review_label"]) for player in review["correct"]] == [
+        ("Saka", "Goal call"),
+        ("Toney", "Recommended player"),
+    ]
+    assert [(player["name"], player["review_label"]) for player in review["missed"]] == [("Odegaard", "Recommended player")]
+    assert [(player["name"], player["review_label"]) for player in review["overperformed"]] == [("Castagne", "Overperformer")]
+
+
+def test_resolved_fixtures_missing_player_snapshots_filters_by_gameweek(clean_db):
+    table = pd.DataFrame([{
+        "event_id": "e1", "team_home": "Arsenal", "team_away": "Chelsea",
+        "commence_time": pd.Timestamp("2020-01-01T15:00:00Z"), "home_win_prob": 0.6,
+        "draw_prob": 0.25, "away_win_prob": 0.15, "over_2_5_prob": 0.7,
+        "under_2_5_prob": 0.3, "btts_yes_prob": 0.55, "top_scoreline": "2-1",
+    }])
+    store.record_predictions(table)
+    matches = pd.DataFrame([{
+        "team_home": "Arsenal", "team_away": "Chelsea", "date": pd.Timestamp("2020-01-01"),
+        "goals_home": 2, "goals_away": 1, "ftr": "H", "matchday": 1,
+    }])
+    store.reconcile_predictions(matches)
+
+    assert [fixture["event_id"] for fixture in store.resolved_fixtures_missing_player_snapshots(1)] == ["e1"]
+    assert store.resolved_fixtures_missing_player_snapshots(2) == []
+
+
 def test_reconcile_resolves_against_tz_aware_matches_df(clean_db):
     # football-data.org's `commence_time` (renamed to `date` before being
     # passed here — see api/routes.py::_run_tracking_bookkeeping) is

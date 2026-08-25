@@ -19,6 +19,18 @@ function StatCard({ label, value, positive, info }: { label: string; value: stri
   );
 }
 
+function americanOdds(decimalOdds: number) {
+  return decimalOdds >= 2 ? `+${Math.round((decimalOdds - 1) * 100)}` : `${Math.round(-100 / (decimalOdds - 1))}`;
+}
+
+const SELECTION_LABELS: Record<string, string> = {
+  home_win: "Home win",
+  draw: "Draw",
+  away_win: "Away win",
+  over: "Over 2.5",
+  under: "Under 2.5",
+};
+
 export function LiveValueBetPanel() {
   const [data, setData] = useState<ValueBetTrackRecordResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -82,16 +94,55 @@ export function LiveValueBetPanel() {
 
       {data && data.n_flagged > 0 && (
         <>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-5">
             <StatCard label="Flagged" value={String(data.n_flagged)} info="Every fixture/market ever flagged as a value bet, resolved or not." />
+            <StatCard label="Confirmed W-L" value={`${data.confirmed_wins}-${data.confirmed_losses}`} info="Only final scores confirmed by the result feed count here." />
             <StatCard label="Pending" value={String(data.n_pending)} info="Flagged fixtures that haven't kicked off / finished yet — open positions, not counted in the results below." />
-            <StatCard label="Win rate" value={results ? `${results["Successful Bet %"].toFixed(1)}%` : "—"} />
+            <StatCard label="Win rate" value={data.confirmed_win_rate === null ? "—" : `${data.confirmed_win_rate.toFixed(1)}%`} info="Actual wins divided by every confirmed value-bet result, independent of staking or odds caps." />
             <StatCard
               label="ROI"
               value={results ? `${results.ROI >= 0 ? "+" : ""}${results.ROI.toFixed(1)}%` : "—"}
               positive={results ? results.ROI >= 0 : undefined}
-              info={GLOSSARY.roi}
+              info={`${GLOSSARY.roi} Uses the selected staking mode and excludes prices beyond the app's risk cap.`}
             />
+          </div>
+
+          <div className="clip-corner rounded-xl border border-pl-border bg-pl-850/70 p-4">
+            <div className="flex items-baseline justify-between gap-3">
+              <h3 className="text-sm font-semibold text-pl-text">Confirmed results</h3>
+              <span className="text-[11px] text-pl-text-faint">Final scores from the named result source</span>
+            </div>
+            {data.confirmed_bets.length === 0 ? (
+              <p className="mt-3 text-xs text-pl-text-faint">No flagged fixture has a confirmed final result yet.</p>
+            ) : (
+              <div className="mt-3 overflow-x-auto">
+                <table className="w-full min-w-[620px] text-left text-xs">
+                  <thead className="border-b border-pl-border text-[10px] uppercase tracking-wide text-pl-text-faint">
+                    <tr>
+                      <th className="pb-2 font-semibold">Fixture / final score</th>
+                      <th className="pb-2 font-semibold">Pick</th>
+                      <th className="pb-2 font-semibold">Price</th>
+                      <th className="pb-2 font-semibold">Edge</th>
+                      <th className="pb-2 font-semibold">Result</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.confirmed_bets.slice(0, 12).map((bet, index) => (
+                      <tr key={`${bet.fixture}-${bet.selection}-${index}`} className="border-b border-pl-border/60 last:border-0">
+                        <td className="py-2 text-pl-text">
+                          {bet.fixture}
+                          <span className="ml-2 text-[10px] text-pl-text-faint">{bet.result_source}</span>
+                        </td>
+                        <td className="py-2 text-pl-text-dim">{SELECTION_LABELS[bet.selection] ?? bet.selection}</td>
+                        <td className="py-2 text-pl-text-dim">{americanOdds(bet.price)}</td>
+                        <td className="py-2 font-semibold text-pl-cyan">+{(bet.edge * 100).toFixed(1)}%</td>
+                        <td className={`py-2 font-semibold ${bet.won ? "text-win" : "text-loss"}`}>{bet.won ? "Won" : "Lost"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
 
           {results && results["Total Bets"] > 0 ? (

@@ -35,6 +35,10 @@ MARKET_SPEC = [
 
 _RESULT_TO_1X2 = {"H": "home_win", "D": "draw", "A": "away_win"}
 
+PLAYER_REVIEW_GOAL_THRESHOLD = 0.35
+PLAYER_REVIEW_ASSIST_THRESHOLD = 0.25
+PLAYER_REVIEW_CONTRIBUTION_THRESHOLD = 0.30
+
 
 def _naive(ts) -> pd.Timestamp:
     """Strip timezone info so every timestamp in this module compares
@@ -92,6 +96,87 @@ def _connect() -> sqlite3.Connection:
     for col, col_type in (("gameweek", "INTEGER"), ("predicted_scoreline", "TEXT")):
         if col not in existing_cols:
             conn.execute(f"ALTER TABLE predictions ADD COLUMN {col} {col_type}")
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS fixture_market_predictions (
+            event_id TEXT NOT NULL,
+            team_home TEXT NOT NULL,
+            team_away TEXT NOT NULL,
+            commence_time TEXT NOT NULL,
+            market TEXT NOT NULL,
+            lambda_value REAL NOT NULL,
+            line REAL NOT NULL,
+            over_probability REAL NOT NULL,
+            under_probability REAL NOT NULL,
+            provenance TEXT NOT NULL,
+            actual_total REAL,
+            resolved INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (event_id, market)
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS player_prediction_snapshots (
+            event_id TEXT NOT NULL,
+            player_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            team TEXT NOT NULL,
+            goal_probability REAL NOT NULL,
+            assist_probability REAL NOT NULL,
+            contribution_probability REAL NOT NULL,
+            confirmed_starter INTEGER NOT NULL,
+            qualifies_call INTEGER NOT NULL,
+            is_recommended INTEGER NOT NULL DEFAULT 0,
+            provenance TEXT NOT NULL,
+            actual_goals INTEGER,
+            actual_assists INTEGER,
+            resolved INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (event_id, player_id)
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS fixture_player_outcomes (
+            event_id TEXT NOT NULL,
+            player_id INTEGER NOT NULL,
+            side TEXT NOT NULL,
+            goals INTEGER NOT NULL,
+            assists INTEGER NOT NULL,
+            PRIMARY KEY (event_id, player_id)
+        )
+        """
+    )
+    player_columns = {row[1] for row in conn.execute("PRAGMA table_info(player_prediction_snapshots)")}
+    if "is_recommended" not in player_columns:
+        conn.execute("ALTER TABLE player_prediction_snapshots ADD COLUMN is_recommended INTEGER NOT NULL DEFAULT 0")
+        conn.execute(
+            """
+            UPDATE player_prediction_snapshots
+            SET is_recommended = 1
+            WHERE rowid IN (
+                SELECT rowid FROM (
+                    SELECT rowid, ROW_NUMBER() OVER (
+                        PARTITION BY event_id ORDER BY contribution_probability DESC
+                    ) AS rank
+                    FROM player_prediction_snapshots
+                    WHERE confirmed_starter = 1
+                ) WHERE rank <= 3
+            )
+            """
+        )
+    conn.execute(
+        """
+        UPDATE player_prediction_snapshots
+        SET qualifies_call = CASE
+            WHEN goal_probability >= 0.20
+              OR assist_probability >= 0.20
+              OR contribution_probability >= 0.20 THEN 1
+            ELSE 0
+        END
+        """
+    )
     return conn
 
 
@@ -531,3 +616,366 @@ def get_fixture_prediction(event_id: str) -> dict | None:
 
 def _none_if_nan_int(value) -> int | None:
     return None if pd.isna(value) else int(value)
+
+
+def record_fixture_market_predictions(
+    event_id: str,
+    team_home: str,
+    team_away: str,
+    commence_time,
+    predictions: dict[str, dict],
+    provenance: str = "snapshot",
+) -> int:
+    """Persist corners/cards O/U probabilities without altering core markets.
+
+    The first row always wins. A genuine pre-kickoff snapshot must never be
+    overwritten by a later reconstructed view of the same fixture.
+    """
+    rows = [
+        (
+            str(event_id), team_home, team_away, _naive(commence_time).isoformat(), market,
+            float(prediction["lambda"]), float(prediction["line"]), float(prediction["over"]),
+            float(prediction["under"]), provenance,
+        )
+        for market, prediction in predictions.items()
+    ]
+    if not rows:
+        return 0
+    with _connect() as conn:
+        cursor = conn.executemany(
+            """
+            INSERT OR IGNORE INTO fixture_market_predictions
+            (event_id, team_home, team_away, commence_time, market, lambda_value, line,
+             over_probability, under_probability, provenance)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            rows,
+        )
+        return cursor.rowcount
+
+
+def reconcile_fixture_market_predictions(matches_df: pd.DataFrame, lookback_days: int = 3) -> int:
+    """Attach final corner/card totals to unresolved saved market snapshots."""
+    required = {"date", "team_home", "team_away"}
+    if matches_df.empty or not required.issubset(matches_df.columns):
+        return 0
+    source = matches_df.copy()
+    source["date"] = pd.to_datetime(source["date"]).map(_naive)
+    with _connect() as conn:
+        unresolved = pd.read_sql(
+            "SELECT * FROM fixture_market_predictions WHERE resolved = 0", conn, parse_dates=["commence_time"]
+        )
+        updated = 0
+        for _, prediction in unresolved.iterrows():
+            date = _naive(prediction["commence_time"])
+            candidates = source[
+                (source["team_home"] == prediction["team_home"])
+                & (source["team_away"] == prediction["team_away"])
+                & (source["date"] >= date - pd.Timedelta(days=lookback_days))
+                & (source["date"] <= date + pd.Timedelta(days=lookback_days))
+            ]
+            if candidates.empty:
+                continue
+            match = candidates.iloc[0]
+            columns = ("hc", "ac") if prediction["market"] == "corners" else ("hy", "ay", "hr", "ar")
+            if not all(column in match.index and pd.notna(match[column]) for column in columns[:2]):
+                continue
+            if prediction["market"] == "corners":
+                actual_total = float(match["hc"] + match["ac"])
+            else:
+                actual_total = float(match["hy"] + match["ay"] + (match.get("hr", 0) or 0) + (match.get("ar", 0) or 0))
+            conn.execute(
+                "UPDATE fixture_market_predictions SET actual_total = ?, resolved = 1 WHERE event_id = ? AND market = ?",
+                (actual_total, prediction["event_id"], prediction["market"]),
+            )
+            updated += 1
+        return updated
+
+
+def record_player_prediction_snapshots(event_id: str, players: list[dict], provenance: str = "snapshot") -> int:
+    """Store confirmed starters; a call needs a 20%+ goal, assist, or G+A signal."""
+    confirmed = [player for player in players if player.get("confirmed_starter")]
+    recommended_ids = {
+        int(player["player_id"])
+        for player in sorted(confirmed, key=lambda player: float(player["anytime_goal_contribution_prob"]), reverse=True)[:3]
+    }
+    rows = [
+        (
+            str(event_id), int(player["player_id"]), player["name"], player["team"],
+            float(player["anytime_goal_prob"]), float(player["anytime_assist_prob"]),
+            float(player["anytime_goal_contribution_prob"]), int(bool(player["confirmed_starter"])),
+            int(
+                bool(player["confirmed_starter"])
+                and (
+                    float(player["anytime_goal_prob"]) >= 0.20
+                    or float(player["anytime_assist_prob"]) >= 0.20
+                    or float(player["anytime_goal_contribution_prob"]) >= 0.20
+                )
+            ),
+            int(int(player["player_id"]) in recommended_ids), provenance,
+        )
+        for player in confirmed
+    ]
+    if not rows:
+        return 0
+    with _connect() as conn:
+        cursor = conn.executemany(
+            """
+            INSERT OR IGNORE INTO player_prediction_snapshots
+            (event_id, player_id, name, team, goal_probability, assist_probability,
+             contribution_probability, confirmed_starter, qualifies_call, is_recommended, provenance)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            rows,
+        )
+        return cursor.rowcount
+
+
+def has_player_prediction_snapshots(event_id: str) -> bool:
+    with _connect() as conn:
+        row = conn.execute(
+            "SELECT 1 FROM player_prediction_snapshots WHERE event_id = ? LIMIT 1", (str(event_id),)
+        ).fetchone()
+    return row is not None
+
+
+def record_fixture_player_outcomes(event_id: str, outcomes: dict[int, dict]) -> int:
+    rows = [
+        (str(event_id), int(player_id), "home" if outcome.get("was_home") else "away", int(outcome.get("goals", 0)), int(outcome.get("assists", 0)))
+        for player_id, outcome in outcomes.items()
+        if outcome.get("was_home") is not None
+    ]
+    if not rows:
+        return 0
+    with _connect() as conn:
+        cursor = conn.executemany(
+            "INSERT OR IGNORE INTO fixture_player_outcomes (event_id, player_id, side, goals, assists) VALUES (?, ?, ?, ?, ?)",
+            rows,
+        )
+        return cursor.rowcount
+
+
+def has_fixture_player_outcomes(event_id: str) -> bool:
+    with _connect() as conn:
+        return conn.execute(
+            "SELECT 1 FROM fixture_player_outcomes WHERE event_id = ? LIMIT 1", (str(event_id),)
+        ).fetchone() is not None
+
+
+def get_fixture_player_events(event_id: str, bootstrap: dict) -> dict:
+    with _connect() as conn:
+        rows = pd.read_sql(
+            "SELECT * FROM fixture_player_outcomes WHERE event_id = ? AND (goals > 0 OR assists > 0)",
+            conn,
+            params=(str(event_id),),
+        )
+    names = {int(element["id"]): element["web_name"] for element in bootstrap.get("elements", [])}
+    result = {"home": [], "away": []}
+    for _, row in rows.iterrows():
+        result[row["side"]].append({
+            "name": names.get(int(row["player_id"]), f"Player {int(row['player_id'])}"),
+            "goals": int(row["goals"]),
+            "assists": int(row["assists"]),
+        })
+    for side in result:
+        result[side].sort(key=lambda player: (-player["goals"], -player["assists"], player["name"]))
+    return result
+
+
+def resolved_fixtures_missing_player_snapshots(gameweek: int | None = None) -> list[dict]:
+    where = "WHERE resolved = 1"
+    params: tuple = ()
+    if gameweek is not None:
+        where += " AND gameweek = ?"
+        params = (int(gameweek),)
+    with _connect() as conn:
+        rows = pd.read_sql(
+            f"""
+            SELECT event_id, team_home, team_away, commence_time, gameweek
+            FROM predictions
+            {where}
+            GROUP BY event_id, team_home, team_away, commence_time, gameweek
+            HAVING COUNT(*) = SUM(resolved)
+               AND (
+                   NOT EXISTS (
+                       SELECT 1 FROM player_prediction_snapshots player
+                       WHERE player.event_id = predictions.event_id
+                   )
+                   OR NOT EXISTS (
+                       SELECT 1 FROM fixture_player_outcomes outcome
+                       WHERE outcome.event_id = predictions.event_id
+                   )
+               )
+            ORDER BY commence_time
+            """,
+            conn,
+            params=params,
+        )
+    return rows.to_dict("records")
+
+
+def reconcile_player_prediction_snapshots(event_id: str, outcomes: dict[int, dict]) -> int:
+    """Resolve saved player probabilities against FPL's confirmed outcomes."""
+    if not outcomes:
+        return 0
+    with _connect() as conn:
+        rows = pd.read_sql(
+            "SELECT player_id FROM player_prediction_snapshots WHERE event_id = ? AND resolved = 0",
+            conn,
+            params=(str(event_id),),
+        )
+        updated = 0
+        for player_id in rows["player_id"]:
+            outcome = outcomes.get(int(player_id))
+            if outcome is None:
+                continue
+            conn.execute(
+                """UPDATE player_prediction_snapshots
+                   SET actual_goals = ?, actual_assists = ?, resolved = 1
+                   WHERE event_id = ? AND player_id = ?""",
+                (int(outcome.get("goals", 0)), int(outcome.get("assists", 0)), str(event_id), int(player_id)),
+            )
+            updated += 1
+        return updated
+
+
+def get_fixture_post_match(event_id: str) -> dict | None:
+    """Return a compact, presentation-ready review for a completed fixture."""
+    core = get_fixture_prediction(event_id)
+    if core is None:
+        return None
+    with _connect() as conn:
+        core_rows = pd.read_sql("SELECT * FROM predictions WHERE event_id = ?", conn, params=(str(event_id),))
+        markets = pd.read_sql("SELECT * FROM fixture_market_predictions WHERE event_id = ?", conn, params=(str(event_id),))
+        players = pd.read_sql("SELECT * FROM player_prediction_snapshots WHERE event_id = ?", conn, params=(str(event_id),))
+    if core_rows.empty or not core_rows["resolved"].all():
+        return None
+    first = core_rows.iloc[0]
+    home_goals, away_goals = int(first["actual_goals_home"]), int(first["actual_goals_away"])
+    total_goals = home_goals + away_goals
+    outcome = "home_win" if home_goals > away_goals else "away_win" if away_goals > home_goals else "draw"
+    result_probs = {row["outcome_name"]: float(row["predicted_prob"]) for _, row in core_rows[core_rows["market"] == "1x2"].iterrows()}
+    goals_probs = {row["outcome_name"]: float(row["predicted_prob"]) for _, row in core_rows[core_rows["market"] == "totals_2_5"].iterrows()}
+    btts_prob = float(core_rows[(core_rows["market"] == "btts") & (core_rows["outcome_name"] == "yes")].iloc[0]["predicted_prob"])
+    verdicts = [
+        {"label": "Exact score", "prediction": core["predicted_scoreline"], "actual": f"{home_goals}-{away_goals}", "hit": core["predicted_scoreline"] == f"{home_goals}-{away_goals}"},
+        {"label": "Match result", "prediction": max(result_probs, key=result_probs.get), "actual": outcome, "hit": max(result_probs, key=result_probs.get) == outcome},
+        {"label": "Goals O/U 2.5", "prediction": "over" if goals_probs.get("over", 0) >= goals_probs.get("under", 0) else "under", "actual": "over" if total_goals > 2.5 else "under", "hit": (goals_probs.get("over", 0) >= goals_probs.get("under", 0)) == (total_goals > 2.5)},
+        {"label": "BTTS", "prediction": "yes" if btts_prob >= 0.5 else "no", "actual": "yes" if home_goals and away_goals else "no", "hit": (btts_prob >= 0.5) == bool(home_goals and away_goals)},
+    ]
+    for _, market in markets.iterrows():
+        if not bool(market["resolved"]):
+            continue
+        predicted_over = float(market["over_probability"]) >= float(market["under_probability"])
+        actual_over = float(market["actual_total"]) > float(market["line"])
+        verdicts.append({"label": f"{market['market'].title()} O/U {market['line']:g}", "prediction": "over" if predicted_over else "under", "actual": f"{market['actual_total']:g}", "hit": predicted_over == actual_over})
+    player_calls = []
+    if not players.empty:
+        for _, player in players.iterrows():
+            if not bool(player["resolved"]):
+                continue
+            goals, assists = int(player["actual_goals"]), int(player["actual_assists"])
+            goal_called = float(player["goal_probability"]) >= 0.20
+            assist_called = float(player["assist_probability"]) >= 0.20
+            contribution_called = bool(player["qualifies_call"])
+            is_recommended = bool(player["is_recommended"])
+            if not (contribution_called and (goals > 0 or assists > 0)):
+                continue
+            player_calls.append({
+                "name": player["name"], "team": player["team"], "goal_probability": float(player["goal_probability"]),
+                "assist_probability": float(player["assist_probability"]), "contribution_probability": float(player["contribution_probability"]),
+                "goals": goals, "assists": assists, "goal_hit": goals > 0, "assist_hit": assists > 0,
+                "goal_called": goal_called, "assist_called": assist_called, "contribution_called": contribution_called,
+                "is_recommended": is_recommended,
+                "contribution_hit": goals > 0 or assists > 0, "provenance": player["provenance"],
+            })
+    provenance = "snapshot" if not markets.empty and (markets["provenance"] == "snapshot").any() else "reconstructed"
+    return {"final_score": f"{home_goals}-{away_goals}", "provenance": provenance, "verdicts": verdicts, "player_calls": player_calls}
+
+
+def get_fixture_player_review(event_id: str) -> dict | None:
+    """Return every resolved, qualifying confirmed-starter call for one fixture."""
+    with _connect() as conn:
+        players = pd.read_sql(
+            "SELECT * FROM player_prediction_snapshots WHERE event_id = ? AND resolved = 1",
+            conn,
+            params=(str(event_id),),
+        )
+    if players.empty:
+        return None
+    calls = []
+    for _, player in players.iterrows():
+        goals, assists = int(player["actual_goals"]), int(player["actual_assists"])
+        goal_probability = float(player["goal_probability"])
+        assist_probability = float(player["assist_probability"])
+        contribution_probability = float(player["contribution_probability"])
+        hit = goals > 0 or assists > 0
+        is_recommended = bool(player["is_recommended"])
+        if hit and goals > 0 and goal_probability >= PLAYER_REVIEW_GOAL_THRESHOLD:
+            label, probability, market = "Goal call", goal_probability, "Goal"
+        elif hit and assists > 0 and assist_probability >= PLAYER_REVIEW_ASSIST_THRESHOLD:
+            label, probability, market = "Assist call", assist_probability, "Assist"
+        elif hit and is_recommended:
+            label, probability, market = "Recommended player", contribution_probability, "G+A"
+        elif hit and contribution_probability >= PLAYER_REVIEW_CONTRIBUTION_THRESHOLD:
+            label, probability, market = "G+A call", contribution_probability, "G+A"
+        elif hit:
+            label, probability, market = "Overperformer", contribution_probability, "G+A"
+        elif goal_probability >= PLAYER_REVIEW_GOAL_THRESHOLD:
+            label, probability, market = "Goal call", goal_probability, "Goal"
+        elif assist_probability >= PLAYER_REVIEW_ASSIST_THRESHOLD:
+            label, probability, market = "Assist call", assist_probability, "Assist"
+        elif is_recommended:
+            label, probability, market = "Recommended player", contribution_probability, "G+A"
+        elif contribution_probability >= PLAYER_REVIEW_CONTRIBUTION_THRESHOLD:
+            label, probability, market = "G+A call", contribution_probability, "G+A"
+        else:
+            continue
+        calls.append({
+            "name": player["name"], "team": player["team"],
+            "goal_probability": goal_probability,
+            "assist_probability": assist_probability,
+            "contribution_probability": contribution_probability,
+            "goals": goals, "assists": assists,
+            "hit": hit,
+            "is_recommended": is_recommended,
+            "review_label": label,
+            "review_probability": probability,
+            "review_market": market,
+        })
+    calls.sort(key=lambda player: (-player["review_probability"], player["name"]))
+    provenance = "snapshot" if (players["provenance"] == "snapshot").any() else "reconstructed"
+    return {
+        "provenance": provenance,
+        "correct": [player for player in calls if player["hit"] and player["review_label"] != "Overperformer"],
+        "missed": [player for player in calls if not player["hit"]],
+        "overperformed": [player for player in calls if player["hit"] and player["review_label"] == "Overperformer"],
+    }
+
+
+def get_scorer_accuracy() -> dict:
+    """Accuracy and calibration for confirmed-starter scorer probabilities."""
+    with _connect() as conn:
+        rows = pd.read_sql("SELECT * FROM player_prediction_snapshots WHERE resolved = 1", conn)
+    result = {"snapshot": _scorer_accuracy_group(rows[rows["provenance"] == "snapshot"]), "reconstructed": _scorer_accuracy_group(rows[rows["provenance"] == "reconstructed"])} if not rows.empty else {"snapshot": _scorer_accuracy_group(rows), "reconstructed": _scorer_accuracy_group(rows)}
+    return result
+
+
+def _scorer_accuracy_group(rows: pd.DataFrame) -> dict:
+    if rows.empty:
+        return {"calls": 0, "call_hits": 0, "call_hit_rate": None, "goal_brier": None, "calibration": []}
+    calls = rows[rows["qualifies_call"] == 1]
+    goal_actual = (rows["actual_goals"] > 0).astype(float)
+    probability = rows["goal_probability"].astype(float)
+    calibration = []
+    for lower in range(0, 100, 20):
+        upper = lower + 20
+        bucket = rows[(probability >= lower / 100) & (probability < upper / 100)]
+        if bucket.empty:
+            continue
+        calibration.append({"range": f"{lower}-{upper}%", "n": int(len(bucket)), "predicted": float(bucket["goal_probability"].mean()), "actual": float((bucket["actual_goals"] > 0).mean())})
+    return {
+        "calls": int(len(calls)), "call_hits": int(((calls["actual_goals"] > 0) | (calls["actual_assists"] > 0)).sum()),
+        "call_hit_rate": float(((calls["actual_goals"] > 0) | (calls["actual_assists"] > 0)).mean()) if not calls.empty else None,
+        "goal_brier": float(((probability - goal_actual) ** 2).mean()), "calibration": calibration,
+    }

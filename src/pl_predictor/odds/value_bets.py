@@ -18,8 +18,11 @@ import penaltyblog as pb
 from ..models import scoreline
 from ..models.market_models import price_over_under
 
+MAX_RECOMMENDATION_ODDS = 6.0
+MAX_ODDS_AGE_SECONDS = 60 * 60
 
-def _best_price(odds_df: pd.DataFrame, event_id, market: str, outcome_name: str, point: float | None = None):
+
+def _best_quote(odds_df: pd.DataFrame, event_id, market: str, outcome_name: str, point: float | None = None) -> dict | None:
     rows = odds_df[
         (odds_df["event_id"] == event_id) & (odds_df["market"] == market) & (odds_df["outcome_name"] == outcome_name)
     ]
@@ -27,7 +30,13 @@ def _best_price(odds_df: pd.DataFrame, event_id, market: str, outcome_name: str,
         rows = rows[rows["point"] == point]
     if rows.empty:
         return None
-    return float(rows["price"].max())  # best (highest) price across bookmakers
+    quote = rows.loc[rows["price"].idxmax()]
+    return {"price": float(quote["price"]), "bookmaker": str(quote["bookmaker"])}
+
+
+def _best_price(odds_df: pd.DataFrame, event_id, market: str, outcome_name: str, point: float | None = None):
+    quote = _best_quote(odds_df, event_id, market, outcome_name, point)
+    return quote["price"] if quote is not None else None
 
 
 def _devig_h2h(odds_df: pd.DataFrame, event_id, home: str, away: str) -> dict | None:
@@ -91,6 +100,15 @@ def build_value_bet_table(
             "data_confidence": pred["data_confidence"],
         }
 
+        odds_timestamp = None
+        if not odds_df.empty and "odds_fetched_at" in odds_df:
+            timestamps = pd.to_datetime(odds_df["odds_fetched_at"], utc=True, errors="coerce").dropna()
+            odds_timestamp = timestamps.max() if not timestamps.empty else None
+        odds_age_seconds = (pd.Timestamp.now(tz="UTC") - odds_timestamp).total_seconds() if odds_timestamp is not None else None
+        row["odds_fetched_at"] = odds_timestamp
+        row["odds_age_seconds"] = odds_age_seconds
+        row["odds_is_stale"] = odds_age_seconds is not None and odds_age_seconds > MAX_ODDS_AGE_SECONDS
+
         implied_h2h = _devig_h2h(odds_df, event_id, home, away) if not odds_df.empty else None
         implied_totals = _devig_totals(odds_df, event_id) if not odds_df.empty else None
         implied = {**(implied_h2h or {}), **(implied_totals or {})}
@@ -101,25 +119,45 @@ def build_value_bet_table(
         # but it's not what a real bet actually pays out on. Kept alongside
         # the edge so a live value-bet tracker can compute real profit/ROI
         # from what was actually flagged, not just whether it "looked" good.
-        price = {
-            "home_win": _best_price(odds_df, event_id, "h2h", home) if not odds_df.empty else None,
-            "draw": _best_price(odds_df, event_id, "h2h", "Draw") if not odds_df.empty else None,
-            "away_win": _best_price(odds_df, event_id, "h2h", away) if not odds_df.empty else None,
-            "over_2_5": _best_price(odds_df, event_id, "totals", "Over", point=2.5) if not odds_df.empty else None,
-            "under_2_5": _best_price(odds_df, event_id, "totals", "Under", point=2.5) if not odds_df.empty else None,
+        quote = {
+            "home_win": _best_quote(odds_df, event_id, "h2h", home) if not odds_df.empty else None,
+            "draw": _best_quote(odds_df, event_id, "h2h", "Draw") if not odds_df.empty else None,
+            "away_win": _best_quote(odds_df, event_id, "h2h", away) if not odds_df.empty else None,
+            "over_2_5": _best_quote(odds_df, event_id, "totals", "Over", point=2.5) if not odds_df.empty else None,
+            "under_2_5": _best_quote(odds_df, event_id, "totals", "Under", point=2.5) if not odds_df.empty else None,
         }
 
         for side in ["home_win", "draw", "away_win", "over_2_5", "under_2_5"]:
             side_implied = implied.get(side)
             row[f"{side}_implied"] = side_implied
             row[f"{side}_edge"] = (row[f"{side}_prob"] - side_implied) if side_implied is not None else None
-            row[f"{side}_price"] = price[side]
+            row[f"{side}_price"] = quote[side]["price"] if quote[side] is not None else None
+            row[f"{side}_bookmaker"] = quote[side]["bookmaker"] if quote[side] is not None else None
 
-        row["value_bet_flags"] = [
+        row["value_bet_flags"] = [] if row["odds_is_stale"] else [
             side
             for side in ["home_win", "draw", "away_win", "over_2_5", "under_2_5"]
             if row[f"{side}_edge"] is not None and row[f"{side}_edge"] > edge_threshold
         ]
+
+        # A recommendation is intentionally one independently priced market,
+        # never a parlay.  Individual model edges do not provide the joint
+        # probability or bookmaker-specific price needed for a safe parlay.
+        candidates = [
+            side
+            for side in row["value_bet_flags"]
+            if not row["is_fallback_prediction"]
+            and not row["odds_is_stale"]
+            and row[f"{side}_price"] is not None
+            and row[f"{side}_price"] <= MAX_RECOMMENDATION_ODDS
+        ]
+        best = max(candidates, key=lambda side: row[f"{side}_edge"]) if candidates else None
+        row["recommended_market"] = best
+        row["recommended_prob"] = row[f"{best}_prob"] if best else None
+        row["recommended_implied"] = row[f"{best}_implied"] if best else None
+        row["recommended_edge"] = row[f"{best}_edge"] if best else None
+        row["recommended_price"] = row[f"{best}_price"] if best else None
+        row["recommended_bookmaker"] = row[f"{best}_bookmaker"] if best else None
 
         row["corners_market_note"] = "No live market (Odds API doesn't cover corners)"
         row["cards_market_note"] = "No live market (Odds API doesn't cover cards)"

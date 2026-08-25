@@ -1,5 +1,7 @@
 """Round-trip check for the live value-bet track record ledger."""
 
+import json
+
 import pandas as pd
 import pytest
 
@@ -46,6 +48,23 @@ def test_only_flagged_sides_are_recorded(clean_db):
     assert value_bet_ledger.record_value_bets(table) == 1
 
 
+def test_record_keeps_model_and_best_quote_snapshot(clean_db):
+    table = _flagged_table(
+        home_win_bookmaker="best-book",
+        odds_fetched_at=pd.Timestamp("2020-01-01T12:00:00Z"),
+    )
+
+    assert value_bet_ledger.record_value_bets(table, model_trained_at="model-time", model_manifest_hash="abc123") == 2
+    with value_bet_ledger._connect() as conn:
+        recorded = pd.read_sql("SELECT model_trained_at, quote_fetched_at, odds_source, quote_snapshot, model_manifest_hash FROM value_bets", conn)
+
+    assert set(recorded["model_trained_at"]) == {"model-time"}
+    assert set(recorded["odds_source"]) == {"the-odds-api"}
+    assert set(recorded["model_manifest_hash"]) == {"abc123"}
+    snapshot = json.loads(recorded.iloc[0]["quote_snapshot"])
+    assert snapshot["home_win"]["bookmaker"] == "best-book"
+
+
 def test_reconcile_and_replay_matches_offline_backtest_semantics(clean_db):
     table = _flagged_table()
     value_bet_ledger.record_value_bets(table)
@@ -69,6 +88,11 @@ def test_reconcile_and_replay_matches_offline_backtest_semantics(clean_db):
     assert record["n_flagged"] == 2
     assert record["n_resolved"] == 2
     assert record["n_pending"] == 0
+    assert record["confirmed_wins"] == 1
+    assert record["confirmed_losses"] == 1
+    assert record["confirmed_win_rate"] == pytest.approx(50.0)
+    assert record["confirmed_bets"][0]["fixture"] == "Arsenal 2-1 Chelsea"
+    assert record["confirmed_bets"][0]["result_source"] == "match feed"
     assert record["results"]["Total Bets"] == 2
     assert record["results"]["Successful Bets"] == 1
     # home_win won at price 2.2 on a 10-unit flat stake: +12. under_2_5 lost: -10. Net +2.
@@ -103,4 +127,20 @@ def test_pending_bets_excluded_from_pl(clean_db):
     assert record["n_flagged"] == 1
     assert record["n_pending"] == 1
     assert record["n_resolved"] == 0
+    assert record["results"]["Total Bets"] == 0
+
+
+def test_confirmed_win_rate_includes_settled_prices_outside_staking_cap(clean_db):
+    table = _flagged_table(value_bet_flags=["home_win"], home_win_price=7.0)
+    value_bet_ledger.record_value_bets(table)
+    matches_df = pd.DataFrame(
+        [{"team_home": "Arsenal", "team_away": "Chelsea", "date": pd.Timestamp("2020-01-01"), "goals_home": 1, "goals_away": 0, "ftr": "H"}]
+    )
+
+    assert value_bet_ledger.reconcile_value_bets(matches_df, result_source="official feed") == 1
+    record = value_bet_ledger.get_value_bet_track_record()
+
+    assert record["confirmed_wins"] == 1
+    assert record["confirmed_win_rate"] == pytest.approx(100.0)
+    assert record["confirmed_bets"][0]["result_source"] == "official feed"
     assert record["results"]["Total Bets"] == 0

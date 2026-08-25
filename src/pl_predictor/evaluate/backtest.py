@@ -36,7 +36,13 @@ import penaltyblog as pb
 from ..models import scoreline
 
 RESULT_TO_SIDE = {"H": "home_win", "D": "draw", "A": "away_win"}
-ODDS_COLS = {"home_win": "b365_h", "draw": "b365_d", "away_win": "b365_a"}
+ODDS_COLS = {
+    "home_win": "b365_h",
+    "draw": "b365_d",
+    "away_win": "b365_a",
+    "over_2_5": "b365>2.5",
+    "under_2_5": "b365<2.5",
+}
 
 
 def _kelly_stake(prob: float, odds: float, fraction: float, max_stake_fraction: float, bankroll: float) -> float:
@@ -57,13 +63,48 @@ def _precompute_predictions(model, df: pd.DataFrame) -> dict:
     if hasattr(model, "predict_many_from_rows"):
         grids = model.predict_many_from_rows(df)
         return {
-            idx: {"home_win": g.home_win, "draw": g.draw, "away_win": g.away_win, "fallback": False}
+            idx: {
+                "home_win": g.home_win,
+                "draw": g.draw,
+                "away_win": g.away_win,
+                "over_2_5": g.total_goals("over", 2.5),
+                "under_2_5": g.total_goals("under", 2.5),
+                "fallback": False,
+            }
             for idx, g in zip(df.index, grids)
         }
     return {
         idx: scoreline.predict_fixture(model, row["team_home"], row["team_away"], feature_row=row)
         for idx, row in df.iterrows()
     }
+
+
+def _implied_probabilities(fixture: pd.Series) -> dict[str, float] | None:
+    """De-vig archived Bet365 closing prices using the live Shin method."""
+    try:
+        h2h = pb.implied.calculate_implied(
+            [fixture["b365_h"], fixture["b365_d"], fixture["b365_a"]],
+            method="shin",
+            market_names=["home_win", "draw", "away_win"],
+        )
+        totals = pb.implied.calculate_implied(
+            [fixture["b365>2.5"], fixture["b365<2.5"]],
+            method="shin",
+            market_names=["over_2_5", "under_2_5"],
+        )
+    except ValueError:
+        return None
+    return {
+        **{side: h2h.get_probability_by_name(side) for side in ["home_win", "draw", "away_win"]},
+        **{side: totals.get_probability_by_name(side) for side in ["over_2_5", "under_2_5"]},
+    }
+
+
+def _actual_side(fixture: pd.Series, side: str) -> bool:
+    if side in RESULT_TO_SIDE.values():
+        return side == RESULT_TO_SIDE[fixture["ftr"]]
+    total_goals = int(fixture["goals_home"]) + int(fixture["goals_away"])
+    return total_goals > 2.5 if side == "over_2_5" else total_goals < 2.5
 
 
 def build_value_bet_backtest(
@@ -78,13 +119,14 @@ def build_value_bet_backtest(
     kelly_fraction: float = 0.10,
     max_stake_fraction: float = 0.05,
     max_odds: float | None = 6.0,
+    selections: list[dict] | None = None,
 ) -> pb.backtest.Backtest:
     """Simulates betting the held-out season whenever the model's probability
-    for a side exceeds the raw bookmaker-implied probability by more than
-    `edge_threshold`. `df_with_odds` must have `date`, `team_home`,
-    `team_away`, `ftr`, and the Bet365 closing-odds columns (b365_h/b365_d/
-    b365_a). Returns the run `Backtest` instance — call `.results()` for the
-    summary dict, or inspect `.account.tracker` for the bankroll curve.
+    for a side exceeds the de-vigged Bet365 closing probability by more than
+    `edge_threshold`. The selection rule matches the live recommendation:
+    one strongest independently priced 1X2 or O/U 2.5 market per fixture,
+    with the same odds cap and no fallback predictions. `selections`, when
+    supplied, is populated with an audit row for every simulated pick.
 
     `staking="kelly"` (default, see module docstring) or `"flat"` (bets a
     fixed `flat_stake` regardless of edge size — kept for comparison against
@@ -99,16 +141,18 @@ def build_value_bet_backtest(
         if pred["fallback"]:
             return  # no reliable edge estimate for an unseen team
 
-        actual_side = RESULT_TO_SIDE[fixture["ftr"]]
+        implied = _implied_probabilities(fixture)
+        if implied is None:
+            return
 
         best = None
         for side, odds_col in ODDS_COLS.items():
             odds = fixture[odds_col]
             if max_odds is not None and odds > max_odds:
                 continue
-            edge = pred[side] - (1 / odds)
+            edge = pred[side] - implied[side]
             if edge > edge_threshold and (best is None or edge > best["edge"]):
-                best = {"side": side, "odds": odds, "edge": edge, "prob": pred[side]}
+                best = {"side": side, "odds": float(odds), "edge": float(edge), "prob": float(pred[side]), "implied": float(implied[side])}
 
         if best is None:
             return
@@ -120,8 +164,21 @@ def build_value_bet_backtest(
         else:
             stake = flat_stake
 
-        won = int(best["side"] == actual_side)
+        won = int(_actual_side(fixture, best["side"]))
         ctx.account.place_bet(best["odds"], stake, won)
+        if selections is not None:
+            selections.append(
+                {
+                    "date": pd.Timestamp(fixture["date"]).date().isoformat(),
+                    "fixture": f"{fixture['team_home']} {int(fixture['goals_home'])}-{int(fixture['goals_away'])} {fixture['team_away']}",
+                    "selection": best["side"],
+                    "price": best["odds"],
+                    "model_probability": best["prob"],
+                    "implied_probability": best["implied"],
+                    "edge": best["edge"],
+                    "won": bool(won),
+                }
+            )
 
     bt.start(bankroll=bankroll, logic=logic)
     return bt

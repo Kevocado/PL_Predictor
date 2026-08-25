@@ -25,6 +25,7 @@ the offline backtest, so the two numbers are directly comparable."""
 from __future__ import annotations
 
 import sqlite3
+import json
 from datetime import datetime, timezone
 
 import pandas as pd
@@ -66,14 +67,39 @@ def _connect() -> sqlite3.Connection:
             resolved INTEGER NOT NULL DEFAULT 0,
             won INTEGER,
             resolved_at TEXT,
+            actual_goals_home INTEGER,
+            actual_goals_away INTEGER,
+            result_source TEXT,
+            model_trained_at TEXT,
+            quote_fetched_at TEXT,
+            odds_source TEXT,
+            quote_snapshot TEXT,
+            model_manifest_hash TEXT,
             UNIQUE(event_id, market)
         )
         """
     )
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(value_bets)")}
+    for column, definition in {
+        "actual_goals_home": "INTEGER",
+        "actual_goals_away": "INTEGER",
+        "result_source": "TEXT",
+        "model_trained_at": "TEXT",
+        "quote_fetched_at": "TEXT",
+        "odds_source": "TEXT",
+        "quote_snapshot": "TEXT",
+        "model_manifest_hash": "TEXT",
+    }.items():
+        if column not in columns:
+            conn.execute(f"ALTER TABLE value_bets ADD COLUMN {column} {definition}")
     return conn
 
 
-def record_value_bets(table: pd.DataFrame) -> int:
+def record_value_bets(
+    table: pd.DataFrame,
+    model_trained_at: str | None = None,
+    model_manifest_hash: str | None = None,
+) -> int:
     """Snapshot every (fixture, market) pair `table["value_bet_flags"]`
     already flagged — `table` is the same value-bet table built by
     `odds/value_bets.py::build_value_bet_table` that `/api/fixtures` and
@@ -96,6 +122,14 @@ def record_value_bets(table: pd.DataFrame) -> int:
             if price is None or pd.isna(price):
                 continue  # shouldn't happen for a flagged side, but a flag with no price can't be tracked as a real bet
             market, outcome_name = _SIDE_TO_MARKET[side]
+            quote_snapshot = {
+                name: {
+                    "price": _json_value(fixture.get(f"{name}_price")),
+                    "bookmaker": _json_value(fixture.get(f"{name}_bookmaker")),
+                    "implied_probability": _json_value(fixture.get(f"{name}_implied")),
+                }
+                for name in _SIDE_TO_MARKET
+            }
             rows.append(
                 (
                     str(fixture["event_id"]),
@@ -109,6 +143,11 @@ def record_value_bets(table: pd.DataFrame) -> int:
                     float(fixture[f"{side}_edge"]),
                     _naive(fixture["commence_time"]).isoformat(),
                     now,
+                    model_trained_at,
+                    _timestamp_value(fixture.get("odds_fetched_at")),
+                    "the-odds-api",
+                    json.dumps(quote_snapshot, sort_keys=True),
+                    model_manifest_hash,
                 )
             )
 
@@ -120,15 +159,25 @@ def record_value_bets(table: pd.DataFrame) -> int:
             """
             INSERT OR IGNORE INTO value_bets
                 (event_id, team_home, team_away, market, outcome_name, model_prob, implied_prob, price, edge,
-                 commence_time, snapshotted_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 commence_time, snapshotted_at, model_trained_at, quote_fetched_at, odds_source, quote_snapshot, model_manifest_hash)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             rows,
         )
         return cur.rowcount
 
 
-def reconcile_value_bets(matches_df: pd.DataFrame, lookback_days: int = 3) -> int:
+def _json_value(value):
+    return None if value is None or pd.isna(value) else value
+
+
+def _timestamp_value(value) -> str | None:
+    if value is None or pd.isna(value):
+        return None
+    return pd.Timestamp(value).isoformat()
+
+
+def reconcile_value_bets(matches_df: pd.DataFrame, lookback_days: int = 3, result_source: str = "match feed") -> int:
     """Same team+date matching as `tracking_store.reconcile_predictions`,
     resolving `won` (1/0) for every flagged bet whose kickoff has passed.
     `matches_df` needs `team_home`, `team_away`, `date`, `goals_home`,
@@ -169,8 +218,19 @@ def reconcile_value_bets(matches_df: pd.DataFrame, lookback_days: int = 3) -> in
             match = candidates.iloc[0]
             won = _actual_outcome(bet["market"], bet["outcome_name"], match)
             conn.execute(
-                "UPDATE value_bets SET resolved = 1, won = ?, resolved_at = ? WHERE id = ?",
-                (won, datetime.now(timezone.utc).isoformat(), int(bet["id"])),
+                """
+                UPDATE value_bets
+                SET resolved = 1, won = ?, resolved_at = ?, actual_goals_home = ?, actual_goals_away = ?, result_source = ?
+                WHERE id = ?
+                """,
+                (
+                    won,
+                    datetime.now(timezone.utc).isoformat(),
+                    int(match["goals_home"]),
+                    int(match["goals_away"]),
+                    result_source,
+                    int(bet["id"]),
+                ),
             )
             resolved_count += 1
 
@@ -200,6 +260,10 @@ def get_value_bet_track_record(
             "n_flagged": 0,
             "n_resolved": 0,
             "n_pending": 0,
+            "confirmed_wins": 0,
+            "confirmed_losses": 0,
+            "confirmed_win_rate": None,
+            "confirmed_bets": [],
             "results": None,
             "bankroll_curve": [],
             "staking": staking,
@@ -207,6 +271,21 @@ def get_value_bet_track_record(
 
     pending = df[df["resolved"] == 0]
     resolved = df[df["resolved"] == 1]
+    confirmed_wins = int(resolved["won"].sum()) if not resolved.empty else 0
+    confirmed_losses = int(len(resolved) - confirmed_wins)
+    confirmed_bets = [
+        {
+            "fixture": f"{bet['team_home']} {int(bet['actual_goals_home'])}-{int(bet['actual_goals_away'])} {bet['team_away']}",
+            "market": bet["market"],
+            "selection": bet["outcome_name"],
+            "price": float(bet["price"]),
+            "edge": float(bet["edge"]),
+            "won": bool(bet["won"]),
+            "result_source": bet["result_source"] or "match feed",
+            "resolved_at": pd.Timestamp(bet["resolved_at"]).isoformat() if pd.notna(bet["resolved_at"]) else None,
+        }
+        for _, bet in resolved.sort_values("resolved_at", ascending=False).iterrows()
+    ]
 
     account = pb.backtest.Account(bankroll)
     for _, bet in resolved.iterrows():
@@ -238,6 +317,10 @@ def get_value_bet_track_record(
         "n_flagged": int(len(df)),
         "n_resolved": int(len(resolved)),
         "n_pending": int(len(pending)),
+        "confirmed_wins": confirmed_wins,
+        "confirmed_losses": confirmed_losses,
+        "confirmed_win_rate": (confirmed_wins / len(resolved) * 100) if not resolved.empty else None,
+        "confirmed_bets": confirmed_bets,
         "results": results,
         "bankroll_curve": account.tracker,
         "staking": staking,

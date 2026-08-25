@@ -89,7 +89,7 @@ def fetch_epl_odds_raw(
     return events
 
 
-def events_to_frame(events: list[dict]) -> pd.DataFrame:
+def events_to_frame(events: list[dict], fetched_at: pd.Timestamp | None = None) -> pd.DataFrame:
     """Flatten raw event JSON into one row per (event, bookmaker, market,
     outcome) — long format, easiest to aggregate/de-vig downstream."""
     rows = []
@@ -121,6 +121,7 @@ def events_to_frame(events: list[dict]) -> pd.DataFrame:
     df = pd.DataFrame(rows)
     if not df.empty:
         df["commence_time"] = pd.to_datetime(df["commence_time"])
+        df["odds_fetched_at"] = fetched_at if fetched_at is not None else pd.Timestamp.now(tz="UTC")
     return df
 
 
@@ -133,4 +134,6 @@ def fetch_epl_odds(
     events = fetch_epl_odds_raw(
         markets=markets, regions=regions, gameweek_key=gameweek_key, force_refresh=force_refresh
     )
-    return events_to_frame(events)
+    cache_path = _cache_path(gameweek_key)
+    fetched_at = pd.Timestamp(cache_path.stat().st_mtime, unit="s", tz="UTC") if cache_path.exists() else pd.Timestamp.now(tz="UTC")
+    return events_to_frame(events, fetched_at=fetched_at)

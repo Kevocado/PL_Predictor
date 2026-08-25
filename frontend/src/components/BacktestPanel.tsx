@@ -19,6 +19,18 @@ function StatCard({ label, value, positive, info }: { label: string; value: stri
   );
 }
 
+function americanOdds(decimalOdds: number) {
+  return decimalOdds >= 2 ? `+${Math.round((decimalOdds - 1) * 100)}` : `${Math.round(-100 / (decimalOdds - 1))}`;
+}
+
+const SELECTION_LABELS: Record<string, string> = {
+  home_win: "Home win",
+  draw: "Draw",
+  away_win: "Away win",
+  over_2_5: "Over 2.5",
+  under_2_5: "Under 2.5",
+};
+
 export function BacktestPanel() {
   const [result, setResult] = useState<BacktestResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -46,10 +58,9 @@ export function BacktestPanel() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-4">
         <p className="max-w-xl text-xs text-pl-text-faint">
-          Simulates betting the held-out season whenever the model's probability beats the raw bookmaker-implied
-          probability by 5%+ — one bet per fixture (whichever side has the biggest edge), skipping odds beyond 6/1
-          where the model's calibration is least trustworthy. A strongly positive ROI here is a red flag for
-          overfitting, not a target — expect roughly break-even to slightly negative.
+          Replays the held-out season using archived Bet365 closing prices. It applies the same 5-point de-vigged
+          edge, single-best-selection, and odds-cap rules as the live recommendation card across match result and
+          O/U 2.5 goals. This is historical validation, not the live ledger.
         </p>
         <div className="flex shrink-0 flex-col items-end gap-2">
           <div className="flex items-center gap-1 rounded-lg bg-pl-850/70 p-1 text-xs">
@@ -75,7 +86,7 @@ export function BacktestPanel() {
             disabled={loading}
             className="rounded-lg bg-pl-pink px-4 py-2 text-sm font-semibold text-white transition hover:bg-pl-pink-soft disabled:opacity-50"
           >
-            {loading ? "Running…" : "Run backtest"}
+            {loading ? "Running…" : "Run historical replay"}
           </button>
         </div>
       </div>
@@ -107,6 +118,43 @@ export function BacktestPanel() {
               positive={result.results.ROI >= 0}
               info={GLOSSARY.roi}
             />
+          </div>
+
+          <div className="clip-corner rounded-xl border border-pl-border bg-pl-850/70 p-4">
+            <div className="flex items-baseline justify-between gap-3">
+              <h3 className="text-sm font-semibold text-pl-text">Historical picks</h3>
+              <span className="text-[11px] text-pl-text-faint">{result.season ?? "Held-out season"} · archived Bet365 closing prices</span>
+            </div>
+            {result.selections.length === 0 ? (
+              <p className="mt-3 text-xs text-pl-text-faint">No historical fixture cleared the live value-bet rules.</p>
+            ) : (
+              <div className="mt-3 max-h-80 overflow-auto">
+                <table className="w-full min-w-[680px] text-left text-xs">
+                  <thead className="sticky top-0 border-b border-pl-border bg-pl-850/95 text-[10px] uppercase tracking-wide text-pl-text-faint">
+                    <tr>
+                      <th className="pb-2 font-semibold">Date / final score</th>
+                      <th className="pb-2 font-semibold">Pick</th>
+                      <th className="pb-2 font-semibold">Price</th>
+                      <th className="pb-2 font-semibold">Model</th>
+                      <th className="pb-2 font-semibold">Edge</th>
+                      <th className="pb-2 font-semibold">Result</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {result.selections.map((bet) => (
+                      <tr key={`${bet.date}-${bet.fixture}-${bet.selection}`} className="border-b border-pl-border/60 last:border-0">
+                        <td className="py-2 text-pl-text"><span className="mr-2 text-pl-text-faint">{bet.date}</span>{bet.fixture}</td>
+                        <td className="py-2 text-pl-text-dim">{SELECTION_LABELS[bet.selection]}</td>
+                        <td className="py-2 text-pl-text-dim">{americanOdds(bet.price)}</td>
+                        <td className="py-2 text-pl-text-dim">{(bet.model_probability * 100).toFixed(1)}%</td>
+                        <td className="py-2 font-semibold text-pl-cyan">+{(bet.edge * 100).toFixed(1)}%</td>
+                        <td className={`py-2 font-semibold ${bet.won ? "text-win" : "text-loss"}`}>{bet.won ? "Won" : "Lost"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
 
           <div className="clip-corner-lg h-72 rounded-xl border border-pl-border bg-pl-850/70 p-4">
