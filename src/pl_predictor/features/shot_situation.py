@@ -37,15 +37,22 @@ def _team_perspective(shot_df: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_rolling_shot_situation(shot_df: pd.DataFrame, windows: tuple[int, ...] = WINDOWS) -> tuple[pd.DataFrame, list[str]]:
+    """Each row's value includes that team's own match — no `shift(1)`
+    here. Deliberate: `attach_shot_situation_features` joins this onto
+    `matches_df` via `merge_asof(direction="backward",
+    allow_exact_matches=False)`, which is what actually enforces "strictly
+    before the target fixture" for a cross-source join like this one;
+    shifting here too would double up that exclusion and drop the source
+    team's most recent match from every result (see `xg_form.py::
+    build_rolling_xg`'s docstring — confirmed against real data as a
+    genuine one-match staleness bug, fixed the same way there)."""
     long_df = _team_perspective(shot_df)
     grouped = long_df.groupby("team", sort=False)
 
     feature_cols = []
     for w in windows:
         col = f"set_piece_xg_share_last_{w}"
-        long_df[col] = grouped["set_piece_xg_share"].transform(
-            lambda s, w=w: s.shift(1).rolling(w, min_periods=1).mean()
-        )
+        long_df[col] = grouped["set_piece_xg_share"].transform(lambda s, w=w: s.rolling(w, min_periods=1).mean())
         feature_cols.append(col)
 
     return long_df, feature_cols

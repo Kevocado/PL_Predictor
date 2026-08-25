@@ -650,6 +650,61 @@ experiment; negative evidence prevents repeated work.
   folds, and (4) only then decide promote/reject — same bar as every other
   entry in this log.
 
+### OPS-2026-03 — fixed a one-match-stale cross-source rolling-feature bug
+- **Status:** fixed in `features/xg_form.py` and `features/shot_situation.py`
+  (and built correctly from the start in the new `features/match_dominance.py`).
+  Confirmed real via real 2023-24 Arsenal data, not just synthetic — every
+  `home/away_xg_for/against_last_{5,10}` and `set_piece_xg_share_last_{5,10}`
+  value was exactly one match staler than intended.
+- **Root cause:** `attach_xg_features`/`attach_shot_situation_features` join
+  Understat's independently-dated data onto `matches_df` via
+  `merge_asof(direction="backward", allow_exact_matches=False)` — that alone
+  already guarantees the matched source row is strictly before the target
+  fixture, which is the correct and sufficient no-lookahead guarantee for a
+  cross-source join. `build_rolling_xg`/`build_rolling_shot_situation` then
+  *also* applied `shift(1)` before rolling, so the matched source row's own
+  stored value excluded its own match a second time — the result skipped
+  the source team's most recent actual match entirely, landing one full
+  match short of what the target fixture should see. `rolling_form.py`'s
+  own features were never affected — they're built directly on the same
+  frame the target row belongs to, no cross-source date-matching involved.
+- **Consequence discovered by this**: this was a train/serve inconsistency,
+  not just a training artifact — live serving (`FixtureFeatureContext`/
+  `latest_xg_form`, a direct `.tail(w).mean()`, no merge_asof) was never
+  affected, so the production model was *trained* on one-match-stale xG
+  features but *served* with fresh ones.
+- **Fix:** removed `shift(1)` from `build_rolling_xg`/
+  `build_rolling_shot_situation`'s rolling computation — the stored value
+  is now inclusive of the row's own match, and the no-lookahead guarantee
+  is documented as belonging entirely to the `merge_asof` call. Added
+  regression tests (`tests/test_xg_form.py`, `tests/test_shot_situation.py`,
+  `tests/test_match_dominance.py`) that pin the corrected behavior against
+  hand-computed expected values.
+- **Measured impact on the currently-served ml_scoreline model** (5-fold
+  walk-forward, `DEFAULT_HYPERPARAMS` unchanged): mean RPS `0.199396 →
+  0.199891` (+0.00050), mean Brier `0.579745 → 0.580968` (+0.00122) — worse
+  on 4 of 5 folds, better on only 2024-25. Small, but the same order of
+  magnitude as improvements this project has previously kept (e.g.
+  EXP-2026-09's streak feature, +0.00069 RPS). Plausible explanation: the
+  stale version was accidentally acting as a mild smoother on a noisy xG
+  signal, and `DEFAULT_HYPERPARAMS` was tuned against the old (buggy)
+  feature distribution, not this one.
+- **Re-tuning attempt (to compensate) — rejected.** A fresh 40-trial Optuna
+  search against the corrected features found a candidate improving the
+  walk-forward mean RPS to `0.19967` (vs `0.19989` for current defaults —
+  a 0.11% gain). Per this project's own established two-part corroboration
+  bar for `DEFAULT_HYPERPARAMS` (walk-forward win alone is insufficient;
+  must also hold on the single fixed chronological holdout), checked the
+  2025-26 holdout directly: the candidate is *worse* there too (RPS
+  `0.20732 → 0.20824`, Brier `0.61510 → 0.61688`) — a walk-forward-specific
+  artifact, not a corroborated win. **`DEFAULT_HYPERPARAMS` is unchanged.**
+- **Decision:** keep the correctness fix — a known train/serve inconsistency
+  and a real double-exclusion logic error shouldn't ship regardless of a
+  small, inconsistent-direction metric wobble that a proper retuning
+  attempt could not turn into a corroborated win. `models/manifest.json`
+  and the trained model files are untouched by this entry; the fix takes
+  effect the next time `models.manifest.train_all()` actually runs.
+
 ## Change checklist for future agents
 
 - Read this file, `README.md`, and relevant tests before editing.

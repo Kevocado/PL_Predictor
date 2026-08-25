@@ -37,8 +37,19 @@ def _team_perspective(understat_df: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_rolling_xg(understat_df: pd.DataFrame, windows: tuple[int, ...] = WINDOWS) -> tuple[pd.DataFrame, list[str]]:
-    """Team-perspective long frame with rolling xG-for/xG-against columns,
-    using only *prior* matches (shift(1))."""
+    """Team-perspective long frame with rolling xG-for/xG-against columns —
+    each row's value is that team's rolling average *including* its own
+    match (no `shift(1)` here, unlike `rolling_form.py`'s same-frame
+    features). This is deliberate, not a leak: `attach_xg_features` below
+    joins this onto `matches_df` via `merge_asof(direction="backward",
+    allow_exact_matches=False)`, which already guarantees the matched
+    source row is strictly *before* the target fixture's date — that's
+    where the no-lookahead guarantee actually lives for a cross-source
+    join like this one. Also shifting here on top of that would double up
+    the exclusion and make the result skip the source team's most recent
+    actual match entirely, landing one full match short of what the target
+    fixture should see (confirmed against real data: every row was exactly
+    one match stale before this fix)."""
     long_df = _team_perspective(understat_df)
     grouped = long_df.groupby("team", sort=False)
 
@@ -46,7 +57,7 @@ def build_rolling_xg(understat_df: pd.DataFrame, windows: tuple[int, ...] = WIND
     for w in windows:
         for stat in ("xg_for", "xg_against"):
             col = f"{stat}_last_{w}"
-            long_df[col] = grouped[stat].transform(lambda s, w=w: s.shift(1).rolling(w, min_periods=1).mean())
+            long_df[col] = grouped[stat].transform(lambda s, w=w: s.rolling(w, min_periods=1).mean())
             feature_cols.append(col)
 
     return long_df, feature_cols
