@@ -31,7 +31,7 @@ it.
 
 | Area | Main modules | Responsibility |
 | --- | --- | --- |
-| Data | `data/football_data.py`, `pulselive.py`, `fpl_api.py`, `fpl_history.py`, `understat*.py`, `odds_api.py`, `espn.py` | Cache external data and map team names to one canonical convention. |
+| Data | `data/football_data.py`, `pulselive.py`, `fpl_api.py`, `fpl_history.py`, `understat*.py`, `odds_api.py`, `espn.py`, `clubelo.py` (research-only, unevaluated — see EXP-2026-05) | Cache external data and map team names to one canonical convention. |
 | Features | `features/build.py` plus rolling form, ratings, xG, rest, referee, player form | Create training and live feature rows. Historical values must only use prior matches. |
 | Models | `models/scoreline.py`, `ml_scoreline.py`, `market_models.py`, `player_goals.py`, `manifest.py` | Train, evaluate, persist, load, and score probabilities. |
 | Evaluation | `evaluate/calibration.py`, `walk_forward.py`, `backtest.py`, `betting_validation.py`, `goal_contribution_research.py` | Holdout/walk-forward evidence; experiments must stay here until promoted. |
@@ -273,7 +273,7 @@ profitability claim.
 | --- | --- | --- | --- |
 | football-data.co.uk opening/closing/max/average odds | More historical books and time-of-market information; current data already contains much of it | P0: replace a Bet365-only historical price view with pre-registered, same-time snapshots; test closing-line movement as an evaluation diagnostic | Do not use closing odds as a feature for an early prediction, or infer profitability from best-of-book prices that were not available then. [Source](https://www.football-data.co.uk/data) |
 | Open-Meteo forecast/archive | Forecast temperature, rain, wind, humidity and weather regime at each stadium | P1: train only on archived forecasts available at prediction time; benchmark by season and only retain if calibration improves | Historical reanalysis is hindsight for a live forecast. The forecast archive is the correct data for no-lookahead testing. Attribution is required. [Source](https://open-meteo.com/) |
-| ClubElo | Cross-league team strength, manager/last-match context, and long historical coverage including England’s second tier | P1: use as a pre-season/promoted-team prior or ensemble input, shifted to the fixture date | It is results-based, overlaps the project’s own Elo, and needs a date-correct cached extract. Do not add it merely as a duplicate feature. [Source](https://clubelo.com/Data) |
+| ClubElo | Cross-league team strength, manager/last-match context, and long historical coverage including England’s second tier | P1: use as a pre-season/promoted-team prior or ensemble input, shifted to the fixture date | It is results-based, overlaps the project’s own Elo, and needs a date-correct cached extract. Do not add it merely as a duplicate feature. **`api.clubelo.com` has not responded from this project's development environment (see EXP-2026-05) — code is written but unevaluated, and reuse terms are unconfirmed.** [Source](https://clubelo.com/Data) |
 | Official FPL API | Current availability, player positions, per-player xG/xA/ICT/BPS/bonus and team strengths | P1: snapshot it daily/pre-deadline; use only fields demonstrably available then for lineups and player experiments | The project already uses it. Store snapshots; current API values cannot reconstruct historical availability. |
 | vaastav FPL archive | Historical player-fixture rows and many player metrics | Keep as the historical player backbone; continue shifting all columns and exclude uncertain `xP` | Weekly updates stop after 2024-25, except periodic updates; the maintainer explicitly flags `xP` timing risk. [Source](https://github.com/vaastav/Fantasy-Premier-League) |
 | StatsBomb Open Data | Rich events, lineups, and selected 360 data for research | P2: use for event-feature prototyping or external validity tests, not the PL production pipeline | It covers selected competitions/seasons, not a continuous current Premier League feed. Confirm `competitions.json` and licence before each use; attribute StatsBomb. [Source](https://github.com/statsbomb/open-data) |
@@ -331,9 +331,10 @@ experiment; negative evidence prevents repeated work.
 4. **EXP-2026-04: weather archive.** Add stadium coordinates and Open-Meteo
    archived forecast features. Start with wind, rain, temperature, and humidity
    interactions; run ablations per market.
-5. **EXP-2026-05: promoted-team prior.** Compare existing cold-start blend
-   with date-correct ClubElo/Championship priors; require a gain on promoted
-   teams without harm elsewhere.
+5. **EXP-2026-05: promoted-team prior.** Code complete
+   (`data/clubelo.py`, `features/promoted_team_prior.py`), not yet
+   evaluated — see the Completed experiment log entry below for what's
+   built, what's untested, and why.
 
 ## Completed experiment log
 
@@ -570,6 +571,63 @@ experiment; negative evidence prevents repeated work.
 - **Decision:** do not add the feature to cards. Run multi-season corners
   calibration before considering it for that model; no fair-odds/corners
   recommendation is permitted from this result alone.
+
+### EXP-2026-05 — promoted-team ClubElo prior (code complete, pending live data)
+- **Status:** proposed. Code and unit tests exist; **no live fetch, no
+  evaluation, and no promotion decision have been made.** Do not treat this
+  entry as evidence either way.
+- **Motivation:** confirmed a real gap, not a hypothetical one —
+  `features/ratings.py`'s Elo/Pi replay has no cold-start handling at all
+  for a team with zero matches in the loaded football-data window; only
+  `features/cold_start.py`'s rolling-form blend does. A promoted club
+  already has a real, dated rating from the Championship that this project
+  currently discards entirely in favor of a flat league-average default.
+- **Blocker:** `api.clubelo.com` has not responded from this project's
+  development environment across four separate attempts on different days —
+  TCP connects, the server never sends a response, even at 15s timeout. The
+  root `clubelo.com` domain does resolve and respond, so this looks like an
+  issue with that specific API host, not a blanket network restriction.
+  Nothing here has been evaluated against a real fetch.
+- **What's built:**
+  - `data/clubelo.py::fetch_ratings_asof`/`team_rating_asof` — fetch-or-cache
+    a date's ratings snapshot, filtered to England's top two tiers, with
+    caching modeled on `pulselive.py`'s per-match cache (a past date's
+    snapshot is immutable once fetched). Unit-tested
+    (`tests/test_clubelo.py`) against a synthetic CSV shaped like ClubElo's
+    documented format — **this shape has not been confirmed against a real
+    response.**
+  - `data/team_names.py::_CLUBELO_ALIASES` — a small, explicitly
+    unverified alias table for the few club names known from general
+    ClubElo usage to differ from this project's canonical short form;
+    everything else relies on the existing case-insensitive fallback.
+  - `features/promoted_team_prior.py::zscore_bridge` — the cross-scale
+    rating transfer: expresses a team's ClubElo rating as a z-score against
+    other current top-flight teams' ClubElo ratings on the same date, then
+    maps that z-score onto this project's own Elo distribution for those
+    same teams. Deliberately avoids assuming the two rating systems share a
+    scale (they're fit independently, different K-factor/home-field
+    constants) — only assumes ClubElo ranks teams sensibly relative to each
+    other. Fully unit-tested with synthetic ratings
+    (`tests/test_promoted_team_prior.py`), including a no-lookahead check
+    (every ClubElo lookup is dated strictly before the fixture).
+  - `features/promoted_team_prior.py::clubelo_elo_prior` — ties the above
+    together for one team/date; returns `None` (never raises) when ClubElo
+    has no rating for that team/date, so a caller's existing flat-average
+    fallback is always the safe default.
+- **Explicitly NOT done:** not imported by `features/build.py` — neither
+  `build_training_frame` nor `FixtureFeatureContext` reference this module.
+  No walk-forward evaluation has run (would reuse the
+  `extra_feature_frame` mechanism `evaluate/walk_forward.py::prepare_folds`
+  gained for EXP-2026-03's follow-up, isolating promoted-team fixtures
+  specifically per the promotion-gate requirement below). Licence/terms for
+  reuse of ClubElo's data have not been confirmed either — see
+  `config.py::CLUBELO_BASE_URL`.
+- **Next step:** once `api.clubelo.com` is reachable, (1) fetch a real
+  snapshot and confirm the CSV shape and `_CLUBELO_ALIASES` table are
+  correct, (2) confirm reuse terms, (3) run the walk-forward evaluation
+  isolated to promoted-team fixtures across the standard chronological
+  folds, and (4) only then decide promote/reject — same bar as every other
+  entry in this log.
 
 ## Change checklist for future agents
 

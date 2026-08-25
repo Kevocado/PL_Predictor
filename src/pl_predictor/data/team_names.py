@@ -65,6 +65,22 @@ _FPL_API_ALIASES: dict[str, str] = {
     "Ipswich Town": "Ipswich",
 }
 
+# clubelo.com's exact "Club" field spelling has NOT been confirmed against a
+# live response (the API was unreachable from this project's development
+# environment while this was written — see config.py::CLUBELO_BASE_URL).
+# This covers only the handful of cases known from general ClubElo usage to
+# differ from the canonical short form; everything else relies on
+# `to_canonical`'s case-insensitive fallback against `CANONICAL_TEAMS`,
+# which should already match ClubElo's own generally-short naming for most
+# clubs. Verify and extend this against a real response before trusting it
+# for anything beyond a manual spot-check.
+_CLUBELO_ALIASES: dict[str, str] = {
+    "Nottingham": "Nott'm Forest",
+    "Man City": "Man City",
+    "Man United": "Man United",
+    "Wolverhampton": "Wolves",
+}
+
 _SOURCE_ALIASES = {
     "odds_api": _ODDS_API_ALIASES,
     "fpl": _FPL_API_ALIASES,
@@ -74,6 +90,7 @@ _SOURCE_ALIASES = {
     # pulselive.com's club names are the same full-name convention too
     # ("Tottenham Hotspur", "Brentford", ...) — confirmed live.
     "pulselive": _ODDS_API_ALIASES,
+    "clubelo": _CLUBELO_ALIASES,
 }
 
 CANONICAL_TEAMS: set[str] = set(_ODDS_API_ALIASES.values())
