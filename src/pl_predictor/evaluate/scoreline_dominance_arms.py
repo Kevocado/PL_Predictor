@@ -71,12 +71,17 @@ def _bootstrap_ci(values: np.ndarray, n_resamples: int = 1000, seed: int = 42) -
     return (float(np.percentile(means, 2.5)), float(np.percentile(means, 97.5)))
 
 
-def _fold_metrics(home_model, away_model, X_val: pd.DataFrame, val_df: pd.DataFrame) -> dict:
-    """Every scoreline market's metrics from one set of fitted goal
-    regressors, computed from the same batch of grids (no refitting per
-    market) — RPS/Brier/log-loss/ECE for 1X2, exact-scoreline log-loss, and
-    BTTS / O-U-2.5 log-loss+Brier as separate markets."""
-    grids = ml_scoreline.predict_grids_batch(home_model, away_model, X_val)
+def _metrics_from_grids(grids: list, val_df: pd.DataFrame) -> dict:
+    """Every scoreline market's metrics from an already-predicted list of
+    grids (no refitting per market) — RPS/Brier/log-loss/ECE for 1X2,
+    exact-scoreline log-loss, and BTTS / O-U-2.5 log-loss+Brier as separate
+    markets. Model-agnostic: `grids` can come from any model whose
+    `.predict`/batch path yields the same `FootballProbabilityGrid`-shaped
+    objects — Dixon-Coles, Bivariate-Poisson, and `MLScorelineModel` all
+    do (see `models/scoreline.py`'s uniform prediction interface). Used by
+    both the data-window arms here and `model_selection_by_segment.py`'s
+    DC/BP/ml_scoreline comparison, so this is the one place scoreline
+    market metrics are computed."""
     outcomes = val_df["ftr"].map(_RESULT_CODE).to_numpy()
     probs_1x2 = np.array([[g.home_win, g.draw, g.away_win] for g in grids])
     per_row_rps = np.array([pb.metrics.rps_average(p.reshape(1, -1), int(o)) for p, o in zip(probs_1x2, outcomes)])
@@ -110,6 +115,13 @@ def _fold_metrics(home_model, away_model, X_val: pd.DataFrame, val_df: pd.DataFr
         "btts_log_loss": float(log_loss(btts_actual, btts_probs)),
         "btts_brier": float(brier_score_loss(btts_actual, btts_probs)),
     }
+
+
+def _fold_metrics(home_model, away_model, X_val: pd.DataFrame, val_df: pd.DataFrame) -> dict:
+    """`ml_scoreline`-specific convenience: predicts via the already-fitted
+    goal regressors, then delegates to `_metrics_from_grids`."""
+    grids = ml_scoreline.predict_grids_batch(home_model, away_model, X_val)
+    return _metrics_from_grids(grids, val_df)
 
 
 def _dominance_extra_frame(seasons: list[str]) -> tuple[pd.DataFrame, list[str]]:

@@ -865,6 +865,52 @@ experiment; negative evidence prevents repeated work.
   set or a different, pre-registered validation design — repeating this
   exact search would just rediscover the same non-corroborated optimum.
 
+### EXP-2026-14 — per-market/per-segment model selection (Part 4 closeout)
+- **Status:** rejected. No evidence supports selecting a different
+  scoreline model (Dixon-Coles, Bivariate-Poisson, `ml_scoreline`) for any
+  market or the one pre-registered segment tested. The single global
+  `chosen_model` in `models/manifest.py` stays as-is.
+- **Protocol:** `evaluate/model_selection_by_segment.py` fits all three
+  models per walk-forward fold (5 folds, 2021-22 through 2025-26) and
+  scores each on every market (1X2/BTTS/O-U-2.5/exact-scoreline) via the
+  shared `scoreline_dominance_arms.py::_metrics_from_grids` (refactored out
+  of that module so it works on any model's grids, not just XGBoost's).
+  One segment was pre-registered before looking at results: **cold-start-
+  involved fixtures** (either side's `confidence_home`/`confidence_away` is
+  not `"current"`) vs. established-only, using the already-computed
+  cold-start confidence columns rather than inventing a new threshold.
+- **Overall (no segment) result:** `ml_scoreline` wins **every single
+  market metric outright** — RPS, Brier, log-loss, ECE, exact-scoreline
+  log-loss, and both O-U-2.5/BTTS log-loss and Brier all favor
+  `ml_scoreline` over both Dixon-Coles and Bivariate-Poisson, with no
+  exception. This closes the per-market question cleanly: there is no
+  market where switching away from `ml_scoreline` would help.
+- **Cold-start segment result — inspected, not trustworthy.** The mean
+  numbers look interesting (`ml_scoreline` RPS `0.2116` vs Dixon-Coles/
+  Bivariate-Poisson `0.2279`), and per-fold it flips: `ml_scoreline` wins
+  3 of 5 folds by a wide margin, but Dixon-Coles/Bivariate-Poisson win the
+  *most recent* fold (2025-26: `0.2279` vs `ml_scoreline`'s `0.2680`) —
+  the same average-vs-most-recent disagreement that already rejected two
+  other candidates this session. But inspecting *which* fixtures make up
+  this segment revealed something more important than the metric itself:
+  **every fold's "cold-start-involved" set is just one single newly-
+  promoted team's first 10 matches of that season** (confirmed directly —
+  2025-26's set is entirely Sunderland). This isn't a general cold-start
+  population; it's one team's small sample re-run every season, and the
+  bootstrap CIs for this segment overlap heavily across all three models
+  in every fold (e.g. 2025-26: `ml_scoreline` `[0.146, 0.284]` overlaps
+  Dixon-Coles/Bivariate-Poisson `[0.192, 0.256]`). The apparent
+  model-vs-model gap here is noise from n=10, not a real effect — treat
+  any future "cold-start" segment analysis on this codebase's data the
+  same way: check what teams actually populate it before trusting the
+  numbers, not just the segment label.
+- **Decision:** do not build per-market or per-segment model-selection
+  infrastructure into `models/manifest.py`/`models/scoreline.py`. If a
+  genuinely different, larger cold-start population becomes available
+  (e.g. after several more seasons accumulate more promoted-team fixtures,
+  or if EXP-2026-05's ClubElo prior becomes evaluable and changes the
+  picture), revisit with a segment that isn't dominated by a single team.
+
 ## Change checklist for future agents
 
 - Read this file, `README.md`, and relevant tests before editing.
