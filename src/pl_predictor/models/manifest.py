@@ -37,6 +37,18 @@ ML_AWAY_MODEL_PATH = MODELS_DIR / "ml_scoreline_away.json"
 
 RESULT_CODE = {"H": 0, "D": 1, "A": 2}
 
+# Per-market historical training-window length in completed seasons.
+# Corners specifically at 12 (vs. the 8-season default for scoreline and
+# cards) per EXP-2026-11 (docs/AI_CONTINUITY.md): a 12-season window
+# corroborated a real MAE improvement for corners on both the 5-fold
+# walk-forward average AND the single most recent completed season
+# (2.762->2.742 average, 2.699->2.656 on 2025-26 alone) — the same
+# window measurably helped neither scoreline (regressed on 2025-26
+# despite a better average) nor cards (mixed/inconclusive) in that same
+# study, so only corners moved. Change a value here only after a new,
+# equally corroborated result is logged the same way.
+MARKET_TRAINING_WINDOWS = {"scoreline": 8, "corners": 12, "cards": 8}
+
 
 def manifest_fingerprint() -> str | None:
     """Return the exact manifest content hash for live prediction lineage."""
@@ -120,23 +132,14 @@ def _feature_importance(model, X_val, y_val, feature_cols: list[str]) -> dict:
     return {"gain": gain, "permutation": permutation, "shap": shap}
 
 
-def train_all(seasons: list[str] | None = None, include_current_season: bool = True) -> Dict:
-    """`include_current_season=True` (default) is what makes this an
-    *updating* model rather than a fixed one refit on the same 8 completed
-    seasons all year: it folds the in-progress season's played-so-far
-    matches into training (never into validation — `chronological_split`
-    keeps the holdout pinned to the last fully completed season regardless).
-    Every match added this way goes through the exact same shift(1)
-    rolling-form/Elo/xG pipeline as historical data, using prior seasons as
-    each team's starting context, so there's no cold-start cliff at the
-    season boundary and no leakage. Call this again (e.g. via the "Retrain
-    models" button, weekly or after a gameweek) to pull in whatever's been
-    played since the last retrain — that's the mechanism, there's no
-    background scheduler."""
-    MODELS_DIR.mkdir(exist_ok=True, parents=True)
-
+def _build_frame(seasons: list[str], current_partial: pd.DataFrame | None) -> tuple[pd.DataFrame, list[str], pd.DataFrame, pd.DataFrame, int]:
+    """One (df, feature_cols, train_df, val_df, n_current_season_matches)
+    build for a given historical `seasons` window — factored out so
+    `train_all` can build the corners-specific window (see
+    `MARKET_TRAINING_WINDOWS`) without duplicating this logic, while still
+    fetching `current_partial` only once regardless of how many windows
+    are built from it."""
     completed_df = football_data.load_training_data(seasons=seasons)
-    current_partial = football_data.fetch_current_season_partial() if include_current_season else None
     n_current_season_matches = 0
     if current_partial is not None and not current_partial.empty:
         matches_df = pd.concat([completed_df, current_partial], ignore_index=True).sort_values("date").reset_index(drop=True)
@@ -146,6 +149,34 @@ def train_all(seasons: list[str] | None = None, include_current_season: bool = T
 
     df, feature_cols = build_training_frame(matches_df=matches_df)
     train_df, val_df = chronological_split(df)
+    return df, feature_cols, train_df, val_df, n_current_season_matches
+
+
+def train_all(seasons: list[str] | None = None, include_current_season: bool = True) -> Dict:
+    """`include_current_season=True` (default) is what makes this an
+    *updating* model rather than a fixed one refit on the same completed
+    seasons all year: it folds the in-progress season's played-so-far
+    matches into training (never into validation — `chronological_split`
+    keeps the holdout pinned to the last fully completed season regardless).
+    Every match added this way goes through the exact same shift(1)
+    rolling-form/Elo/xG pipeline as historical data, using prior seasons as
+    each team's starting context, so there's no cold-start cliff at the
+    season boundary and no leakage. Call this again (e.g. via the "Retrain
+    models" button, weekly or after a gameweek) to pull in whatever's been
+    played since the last retrain — that's the mechanism, there's no
+    background scheduler.
+
+    `seasons`, if given explicitly, overrides `MARKET_TRAINING_WINDOWS` for
+    every market uniformly (used by tests / one-off checks that want a
+    smaller, faster, shared window) — production retrains leave it `None`
+    so each market gets its own window length."""
+    MODELS_DIR.mkdir(exist_ok=True, parents=True)
+
+    default_seasons = seasons or football_data.default_completed_seasons(n=MARKET_TRAINING_WINDOWS["scoreline"])
+    corners_seasons = seasons or football_data.default_completed_seasons(n=MARKET_TRAINING_WINDOWS["corners"])
+
+    current_partial = football_data.fetch_current_season_partial() if include_current_season else None
+    df, feature_cols, train_df, val_df, n_current_season_matches = _build_frame(default_seasons, current_partial)
     X_train, X_val = train_df[feature_cols].fillna(0), val_df[feature_cols].fillna(0)
 
     # fouls (`*_fouls_for`/`*_fouls_against`) are in `feature_cols` for
@@ -197,16 +228,37 @@ def train_all(seasons: list[str] | None = None, include_current_season: bool = T
     market_models.save_regressor(ml_home_model, ML_HOME_MODEL_PATH)
     market_models.save_regressor(ml_away_model, ML_AWAY_MODEL_PATH)
 
-    corners_dispersion = market_models.check_overdispersion(train_df["total_corners"].to_numpy())
+    # Corners trains on its own window (see MARKET_TRAINING_WINDOWS) only
+    # when it actually differs from the default — reuses the already-built
+    # frame otherwise rather than rebuilding identical data.
+    if corners_seasons == default_seasons:
+        corners_df, corners_feature_cols, corners_train_df, corners_val_df = df, feature_cols, train_df, val_df
+    else:
+        corners_df, corners_feature_cols, corners_train_df, corners_val_df, _ = _build_frame(corners_seasons, current_partial)
+    # Serving (odds/value_bets.py::predict_market_models_for_fixture) reindexes
+    # one shared feature row onto models["feature_cols"] (the default window's
+    # list) for *both* corners and cards — safe only because build_training_
+    # frame's feature_cols is a fixed list of column names independent of how
+    # many seasons of data were loaded, never season-window-dependent. Assert
+    # it rather than silently trust it: if this ever breaks, corners' XGBoost
+    # model would be trained on one column order and served with another.
+    assert corners_feature_cols == feature_cols, (
+        "corners' training window produced a different feature_cols list than "
+        "the default window — serving assumes these are identical"
+    )
+    X_train_corners = corners_train_df[corners_feature_cols].fillna(0)
+    X_val_corners = corners_val_df[corners_feature_cols].fillna(0)
+
+    corners_dispersion = market_models.check_overdispersion(corners_train_df["total_corners"].to_numpy())
     cards_dispersion = market_models.check_overdispersion(train_df["total_cards"].to_numpy())
 
-    corners_model = market_models.train_lambda_regressor(X_train, train_df["total_corners"])
+    corners_model = market_models.train_lambda_regressor(X_train_corners, corners_train_df["total_corners"])
     cards_model = market_models.train_lambda_regressor(X_train, train_df["total_cards"])
-    corners_metrics = _evaluate_count_model(corners_model, X_val, val_df["total_corners"])
+    corners_metrics = _evaluate_count_model(corners_model, X_val_corners, corners_val_df["total_corners"])
     cards_metrics = _evaluate_count_model(cards_model, X_val, val_df["total_cards"])
     print(f"  > Corners MAE={corners_metrics['mae']:.2f}  Cards MAE={cards_metrics['mae']:.2f}")
 
-    corners_importance = _feature_importance(corners_model, X_val, val_df["total_corners"], feature_cols)
+    corners_importance = _feature_importance(corners_model, X_val_corners, corners_val_df["total_corners"], corners_feature_cols)
     cards_importance = _feature_importance(cards_model, X_val, val_df["total_cards"], feature_cols)
 
     market_models.save_regressor(corners_model, CORNERS_MODEL_PATH)
@@ -219,6 +271,7 @@ def train_all(seasons: list[str] | None = None, include_current_season: bool = T
         "n_val": int(len(val_df)),
         "n_current_season_matches": n_current_season_matches,
         "features": feature_cols,
+        "market_training_windows": MARKET_TRAINING_WINDOWS,
         "scoreline": {
             "chosen_model": chosen,
             "dixon_coles": {"path": DIXON_COLES_PATH.name, "metrics": dc_metrics},
@@ -238,6 +291,8 @@ def train_all(seasons: list[str] | None = None, include_current_season: bool = T
             "metrics": corners_metrics,
             "dispersion": corners_dispersion,
             "importance": corners_importance,
+            "seasons": sorted(corners_df["season"].unique().tolist()),
+            "n_train": int(len(corners_train_df)),
         },
         "cards": {
             "path": CARDS_MODEL_PATH.name,
