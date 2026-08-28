@@ -279,6 +279,40 @@ internet:
 
 </details>
 
+## Deploying a public, read-only version
+
+Everything above is the full app — every admin control (retrain, refresh
+fixtures/odds, backtest) live, no login. It's meant to stay that way for
+local/private use only; the backend has no real security beyond that
+assumption (see `api/main.py`'s CORS comment).
+
+To share a cut-down, password-gated version with other people (fixtures,
+predictions, Data Hub, and a simplified model page — no admin controls, no
+retrain button), the repo-root `Dockerfile` builds one image serving both
+the API and the built frontend from a single origin:
+
+1. Push this repo to GitHub (a new or existing repo).
+2. Create a free [Render](https://render.com) account → "New Web Service" →
+   connect that repo. Render auto-detects the `Dockerfile`.
+3. In Render's dashboard, set these environment variables (never commit
+   real values for any of these):
+   - `PUBLIC_MODE=true`
+   - `GUEST_PASSWORD=<pick something>` — the whole site is gated behind an
+     HTTP Basic Auth prompt (any username, this password) once this is set.
+   - `ODDS_API_KEY`, `FOOTBALL_DATA_KEY`, `API_FOOTBALL_KEY` — copy from
+     your local `.env`.
+4. Deploy. Render gives you a free `https://<name>.onrender.com` link —
+   that's what you share, along with the guest password.
+
+Free-tier tradeoffs worth knowing: the service sleeps after ~15 minutes of
+no traffic (next visit takes ~30-60s to wake up), and its disk is
+ephemeral, so the public copy's cache/prediction-tracking history resets on
+every redeploy — this never affects your local/private copy's own data.
+
+Leaving `PUBLIC_MODE` unset (the default everywhere else, including
+locally) reproduces every current behavior exactly — no password prompt,
+every admin button/endpoint active.
+
 ## Notebooks
 
 Numbered `notebooks/01`–`07` walk through data exploration → feature

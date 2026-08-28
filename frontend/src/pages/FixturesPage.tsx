@@ -3,6 +3,7 @@ import { api } from "../api/client";
 import type { CurrentGameweekResponse } from "../types";
 import { FixtureModal } from "../components/FixtureModal";
 import { CurrentGameweekSection } from "../components/CurrentGameweekSection";
+import { PUBLIC_MODE } from "../lib/publicMode";
 
 export function FixturesPage() {
   const [gameweek, setGameweek] = useState<CurrentGameweekResponse | null>(null);
@@ -49,22 +50,24 @@ export function FixturesPage() {
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center gap-3">
-        <div className="ml-auto flex gap-2">
-          <button
-            disabled={busy !== null}
-            onClick={() => runAction("fixtures", api.refreshFixtures)}
-            className="rounded-lg border border-pl-border bg-pl-850/70 px-3 py-2 text-sm text-pl-text-dim transition hover:text-pl-text disabled:opacity-50"
-          >
-            {busy === "fixtures" ? "Refreshing…" : "Refresh fixtures"}
-          </button>
-          <button
-            disabled={busy !== null}
-            onClick={() => runAction("odds", api.refreshOdds)}
-            className="rounded-lg border border-pl-border bg-pl-850/70 px-3 py-2 text-sm text-pl-text-dim transition hover:text-pl-text disabled:opacity-50"
-          >
-            {busy === "odds" ? "Refreshing…" : "Refresh odds"}
-          </button>
-        </div>
+        {!PUBLIC_MODE && (
+          <div className="ml-auto flex gap-2">
+            <button
+              disabled={busy !== null}
+              onClick={() => runAction("fixtures", api.refreshFixtures)}
+              className="rounded-lg border border-pl-border bg-pl-850/70 px-3 py-2 text-sm text-pl-text-dim transition hover:text-pl-text disabled:opacity-50"
+            >
+              {busy === "fixtures" ? "Refreshing…" : "Refresh fixtures"}
+            </button>
+            <button
+              disabled={busy !== null}
+              onClick={() => runAction("odds", api.refreshOdds)}
+              className="rounded-lg border border-pl-border bg-pl-850/70 px-3 py-2 text-sm text-pl-text-dim transition hover:text-pl-text disabled:opacity-50"
+            >
+              {busy === "odds" ? "Refreshing…" : "Refresh odds"}
+            </button>
+          </div>
+        )}
       </div>
 
       {error && (

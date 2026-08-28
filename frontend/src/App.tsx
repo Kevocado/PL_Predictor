@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { FixturesPage } from "./pages/FixturesPage";
 import { CalibrationPage } from "./pages/CalibrationPage";
+import { ModelSummaryPage } from "./pages/ModelSummaryPage";
 import { DataHubPage } from "./pages/DataHubPage";
+import { PUBLIC_MODE } from "./lib/publicMode";
 
 type Tab = "fixtures" | "calibration" | "hub";
 
@@ -25,7 +27,7 @@ function App() {
             [
               ["fixtures", "Fixtures"],
               ["hub", "Data Hub"],
-              ["calibration", "Calibration & Backtest"],
+              ["calibration", PUBLIC_MODE ? "Model" : "Calibration & Backtest"],
             ] as const
           ).map(([key, label]) => (
             <button
@@ -53,7 +55,7 @@ function App() {
           <DataHubPage />
         </div>
         <div style={{ display: tab === "calibration" ? "block" : "none" }}>
-          <CalibrationPage />
+          {PUBLIC_MODE ? <ModelSummaryPage /> : <CalibrationPage />}
         </div>
       </main>
     </div>
