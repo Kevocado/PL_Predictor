@@ -33,6 +33,7 @@ this date," not the opponent's identity.
 
 from __future__ import annotations
 
+import time
 from pathlib import Path
 
 import pandas as pd
@@ -48,11 +49,28 @@ CHAMPIONS_LEAGUE_COMPETITION_ID = 2001
 # probes and quietly stops once a season 403s (see `_fetch_cl_season`).
 CHAMPIONS_LEAGUE_SEASON_LOOKBACK = 2
 
+# `get_team_fixture_calendar` is called from `FixtureFeatureContext.__init__`
+# (features/build.py), which the live-serving path rebuilds every
+# `_LIVE_CACHE_TTL_SECONDS` (routes.py, 5 minutes) — without disk caching
+# here, that meant 5 fresh network round-trips (1 football-data.org +
+# 4 ESPN) every 5 minutes, confirmed live to badly compound with a
+# resource-constrained free-tier deployment. Fixture schedules don't change
+# minute to minute, so a several-hour TTL loses nothing real.
+CACHE_TTL_SECONDS = 6 * 3600
+
 _EMPTY = pd.DataFrame(columns=["team", "date", "competition"])
+
+
+def _is_fresh(path: Path, ttl_seconds: int = CACHE_TTL_SECONDS) -> bool:
+    return path.exists() and (time.time() - path.stat().st_mtime) < ttl_seconds
 
 
 def _cl_cache_path(season_start_year: int) -> Path:
     return OTHER_COMPETITIONS_CACHE_DIR / "champions_league" / f"{season_start_year}.csv"
+
+
+def _espn_cache_path(slug: str) -> Path:
+    return OTHER_COMPETITIONS_CACHE_DIR / "cups" / f"{slug}.csv"
 
 
 def _to_team_rows(matches_df: pd.DataFrame, competition: str) -> pd.DataFrame:
@@ -68,9 +86,13 @@ def _to_team_rows(matches_df: pd.DataFrame, competition: str) -> pd.DataFrame:
     return pd.DataFrame(rows, columns=["team", "date", "competition"])
 
 
-def _fetch_cl_season(season_start_year: int, force_refresh: bool) -> pd.DataFrame:
+def _fetch_cl_season(season_start_year: int, is_current: bool) -> pd.DataFrame:
     cache_path = _cl_cache_path(season_start_year)
-    if cache_path.exists() and not force_refresh:
+    # A completed season's results never change, so its cache is good
+    # forever once written (same as football_data.py's fetch_season for
+    # historical seasons); the current season is refetched once the cache
+    # goes stale rather than on every call.
+    if cache_path.exists() and (not is_current or _is_fresh(cache_path)):
         return pd.read_csv(cache_path, parse_dates=["date"])
 
     matches = football_data_org.fetch_matches(
@@ -85,15 +107,14 @@ def _fetch_cl_season(season_start_year: int, force_refresh: bool) -> pd.DataFram
 def fetch_champions_league_matches() -> pd.DataFrame:
     """Every Champions League fixture (played or scheduled) involving a
     current-or-recent Premier League club, across whatever seasons the free
-    tier actually grants access to. The current season is always
-    force-refreshed (fixtures/results change weekly); past seasons are
-    cached forever, same split as `football_data.py`'s own
-    fetch_season/fetch_current_season_partial."""
+    tier actually grants access to. Past seasons are cached forever; the
+    current season is cached for `CACHE_TTL_SECONDS`, same split as
+    `football_data.py`'s own fetch_season/fetch_current_season_partial."""
     frames = []
     for offset in range(CHAMPIONS_LEAGUE_SEASON_LOOKBACK + 1):
         year = football_data.CURRENT_SEASON_START_YEAR - offset
         try:
-            df = _fetch_cl_season(year, force_refresh=(offset == 0))
+            df = _fetch_cl_season(year, is_current=(offset == 0))
         except (football_data_org.FootballDataOrgKeyMissing, requests.RequestException):
             # A missing key means no CL data at all; an HTTP error for an
             # older season is the free tier's depth limit, not a real
@@ -112,8 +133,15 @@ def _fetch_espn_cup(label: str, slug: str) -> pd.DataFrame:
     """One ESPN cup competition's schedule for the current season (played +
     upcoming) — these congestion features only need to be accurate for
     recent/live rest-day accounting, not the full multi-season training
-    window. Wrapped so ANY failure (network, timeout, unexpected shape)
-    returns empty rather than raising — see module docstring."""
+    window. Cached to disk for `CACHE_TTL_SECONDS` (draws/replays do change
+    these, but not minute-to-minute — see `CACHE_TTL_SECONDS`'s docstring).
+    Wrapped so ANY failure (network, timeout, unexpected shape) falls back
+    to a stale cache if one exists, or an empty frame otherwise, rather than
+    raising — see module docstring."""
+    cache_path = _espn_cache_path(slug)
+    if _is_fresh(cache_path):
+        return pd.read_csv(cache_path, parse_dates=["date"])
+
     year = football_data.CURRENT_SEASON_START_YEAR
     try:
         resp = requests.get(
@@ -129,6 +157,8 @@ def _fetch_espn_cup(label: str, slug: str) -> pd.DataFrame:
         resp.raise_for_status()
         events = resp.json().get("events", [])
     except (requests.RequestException, ValueError, KeyError):
+        if cache_path.exists():
+            return pd.read_csv(cache_path, parse_dates=["date"])
         return _EMPTY.copy()
 
     rows = []
@@ -142,16 +172,16 @@ def _fetch_espn_cup(label: str, slug: str) -> pd.DataFrame:
                 name = to_canonical(raw_name, source="espn")
                 if name in CANONICAL_TEAMS:
                     rows.append({"team": name, "date": date, "competition": label})
-    return pd.DataFrame(rows, columns=["team", "date", "competition"])
+    df = pd.DataFrame(rows, columns=["team", "date", "competition"])
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
+    df.to_csv(cache_path, index=False)
+    return df
 
 
 def fetch_cup_matches() -> pd.DataFrame:
     """Europa League, Conference League, FA Cup, EFL Cup fixtures for
     current Premier League clubs, from ESPN (see module docstring for why
-    football-data.org can't supply these). Not cached to disk the way the
-    Champions League fetch is — draws/replays change these more often, and
-    ESPN's own date-range query already returns a full season in one call
-    per competition."""
+    football-data.org can't supply these)."""
     frames = [_fetch_espn_cup(label, slug) for label, slug in ESPN_CUP_COMPETITIONS.items()]
     frames = [f for f in frames if not f.empty]
     if not frames:
