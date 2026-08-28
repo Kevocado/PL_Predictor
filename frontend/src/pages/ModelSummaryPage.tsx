@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api/client";
 import type { ManifestModelMetrics, ManifestResponse } from "../types";
 import { InfoTooltip } from "../components/InfoTooltip";
+import { FeatureImportanceChart } from "../components/FeatureImportanceChart";
 import { GLOSSARY } from "../lib/glossary";
 
 const MODEL_LABELS: Record<string, string> = {
@@ -11,9 +12,10 @@ const MODEL_LABELS: Record<string, string> = {
   covariate_poisson: "Covariate Poisson",
 };
 
-// Public read-only counterpart to CalibrationPage — headline numbers and a
-// plain-English description only, no retrain control, feature-importance
-// internals, or betting/backtest panels (those stay on the private app).
+// Public read-only counterpart to CalibrationPage — headline numbers, a
+// fuller plain-English explanation, and the same feature-importance charts,
+// but still no retrain control or betting/backtest panels (those stay on
+// the private app).
 export function ModelSummaryPage() {
   const [manifest, setManifest] = useState<ManifestResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -42,12 +44,22 @@ export function ModelSummaryPage() {
       <div>
         <h2 className="text-lg font-semibold text-pl-text">How the predictions are made</h2>
         <p className="mt-2 max-w-2xl text-sm text-pl-text-dim">
-          PL Predictor fits several statistical and machine-learning models on{" "}
-          {manifest.seasons.length} seasons of Premier League results ({manifest.seasons[0]}–
-          {manifest.seasons[manifest.seasons.length - 1]}), tests each one on a held-out season it
-          never trained on, and automatically serves whichever scores best. Right now that's{" "}
-          <span className="font-semibold text-pl-text">{chosenLabel}</span> for match outcomes and
-          scorelines, with separate models for corners and cards.
+          PL Predictor fits three candidate models for match outcomes and scorelines — two
+          classical statistical models (Dixon-Coles and Bivariate Poisson, which estimate each
+          team's attacking/defensive strength directly) and one XGBoost machine-learning model
+          (which learns from rolling form, Elo/Pi ratings, expected goals, rest days, and head-to-head
+          history) — on {manifest.seasons.length} seasons of Premier League results (
+          {manifest.seasons[0]}–{manifest.seasons[manifest.seasons.length - 1]}). Every retrain
+          tests all three on a held-out season none of them trained on, and automatically serves
+          whichever scores best on that test — right now that's{" "}
+          <span className="font-semibold text-pl-text">{chosenLabel}</span>. Corners and cards get
+          their own separate models trained the same way.
+        </p>
+        <p className="mt-3 max-w-2xl text-sm text-pl-text-dim">
+          Every feature the models see is computed strictly from information available{" "}
+          <em>before</em> kickoff — no result ever leaks into its own prediction. New candidate
+          features are only added if they measurably improve held-out accuracy first; several have
+          been tried and rejected for not clearing that bar.
         </p>
       </div>
 
@@ -79,6 +91,25 @@ export function ModelSummaryPage() {
           </p>
         </div>
       </div>
+
+      {manifest.scoreline.chosen_model === "ml_scoreline" &&
+        manifest.scoreline.ml_scoreline.importance_home &&
+        manifest.scoreline.ml_scoreline.importance_away && (
+          <div>
+            <h2 className="mb-3 text-lg font-semibold text-pl-text">What drives the scoreline predictions</h2>
+            <p className="mb-3 max-w-2xl text-xs text-pl-text-faint">
+              The live scoreline model is two XGBoost regressors — one predicts the home team's
+              expected goals, one the away team's. Toggle between Permutation (how much held-out
+              accuracy drops when a feature is shuffled — more trustworthy) and Gain (XGBoost's own
+              internal split-usefulness score — can overstate a feature the model happens to split
+              on often).
+            </p>
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <FeatureImportanceChart title="Home goals model" importance={manifest.scoreline.ml_scoreline.importance_home} />
+              <FeatureImportanceChart title="Away goals model" importance={manifest.scoreline.ml_scoreline.importance_away} />
+            </div>
+          </div>
+        )}
 
       <p className="text-xs text-pl-text-faint">
         Last trained {new Date(manifest.trained_at).toLocaleString()} on {manifest.n_train} matches.
