@@ -22,6 +22,7 @@ depending on that trimmed shape.
 from __future__ import annotations
 
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 import pandas as pd
@@ -29,7 +30,7 @@ import penaltyblog as pb
 
 from ..config import UNDERSTAT_SHOTS_CACHE_DIR
 from .team_names import to_canonical
-from .understat import COMPETITION
+from .understat import UNDERSTAT_TIMEOUT_SECONDS, COMPETITION
 
 # Every Understat shot situation except "OpenPlay" is a dead-ball
 # restart — corners, direct/indirect free kicks, penalties — confirmed
@@ -38,11 +39,18 @@ SET_PIECE_SITUATIONS = {"FromCorner", "SetPiece", "DirectFreekick", "Penalty"}
 
 
 def _fetch_with_retry(fn, *args, attempts: int = 3, backoff: float = 2.0):
+    """Same unbounded-timeout risk as `understat.py::_fetch_with_retry`
+    (penaltyblog's scraper calls `requests.get(...)` with no timeout at
+    all) — bounded here the same way, and more consequential here since
+    this also covers the per-match shot fetch (`fetch_match_shots`),
+    called up to a few thousand times for the full historical window."""
     last_err = None
     for attempt in range(attempts):
         try:
-            return fn(*args)
-        except Exception as exc:  # noqa: BLE001 - retry on any transient fetch failure
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                future = pool.submit(fn, *args)
+                return future.result(timeout=UNDERSTAT_TIMEOUT_SECONDS)
+        except Exception as exc:  # noqa: BLE001 - retry on any transient fetch failure, including our own timeout
             last_err = exc
             if attempt < attempts - 1:
                 time.sleep(backoff * (attempt + 1))

@@ -14,6 +14,7 @@ cache-or-fetch pattern as `data/football_data.py`.
 from __future__ import annotations
 
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 import pandas as pd
 import penaltyblog as pb
@@ -23,6 +24,15 @@ from .team_names import to_canonical
 
 COMPETITION = "ENG Premier League"
 CURRENT_SEASON_START_YEAR = 2026  # keep in sync with data/football_data.py
+
+# penaltyblog's Understat scraper calls `requests.get(...)` with no timeout
+# at all (confirmed by reading its source) — Understat.com being slow or
+# blocking a given host (plausible; a cloud host making many rapid
+# requests looks exactly like scraping) would otherwise hang this call
+# forever rather than failing. Bounded here instead, so a stuck call
+# surfaces as an ordinary retry-then-skip failure like everything else in
+# this project's data layer.
+UNDERSTAT_TIMEOUT_SECONDS = 15
 
 
 def default_completed_seasons(n: int = 8) -> list[str]:
@@ -36,8 +46,10 @@ def _fetch_with_retry(season: str, attempts: int = 3, backoff: float = 2.0) -> p
     last_err = None
     for attempt in range(attempts):
         try:
-            return pb.scrapers.Understat(COMPETITION, season).get_fixtures()
-        except Exception as exc:  # noqa: BLE001 - retry on any transient fetch failure
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                future = pool.submit(lambda: pb.scrapers.Understat(COMPETITION, season).get_fixtures())
+                return future.result(timeout=UNDERSTAT_TIMEOUT_SECONDS)
+        except Exception as exc:  # noqa: BLE001 - retry on any transient fetch failure, including our own timeout
             last_err = exc
             if attempt < attempts - 1:
                 time.sleep(backoff * (attempt + 1))

@@ -324,8 +324,23 @@ class FixtureFeatureContext:
         standings = compute_standings(season_matches) if not season_matches.empty else pd.DataFrame()
         self.current_stakes = table_context.live_stakes(standings)
 
-        shot_situation_seasons = sorted({str(s)[:4] for s in self.matches_df["season"].unique()})
-        shot_situation_data = understat_shots.load_shot_situation_data(seasons=shot_situation_seasons)
+        # Current season only, not the full 8-season window (unlike xG form
+        # above) — deliberately, and confirmed necessary live: shot-level
+        # data is one Understat request *per match* (2,500-3,000 requests
+        # for the full historical window, per understat_shots.py's own
+        # docstring), which is a one-time cost worth paying on a machine
+        # whose disk cache persists forever, but is repeated in full on
+        # every restart wherever the disk is ephemeral (e.g. a Docker
+        # deployment) — confirmed live to make first-request latency there
+        # completely impractical. `hub_analytics.py`'s own Team Hub display
+        # already scopes this to the current season only for the same
+        # reason; the `set_piece_xg_share_last_5/10` cold-start blend
+        # (below) already degrades gracefully toward the league average
+        # early in a season when there aren't enough current-season matches
+        # yet, same as every other rolling feature here.
+        shot_situation_data = understat_shots.load_shot_situation_data(
+            seasons=[str(football_data.CURRENT_SEASON_START_YEAR)]
+        )
         self.shot_situation_current = shot_situation.latest_shot_situation_form(shot_situation_data)
         self.shot_situation_league_avg = (
             self.shot_situation_current.mean() if not self.shot_situation_current.empty else pd.Series(dtype=float)
