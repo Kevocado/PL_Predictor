@@ -40,7 +40,15 @@ from .api import routes
 from .config import PUBLIC_SNAPSHOT_PATH
 
 
-def build_snapshot() -> dict:
+def build_snapshot(previous: dict | None = None) -> dict:
+    """`previous` is the last snapshot already written to disk (GitHub
+    Actions checks it out fresh every scheduled run, same as any other
+    tracked file). A fixture that was already finished in `previous` is
+    permanently decided — its detail/player data can never change again —
+    so it's reused as-is instead of recomputed. As a season progresses this
+    is most of the schedule; only the still-upcoming fixtures (plus any
+    fixture that just finished since the last run, so its real result gets
+    captured once) pay the live per-fixture computation cost each run."""
     print("Loading live-serving state (models, matches, fixtures)...")
     fd_org_matches = routes._get_fd_org_matches()
     has_matchday = not fd_org_matches.empty and fd_org_matches["matchday"].notna().any()
@@ -68,26 +76,62 @@ def build_snapshot() -> dict:
             if fixture.get("event_id")
         }
     )
-    print(f"Building fixture detail + players for {len(event_ids)} fixtures...")
+    finished_event_ids = {
+        fixture["event_id"]
+        for gw_data in fixtures_by_gameweek.values()
+        for fixture in gw_data.get("fixtures", [])
+        if fixture.get("event_id") and fixture.get("finished")
+    }
+    previous = previous or {}
+    previous_detail = previous.get("fixture_detail_by_event_id", {})
+    previous_players = previous.get("fixture_players_by_event_id", {})
+    previous_finished_ids = {
+        fixture["event_id"]
+        for gw_data in previous.get("fixtures_by_gameweek", {}).values()
+        for fixture in gw_data.get("fixtures", [])
+        if fixture.get("event_id") and fixture.get("finished")
+    }
+    reusable_ids = finished_event_ids & previous_finished_ids & previous_detail.keys()
+
+    print(
+        f"Building fixture detail + players for {len(event_ids)} fixtures "
+        f"({len(reusable_ids)} reused from the previous snapshot)..."
+    )
     fixture_detail_by_event_id = {}
     fixture_players_by_event_id = {}
     for i, event_id in enumerate(event_ids, 1):
-        print(f"  [{i}/{len(event_ids)}] {event_id}")
-        try:
-            # read_only=True: skips tracking_store writes/reconciliation
-            # entirely (see routes.py::_build_fixture_detail's docstring) —
-            # that reconcile call re-scans the *entire* matches_df against
-            # every unresolved prediction on every invocation, which is the
-            # difference between this loop taking seconds and taking
-            # minutes across a full season's worth of fixtures.
-            fixture_detail_by_event_id[event_id] = routes.fixture_detail(event_id, read_only=True)
-        except Exception as exc:  # noqa: BLE001 - one bad fixture shouldn't kill the whole snapshot
-            print(f"    ! skipped detail: {exc}")
+        reused_detail = event_id in reusable_ids
+        if reused_detail:
+            fixture_detail_by_event_id[event_id] = previous_detail[event_id]
+        # Reuse players independently of detail — a fixture can be finished
+        # (detail reusable) while its players entry is still missing from a
+        # prior partial failure; that must still get one real attempt here
+        # rather than staying permanently empty forever after.
+        reused_players = reused_detail and event_id in previous_players
+        if reused_players:
+            fixture_players_by_event_id[event_id] = previous_players[event_id]
+        if reused_detail and reused_players:
             continue
-        try:
-            fixture_players_by_event_id[event_id] = routes.fixture_players(event_id, read_only=True)
-        except Exception as exc:  # noqa: BLE001 - players are a nice-to-have, not core detail
-            print(f"    ! skipped players: {exc}")
+
+        print(f"  [{i}/{len(event_ids)}] {event_id}")
+        if not reused_detail:
+            try:
+                # read_only=True: skips tracking_store writes/reconciliation
+                # entirely (see routes.py::_build_fixture_detail's
+                # docstring) — that reconcile call re-scans the *entire*
+                # matches_df against every unresolved prediction on every
+                # invocation, which is the difference between this loop
+                # taking seconds and taking minutes across a full season's
+                # worth of fixtures.
+                fixture_detail_by_event_id[event_id] = routes.fixture_detail(event_id, read_only=True)
+            except Exception as exc:  # noqa: BLE001 - one bad fixture shouldn't kill the whole snapshot
+                print(f"    ! skipped detail: {exc}")
+                continue
+        if not reused_players:
+            try:
+                fixture_players_by_event_id[event_id] = routes.fixture_players(event_id, read_only=True)
+            except Exception as exc:  # noqa: BLE001 - players are a nice-to-have, not core detail
+                print(f"    ! skipped players: {exc}")
 
     print("Building Data Hub snapshot...")
     hub = {
@@ -111,7 +155,8 @@ def build_snapshot() -> dict:
 
 
 def main() -> None:
-    snapshot = jsonable_encoder(build_snapshot())
+    previous = json.loads(PUBLIC_SNAPSHOT_PATH.read_text()) if PUBLIC_SNAPSHOT_PATH.exists() else None
+    snapshot = jsonable_encoder(build_snapshot(previous))
     PUBLIC_SNAPSHOT_PATH.write_text(json.dumps(snapshot, indent=2))
     print(f"Wrote {PUBLIC_SNAPSHOT_PATH} ({PUBLIC_SNAPSHOT_PATH.stat().st_size / 1024:.0f} KB)")
 
