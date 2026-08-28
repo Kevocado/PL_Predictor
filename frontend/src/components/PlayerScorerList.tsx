@@ -94,24 +94,55 @@ export function PlayerScorerList({ homeTeam, awayTeam, homePlayers, awayPlayers 
   );
 }
 
+type HighlightTier = "confirmed" | "predicted" | "model_pick";
+
+const TIER_LABEL: Record<HighlightTier, string> = {
+  confirmed: "Confirmed XI",
+  predicted: "Predicted XI",
+  model_pick: "Model pick",
+};
+
 export function PlayerHighlights({ homePlayers, awayPlayers }: Pick<Props, "homePlayers" | "awayPlayers">) {
-  const picks = [...homePlayers, ...awayPlayers]
-    .filter((player) => player.confirmed_starter && player.status === "a" && player.confidence !== "none")
-    .sort((left, right) => right.anytime_goal_contribution_prob - left.anytime_goal_contribution_prob)
-    .slice(0, 3);
+  const allPlayers = [...homePlayers, ...awayPlayers].filter(
+    (player) => player.status === "a" && player.confidence !== "none",
+  );
+  // Three tiers, falling through to whichever is non-empty: confirmed
+  // lineups (close to kickoff) > the lineup model's own >50% start
+  // probability (player_goals.py's predicted_starter) > any available
+  // player at all, ranked by goal-contribution chance. That last tier
+  // matters early in a season specifically: with only a game or two of
+  // current-season data, the calibrated start-probability model can
+  // genuinely clear 50% for nobody on a given team, which isn't the same
+  // as "no recommendation exists" — the underlying goal/assist model still
+  // has a real, ranked opinion on every available player regardless.
+  let tier: HighlightTier = "confirmed";
+  let pool = allPlayers.filter((player) => player.confirmed_starter);
+  if (pool.length === 0) {
+    tier = "predicted";
+    pool = allPlayers.filter((player) => player.predicted_starter);
+  }
+  if (pool.length === 0) {
+    tier = "model_pick";
+    pool = allPlayers;
+  }
+  const picks = [...pool].sort((left, right) => right.anytime_goal_contribution_prob - left.anytime_goal_contribution_prob).slice(0, 3);
 
   return (
     <section>
-      <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">Top confirmed player calls</h3>
+      <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">
+        Top {tier === "confirmed" ? "confirmed" : "predicted"} player calls
+      </h3>
       {picks.length === 0 ? (
-        <p className="rounded-lg bg-pl-850/60 px-3 py-2 text-xs text-pl-text-faint">Wait for confirmed starting lineups before surfacing player calls.</p>
+        <p className="rounded-lg bg-pl-850/60 px-3 py-2 text-xs text-pl-text-faint">No available players to call for this fixture.</p>
       ) : (
         <div className="flex flex-col gap-1.5">
           {picks.map((player) => (
             <div key={`highlight-${player.player_id}`} className="flex items-center justify-between rounded-lg bg-pl-850/60 px-3 py-2 text-sm">
               <div className="flex items-center gap-2">
                 <span className="font-medium text-pl-text">{player.name}</span>
-                <span className="rounded bg-win/20 px-1.5 py-0.5 text-[10px] font-semibold text-win">Confirmed XI</span>
+                <span className="rounded bg-win/20 px-1.5 py-0.5 text-[10px] font-semibold text-win">
+                  {TIER_LABEL[tier]}
+                </span>
               </div>
               <span className="text-xs text-pl-text-faint">
                 G+A <span className="font-semibold text-pl-text">{(player.anytime_goal_contribution_prob * 100).toFixed(0)}%</span>

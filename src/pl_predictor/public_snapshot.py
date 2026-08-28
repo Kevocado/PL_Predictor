@@ -17,11 +17,16 @@ guarded by a `if PUBLIC_MODE:` at the top of the function) for where it's
 read back instead of computing live.
 
 Deliberately scoped to only what the public frontend actually calls
-(Fixtures, Data Hub) — not a snapshot of the whole app's API surface. The
-Model page's `/api/manifest` already just reads `models/manifest.json`
-directly (no heavy computation involved), so it needs no snapshot entry;
-same for the admin-only endpoints, which are hard-blocked in PUBLIC_MODE
-regardless (see `routes.py::_admin_only`).
+(Fixtures list + detail, Data Hub) — not a snapshot of the whole app's API
+surface. The Model page's `/api/manifest` already just reads
+`models/manifest.json` directly (no heavy computation involved), so it
+needs no snapshot entry; same for the admin-only endpoints, which are
+hard-blocked in PUBLIC_MODE regardless (see `routes.py::_admin_only`).
+`post_match`/player-review data is deliberately left out for finished
+fixtures — it depends on tracking_store history the public deployment
+never accumulates (background tracking is skipped entirely in
+PUBLIC_MODE), so those sections just don't render there rather than
+showing wrong data.
 """
 
 from __future__ import annotations
@@ -55,6 +60,35 @@ def build_snapshot() -> dict:
         print(f"  gameweek {gw}")
         fixtures_by_gameweek[str(gw)] = routes.current_gameweek_fixtures(gameweek=gw)
 
+    event_ids = sorted(
+        {
+            fixture["event_id"]
+            for gw_data in fixtures_by_gameweek.values()
+            for fixture in gw_data.get("fixtures", [])
+            if fixture.get("event_id")
+        }
+    )
+    print(f"Building fixture detail + players for {len(event_ids)} fixtures...")
+    fixture_detail_by_event_id = {}
+    fixture_players_by_event_id = {}
+    for i, event_id in enumerate(event_ids, 1):
+        print(f"  [{i}/{len(event_ids)}] {event_id}")
+        try:
+            # read_only=True: skips tracking_store writes/reconciliation
+            # entirely (see routes.py::_build_fixture_detail's docstring) —
+            # that reconcile call re-scans the *entire* matches_df against
+            # every unresolved prediction on every invocation, which is the
+            # difference between this loop taking seconds and taking
+            # minutes across a full season's worth of fixtures.
+            fixture_detail_by_event_id[event_id] = routes.fixture_detail(event_id, read_only=True)
+        except Exception as exc:  # noqa: BLE001 - one bad fixture shouldn't kill the whole snapshot
+            print(f"    ! skipped detail: {exc}")
+            continue
+        try:
+            fixture_players_by_event_id[event_id] = routes.fixture_players(event_id, read_only=True)
+        except Exception as exc:  # noqa: BLE001 - players are a nice-to-have, not core detail
+            print(f"    ! skipped players: {exc}")
+
     print("Building Data Hub snapshot...")
     hub = {
         "rankings": routes.get_power_rankings(),
@@ -70,6 +104,8 @@ def build_snapshot() -> dict:
         "min_gameweek": min_gameweek,
         "max_gameweek": max_gameweek,
         "fixtures_by_gameweek": fixtures_by_gameweek,
+        "fixture_detail_by_event_id": fixture_detail_by_event_id,
+        "fixture_players_by_event_id": fixture_players_by_event_id,
         "hub": hub,
     }
 

@@ -320,7 +320,7 @@ def maybe_auto_retrain() -> None:
             return  # nothing new since the last training run
         print(f"[auto_retrain] {n_current} current-season matches now available (was {manifest.get('n_current_season_matches', 0)}) — retraining...")
         manifest_lib.train_all()
-        _clear_cache("models")
+        _clear_cache("models", "value_bet_table")
         print("[auto_retrain] done")
     except Exception as exc:  # noqa: BLE001 - never take the server down over this
         print(f"[auto_retrain] skipped: {exc}")
@@ -377,12 +377,24 @@ def _row_to_summary(row: pd.Series) -> FixtureSummary:
 
 
 def _value_bet_table() -> pd.DataFrame:
-    fixtures_df = _get_fixtures_df()
-    if fixtures_df.empty:
-        return fixtures_df
-    models = _get_models()
-    odds_df = _get_odds_df()
-    return value_bets.build_value_bet_table(fixtures_df, odds_df, models)
+    """Cached: this rebuilds every remaining fixture's scoreline prediction
+    (a `predict_fixtures_batch` + full feature-row build per fixture), and
+    is called from several call chains per single fixture lookup (e.g.
+    `_resolve_fixture_kickoff`, hit twice per `/fixtures/{id}/players`
+    request) — confirmed via profiling this was the dominant cost of
+    `public_snapshot.py`'s per-fixture loop, recomputing the whole table
+    from scratch on every call rather than reusing it across a run whose
+    fixtures/odds/models don't change mid-flight."""
+
+    def build() -> pd.DataFrame:
+        fixtures_df = _get_fixtures_df()
+        if fixtures_df.empty:
+            return fixtures_df
+        models = _get_models()
+        odds_df = _get_odds_df()
+        return value_bets.build_value_bet_table(fixtures_df, odds_df, models)
+
+    return _cached("value_bet_table", build, ttl=_LIVE_CACHE_TTL_SECONDS)
 
 
 def _capture_fixture_market_predictions(table: pd.DataFrame) -> None:
@@ -564,10 +576,12 @@ def current_gameweek_fixtures(gameweek: int | None = None):
     max_gameweek = int(fd_org_matches["matchday"].max()) if has_matchday else 38
 
     fixtures = []
+    completed_team_pairs: set[tuple[str, str]] = set()
 
     groups = tracking_store.get_results_by_gameweek()
     completed_group = next((g for g in groups if g["gameweek"] == target_gameweek), None)
     if completed_group:
+        completed_team_pairs = {(r["team_home"], r["team_away"]) for r in completed_group["fixtures"]}
         pending_event_ids = {
             str(row["event_id"])
             for row in completed_group["fixtures"]
@@ -607,6 +621,16 @@ def current_gameweek_fixtures(gameweek: int | None = None):
 
     if not fd_org_matches.empty:
         upcoming_rows = fd_org_matches[(fd_org_matches["matchday"] == target_gameweek) & (~fd_org_matches["finished"])]
+        if not upcoming_rows.empty and completed_team_pairs:
+            # Our own tracking store can resolve a match as finished slightly
+            # before football-data.org's own `finished` flag catches up (or
+            # vice versa) — without this, that lag window shows both an
+            # "upcoming prediction" card and a "finished result" card for the
+            # same fixture. The finished result (from completed_group above)
+            # always wins.
+            upcoming_rows = upcoming_rows[
+                ~upcoming_rows.apply(lambda row: (row["team_home"], row["team_away"]) in completed_team_pairs, axis=1)
+            ]
         if not upcoming_rows.empty:
             models = _get_models()
             preds = scoreline.predict_fixtures_batch(
@@ -682,7 +706,15 @@ def current_gameweek_fixtures(gameweek: int | None = None):
     }
 
 
-def _build_fixture_detail(summary: FixtureSummary, home: str, away: str) -> FixtureDetail:
+def _build_fixture_detail(summary: FixtureSummary, home: str, away: str, read_only: bool = False) -> FixtureDetail:
+    """`read_only=True` (used by public_snapshot.py) skips the two tracking-
+    store writes below — `reconcile_fixture_market_predictions` in
+    particular re-scans the *entire* matches_df against every unresolved
+    prediction on every call, which is fine once per live request but
+    becomes the dominant cost when building a snapshot across hundreds of
+    fixtures in a loop. Neither write is needed for a static export: they
+    exist to build up this project's own live prediction-tracking history,
+    which the public deployment doesn't have (or need) a copy of."""
     models = _get_models()
     matches_df = _get_matches_df()
 
@@ -695,14 +727,15 @@ def _build_fixture_detail(summary: FixtureSummary, home: str, away: str) -> Fixt
         context=models.get("context"),
     ).iloc[0]
     market_preds = value_bets.predict_market_models_for_fixture(models, feature_row)
-    fixture_time = pd.Timestamp(summary.commence_time)
-    if fixture_time.tzinfo is not None:
-        fixture_time = fixture_time.tz_localize(None)
-    provenance = "snapshot" if fixture_time > pd.Timestamp.now(tz="UTC").tz_localize(None) else "reconstructed"
-    tracking_store.record_fixture_market_predictions(
-        summary.event_id, home, away, summary.commence_time, market_preds, provenance=provenance
-    )
-    tracking_store.reconcile_fixture_market_predictions(matches_df)
+    if not read_only:
+        fixture_time = pd.Timestamp(summary.commence_time)
+        if fixture_time.tzinfo is not None:
+            fixture_time = fixture_time.tz_localize(None)
+        provenance = "snapshot" if fixture_time > pd.Timestamp.now(tz="UTC").tz_localize(None) else "reconstructed"
+        tracking_store.record_fixture_market_predictions(
+            summary.event_id, home, away, summary.commence_time, market_preds, provenance=provenance
+        )
+        tracking_store.reconcile_fixture_market_predictions(matches_df)
     post_match = tracking_store.get_fixture_post_match(summary.event_id)
     actual_stats = _fixture_actual_stats(matches_df, home, away, summary.commence_time)
 
@@ -782,12 +815,21 @@ def _fixture_actual_stats(matches_df: pd.DataFrame, home: str, away: str, kickof
 
 
 @router.get("/fixtures/{event_id}", response_model=FixtureDetail)
-def fixture_detail(event_id: str):
+def fixture_detail(event_id: str, read_only: bool = False):
+    """`read_only=True` is for public_snapshot.py's own bulk export use
+    only (skips tracking-store writes — see `_build_fixture_detail`'s
+    docstring); the frontend never sets it."""
+    if PUBLIC_MODE:
+        cached = _public_snapshot().get("fixture_detail_by_event_id", {}).get(event_id)
+        if cached is None:
+            raise HTTPException(status_code=404, detail=f"No fixture with event_id={event_id}")
+        return cached
+
     table = _value_bet_table()
     matches = table[table["event_id"].astype(str) == event_id] if not table.empty else table
     if not matches.empty:
         row = matches.iloc[0]
-        return _build_fixture_detail(_row_to_summary(row), row["team_home"], row["team_away"])
+        return _build_fixture_detail(_row_to_summary(row), row["team_home"], row["team_away"], read_only=read_only)
 
     # Not in the odds-windowed value-bet table — might be a further-out
     # fixture reached via team lookup (GET /api/teams/{team}/fixtures uses
@@ -803,7 +845,7 @@ def fixture_detail(event_id: str):
         pred = scoreline.predict_fixture(
             models["scoreline"], home, away, market_overrides=models.get("scoreline_market_overrides")
         )
-        return _build_fixture_detail(_team_fixture_to_summary(fixture, pred), home, away)
+        return _build_fixture_detail(_team_fixture_to_summary(fixture, pred), home, away, read_only=read_only)
 
     # Neither odds-windowed nor still-upcoming — likely a finished fixture
     # reached via the gameweek view. Pull its honestly pre-match-recorded
@@ -816,7 +858,7 @@ def fixture_detail(event_id: str):
     recorded = tracking_store.get_fixture_prediction(event_id)
     if recorded is not None:
         return _build_fixture_detail(
-            _recorded_fixture_to_summary(recorded), recorded["team_home"], recorded["team_away"]
+            _recorded_fixture_to_summary(recorded), recorded["team_home"], recorded["team_away"], read_only=read_only
         )
 
     raise HTTPException(status_code=404, detail=f"No fixture with event_id={event_id}")
@@ -1031,18 +1073,38 @@ def backfill_completed_player_reviews(gameweek: int | None = None) -> dict:
 
 
 @router.get("/fixtures/{event_id}/players", response_model=FixturePlayers)
-def fixture_players(event_id: str):
+def fixture_players(event_id: str, read_only: bool = False):
+    """`read_only=True` is for public_snapshot.py's own bulk export use
+    only — skips the tracking-store snapshot/reconcile write below (for a
+    finished match, that write can itself trigger a live outcomes fetch),
+    same idea as `fixture_detail`'s own `read_only` param. The frontend
+    never sets it."""
+    if PUBLIC_MODE:
+        cached = _public_snapshot().get("fixture_players_by_event_id", {}).get(event_id)
+        if cached is None:
+            raise HTTPException(status_code=404, detail=f"No fixture with event_id={event_id}")
+        return cached
+
     resolved = _resolve_fixture_teams(event_id)
     if resolved is None:
         raise HTTPException(status_code=404, detail=f"No fixture with event_id={event_id}")
     home, away = resolved
     players = _get_cached_fixture_players(event_id, home, away)
-    _snapshot_or_reconcile_player_predictions(event_id, home, away, players)
+    if not read_only:
+        _snapshot_or_reconcile_player_predictions(event_id, home, away, players)
     return players
 
 
 @router.get("/fixtures/{event_id}/player-review")
 def fixture_player_review(event_id: str):
+    if PUBLIC_MODE:
+        # Depends on tracking_store history the public deployment never
+        # accumulates (background tracking is skipped entirely in
+        # PUBLIC_MODE — see main.py's lifespan) — the frontend only calls
+        # this when a snapshot's fixture_detail.post_match is set, which it
+        # never is here, but guard directly too against a direct hit.
+        raise HTTPException(status_code=404, detail=f"No fixture with event_id={event_id}")
+
     resolved = _resolve_fixture_teams(event_id)
     if resolved is None:
         raise HTTPException(status_code=404, detail=f"No fixture with event_id={event_id}")
@@ -1262,20 +1324,20 @@ def get_value_bet_track_record(staking: str = "kelly"):
 @router.post("/retrain", dependencies=[Depends(_admin_only)])
 def retrain():
     manifest = manifest_lib.train_all()
-    _clear_cache("models")
+    _clear_cache("models", "value_bet_table")
     return manifest
 
 
 @router.post("/refresh-odds", dependencies=[Depends(_admin_only)])
 def refresh_odds():
     _get_odds_df(force=True)
-    _clear_cache("fixtures_df")
+    _clear_cache("fixtures_df", "value_bet_table")
     return {"status": "ok"}
 
 
 @router.post("/refresh-fixtures", dependencies=[Depends(_admin_only)])
 def refresh_fixtures():
-    _clear_cache("fixtures_df")
+    _clear_cache("fixtures_df", "value_bet_table")
     _get_fixtures_df(force=True)
     return {"status": "ok"}
 

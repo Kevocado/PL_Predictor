@@ -339,10 +339,16 @@ def rank_team_players(
     elements = confirmed_elements if len(confirmed_elements) >= 9 else [element for element in bootstrap["elements"] if element["team"] == team_id]
     lineup_confirmed = len(confirmed_elements) >= 9
 
-    results = []
+    # First pass: fetch each player's history once and predict their start
+    # probability off the trained lineup model. Early in a season that
+    # probability can clear 0.5 for nobody on a team (too little current-
+    # season signal) — in that case, fall back to whoever actually started
+    # this team's most recent match (last row of their own history, which
+    # FPL includes with 0 minutes for an unused sub, so it reflects the
+    # team's real most recent XI) rather than leaving every player unmarked.
+    player_data = []
     for el in elements:
         position = POSITION_MAP.get(el["element_type"], "Unknown")
-
         history, prior_season = fpl_api.fetch_player_summary(el["id"], current_event)
         rates, confidence = player_form.blended_current_form(history, prior_season, position, position_priors)
         start_features = player_form.current_start_features(history, fallback_minutes=rates["avg_minutes"])
@@ -351,6 +357,35 @@ def rank_team_players(
             if lineup_confirmed
             else predict_lineup(start_features, lineup_model)
         )
+        player_data.append((el, position, history, rates, confidence, start_features, lineup))
+
+    if not lineup_confirmed and not any(lineup["predicted_starter"] for *_, lineup in player_data):
+        recent_starter_ids = set()
+        for el, _position, history, *_rest in player_data:
+            if history.empty:
+                continue
+            last_row = history.sort_values("GW").iloc[-1]
+            started = bool(int(last_row.get("starts", 0) or 0)) or int(last_row.get("minutes", 0) or 0) >= 60
+            if started:
+                recent_starter_ids.add(el["id"])
+        if recent_starter_ids:
+            player_data = [
+                (
+                    el,
+                    position,
+                    history,
+                    rates,
+                    confidence,
+                    start_features,
+                    {"predicted_starter": True, "expected_minutes": max(lineup["expected_minutes"], 75.0)}
+                    if el["id"] in recent_starter_ids
+                    else lineup,
+                )
+                for el, position, history, rates, confidence, start_features, lineup in player_data
+            ]
+
+    results = []
+    for el, position, history, rates, confidence, start_features, lineup in player_data:
         availability = fpl_api.availability_multiplier(el["status"], el.get("chance_of_playing_next_round"))
         is_penalty_taker = _is_primary_taker(el, "penalties_order")
         is_set_piece_taker = any(

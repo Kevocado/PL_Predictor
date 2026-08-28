@@ -1,0 +1,52 @@
+name: Refresh public snapshot
+
+# Runs public_snapshot.py on GitHub's own infrastructure (full RAM, no
+# reliance on your laptop being on) and pushes data/public_snapshot.json if
+# it changed — Render's autoDeploy then picks up that push automatically.
+# See README's "Deploying a public, read-only version" section.
+
+on:
+  schedule:
+    # Cron's day-of-week field is UTC, same as everything else here.
+    # Weekends carry almost every kickoff and lineups drop ~1h before each
+    # one, so refresh hourly then (0,6 = Sun,Sat). Weekdays mostly have no
+    # matches at all — every 4h is just to catch rare rearranged/midweek
+    # European fixtures without burning Actions minutes on empty refreshes.
+    - cron: "7 * * * 0,6"
+    - cron: "7 */4 * * 1-5"
+  workflow_dispatch: {} # "Run workflow" button on this workflow's Actions page — a manual refresh-now.
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: pip install -e . -c requirements-lock.txt
+
+      - name: Build snapshot
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          FOOTBALL_DATA_KEY: ${{ secrets.FOOTBALL_DATA_KEY }}
+          API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
+        run: python -m pl_predictor.public_snapshot
+
+      - name: Commit and push if changed
+        run: |
+          if git diff --quiet -- data/public_snapshot.json; then
+            echo "No change, nothing to push."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/public_snapshot.json
+          git commit -m "Refresh public snapshot [automated]"
+          git push
