@@ -40,15 +40,26 @@ def _headers() -> dict:
     return {"X-Auth-Token": FOOTBALL_DATA_KEY}
 
 
-def fetch_matches(competition_id: int = FOOTBALL_DATA_ORG_COMPETITION_ID) -> pd.DataFrame:
-    """The full current season's fixtures, one row per match, played or
-    not. Columns: event_id, team_home, team_away, commence_time, status,
-    finished, goals_home, goals_away, ftr (all four None until finished),
-    matchday (football-data.org's own gameweek number — football-data.co.uk
-    has no equivalent column, so this is the only source for it)."""
+def fetch_matches(competition_id: int = FOOTBALL_DATA_ORG_COMPETITION_ID, season: int | None = None) -> pd.DataFrame:
+    """The full season's fixtures, one row per match, played or not.
+    `season` is the year the season *started* (e.g. `2024` for 2024-25);
+    omit for the competition's current season. Columns: event_id, team_home,
+    team_away, commence_time, status, finished, goals_home, goals_away, ftr
+    (all four None until finished), matchday (football-data.org's own
+    gameweek number — football-data.co.uk has no equivalent column, so this
+    is the only source for it).
+
+    Note for non-`FOOTBALL_DATA_ORG_COMPETITION_ID` competitions (see
+    `data/other_competitions.py`): the free tier only grants `season` access
+    a couple of years back for competitions like the Champions League
+    (confirmed live: 403 for seasons older than that) — callers should
+    expect and handle `requests.HTTPError` for an out-of-reach season rather
+    than treating it as a real failure."""
+    params = {"season": season} if season is not None else None
     resp = requests.get(
         f"{FOOTBALL_DATA_ORG_BASE_URL}/competitions/{competition_id}/matches",
         headers=_headers(),
+        params=params,
         timeout=30,
     )
     resp.raise_for_status()

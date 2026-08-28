@@ -92,6 +92,13 @@ _SOURCE_ALIASES = {
     # ("Tottenham Hotspur", "Brentford", ...) — confirmed live.
     "pulselive": _ODDS_API_ALIASES,
     "clubelo": _CLUBELO_ALIASES,
+    # ESPN's site API (data/espn.py, data/other_competitions.py) uses the
+    # same full-name convention as The Odds API's own feed for English
+    # clubs ("Manchester City", "Newcastle United", ...) — NOT yet confirmed
+    # against a live response for the cup-competition endpoints specifically
+    # (see config.py::ESPN_SOCCER_BASE_URL); extend this if a real fetch
+    # turns up a different spelling.
+    "espn": _ODDS_API_ALIASES,
 }
 
 CANONICAL_TEAMS: set[str] = set(_ODDS_API_ALIASES.values())

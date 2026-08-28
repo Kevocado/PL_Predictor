@@ -11,6 +11,14 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = PROJECT_ROOT / "data"
 CACHE_DIR = DATA_DIR / "cache"
 MODELS_DIR = PROJECT_ROOT / "models"
+FRONTEND_DIST_DIR = PROJECT_ROOT / "frontend" / "dist"
+
+# Public, password-gated read-only deployment (see api/auth.py) — unset/false
+# everywhere else, which reproduces this app's original private-network-only
+# behavior exactly (api/main.py's own CORS comment). Never set GUEST_PASSWORD
+# in a committed file; it's provided as a hosting-platform secret.
+PUBLIC_MODE = os.getenv("PUBLIC_MODE", "false").lower() == "true"
+GUEST_PASSWORD = os.getenv("GUEST_PASSWORD")
 
 FOOTBALL_DATA_CACHE_DIR = CACHE_DIR / "football_data"
 ODDS_CACHE_DIR = CACHE_DIR / "odds"
@@ -23,6 +31,7 @@ UNDERSTAT_CACHE_DIR = CACHE_DIR / "understat"
 UNDERSTAT_SHOTS_CACHE_DIR = CACHE_DIR / "understat_shots"
 PULSELIVE_CACHE_DIR = CACHE_DIR / "pulselive"
 CLUBELO_CACHE_DIR = CACHE_DIR / "clubelo"
+OTHER_COMPETITIONS_CACHE_DIR = CACHE_DIR / "other_competitions"
 
 COMPETITION = "ENG Premier League"
 
@@ -41,6 +50,22 @@ FOOTBALL_DATA_ORG_BASE_URL = "https://api.football-data.org/v4"
 FOOTBALL_DATA_ORG_COMPETITION_ID = 2021  # Premier League
 
 ESPN_SCOREBOARD_URL = "https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1"
+
+# Same ESPN site API `data/espn.py` already uses for PL lineups, just other
+# competitions' league slugs — used by `data/other_competitions.py` for
+# fixture-congestion data (Europa League/Conference League/domestic cups
+# aren't on football-data.org's free tier; see that module's docstring).
+# Confirmed live (2026-08-28, see EXP-2026-17 in docs/AI_CONTINUITY.md) —
+# `limit=1000` is required in the request or ESPN's default 100-event cap
+# returns qualifying-round matches from other countries before ever
+# reaching a Premier League club's own fixture.
+ESPN_SOCCER_BASE_URL = "https://site.api.espn.com/apis/site/v2/sports/soccer"
+ESPN_CUP_COMPETITIONS = {
+    "Europa League": "uefa.europa",
+    "Conference League": "uefa.europa.conf",
+    "FA Cup": "eng.fa",
+    "EFL Cup": "eng.league_cup",
+}
 
 # pulselive.com: the Premier League's own site backend — no key, no
 # documented terms. Used only as a fast current-season supplement to
@@ -81,5 +106,6 @@ for _d in (
     UNDERSTAT_SHOTS_CACHE_DIR,
     PULSELIVE_CACHE_DIR,
     CLUBELO_CACHE_DIR,
+    OTHER_COMPETITIONS_CACHE_DIR,
 ):
     _d.mkdir(parents=True, exist_ok=True)

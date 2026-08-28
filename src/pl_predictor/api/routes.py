@@ -10,8 +10,9 @@ import time
 from threading import Lock, Thread
 
 import pandas as pd
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
+from ..config import PUBLIC_MODE
 from ..data import fixtures as fixtures_mod
 from ..data import espn, fpl_api, fpl_history
 from ..data import football_data
@@ -44,6 +45,17 @@ from .schemas import (
 from . import hub_analytics
 
 router = APIRouter(prefix="/api")
+
+
+def _admin_only() -> None:
+    """Dependency for the four state-changing endpoints (retrain/refresh/
+    backtest) — 404s them unconditionally on the public deployment, even
+    with a correct guest password (auth.py's GuestAuthMiddleware gates
+    *access to the app*, not admin privilege within it). Pretending the
+    route doesn't exist, rather than 403, avoids advertising an admin
+    surface to a public visitor at all."""
+    if PUBLIC_MODE:
+        raise HTTPException(status_code=404)
 
 _CACHE_TTL_SECONDS = 1800
 # Fixtures/results/live-serving state get a much shorter TTL than everything
@@ -1165,7 +1177,7 @@ def get_calibration():
     }
 
 
-@router.post("/backtest")
+@router.post("/backtest", dependencies=[Depends(_admin_only)])
 def run_backtest(edge_threshold: float = 0.05, staking: str = "kelly"):
     models = _get_models()
     df, _ = build_training_frame()
@@ -1214,21 +1226,21 @@ def get_value_bet_track_record(staking: str = "kelly"):
     return value_bet_ledger.get_value_bet_track_record(staking=staking)
 
 
-@router.post("/retrain")
+@router.post("/retrain", dependencies=[Depends(_admin_only)])
 def retrain():
     manifest = manifest_lib.train_all()
     _clear_cache("models")
     return manifest
 
 
-@router.post("/refresh-odds")
+@router.post("/refresh-odds", dependencies=[Depends(_admin_only)])
 def refresh_odds():
     _get_odds_df(force=True)
     _clear_cache("fixtures_df")
     return {"status": "ok"}
 
 
-@router.post("/refresh-fixtures")
+@router.post("/refresh-fixtures", dependencies=[Depends(_admin_only)])
 def refresh_fixtures():
     _clear_cache("fixtures_df")
     _get_fixtures_df(force=True)

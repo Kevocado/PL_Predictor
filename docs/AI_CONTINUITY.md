@@ -306,6 +306,8 @@ profitability claim.
 | FBref / Sports Reference | Team and match possession %, touches, and other rich stats, with deep historical coverage | **Rejected — do not use.** | Confirmed (2026-08-25) directly from their own published terms: automated access (scripts, bots, scrapers, data miners) is prohibited without express written permission, sessions get rate-limited/blocked ("jailed" up to a day) past ~10 requests/minute, and Sports Reference states outright they cannot offer an API or downloads because they license the underlying data from third parties who prohibit redistribution. This is a licensing dead end, not a technical one — do not scrape it. [Terms](https://static.fbref.com/termsofuse.html), [Bot policy](https://www.sports-reference.com/bot-traffic.html) |
 | Sofascore / FotMob live APIs | Live match possession, momentum, and other rich stats | **Rejected — not the same category as pulselive.py, do not build a bypass.** | Investigated further (2026-08-25) by reading real open-source scrapers' actual request code, not just hitting the endpoints. FotMob now requires an `x-fm-req` header — a signed token its own JS generates per-request, added specifically to block API scraping (confirmed via [probberechts/soccerdata#742](https://github.com/probberechts/soccerdata/issues/742): existing tools broke with 401s the day FotMob shipped this, until someone reverse-engineered the signing algorithm). Sofascore sits behind Cloudflare bot management; a real scraper's source ([tunjayoff/sofascore_scraper](https://github.com/tunjayoff/sofascore_scraper)) uses `curl_cffi` with browser TLS-fingerprint impersonation specifically "to bypass Cloudflare," and checks `cf-ray`/`cf-mitigated` headers to detect when that protection triggers. **This is the real distinction from pulselive.com, and it isn't about licensing or attribution:** pulselive has no anti-bot protection at all, just no published terms. Both of these have an active, deliberate technical control specifically built to stop this kind of access — using either means building a bypass for that control, not just using an undocumented endpoint. Do not implement a `data/sofascore.py` or `data/fotmob.py` module using request-signature forgery or TLS-fingerprint spoofing, regardless of citation/attribution intent. |
 | football-data.org statistics | Possession/shots on the fixtures the project already fetches from this source | **Confirmed absent (2026-08-25).** | Directly checked a finished 2026-27 match via both the bulk `/matches` and single `/matches/{id}` endpoints on this project's own configured key — neither returns a `statistics` field or anything beyond score/referee/metadata on the free tier. This source cannot supply possession; the project's only current possession field (`pulselive.py`'s `hp`/`ap`, from `possession_percentage`) already exists but is used for display only (`api/routes.py`'s post-match stats panel) — see the possession note below. |
+| football-data.org Champions League (`competitions/2001`) | Fixture-congestion dates for PL clubs still in Europe — see EXP-2026-17 | Keep; `data/other_competitions.py::fetch_champions_league_matches` | Confirmed live (2026-08-28) with this project's existing `FOOTBALL_DATA_KEY`: English club names come back as `"Arsenal FC"` etc., which `team_names.to_canonical(..., source="football_data_org")` already handles — no new alias work. Free-tier `season` param only reaches ~2 completed seasons back plus current (older seasons return 403) — best-effort only, does not cover the full 8-season training window. |
+| ESPN site API — Europa League/Conference League/FA Cup/EFL Cup (`uefa.europa`, `uefa.europa.conf`, `eng.fa`, `eng.league_cup` scoreboard slugs) | Fixture-congestion dates for the competitions football-data.org's free tier doesn't cover — see EXP-2026-17 | Keep; `data/other_competitions.py::fetch_cup_matches` | Confirmed live (2026-08-28), same host `data/espn.py` already uses for lineups. **Must pass `limit=1000`** — ESPN's default 100-event cap otherwise returns qualifying-round matches from dozens of countries before ever reaching a Premier League club's fixture, which looks like "no PL data" but is actually a pagination artifact. Current season only (no historical-season param found); every fetch degrades to empty on any failure per this project's usual best-effort discipline. |
 
 **Possession, specifically:** no source checked so far can supply it *continuously* across the actual 8-season training window — the real blocker isn't finding a source with possession at all, it's finding one with possession for both the deep historical seasons and the live current season, on a licence that permits use. `pulselive.py` already fetches current-season possession (`hp`/`ap`) but only surfaces it for display; football-data.co.uk (the historical backbone) has no possession column at all. Adding a feature that's real for ~1 of 8 season-equivalents and blended-to-league-average everywhere else would need the same walk-forward evaluation as everything else — the project's own experience with a similarly sparse/partial feature (EXP-2026-04's shot-situation features, and the excluded `situation_cols`/`stakes_cols` noted directly in `features/build.py`) is that this kind of asymmetric-coverage feature tends to add noise rather than signal, via SHAP-invisible tree-structure changes, not real predictive value. Nothing here should be added without testing it first.
 
@@ -1057,6 +1059,67 @@ experiment; negative evidence prevents repeated work.
   long-term; (3) Dixon-Coles still serves the Power Rankings display
   unconditionally regardless of `chosen_model`/`market_overrides` — revisit
   only as its own explicit decision, not implicitly via this change.
+
+### EXP-2026-17 — cross-competition fixture congestion (Champions League/Europa League/Conference League/FA Cup/EFL Cup)
+- **Status:** rest_days correction promoted; new congestion features rejected
+  (computed but unused).
+- **Question:** `rest_days_home`/`rest_days_away` (`features/rest_days.py`)
+  was computed from `matches_df` alone — Premier League matches only — so a
+  team's true rest before a PL fixture was invisible whenever its previous
+  match was actually a Champions League, Europa League, Conference League,
+  FA Cup, or EFL Cup fixture. Does correcting this, and/or adding new
+  congestion features from the same data, improve `ml_scoreline`?
+- **Data/availability:** new `data/other_competitions.py`. Champions League
+  via football-data.org (competition id 2001, same key as the existing PL
+  integration) — confirmed live, but the free tier only grants `season`
+  access ~2 completed seasons back plus current (older seasons 403). Europa
+  League/Conference League/FA Cup/EFL Cup via ESPN's site API (same host
+  `data/espn.py` already uses for lineups, different league slugs) — only
+  the current season, `limit=1000` required (ESPN's default 100-event cap
+  otherwise returns qualifying rounds from other countries before ever
+  reaching a Premier League club's own fixtures). At measurement time,
+  Europa League/Conference League/FA Cup had zero fixtures yet this season
+  (not yet started); only EFL Cup and Champions League had real data.
+- **Baseline:** `ml_scoreline`, `evaluate/walk_forward.py`, 8-season
+  chronological folds (2021-22 through 2025-26 validation seasons), default
+  hyperparameters.
+- **Candidate 1 (rest_days correction):** `features/rest_days.py::build_rest_days`
+  now takes `other_fixtures_df` and folds those dates into each team's match
+  calendar before computing rest days — wired unconditionally into
+  `build_training_frame`/`FixtureFeatureContext` (not gated; this corrects an
+  already-shipped feature rather than adding a new one).
+- **Candidate 2 (new congestion features, gated):** new
+  `features/fixture_congestion.py` — `games_last_14_days_{home,away}` (match
+  count across all competitions in the prior 14 days) and
+  `european_fixture_last_4_days_{home,away}` (1/0, played a
+  Champions/Europa/Conference League match in the prior 4 days).
+- **Results (mean across 5 folds):**
+  | Variant | RPS | Brier |
+  | --- | ---:| ---:|
+  | PL-only rest_days (before) | 0.199891 | 0.580968 |
+  | Corrected rest_days (after) | 0.199931 | 0.581041 |
+  | + congestion columns | 0.200029 | 0.581281 |
+  The rest_days correction is flat (differences only appear in the 2 most
+  recent folds, where football-data.org/ESPN actually have coverage, and
+  even there the deltas are ~0.00002-0.00018 — noise-level). Adding the two
+  congestion columns worsens both metrics further (+0.0001 RPS, +0.0002
+  Brier vs. the corrected baseline).
+- **Decision:** keep the rest_days correction — it's a correctness fix (a
+  team's true rest day count), not a speculative new signal, and it doesn't
+  regress the holdout. Do **not** add `games_last_14_days_*`/
+  `european_fixture_last_4_days_*` to `feature_cols` (see the dated comment
+  in `features/build.py`) — same "keep only if it earns it" discipline as
+  `stakes_cols`/`situation_cols`. The likely cause is coverage, not a fake
+  signal: both columns are a constant zero for the large majority of the
+  8-season training window (football-data.org's 2-season depth limit for
+  Champions League; Europa League/Conference League/FA Cup not fetchable at
+  all pre-season), which is the same asymmetric-coverage failure mode
+  EXP-2026-04's shot-situation features already demonstrated.
+- **Follow-up:** revisit the congestion columns once `other_competitions.py`
+  has a full season of Europa League/Conference League/FA Cup/EFL Cup data
+  (i.e., re-run this check partway through a season once those competitions
+  are actually in progress) — the current measurement was taken before any
+  of them had kicked off, which is close to a worst case for their coverage.
 
 ## Change checklist for future agents
 

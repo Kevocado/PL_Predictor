@@ -11,10 +11,11 @@ from __future__ import annotations
 
 import pandas as pd
 
-from ..data import football_data, understat, understat_shots
+from ..data import football_data, other_competitions, understat, understat_shots
 from ..models.projected_table import compute_standings
 from . import (
     cold_start,
+    fixture_congestion,
     head_to_head,
     ratings,
     referee,
@@ -82,7 +83,19 @@ def build_training_frame(
     elo_feats = ratings.replay_elo(matches_df).reset_index(drop=True)
     pi_feats = ratings.replay_pi_ratings(matches_df).reset_index(drop=True)
     h2h_feats = head_to_head.build_h2h_features(matches_df).reset_index(drop=True)
-    rest_feats = rest_days.build_rest_days(matches_df).reset_index(drop=True)
+
+    # Champions League/Europa League/Conference League/FA Cup/EFL Cup
+    # fixture dates for whatever window each source's free tier actually
+    # grants (see data/other_competitions.py) — corrects rest_days for a
+    # team whose true previous match was a midweek cup/European fixture
+    # invisible to matches_df alone, and feeds the two congestion features
+    # below. An empty result (e.g. no FOOTBALL_DATA_KEY, ESPN unreachable)
+    # degrades both to their PL-only baseline rather than failing.
+    other_fixtures_df = other_competitions.get_team_fixture_calendar()
+    rest_feats = rest_days.build_rest_days(matches_df, other_fixtures_df).reset_index(drop=True)
+    congestion_feats = fixture_congestion.build_congestion_features(matches_df, other_fixtures_df).reset_index(
+        drop=True
+    )
 
     referee_feats = referee.build_referee_features(matches_df).reset_index(drop=True)
 
@@ -108,6 +121,7 @@ def build_training_frame(
             pi_feats,
             h2h_feats,
             rest_feats,
+            congestion_feats,
             referee_feats,
             xg_feats,
             streak_feats,
@@ -158,6 +172,25 @@ def build_training_frame(
         # computed (in `df`) but unused; the one-time Understat shot-level
         # fetch this required is fully cached either way, so revisiting
         # this costs nothing if a future market wants it.
+        #
+        # congestion_cols (fixture_congestion.py — games_last_14_days_*,
+        # european_fixture_last_4_days_*) is excluded the same way (see
+        # EXP-2026-17 in docs/AI_CONTINUITY.md). Measured directly via
+        # walk-forward: adding them worsened mean held-out RPS
+        # (0.199931->0.200029) and Brier (0.581041->0.581281) versus the
+        # already-shipped feature set. The likely cause is coverage, not the
+        # signal being fake: `other_fixtures_df` (data/other_competitions.py)
+        # only reaches Champions League for ~2 of this model's 8 training
+        # seasons (football-data.org's free tier depth limit) and Europa
+        # League/Conference League/FA Cup fixtures for the *current* season
+        # hadn't even been played yet at measurement time — so both columns
+        # are a constant zero for the large majority of training rows, which
+        # is exactly the asymmetric-coverage pattern EXP-2026-04's
+        # shot-situation features already showed adds noise rather than
+        # signal. Stays computed (in `df`) but unused; revisit once
+        # other_competitions.py's coverage is deeper (a full season of
+        # EL/UECL/FA Cup/EFL Cup data, or more historical CL seasons if the
+        # API tier ever allows it).
     )
 
     return df, feature_cols
@@ -181,7 +214,9 @@ def _current_h2h(matches_df: pd.DataFrame, home: str, away: str, window: int = h
     }
 
 
-def _current_rest_days(matches_df: pd.DataFrame, team: str, as_of_date) -> dict:
+def _current_rest_days(
+    matches_df: pd.DataFrame, team: str, as_of_date, other_fixtures_df: pd.DataFrame | None = None
+) -> dict:
     team_matches = matches_df[(matches_df["team_home"] == team) | (matches_df["team_away"] == team)]
     if team_matches.empty:
         return {"rest_days": None, "is_first_match_of_season": True}
@@ -196,9 +231,48 @@ def _current_rest_days(matches_df: pd.DataFrame, team: str, as_of_date) -> dict:
     as_of = pd.Timestamp(as_of_date)
     if as_of.tzinfo is not None:
         as_of = as_of.tz_localize(None)
+
+    # A Champions League/cup fixture strictly before this one (but still
+    # after the last PL match) is often the team's *true* most recent
+    # match — see data/other_competitions.py / features/rest_days.py.
+    if other_fixtures_df is not None and not other_fixtures_df.empty:
+        other_dates = pd.to_datetime(other_fixtures_df.loc[other_fixtures_df["team"] == team, "date"])
+        prior_other_dates = other_dates[other_dates < as_of]
+        if not prior_other_dates.empty:
+            last_date = max(last_date, prior_other_dates.max())
+
     return {
         "rest_days": (as_of - last_date).days,
         "is_first_match_of_season": not same_season,
+    }
+
+
+def _current_congestion(
+    matches_df: pd.DataFrame, team: str, as_of_date, other_fixtures_df: pd.DataFrame | None = None
+) -> dict:
+    """Live-serving counterpart to `fixture_congestion.build_congestion_features`
+    (which computes the same signals historically, in bulk, via shift/no-
+    lookahead) — one team's games-in-last-14-days and whether it played a
+    European match in the last 4 days, as of `as_of_date`."""
+    as_of = pd.Timestamp(as_of_date)
+    if as_of.tzinfo is not None:
+        as_of = as_of.tz_localize(None)
+
+    team_matches = matches_df[(matches_df["team_home"] == team) | (matches_df["team_away"] == team)]
+    dates = list(team_matches["date"])
+    european_dates: list = []
+    if other_fixtures_df is not None and not other_fixtures_df.empty:
+        team_other = other_fixtures_df[other_fixtures_df["team"] == team]
+        other_dates = pd.to_datetime(team_other["date"])
+        dates += list(other_dates)
+        is_european = team_other["competition"].isin(fixture_congestion.EUROPEAN_COMPETITIONS)
+        european_dates = list(other_dates[is_european.to_numpy()])
+
+    games_window_start = as_of - pd.Timedelta(days=fixture_congestion.GAMES_WINDOW_DAYS)
+    european_window_start = as_of - pd.Timedelta(days=fixture_congestion.EUROPEAN_WINDOW_DAYS)
+    return {
+        "games_last_14_days": sum(1 for d in dates if games_window_start <= d < as_of),
+        "european_fixture_last_4_days": int(any(european_window_start <= d < as_of for d in european_dates)),
     }
 
 
@@ -222,6 +296,12 @@ class FixtureFeatureContext:
 
         self.elo = ratings.fit_elo(self.matches_df)
         self.pi = ratings.fit_pi_ratings(self.matches_df)
+
+        # Includes any already-scheduled future Champions League/cup
+        # fixtures too (not just played ones) — a live prediction needs to
+        # know about a European match yet to happen just as much as one
+        # that already did. See data/other_competitions.py.
+        self.other_fixtures_df = other_competitions.get_team_fixture_calendar()
 
         # Referee is never known this far ahead of an upcoming fixture (see
         # features/referee.py) — every live prediction uses the league average.
@@ -283,12 +363,19 @@ class FixtureFeatureContext:
         row.update(_current_h2h(self.matches_df, home, away))
 
         fixture_date = commence_time or pd.Timestamp.now()
-        home_rest = _current_rest_days(self.matches_df, home, fixture_date)
-        away_rest = _current_rest_days(self.matches_df, away, fixture_date)
+        home_rest = _current_rest_days(self.matches_df, home, fixture_date, self.other_fixtures_df)
+        away_rest = _current_rest_days(self.matches_df, away, fixture_date, self.other_fixtures_df)
         row["rest_days_home"] = home_rest["rest_days"]
         row["rest_days_away"] = away_rest["rest_days"]
         row["is_first_match_of_season_home"] = home_rest["is_first_match_of_season"]
         row["is_first_match_of_season_away"] = away_rest["is_first_match_of_season"]
+
+        home_congestion = _current_congestion(self.matches_df, home, fixture_date, self.other_fixtures_df)
+        away_congestion = _current_congestion(self.matches_df, away, fixture_date, self.other_fixtures_df)
+        row["games_last_14_days_home"] = home_congestion["games_last_14_days"]
+        row["games_last_14_days_away"] = away_congestion["games_last_14_days"]
+        row["european_fixture_last_4_days_home"] = home_congestion["european_fixture_last_4_days"]
+        row["european_fixture_last_4_days_away"] = away_congestion["european_fixture_last_4_days"]
 
         row[referee.FEATURE_COL] = self.referee_fallback
 

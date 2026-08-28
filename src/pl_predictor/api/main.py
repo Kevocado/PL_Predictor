@@ -13,7 +13,10 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
+from ..config import FRONTEND_DIST_DIR
+from .auth import GuestAuthMiddleware
 from .routes import (
     backfill_completed_player_reviews,
     background_tracking_tick,
@@ -72,17 +75,27 @@ app = FastAPI(title="PL Predictor API", lifespan=lifespan)
 # Wide open on purpose: this server is only ever meant to be reached over a
 # private network (localhost, LAN, or a personal Tailscale tailnet) — never
 # exposed to the public internet — so there's no real origin to restrict to,
-# and restricting it would just break access from a phone/other device.
+# and restricting it would just break access from a phone/other device. The
+# one deliberate exception is the public, password-gated deployment (see
+# auth.py) — GuestAuthMiddleware, not CORS, is what protects that one.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(GuestAuthMiddleware)
 
 app.include_router(router)
 
+# Only present in the public Docker deployment (see repo-root Dockerfile),
+# which builds frontend/dist before starting the server — local dev never
+# has this directory, and keeps using `npm run dev` + this app's plain JSON
+# root below exactly as before.
+if FRONTEND_DIST_DIR.is_dir():
+    app.mount("/", StaticFiles(directory=FRONTEND_DIST_DIR, html=True), name="frontend")
+else:
 
-@app.get("/")
-def root():
-    return {"status": "ok", "docs": "/docs"}
+    @app.get("/")
+    def root():
+        return {"status": "ok", "docs": "/docs"}
