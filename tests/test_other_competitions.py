@@ -4,6 +4,9 @@ League, Europa League, Conference League, FA Cup, EFL Cup) that
 each source's own public function (no HTTP mocking infrastructure exists in
 this test suite — same lightweight style as `test_football_data.py`)."""
 
+import os
+import time as time_module
+
 import pandas as pd
 import requests
 
@@ -73,6 +76,49 @@ def test_fetch_cup_matches_degrades_when_espn_unreachable(monkeypatch):
     result = other_competitions.fetch_cup_matches()
     assert result.empty
     assert list(result.columns) == ["team", "date", "competition"]
+
+
+def test_fetch_espn_cup_caches_failure_so_it_does_not_retry_every_call(monkeypatch, tmp_path):
+    """Without this, a source that's unreachable from this host (confirmed
+    possible — see ESPN_REQUEST_TIMEOUT_SECONDS's comment) would eat the
+    same slow/blocked network call on every single request within the TTL
+    window instead of failing fast after the first attempt."""
+    monkeypatch.setattr(other_competitions, "OTHER_COMPETITIONS_CACHE_DIR", tmp_path)
+
+    calls = {"n": 0}
+
+    def _raise(*args, **kwargs):
+        calls["n"] += 1
+        raise requests.ConnectionError("blocked")
+
+    monkeypatch.setattr(other_competitions.requests, "get", _raise)
+
+    first = other_competitions._fetch_espn_cup("Europa League", "uefa.europa")
+    second = other_competitions._fetch_espn_cup("Europa League", "uefa.europa")
+
+    assert first.empty
+    assert second.empty
+    assert calls["n"] == 1
+
+
+def test_fetch_espn_cup_falls_back_to_stale_data_on_failure(monkeypatch, tmp_path):
+    monkeypatch.setattr(other_competitions, "OTHER_COMPETITIONS_CACHE_DIR", tmp_path)
+    cache_path = other_competitions._espn_cache_path("uefa.europa")
+    cache_path.parent.mkdir(parents=True)
+    pd.DataFrame([{"team": "Arsenal", "date": "2025-09-16", "competition": "Europa League"}]).to_csv(
+        cache_path, index=False
+    )
+    # Backdate the cache file past the TTL so it's treated as stale, forcing
+    # a (failing) refetch attempt.
+    stale_time = time_module.time() - other_competitions.CACHE_TTL_SECONDS - 1
+    os.utime(cache_path, (stale_time, stale_time))
+
+    monkeypatch.setattr(
+        other_competitions.requests, "get", lambda *a, **k: (_ for _ in ()).throw(requests.ConnectionError("blocked"))
+    )
+
+    result = other_competitions._fetch_espn_cup("Europa League", "uefa.europa")
+    assert list(result["team"]) == ["Arsenal"]
 
 
 def test_get_team_fixture_calendar_combines_and_dedupes(monkeypatch):

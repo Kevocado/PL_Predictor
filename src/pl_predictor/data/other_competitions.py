@@ -34,6 +34,7 @@ this date," not the opponent's identity.
 from __future__ import annotations
 
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pandas as pd
@@ -59,6 +60,14 @@ CHAMPIONS_LEAGUE_SEASON_LOOKBACK = 2
 CACHE_TTL_SECONDS = 6 * 3600
 
 _EMPTY = pd.DataFrame(columns=["team", "date", "competition"])
+
+# Short on purpose: confirmed live that ESPN's site API can be unreachable
+# from a given host entirely (this project's own dev sandbox got an Akamai
+# "Access Denied" for every espn.com path tried, unrelated to auth) — likely
+# a datacenter-IP block that a cloud host like Render's could also hit. A
+# blocked/dropped connection should fail fast rather than eating a long
+# timeout on each of the four competitions.
+ESPN_REQUEST_TIMEOUT_SECONDS = 8
 
 
 def _is_fresh(path: Path, ttl_seconds: int = CACHE_TTL_SECONDS) -> bool:
@@ -135,9 +144,11 @@ def _fetch_espn_cup(label: str, slug: str) -> pd.DataFrame:
     recent/live rest-day accounting, not the full multi-season training
     window. Cached to disk for `CACHE_TTL_SECONDS` (draws/replays do change
     these, but not minute-to-minute — see `CACHE_TTL_SECONDS`'s docstring).
-    Wrapped so ANY failure (network, timeout, unexpected shape) falls back
-    to a stale cache if one exists, or an empty frame otherwise, rather than
-    raising — see module docstring."""
+    A failure is cached too (the last known-good data if there is any,
+    otherwise empty) — without this, a source that's unreachable from this
+    host would retry the same slow/blocked call on every single request
+    within the TTL window instead of failing fast once. Never raises — see
+    module docstring."""
     cache_path = _espn_cache_path(slug)
     if _is_fresh(cache_path):
         return pd.read_csv(cache_path, parse_dates=["date"])
@@ -152,14 +163,15 @@ def _fetch_espn_cup(label: str, slug: str) -> pd.DataFrame:
             # ever reaching the Premier League clubs' own fixtures later in
             # the season — confirmed live per-competition.
             params={"dates": f"{year}0701-{year + 1}0701", "limit": 1000},
-            timeout=30,
+            timeout=ESPN_REQUEST_TIMEOUT_SECONDS,
         )
         resp.raise_for_status()
         events = resp.json().get("events", [])
     except (requests.RequestException, ValueError, KeyError):
-        if cache_path.exists():
-            return pd.read_csv(cache_path, parse_dates=["date"])
-        return _EMPTY.copy()
+        fallback = pd.read_csv(cache_path, parse_dates=["date"]) if cache_path.exists() else _EMPTY.copy()
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        fallback.to_csv(cache_path, index=False)
+        return fallback
 
     rows = []
     for event in events:
@@ -181,8 +193,11 @@ def _fetch_espn_cup(label: str, slug: str) -> pd.DataFrame:
 def fetch_cup_matches() -> pd.DataFrame:
     """Europa League, Conference League, FA Cup, EFL Cup fixtures for
     current Premier League clubs, from ESPN (see module docstring for why
-    football-data.org can't supply these)."""
-    frames = [_fetch_espn_cup(label, slug) for label, slug in ESPN_CUP_COMPETITIONS.items()]
+    football-data.org can't supply these). Fetched concurrently rather than
+    one after another — on a cache-cold call, worst case is one slow/
+    blocked competition's timeout, not four stacked in sequence."""
+    with ThreadPoolExecutor(max_workers=len(ESPN_CUP_COMPETITIONS)) as pool:
+        frames = list(pool.map(lambda item: _fetch_espn_cup(*item), ESPN_CUP_COMPETITIONS.items()))
     frames = [f for f in frames if not f.empty]
     if not frames:
         return _EMPTY.copy()
