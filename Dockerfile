@@ -20,12 +20,24 @@ WORKDIR /app
 
 COPY pyproject.toml requirements-lock.txt ./
 COPY src/ ./src/
-# Pinned to this project's own known-working versions (same file `pip
-# install -e . -c requirements-lock.txt` uses locally) rather than an
+# Editable install, matching local dev exactly (README's own `pip install -e
+# . -c requirements-lock.txt`) — NOT a cosmetic choice: config.py derives
+# PROJECT_ROOT (and everything under it: MODELS_DIR, CACHE_DIR,
+# FRONTEND_DIST_DIR) from `Path(__file__).resolve().parents[2]`. A
+# non-editable install copies the package into site-packages, so that
+# math would resolve to somewhere under site-packages instead of /app —
+# silently breaking every path in the app (confirmed the hard way: the
+# first deploy attempt served the API's plain JSON root instead of the
+# built frontend, because FRONTEND_DIST_DIR pointed nowhere real).
+# Pinned to this project's own known-working versions rather than an
 # unconstrained install, to avoid a newer pandas/xgboost/etc. silently
 # changing behavior in the one environment nobody develops against directly.
-RUN pip install --no-cache-dir . -c requirements-lock.txt
+RUN pip install --no-cache-dir -e . -c requirements-lock.txt
 
+# Ships with a real trained model immediately (models/*.json are
+# git-tracked) instead of needing a full historical fetch+train before the
+# first prediction can be served.
+COPY models/ ./models/
 COPY --from=frontend-build /app/frontend/dist ./frontend/dist
 
 EXPOSE 8000
