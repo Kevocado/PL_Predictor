@@ -41,6 +41,14 @@ class FixtureSummary(BaseModel):
     top_scoreline: str
     is_fallback_prediction: bool
     data_confidence: str | None = None
+    # Derived from the scoreline model's own home/away goal expectations
+    # (sum for total goals, difference for margin/"spread") rather than a
+    # separate model — measured directly to be the more accurate choice;
+    # see value_bets.py::build_value_bet_table's comment for the numbers.
+    # None for already-finished fixtures reached via a historical tracking
+    # record that predates this field.
+    predicted_total_goals: float | None = None
+    predicted_margin: float | None = None
     value_bet_flags: list[str]
     has_live_odds: bool
     odds_fetched_at: datetime | None = None

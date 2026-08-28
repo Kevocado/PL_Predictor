@@ -27,6 +27,12 @@ export interface FixtureSummary {
   top_scoreline: string;
   is_fallback_prediction: boolean;
   data_confidence: "new" | "limited" | "established" | null;
+  // Derived from the scoreline model's own home/away goal expectations
+  // (sum for total goals, difference for margin) rather than a separate
+  // model. null for already-finished fixtures from an older tracking
+  // record that predates this field.
+  predicted_total_goals: number | null;
+  predicted_margin: number | null;
   value_bet_flags: string[];
   has_live_odds: boolean;
   odds_fetched_at: string | null;

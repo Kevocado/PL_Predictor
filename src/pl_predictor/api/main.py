@@ -15,7 +15,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from ..config import FRONTEND_DIST_DIR
+from ..config import FRONTEND_DIST_DIR, PUBLIC_MODE
 from .auth import GuestAuthMiddleware
 from .routes import (
     backfill_completed_player_reviews,
@@ -57,6 +57,17 @@ async def _initial_sync():
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    # The public deployment serves everything from public_snapshot.py's
+    # precomputed file (see routes.py's PUBLIC_MODE branches) and never
+    # calls any of warm_caches/backfill/prewarm/retrain/tracking's
+    # functions at all — running them anyway would rebuild the exact
+    # live-serving state (FixtureFeatureContext, Elo/Pi, xG, ...) this
+    # whole snapshot approach exists to avoid, which is what was OOM-
+    # crashing the free-tier deployment in the first place.
+    if PUBLIC_MODE:
+        yield
+        return
+
     # Fire-and-forget in a background thread: warms every cache a real
     # request would otherwise pay for on first use (see warm_caches's
     # docstring), without delaying the server from accepting connections —

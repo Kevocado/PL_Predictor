@@ -348,6 +348,26 @@ export function FixtureModal({ eventId, onClose }: Props) {
                         flagged={false}
                         postMatchHit={postMatchVerdict("BTTS")?.prediction === "yes" ? postMatchVerdict("BTTS")?.hit : undefined}
                       />
+                      {detail.predicted_total_goals !== null && (
+                        <OverUnderRow
+                          label="Total goals"
+                          lam={detail.predicted_total_goals}
+                          line={2.5}
+                          over={detail.over_2_5.prob}
+                        />
+                      )}
+                      {detail.predicted_margin !== null && (
+                        <div className="flex items-center justify-between rounded-lg bg-pl-850/60 px-3 py-2 text-sm">
+                          <span className="text-pl-text-dim">Predicted margin</span>
+                          <span className="font-semibold text-pl-text">
+                            {detail.predicted_margin === 0
+                              ? "Even"
+                              : detail.predicted_margin > 0
+                                ? `${detail.team_home} by ${detail.predicted_margin.toFixed(1)}`
+                                : `${detail.team_away} by ${Math.abs(detail.predicted_margin).toFixed(1)}`}
+                          </span>
+                        </div>
+                      )}
                     </div>
                     {!detail.has_live_odds && <p className="mt-2 text-xs text-pl-text-faint">{GLOSSARY.noLiveMarket}</p>}
                   </section>

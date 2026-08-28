@@ -38,6 +38,12 @@ RUN pip install --no-cache-dir -e . -c requirements-lock.txt
 # git-tracked) instead of needing a full historical fetch+train before the
 # first prediction can be served.
 COPY models/ ./models/
+# The precomputed Fixtures/Data Hub data this deployment actually serves
+# (see public_snapshot.py's module docstring) — generated locally
+# (`python -m pl_predictor.public_snapshot`) and committed, not built in
+# this image. Must exist before building — run that command once if this
+# COPY fails on a fresh checkout.
+COPY data/public_snapshot.json ./data/public_snapshot.json
 COPY --from=frontend-build /app/frontend/dist ./frontend/dist
 
 EXPOSE 8000

@@ -6,13 +6,14 @@ frontend.
 
 from __future__ import annotations
 
+import json
 import time
 from threading import Lock, Thread
 
 import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException
 
-from ..config import PUBLIC_MODE
+from ..config import PUBLIC_MODE, PUBLIC_SNAPSHOT_PATH
 from ..data import fixtures as fixtures_mod
 from ..data import espn, fpl_api, fpl_history
 from ..data import football_data
@@ -56,6 +57,25 @@ def _admin_only() -> None:
     surface to a public visitor at all."""
     if PUBLIC_MODE:
         raise HTTPException(status_code=404)
+
+
+_public_snapshot_cache: dict | None = None
+
+
+def _public_snapshot() -> dict:
+    """The precomputed data public_snapshot.py generates — read once per
+    process (it only changes on a redeploy, which starts a fresh process
+    anyway) rather than re-reading the file on every request. Empty dict if
+    none has been generated yet (a public deploy before its first snapshot
+    exists), so every PUBLIC_MODE branch degrades to empty results instead
+    of a 500."""
+    global _public_snapshot_cache
+    if _public_snapshot_cache is None:
+        _public_snapshot_cache = (
+            json.loads(PUBLIC_SNAPSHOT_PATH.read_text()) if PUBLIC_SNAPSHOT_PATH.exists() else {}
+        )
+    return _public_snapshot_cache
+
 
 _CACHE_TTL_SECONDS = 1800
 # Fixtures/results/live-serving state get a much shorter TTL than everything
@@ -346,6 +366,8 @@ def _row_to_summary(row: pd.Series) -> FixtureSummary:
         top_scoreline=row["top_scoreline"],
         is_fallback_prediction=bool(row["is_fallback_prediction"]),
         data_confidence=row.get("data_confidence"),
+        predicted_total_goals=row["home_goal_expectation"] + row["away_goal_expectation"],
+        predicted_margin=row["home_goal_expectation"] - row["away_goal_expectation"],
         value_bet_flags=row["value_bet_flags"],
         has_live_odds=row.get("home_win_implied") is not None and not pd.isna(row.get("home_win_implied")),
         odds_fetched_at=_none_if_nan(row.get("odds_fetched_at")),
@@ -512,6 +534,13 @@ def current_gameweek_fixtures(gameweek: int | None = None):
     upcoming ones, and the id `fixture_detail` already knows how to resolve
     for finished ones) so each card can open the same fixture-detail view
     `/fixtures` does."""
+    if PUBLIC_MODE:
+        snapshot = _public_snapshot()
+        gw = gameweek if gameweek is not None else snapshot.get("current_gameweek")
+        return snapshot.get("fixtures_by_gameweek", {}).get(
+            str(gw), {"gameweek": gw, "fixtures": [], "is_current": False, "min_gameweek": None, "max_gameweek": None}
+        )
+
     value_bet_table = _value_bet_table()
     _run_tracking_bookkeeping(value_bet_table)
 
@@ -1079,6 +1108,8 @@ def _team_fixture_to_summary(fixture: pd.Series, pred: dict) -> FixtureSummary:
         top_scoreline=f"{pred['top_scorelines'][0]['home']}-{pred['top_scorelines'][0]['away']}",
         is_fallback_prediction=pred["fallback"],
         data_confidence=pred["data_confidence"],
+        predicted_total_goals=pred["home_goal_expectation"] + pred["away_goal_expectation"],
+        predicted_margin=pred["home_goal_expectation"] - pred["away_goal_expectation"],
         value_bet_flags=[],
         has_live_odds=False,
     )
@@ -1261,6 +1292,8 @@ def _current_season_label() -> str:
 
 @router.get("/hub/rankings")
 def get_power_rankings():
+    if PUBLIC_MODE:
+        return _public_snapshot().get("hub", {}).get("rankings", {"rankings": [], "ratings_history": {}, "season": None})
     matches_df = _get_matches_df()
     current_season = _current_season_label()
     season_matches = matches_df[matches_df["season"] == current_season]
@@ -1311,6 +1344,8 @@ def get_power_rankings():
 
 @router.get("/hub/table")
 def get_projected_table():
+    if PUBLIC_MODE:
+        return _public_snapshot().get("hub", {}).get("table", {"table": [], "season": None})
     models = _get_models()
     matches_df = _get_matches_df()
     current_season = _current_season_label()
@@ -1331,6 +1366,10 @@ def get_projected_table():
 
 @router.get("/hub/track-record")
 def get_hub_track_record():
+    if PUBLIC_MODE:
+        return _public_snapshot().get("hub", {}).get(
+            "track_record", {"summary": {}, "biggest_upsets": [], "gameweeks": []}
+        )
     return {
         "summary": tracking_store.get_track_record(),
         "biggest_upsets": tracking_store.get_biggest_upsets(),
@@ -1340,6 +1379,8 @@ def get_hub_track_record():
 
 @router.get("/hub/teams")
 def get_team_hub():
+    if PUBLIC_MODE:
+        return _public_snapshot().get("hub", {}).get("teams", {})
     matches_df = _get_matches_df()
     season = _current_season_label()
     current_match_count = len(matches_df[matches_df["season"] == season])
@@ -1352,6 +1393,8 @@ def get_team_hub():
 
 @router.get("/hub/players")
 def get_player_hub():
+    if PUBLIC_MODE:
+        return _public_snapshot().get("hub", {}).get("players", {})
     return _cached("player_hub", lambda: hub_analytics.build_player_hub(_get_bootstrap()), ttl=300)
 
 

@@ -104,6 +104,16 @@ def build_value_bet_table(
             "top_scoreline": f"{pred['top_scorelines'][0]['home']}-{pred['top_scorelines'][0]['away']}",
             "is_fallback_prediction": pred["fallback"],
             "data_confidence": pred["data_confidence"],
+            # Total goals / goal margin ("spread"), derived directly from
+            # the scoreline model's own two goal-expectation numbers rather
+            # than a dedicated regressor — measured directly (walk-forward,
+            # 2026-08-28): a dedicated total-goals regressor lost to this on
+            # every fold (log-loss 0.6917 vs 0.6829, Brier 0.2493 vs
+            # 0.2449), and a dedicated margin regressor likewise lost on MAE
+            # (1.384 vs 1.323) — the joint home/away fit already captures
+            # this better than fitting either derived target directly.
+            "home_goal_expectation": pred["home_goal_expectation"],
+            "away_goal_expectation": pred["away_goal_expectation"],
         }
 
         odds_timestamp = None

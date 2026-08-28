@@ -18,6 +18,14 @@ FRONTEND_DIST_DIR = PROJECT_ROOT / "frontend" / "dist"
 # behavior exactly (api/main.py's own CORS comment). Never set GUEST_PASSWORD
 # in a committed file; it's provided as a hosting-platform secret.
 PUBLIC_MODE = os.getenv("PUBLIC_MODE", "false").lower() == "true"
+
+# Precomputed data the public deployment serves instead of running this
+# project's live-serving pipeline itself (see public_snapshot.py) —
+# confirmed live that doing the real computation on a free-tier host's
+# memory budget doesn't work. Generated locally (`python -m
+# pl_predictor.public_snapshot`) and committed/pushed like any other
+# tracked file; Render's next deploy picks it up automatically.
+PUBLIC_SNAPSHOT_PATH = DATA_DIR / "public_snapshot.json"
 GUEST_PASSWORD = os.getenv("GUEST_PASSWORD")
 
 FOOTBALL_DATA_CACHE_DIR = CACHE_DIR / "football_data"

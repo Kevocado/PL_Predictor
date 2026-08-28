@@ -289,29 +289,45 @@ assumption (see `api/main.py`'s CORS comment).
 To share a cut-down, password-gated version with other people (fixtures,
 predictions, Data Hub, and a simplified model page — no admin controls, no
 retrain button), the repo-root `Dockerfile` builds one image serving both
-the API and the built frontend from a single origin:
+the API and the built frontend from a single origin.
+
+**This public deployment never runs the live-serving pipeline itself** —
+confirmed live that doing so (Elo/Pi replay, rolling form, xG, the whole
+`FixtureFeatureContext` build) exceeds a free-tier host's memory budget and
+OOM-crashes it. Instead it serves everything from a precomputed
+`data/public_snapshot.json` that you generate locally (full resources, same
+idea as retraining) and push:
+
+```bash
+PYTHONPATH=src python -m pl_predictor.public_snapshot
+git add data/public_snapshot.json && git commit -m "Refresh public snapshot" && git push
+```
+
+Run that whenever you want the public site to reflect new results/odds —
+Render's next auto-deploy picks up the new file. No live external API keys
+are needed on Render itself; the snapshot already has everything baked in.
+
+Setup:
 
 1. Push this repo to GitHub (a new or existing repo).
 2. Create a free [Render](https://render.com) account → "New Web Service" →
    connect that repo. Render auto-detects the `Dockerfile`.
 3. In Render's dashboard, set these environment variables (never commit
-   real values for any of these):
+   real values for either of these):
    - `PUBLIC_MODE=true`
    - `GUEST_PASSWORD=<pick something>` — the whole site is gated behind an
      HTTP Basic Auth prompt (any username, this password) once this is set.
-   - `ODDS_API_KEY`, `FOOTBALL_DATA_KEY`, `API_FOOTBALL_KEY` — copy from
-     your local `.env`.
 4. Deploy. Render gives you a free `https://<name>.onrender.com` link —
    that's what you share, along with the guest password.
 
 Free-tier tradeoffs worth knowing: the service sleeps after ~15 minutes of
-no traffic (next visit takes ~30-60s to wake up), and its disk is
-ephemeral, so the public copy's cache/prediction-tracking history resets on
-every redeploy — this never affects your local/private copy's own data.
+no traffic (next visit takes ~30-60s to wake up), and data only updates
+when you regenerate and push the snapshot — this is a deliberate tradeoff
+for staying on a free host, not a bug.
 
 Leaving `PUBLIC_MODE` unset (the default everywhere else, including
 locally) reproduces every current behavior exactly — no password prompt,
-every admin button/endpoint active.
+every admin button/endpoint active, live computation as always.
 
 ## Notebooks
 
