@@ -444,22 +444,36 @@ class FixtureFeatureContext:
 
 
 def build_features_for_fixtures(
-    fixtures_df: pd.DataFrame, matches_df: pd.DataFrame | None = None, seasons: list[str] | None = None
+    fixtures_df: pd.DataFrame,
+    matches_df: pd.DataFrame | None = None,
+    seasons: list[str] | None = None,
+    context: FixtureFeatureContext | None = None,
 ) -> pd.DataFrame:
     """Feature rows for upcoming (not-yet-played) fixtures, using each team's
     *current* state (latest rolling form / ratings / h2h / rest days) rather
     than the shift(1) historical features `build_training_frame` produces.
     `fixtures_df` needs `team_home`, `team_away`, `commence_time` columns
-    (see `data.fixtures.get_upcoming_fixtures`)."""
-    if matches_df is None:
-        matches_df = football_data.load_training_data(seasons=seasons)
-        current = football_data.fetch_current_season_partial()
-        if current is not None and not current.empty:
-            matches_df = pd.concat([matches_df, current], ignore_index=True)
+    (see `data.fixtures.get_upcoming_fixtures`).
 
-    ctx = FixtureFeatureContext(matches_df)
+    Pass an already-built `context` (e.g. `manifest.load_models()`'s own
+    `"context"`) whenever one already exists — constructing a
+    `FixtureFeatureContext` replays Elo/Pi ratings and rebuilds every
+    team's rolling/xG/shot-situation form from scratch, expensive enough
+    that rebuilding it per-request (rather than reusing routes.py's
+    5-minute-cached one) was confirmed live to both slow every request and
+    leak enough memory to OOM a resource-constrained deployment. Omit it
+    only for one-off/offline use (research scripts, tests) where no shared
+    context exists yet."""
+    if context is None:
+        if matches_df is None:
+            matches_df = football_data.load_training_data(seasons=seasons)
+            current = football_data.fetch_current_season_partial()
+            if current is not None and not current.empty:
+                matches_df = pd.concat([matches_df, current], ignore_index=True)
+        context = FixtureFeatureContext(matches_df)
+
     rows = [
-        ctx.build_row(fixture["team_home"], fixture["team_away"], fixture.get("commence_time"))
+        context.build_row(fixture["team_home"], fixture["team_away"], fixture.get("commence_time"))
         for _, fixture in fixtures_df.iterrows()
     ]
     return pd.DataFrame(rows)

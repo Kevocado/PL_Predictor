@@ -370,7 +370,7 @@ def _capture_fixture_market_predictions(table: pd.DataFrame) -> None:
     models = _get_models()
     matches_df = _get_matches_df()
     feature_rows = build_features_for_fixtures(
-        table[["team_home", "team_away", "commence_time"]].copy(), matches_df=matches_df
+        table[["team_home", "team_away", "commence_time"]].copy(), matches_df=matches_df, context=models.get("context")
     )
     for (_, fixture), (_, feature_row) in zip(table.iterrows(), feature_rows.iterrows()):
         predictions = value_bets.predict_market_models_for_fixture(models, feature_row)
@@ -661,7 +661,9 @@ def _build_fixture_detail(summary: FixtureSummary, home: str, away: str) -> Fixt
         models["scoreline"], home, away, max_goals=6, market_overrides=models.get("scoreline_market_overrides")
     )
     feature_row = build_features_for_fixtures(
-        pd.DataFrame([{"team_home": home, "team_away": away, "commence_time": summary.commence_time}]), matches_df=matches_df
+        pd.DataFrame([{"team_home": home, "team_away": away, "commence_time": summary.commence_time}]),
+        matches_df=matches_df,
+        context=models.get("context"),
     ).iloc[0]
     market_preds = value_bets.predict_market_models_for_fixture(models, feature_row)
     fixture_time = pd.Timestamp(summary.commence_time)

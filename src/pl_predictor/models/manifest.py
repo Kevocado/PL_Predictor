@@ -460,6 +460,13 @@ def load_models(matches_df: pd.DataFrame | None = None) -> Dict:
         "feature_cols": manifest["features"],
         "corners_dispersion": manifest["corners"]["dispersion"],
         "cards_dispersion": manifest["cards"]["dispersion"],
+        # The already-built FixtureFeatureContext, when one was needed (see
+        # `needs_context` above) — callers building live feature rows
+        # (features.build.build_features_for_fixtures) should reuse this
+        # rather than constructing their own; see that function's docstring
+        # for why (confirmed live: rebuilding it per-request both slowed
+        # every request and leaked enough memory to OOM a small deployment).
+        "context": context,
     }
 
 
