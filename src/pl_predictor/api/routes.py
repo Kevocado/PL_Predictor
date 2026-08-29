@@ -1098,12 +1098,16 @@ def fixture_players(event_id: str, read_only: bool = False):
 @router.get("/fixtures/{event_id}/player-review")
 def fixture_player_review(event_id: str):
     if PUBLIC_MODE:
-        # Depends on tracking_store history the public deployment never
-        # accumulates (background tracking is skipped entirely in
-        # PUBLIC_MODE — see main.py's lifespan) — the frontend only calls
-        # this when a snapshot's fixture_detail.post_match is set, which it
-        # never is here, but guard directly too against a direct hit.
-        raise HTTPException(status_code=404, detail=f"No fixture with event_id={event_id}")
+        # The live public deployment never accumulates tracking history
+        # itself (background tracking is skipped entirely in PUBLIC_MODE —
+        # see main.py's lifespan), but public_snapshot.py runs this same
+        # route locally at build time, where real tracking history *does*
+        # exist, and bakes the result in — same pattern as fixture_detail's
+        # own post_match field, which is exactly what makes the frontend
+        # call this route in the first place. None (not 404) when a
+        # fixture's review genuinely isn't available yet, matching what
+        # this returns locally in that case.
+        return _public_snapshot().get("player_review_by_event_id", {}).get(event_id)
 
     resolved = _resolve_fixture_teams(event_id)
     if resolved is None:

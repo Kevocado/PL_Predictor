@@ -22,11 +22,11 @@ surface. The Model page's `/api/manifest` already just reads
 `models/manifest.json` directly (no heavy computation involved), so it
 needs no snapshot entry; same for the admin-only endpoints, which are
 hard-blocked in PUBLIC_MODE regardless (see `routes.py::_admin_only`).
-`post_match`/player-review data is deliberately left out for finished
-fixtures — it depends on tracking_store history the public deployment
-never accumulates (background tracking is skipped entirely in
-PUBLIC_MODE), so those sections just don't render there rather than
-showing wrong data.
+`post_match` and player-review both depend on tracking_store history,
+which the public deployment never accumulates itself (background tracking
+is skipped entirely in PUBLIC_MODE) — but this script runs locally, where
+that history *does* exist, so both get computed here and baked into the
+snapshot rather than left out.
 """
 
 from __future__ import annotations
@@ -85,6 +85,7 @@ def build_snapshot(previous: dict | None = None) -> dict:
     previous = previous or {}
     previous_detail = previous.get("fixture_detail_by_event_id", {})
     previous_players = previous.get("fixture_players_by_event_id", {})
+    previous_review = previous.get("player_review_by_event_id", {})
     previous_finished_ids = {
         fixture["event_id"]
         for gw_data in previous.get("fixtures_by_gameweek", {}).values()
@@ -99,18 +100,28 @@ def build_snapshot(previous: dict | None = None) -> dict:
     )
     fixture_detail_by_event_id = {}
     fixture_players_by_event_id = {}
+    player_review_by_event_id = {}
     for i, event_id in enumerate(event_ids, 1):
         reused_detail = event_id in reusable_ids
         if reused_detail:
             fixture_detail_by_event_id[event_id] = previous_detail[event_id]
-        # Reuse players independently of detail — a fixture can be finished
-        # (detail reusable) while its players entry is still missing from a
-        # prior partial failure; that must still get one real attempt here
-        # rather than staying permanently empty forever after.
+        # Reuse players/review independently of detail — a fixture can be
+        # finished (detail reusable) while one of these is still missing
+        # from a prior partial failure; that must still get one real
+        # attempt here rather than staying permanently empty forever after.
         reused_players = reused_detail and event_id in previous_players
         if reused_players:
             fixture_players_by_event_id[event_id] = previous_players[event_id]
-        if reused_detail and reused_players:
+        # The frontend only ever requests player-review for a finished
+        # fixture (it's gated on fixture_detail.post_match, which is only
+        # set once a match is over) — computing it for a still-upcoming
+        # fixture is pure waste, and calling it ~369 times unconditionally
+        # is exactly what turned this into a multi-hour run the first time.
+        needs_review = event_id in finished_event_ids
+        reused_review = reused_detail and (not needs_review or event_id in previous_review)
+        if needs_review and event_id in previous_review:
+            player_review_by_event_id[event_id] = previous_review[event_id]
+        if reused_detail and reused_players and reused_review:
             continue
 
         print(f"  [{i}/{len(event_ids)}] {event_id}")
@@ -132,6 +143,15 @@ def build_snapshot(previous: dict | None = None) -> dict:
                 fixture_players_by_event_id[event_id] = routes.fixture_players(event_id, read_only=True)
             except Exception as exc:  # noqa: BLE001 - players are a nice-to-have, not core detail
                 print(f"    ! skipped players: {exc}")
+        if needs_review and not reused_review:
+            try:
+                # No read_only here: this is the one write we want at
+                # build time — it's what backfills real player-outcome
+                # tracking history locally, same as browsing the admin
+                # app would to do.
+                player_review_by_event_id[event_id] = routes.fixture_player_review(event_id)
+            except Exception as exc:  # noqa: BLE001 - review is a nice-to-have, not core detail
+                print(f"    ! skipped player review: {exc}")
 
     print("Building Data Hub snapshot...")
     hub = {
@@ -150,6 +170,7 @@ def build_snapshot(previous: dict | None = None) -> dict:
         "fixtures_by_gameweek": fixtures_by_gameweek,
         "fixture_detail_by_event_id": fixture_detail_by_event_id,
         "fixture_players_by_event_id": fixture_players_by_event_id,
+        "player_review_by_event_id": player_review_by_event_id,
         "hub": hub,
     }
 

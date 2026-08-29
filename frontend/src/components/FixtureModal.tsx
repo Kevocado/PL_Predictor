@@ -228,29 +228,40 @@ export function FixtureModal({ eventId, onClose }: Props) {
               {detail.post_match && <PlayerCallReview review={playerReview} loading={playerReviewLoading} error={playerReviewError} />}
 
               <section>
-                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">{detail.actual_stats ? "Reported match statistics" : "Rest & match style"}</h3>
-                <div className="overflow-hidden rounded-xl border border-pl-border bg-pl-850/50 text-xs">
-                  <div className="grid grid-cols-[1fr_auto_1fr] border-b border-pl-border bg-pl-900/60 px-3 py-2 font-semibold text-pl-text">
-                    <span>{detail.team_home}</span><span className="px-4 text-pl-text-faint">{detail.actual_stats ? "Final" : "Context"}</span><span className="text-right">{detail.team_away}</span>
-                  </div>
-                  {(detail.actual_stats ? Object.keys(detail.actual_stats.home).map((label) => [
-                    label,
-                    reportedMetric(detail.actual_stats!.home[label], label),
-                    reportedMetric(detail.actual_stats!.away[label], label),
-                  ]) : [
-                    ["Rest days", fixtureMetric(detail.home_context.rest_days), fixtureMetric(detail.away_context.rest_days)],
-                    ["xG for", fixtureMetric(detail.home_context.xg_for_last_5), fixtureMetric(detail.away_context.xg_for_last_5)],
-                    ["xG against", fixtureMetric(detail.home_context.xg_against_last_5), fixtureMetric(detail.away_context.xg_against_last_5)],
-                    ["Corners", fixtureMetric(detail.home_context.corners_last_5), fixtureMetric(detail.away_context.corners_last_5)],
-                    ["Cards", fixtureMetric(detail.home_context.cards_last_5), fixtureMetric(detail.away_context.cards_last_5)],
-                    ["Set-piece xG", fixtureMetric(detail.home_context.set_piece_xg_share_last_5 === null ? null : detail.home_context.set_piece_xg_share_last_5 * 100, "%"), fixtureMetric(detail.away_context.set_piece_xg_share_last_5 === null ? null : detail.away_context.set_piece_xg_share_last_5 * 100, "%")],
-                  ]).map(([label, homeValue, awayValue]) => (
-                    <div key={label} className="grid grid-cols-[1fr_auto_1fr] border-b border-pl-border/60 px-3 py-2 last:border-0">
-                      <span className="font-semibold text-pl-text">{homeValue}</span><span className="px-4 text-pl-text-faint">{label}</span><span className="text-right font-semibold text-pl-text">{awayValue}</span>
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">
+                  {detail.actual_stats ? "Reported match statistics" : detail.post_match ? "Match statistics" : "Rest & match style"}
+                </h3>
+                {detail.post_match && !detail.actual_stats ? (
+                  <p className="rounded-xl border border-pl-border bg-pl-850/50 px-3 py-2 text-xs text-pl-text-faint">
+                    The box score (shots, corners, cards) for this match hasn&apos;t been reported by the match-data feed yet — it
+                    usually lands within a day of kickoff. The final score and result above are already confirmed.
+                  </p>
+                ) : (
+                  <div className="overflow-hidden rounded-xl border border-pl-border bg-pl-850/50 text-xs">
+                    <div className="grid grid-cols-[1fr_auto_1fr] border-b border-pl-border bg-pl-900/60 px-3 py-2 font-semibold text-pl-text">
+                      <span>{detail.team_home}</span><span className="px-4 text-pl-text-faint">{detail.actual_stats ? "Final" : "Context"}</span><span className="text-right">{detail.team_away}</span>
                     </div>
-                  ))}
-                </div>
-                <p className="mt-2 text-[11px] text-pl-text-faint">{detail.actual_stats ? "Final team totals reported by the match-data feed. Possession is shown whenever the source provides it." : "Rest is fixture congestion; the other rows are each team&apos;s rolling per-match profile, not live betting lines."}</p>
+                    {(detail.actual_stats ? Object.keys(detail.actual_stats.home).map((label) => [
+                      label,
+                      reportedMetric(detail.actual_stats!.home[label], label),
+                      reportedMetric(detail.actual_stats!.away[label], label),
+                    ]) : [
+                      ["Rest days", fixtureMetric(detail.home_context.rest_days), fixtureMetric(detail.away_context.rest_days)],
+                      ["xG for", fixtureMetric(detail.home_context.xg_for_last_5), fixtureMetric(detail.away_context.xg_for_last_5)],
+                      ["xG against", fixtureMetric(detail.home_context.xg_against_last_5), fixtureMetric(detail.away_context.xg_against_last_5)],
+                      ["Corners", fixtureMetric(detail.home_context.corners_last_5), fixtureMetric(detail.away_context.corners_last_5)],
+                      ["Cards", fixtureMetric(detail.home_context.cards_last_5), fixtureMetric(detail.away_context.cards_last_5)],
+                      ["Set-piece xG", fixtureMetric(detail.home_context.set_piece_xg_share_last_5 === null ? null : detail.home_context.set_piece_xg_share_last_5 * 100, "%"), fixtureMetric(detail.away_context.set_piece_xg_share_last_5 === null ? null : detail.away_context.set_piece_xg_share_last_5 * 100, "%")],
+                    ]).map(([label, homeValue, awayValue]) => (
+                      <div key={label} className="grid grid-cols-[1fr_auto_1fr] border-b border-pl-border/60 px-3 py-2 last:border-0">
+                        <span className="font-semibold text-pl-text">{homeValue}</span><span className="px-4 text-pl-text-faint">{label}</span><span className="text-right font-semibold text-pl-text">{awayValue}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {!(detail.post_match && !detail.actual_stats) && (
+                  <p className="mt-2 text-[11px] text-pl-text-faint">{detail.actual_stats ? "Final team totals reported by the match-data feed. Possession is shown whenever the source provides it." : "Rest is fixture congestion; the other rows are each team&apos;s rolling per-match profile, not live betting lines."}</p>
+                )}
               </section>
 
               <section>

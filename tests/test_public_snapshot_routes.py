@@ -71,6 +71,29 @@ def test_hub_routes_degrade_gracefully_when_no_snapshot_exists(monkeypatch):
     assert routes.get_player_hub() == {}
 
 
+def test_fixture_player_review_serves_from_snapshot(monkeypatch):
+    monkeypatch.setattr(routes, "PUBLIC_MODE", True)
+    monkeypatch.setattr(
+        routes,
+        "_public_snapshot_cache",
+        {"player_review_by_event_id": {"real-event": {"correct": ["fake"]}}},
+    )
+    monkeypatch.setattr(routes, "_resolve_fixture_teams", _explode)
+    monkeypatch.setattr(routes, "_fetch_and_record_fixture_player_outcomes", _explode)
+
+    assert routes.fixture_player_review("real-event") == {"correct": ["fake"]}
+
+
+def test_fixture_player_review_returns_none_not_404_when_missing(monkeypatch):
+    """A finished fixture whose review genuinely isn't available yet must
+    behave like the private app does in that case (None), not 404 with a
+    raw error string surfaced to the user in the Fixture modal."""
+    monkeypatch.setattr(routes, "PUBLIC_MODE", True)
+    monkeypatch.setattr(routes, "_public_snapshot_cache", {"player_review_by_event_id": {}})
+
+    assert routes.fixture_player_review("some-event") is None
+
+
 def test_private_mode_unaffected(monkeypatch):
     """PUBLIC_MODE=False (the default everywhere else) must never touch
     the snapshot at all — regression guard for the private/local app."""
