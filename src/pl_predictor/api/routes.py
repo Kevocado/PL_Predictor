@@ -758,11 +758,16 @@ def _build_fixture_detail(summary: FixtureSummary, home: str, away: str, read_on
     """`read_only=True` (used by public_snapshot.py) skips the two tracking-
     store writes below — `reconcile_fixture_market_predictions` in
     particular re-scans the *entire* matches_df against every unresolved
-    prediction on every call, which is fine once per live request but
-    becomes the dominant cost when building a snapshot across hundreds of
-    fixtures in a loop. Neither write is needed for a static export: they
-    exist to build up this project's own live prediction-tracking history,
-    which the public deployment doesn't have (or need) a copy of."""
+    prediction on every call. Confirmed live: ~250ms per call, unconditionally,
+    on every single fixture-detail request regardless of whether anything
+    actually changed (measured with 476 unresolved rows, zero updates on two
+    back-to-back calls) — this was the dominant cost of opening a fixture,
+    repeated on every click rather than amortized. Throttled via the same
+    `_cached` TTL wrapper every other expensive live lookup in this file
+    already uses, so it actually reconciles at most once per TTL window
+    instead of once per click. Neither write is needed for a static export:
+    they exist to build up this project's own live prediction-tracking
+    history, which the public deployment doesn't have (or need) a copy of."""
     models = _get_models()
     matches_df = _get_matches_df()
 
@@ -783,7 +788,11 @@ def _build_fixture_detail(summary: FixtureSummary, home: str, away: str, read_on
         tracking_store.record_fixture_market_predictions(
             summary.event_id, home, away, summary.commence_time, market_preds, provenance=provenance
         )
-        tracking_store.reconcile_fixture_market_predictions(matches_df)
+        _cached(
+            "reconcile_fixture_market_predictions",
+            lambda: tracking_store.reconcile_fixture_market_predictions(matches_df),
+            ttl=_LIVE_CACHE_TTL_SECONDS,
+        )
     post_match = tracking_store.get_fixture_post_match(summary.event_id)
     actual_stats = _fixture_actual_stats(matches_df, home, away, summary.commence_time)
     # The live odds table stops carrying a fixture after kickoff.  The
@@ -1527,10 +1536,24 @@ def fpl_manual_transfers(request: FPLManualSquadRequest = Body(...), gameweek: i
 @router.get("/fpl/entry/{entry_id}/transfers")
 def fpl_entry_transfers(entry_id: int, gameweek: int | None = None, free_transfers: int = 1):
     """Public-entry convenience endpoint.  The ID is only used for this
-    request; no entry or squad is written to our tracking database."""
+    request; no entry or squad is written to our tracking database.
+
+    This is reachable in PUBLIC_MODE (a random visitor entering their own
+    public entry ID is exactly the intended use) with no admin surface or
+    write involved, so it isn't gated like `_admin_only` routes — but
+    unlike every other FPL endpoint here, it makes a fresh outbound FPL
+    request on every call with no cache at all, which an anonymous public
+    deployment has no rate limit in front of. A given entry's picks for an
+    already-reached gameweek never change, so caching by
+    (entry_id, gameweek) removes the repeat-request cost/abuse surface
+    without changing the result."""
     data = _fpl_projections(gameweek)
     try:
-        picks, source_gameweek = fpl_api.fetch_latest_entry_picks(entry_id, data["gameweek"], _get_bootstrap())
+        picks, source_gameweek = _cached(
+            f"fpl_entry_picks_{entry_id}_{data['gameweek']}",
+            lambda: fpl_api.fetch_latest_entry_picks(entry_id, data["gameweek"], _get_bootstrap()),
+            ttl=_LIVE_CACHE_TTL_SECONDS,
+        )
     except Exception as exc:  # noqa: BLE001 - FPL uses several failure shapes
         raise HTTPException(status_code=502, detail="FPL could not load that public entry for this gameweek.") from exc
     player_ids = [int(item["element"]) for item in picks.get("picks", [])]
