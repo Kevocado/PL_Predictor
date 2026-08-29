@@ -34,6 +34,24 @@ jobs:
       - name: Install dependencies
         run: pip install -e . -c requirements-lock.txt
 
+      # data/cache/ (FPL player summaries, odds, historical match data,
+      # ESPN, etc. — all gitignored) is what makes repeated local runs of
+      # public_snapshot.py fast: each entry has its own TTL, so a warm
+      # cache mostly reuses prior results instead of live-fetching again.
+      # A fresh checkout starts with none of that — confirmed the build
+      # step alone took ~11 minutes here vs ~5 minutes locally, almost
+      # entirely explained by paying every TTL's cold-start cost on every
+      # single scheduled run. Restoring the most recent cache (by prefix)
+      # and always saving a new one under this run's own key lets it warm
+      # up across runs the same way a laptop naturally does.
+      - name: Restore data cache
+        uses: actions/cache@v4
+        with:
+          path: data/cache
+          key: data-cache-${{ github.run_id }}
+          restore-keys: |
+            data-cache-
+
       - name: Build snapshot
         env:
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
