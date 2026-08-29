@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "../api/client";
+import { PlayerCard } from "../components/PlayerCard";
 import type { FPLPlayerProjection, FPLProjectionsResponse, FPLRecommendation, FPLSquadResponse, FPLTransfersResponse } from "../types";
 
 const FORMATIONS = ["Auto", "3-4-3", "3-5-2", "4-3-3", "4-4-2", "4-5-1", "5-2-3", "5-3-2", "5-4-1"];
@@ -12,20 +13,13 @@ function PlayerLine({ player, marker }: { player: FPLPlayerProjection; marker?: 
   </div>;
 }
 
-function PitchPlayer({ player, marker }: { player: FPLPlayerProjection; marker?: string }) {
-  return <div className="min-w-0 rounded-full border border-white/20 bg-pl-900/90 px-2 py-1 text-center shadow-sm">
-    <p className="truncate text-[10px] font-bold text-white">{marker && <span className="mr-0.5 text-pl-pink">{marker}</span>}{player.web_name}</p>
-    <p className="text-[9px] text-emerald-200">{player.projected_points.toFixed(1)} pts</p>
-  </div>;
-}
-
 function LineupCard({ data, title, requestedFormation }: { data: FPLRecommendation; title: string; requestedFormation: string }) {
   const positions = (position: FPLPlayerProjection["position"]) => data.starting_xi.filter((player) => player.position === position);
   const formation = `${positions("DEF").length}-${positions("MID").length}-${positions("FWD").length}`;
   return <section className="rounded-xl border border-pl-border bg-pl-900/50 p-4">
     <div className="mb-3 flex items-start justify-between gap-2"><div><h3 className="font-semibold text-pl-text">{title}</h3><p className="text-xs text-pl-text-dim">{requestedFormation === "Auto" ? `Optimizer chose ${formation}` : `${formation} selected`} · {data.projected_points.toFixed(1)} points before captaincy</p></div><span className="rounded bg-pl-pink/15 px-2 py-1 text-xs font-bold text-pl-pink">C {data.captain?.web_name ?? "—"}</span></div>
     <div className="space-y-4 rounded-lg border border-emerald-300/30 bg-[repeating-linear-gradient(0deg,rgba(255,255,255,.08)_0,rgba(255,255,255,.08)_1px,transparent_1px,transparent_25%)] bg-emerald-800/80 px-3 py-4">
-      {(["FWD", "MID", "DEF", "GK"] as const).map((position) => <div key={position} className="mx-auto grid w-full max-w-md gap-2" style={{ gridTemplateColumns: `repeat(${Math.max(positions(position).length, 1)}, minmax(0, 1fr))` }}>{positions(position).map((player) => <PitchPlayer key={player.player_id} player={player} marker={data.captain?.player_id === player.player_id ? "C" : data.vice_captain?.player_id === player.player_id ? "VC" : undefined} />)}</div>)}
+      {(["FWD", "MID", "DEF", "GK"] as const).map((position) => <div key={position} className="mx-auto grid w-full max-w-md gap-2" style={{ gridTemplateColumns: `repeat(${Math.max(positions(position).length, 1)}, minmax(0, 1fr))` }}>{positions(position).map((player) => <PlayerCard key={player.player_id} player={player} size="sm" marker={data.captain?.player_id === player.player_id ? "C" : data.vice_captain?.player_id === player.player_id ? "VC" : undefined} />)}</div>)}
     </div>
     <p className="mt-3 text-xs text-pl-text-faint">Bench order: {data.bench.map((p) => p.web_name).join(" · ") || "—"}</p>
   </section>;
