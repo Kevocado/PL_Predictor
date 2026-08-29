@@ -1123,11 +1123,21 @@ experiment; negative evidence prevents repeated work.
 
 ### EXP-2026-18 — squad continuity as a leading indicator of off-season squad change
 
-- **Status:** promising — clears this project's hardest bar (fixed
-  most-recent-season corroboration), but has a real fold-level regression
-  and a modest effect size. **Not yet wired into production** (`models/
-  manifest.py`/`features/build.py` untouched); flagged here for a
-  decision rather than auto-promoted, per this doc's own protocol.
+- **Status: promoted to production (2026-08-29).** Cleared this project's
+  hardest bar (fixed most-recent-season corroboration) despite a real
+  fold-level regression and a modest effect size (see Results below); the
+  user made the human call explicitly rather than this being
+  auto-promoted, per this doc's own protocol — option (a) from the
+  Decision section below. Wired into `features/build.py` (`home_squad_
+  continuity`/`away_squad_continuity` merged onto both `build_training_
+  frame` and `FixtureFeatureContext.build_row`, keyed by
+  season+team via `squad_change.team_season_continuity_table`; NaN for a
+  team-season with no prior-season data, same as h2h/rest-days elsewhere
+  — XGBoost handles it natively) and retrained into `models/manifest.
+  json`. Also exposed directly (not just via feature-importance) on the
+  frontend Calibration page — `GET /api/squad-continuity` +
+  `SquadContinuityPanel.tsx` — so the raw per-team numbers are visible,
+  not just the model's aggregate use of them.
 - **Question:** prompted directly by a user observation (Newcastle 2026-27
   "looks hot" 2 games in, ahead of what the model expects) — the model's
   only channel for team strength is Elo/Pi carried over from last season
@@ -1206,21 +1216,60 @@ experiment; negative evidence prevents repeated work.
   elsewhere. Every delta here is small in absolute terms, the same order
   of magnitude as EXP-2026-09's streak feature (`+0.00069` RPS average) —
   this is a modest signal, not a dramatic one.
-- **Decision: not yet made — flagged for a human call, not auto-promoted.**
-  This clears the specific bar that sank three prior candidates (recent-
-  season corroboration), which is genuinely notable, but the 2-of-5 fold
-  regression and small effect size mean it isn't an unambiguous win
-  either. Options if picked back up: (a) promote as-is given the recent-
-  season evidence is the strongest signal this project weights most
-  heavily, (b) re-run with a second held-out most-recent-season check
-  once 2026-27 completes to see if the win direction holds a second time,
-  or (c) investigate whether the two regressed folds share something
-  (e.g. fewer FPL-archive seasons available for their own "prior season"
-  lookup) before deciding either way.
+- **Decision: promoted as-is (option (a)).** The 2-of-5 fold regression
+  (both oldest folds) and small effect size were disclosed; the
+  most-recent-season evidence — the specific bar three prior candidates
+  failed — was judged the stronger signal, and this project's own README
+  already has a public-model track record collecting live evidence going
+  forward. (b) (a second held-out check once 2026-27 completes) and (c)
+  (investigating whether the two regressed folds share a cause) were not
+  done first — worth revisiting if a future retrain shows this feature
+  regressing live, since neither was ruled out, only deprioritized against
+  an explicit user decision to ship now.
 - **Follow-ups explicitly not started** (see the plan this experiment came
   from): manager-change flag, transfer spend/activity, and preseason
   market movement are all still just candidate ideas — no source has been
   researched or licensed for any of them yet.
+- **Real production retrain (2026-08-29), confirming the promotion held
+  outside the walk-forward folds too:** `models/manifest.json`'s actual
+  8-season fixed 2025-26 holdout moved RPS `0.20815 → 0.20836` and Brier
+  `0.61696 → 0.61735` — a small, single-fold worsening (this holdout is
+  exactly the "chosen_model" evaluation, not the full walk-forward suite),
+  consistent with the small effect size and fold-level variance already
+  disclosed above; `ml_scoreline` remained decisively `chosen_model` over
+  `covariate_poisson` (`0.2084` vs `0.2103`), unchanged from before this
+  feature.
+- **Live out-of-sample check (2026-08-29,
+  `evaluate/squad_continuity_current_season_check.py`), first 10 completed
+  2026-27 fixtures:** RPS `0.236343 -> 0.236246` and Brier
+  `0.583906 -> 0.583673` — both effectively tied (a difference far smaller
+  than this data's fixture-to-fixture noise), while calibration (ECE)
+  moved the other way (`0.1538 -> 0.1935`, worse) on this same tiny
+  sample. `n=10` is far below `MIN_FIXTURES_FOR_A_DECISION` (60,
+  EXP-2026-11's own precedent) — this is a wash, not a decision either
+  way, and does not on its own confirm or contradict the promotion. Re-run
+  as the season accumulates more completed fixtures.
+- **Two real, pre-existing `models/manifest.py` bugs found and fixed while
+  wiring this feature in** (unrelated to squad continuity itself — this
+  feature's addition to `ml_scoreline`'s training data happened to be the
+  first thing that shifted a small-sample model comparison enough to
+  reach them): (1) `_append_history` assumed every `chosen_model`'s
+  `metrics` dict has a flat `"brier"` key, but `covariate_poisson`'s own
+  stored `metrics` is `evaluate_grids_multi_market`'s dict (`"brier_1x2"`,
+  same underlying score, different key) — would `KeyError` on any retrain
+  where `covariate_poisson` won the overall argmin outright, not just its
+  `over_2_5` override role. (2) `load_models()` had no branch at all for
+  `chosen == "covariate_poisson"` — it would silently fall into the
+  `ml_scoreline` `else` branch and construct the wrong model class. Both
+  fixed directly (`_append_history` reads either key; `load_models` gained
+  an explicit `covariate_poisson` branch and extended `needs_context`).
+  Confirmed via `tests/test_manifest_market_overrides.py`, whose own
+  3-season fixture (760 rows) sits inside this feature's documented
+  smallest-training-window regression zone and started actually triggering
+  `chosen_model == covariate_poisson` once squad continuity was added —
+  bumped to a 5-season fixture (reproduces real production's ranking) so
+  the tests verify the override *mechanism* rather than being sensitive to
+  which model wins on an arbitrarily small slice.
 
 ## Change checklist for future agents
 

@@ -370,13 +370,22 @@ def _append_history(manifest: Dict) -> None:
     retrain overwrites) so the Calibration page can chart a real trend
     instead of only ever showing the single latest snapshot."""
     chosen = manifest["scoreline"]["chosen_model"]
+    chosen_metrics = manifest["scoreline"][chosen]["metrics"]
+    # `covariate_poisson`'s own `metrics` is `evaluate_grids_multi_market`'s
+    # dict (`brier_1x2`, not `brier`) — a different shape than dixon_coles/
+    # bivariate_poisson/ml_scoreline's `_evaluate_scoreline_model` output,
+    # since it's normally only ever a MARKET_MODEL_OVERRIDES candidate, not
+    # `chosen_model` itself. Both keys are the same underlying 1X2 Brier
+    # score (`multiclass_brier_score` on the same probs/outcomes either
+    # way), so this is a safe fallback for the rare retrain where it wins
+    # the argmin outright rather than a guess.
     entry = {
         "trained_at": manifest["trained_at"],
         "n_train": manifest["n_train"],
         "n_current_season_matches": manifest["n_current_season_matches"],
         "chosen_model": chosen,
-        "rps": manifest["scoreline"][chosen]["metrics"]["rps"],
-        "brier": manifest["scoreline"][chosen]["metrics"]["brier"],
+        "rps": chosen_metrics["rps"],
+        "brier": chosen_metrics.get("brier", chosen_metrics.get("brier_1x2")),
     }
     with MANIFEST_HISTORY_PATH.open("a") as f:
         f.write(json.dumps(entry) + "\n")
@@ -417,13 +426,22 @@ def load_models(matches_df: pd.DataFrame | None = None) -> Dict:
 
     dixon_coles_for_rankings = pb.models.DixonColesGoalModel.load(str(DIXON_COLES_PATH))
 
-    needs_context = chosen == "ml_scoreline" or "covariate_poisson" in market_override_names.values()
+    # `chosen == "covariate_poisson"` is currently only a theoretical case
+    # (EXP-2026-16: it's never won the overall 1X2 comparison on real
+    # production data, only specific markets it's an explicit override
+    # for) but `train_all`'s `min(candidates, key=candidates.get)` doesn't
+    # special-case it out, so a future retrain could reach it — handled
+    # here for real rather than left to silently fall into the
+    # `ml_scoreline` `else` branch below with the wrong model class.
+    needs_context = (
+        chosen in ("ml_scoreline", "covariate_poisson") or "covariate_poisson" in market_override_names.values()
+    )
     context = None
     if needs_context:
         if matches_df is None:
             raise ValueError(
-                "load_models(matches_df=...) is required when ml_scoreline is chosen_model "
-                "or a market override needs a live feature context."
+                "load_models(matches_df=...) is required when ml_scoreline/covariate_poisson is "
+                "chosen_model or a market override needs a live feature context."
             )
         context = FixtureFeatureContext(matches_df)
 
@@ -431,6 +449,9 @@ def load_models(matches_df: pd.DataFrame | None = None) -> Dict:
         scoreline_model = dixon_coles_for_rankings
     elif chosen == "bivariate_poisson":
         scoreline_model = pb.models.BivariatePoissonGoalModel.load(str(BIVARIATE_POISSON_PATH))
+    elif chosen == "covariate_poisson":
+        scoreline_model = covariate_poisson.load(COVARIATE_POISSON_PATH)
+        scoreline_model.context = context
     else:
         scoreline_model = ml_scoreline.MLScorelineModel(
             home_model=market_models.load_regressor(ML_HOME_MODEL_PATH),

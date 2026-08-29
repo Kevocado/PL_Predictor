@@ -107,6 +107,22 @@ class FixtureActualStats(BaseModel):
     away: dict[str, float | int | None]
 
 
+class FixtureValueBetSnapshot(BaseModel):
+    """A value bet exactly as it was first surfaced before kickoff."""
+
+    market: str
+    probability: float
+    implied_probability: float
+    edge: float
+    price: float
+    bookmaker: str | None = None
+    snapshotted_at: datetime
+    resolved: bool
+    won: bool | None = None
+    final_score: str | None = None
+    result_source: str | None = None
+
+
 class FixtureDetail(FixtureSummary):
     score_grid: list[list[float]]
     top_scorelines: list[dict]
@@ -119,6 +135,7 @@ class FixtureDetail(FixtureSummary):
     away_context: FixtureTeamContext
     post_match: dict | None = None
     actual_stats: FixtureActualStats | None = None
+    pre_match_value_bets: list[FixtureValueBetSnapshot] = []
 
 
 class FixturePlayers(BaseModel):

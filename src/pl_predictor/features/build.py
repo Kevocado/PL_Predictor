@@ -22,6 +22,7 @@ from . import (
     rest_days,
     rolling_form,
     shot_situation,
+    squad_change,
     streaks,
     table_context,
     xg_form,
@@ -79,6 +80,24 @@ def build_training_frame(
 
     df = matches_df.merge(home_join, on=["date", "team_home"], how="left")
     df = df.merge(away_join, on=["date", "team_away"], how="left")
+
+    # EXP-2026-18 (docs/AI_CONTINUITY.md): off-season squad continuity —
+    # keyed by (season, team), not row-position like the rolling-form/Elo
+    # blocks below, so it's merged onto df directly rather than concatenated.
+    # NaN for a team-season with no prior-season data (promotion) is left
+    # as-is, same as h2h/rest-days elsewhere in this function — XGBoost
+    # handles missing values natively.
+    continuity = squad_change.team_season_continuity_table(sorted(matches_df["season"].unique()))
+    df = df.merge(
+        continuity.rename(columns={"team": "team_home", "squad_continuity": "home_squad_continuity"}),
+        on=["season", "team_home"],
+        how="left",
+    )
+    df = df.merge(
+        continuity.rename(columns={"team": "team_away", "squad_continuity": "away_squad_continuity"}),
+        on=["season", "team_away"],
+        how="left",
+    )
 
     elo_feats = ratings.replay_elo(matches_df).reset_index(drop=True)
     pi_feats = ratings.replay_pi_ratings(matches_df).reset_index(drop=True)
@@ -146,6 +165,7 @@ def build_training_frame(
         + xg_cols
         + xg_delta_cols
         + streak_cols
+        + ["home_squad_continuity", "away_squad_continuity"]
         # NOTE: stakes_cols (table_context.py — points off top4/relegation,
         # games played) is deliberately *not* included here. Measured
         # directly: it made ml_scoreline's held-out RPS/Brier measurably
@@ -324,6 +344,19 @@ class FixtureFeatureContext:
         standings = compute_standings(season_matches) if not season_matches.empty else pd.DataFrame()
         self.current_stakes = table_context.live_stakes(standings)
 
+        # EXP-2026-18: off-season squad continuity for the current season
+        # only (a team's rating for this doesn't change match-to-match).
+        # Degrades to an empty series (NaN for every team, same as a
+        # promoted team's own no-prior-season case) rather than raising —
+        # unlike the training path above, this runs on every live request,
+        # and vaastav's archive not yet having a GW1 file for a season that
+        # just started must not take the whole app down with it.
+        try:
+            continuity_table = squad_change.team_season_continuity_table([current_season])
+            self.squad_continuity = continuity_table.set_index("team")["squad_continuity"]
+        except RuntimeError:
+            self.squad_continuity = pd.Series(dtype=float)
+
         # Current season only, not the full 8-season window (unlike xG form
         # above) — deliberately, and confirmed necessary live: shot-level
         # data is one Understat request *per match* (2,500-3,000 requests
@@ -415,6 +448,9 @@ class FixtureFeatureContext:
 
         row["home_current_streak"] = int(self.current_streaks.get(home, 0))
         row["away_current_streak"] = int(self.current_streaks.get(away, 0))
+
+        row["home_squad_continuity"] = self.squad_continuity.get(home)
+        row["away_squad_continuity"] = self.squad_continuity.get(away)
 
         for team, prefix in [(home, "home"), (away, "away")]:
             stakes = self.current_stakes.loc[team] if team in self.current_stakes.index else None

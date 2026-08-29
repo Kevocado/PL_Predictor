@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import type { FixtureDetail, FixturePlayerReview, FixturePlayers, FixturePostMatch, MarketEdge } from "../types";
+import type { FixtureDetail, FixturePlayerReview, FixturePlayers, FixturePostMatch, FixtureValueBetSnapshot, MarketEdge } from "../types";
 import { api } from "../api/client";
 import { TeamBadge } from "./TeamBadge";
 import { ScorelineHeatmap } from "./ScorelineHeatmap";
@@ -89,6 +89,38 @@ function PostMatchReview({ review }: { review: FixturePostMatch }) {
         {review.verdicts.map((verdict) => <div key={verdict.label} className={`flex items-center justify-between rounded-lg px-3 py-2 text-xs ${verdict.hit ? "bg-win/10 text-win" : "bg-pl-850/70 text-pl-text-dim"}`}><span className="font-semibold">{verdict.hit ? "✓" : "×"} {verdict.label}</span><span><span className="text-pl-text-faint">{verdict.prediction}</span><span className="mx-1">→</span><span>{verdict.actual}</span></span></div>)}
       </div>
       {review.provenance === "reconstructed" && <p className="mt-2 text-[11px] text-pl-text-faint">Reconstructed after the match from saved inputs where available; it is shown for consistency, not counted as prospective proof.</p>}
+    </section>
+  );
+}
+
+function PreMatchValueBets({ bets }: { bets: FixtureValueBetSnapshot[] }) {
+  return (
+    <section>
+      <div className="mb-2 flex flex-wrap items-end justify-between gap-1">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-pl-text-faint">Pre-match value bets</h3>
+        <p className="text-[11px] text-pl-text-faint">Saved when first flagged; prices and edges never change afterwards.</p>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {bets.map((bet) => {
+          const status = !bet.resolved ? "Awaiting result" : bet.won ? "Won" : "Lost";
+          const statusClass = !bet.resolved ? "bg-pl-700/60 text-pl-text-dim" : bet.won ? "bg-win/20 text-win" : "bg-loss/15 text-loss";
+          return (
+            <div key={bet.market} className={`rounded-xl border p-3 ${bet.won === true ? "border-win/30 bg-win/5" : bet.won === false ? "border-loss/25 bg-loss/5" : "border-pl-cyan/30 bg-pl-cyan/5"}`}>
+              <div className="flex items-center justify-between gap-2">
+                <div><span className="font-semibold text-pl-text">{MARKET_LABELS[bet.market] ?? bet.market}</span><span className="ml-2 text-[10px] font-semibold uppercase text-pl-text-faint">{marketType(bet.market)}</span></div>
+                <span className={`rounded px-2 py-1 text-[10px] font-semibold uppercase ${statusClass}`}>{status}</span>
+              </div>
+              <p className="mt-1 text-xs text-pl-text-dim">
+                {americanOdds(bet.price)}{bet.bookmaker ? ` at ${bet.bookmaker}` : ""} · model {(bet.probability * 100).toFixed(1)}% · market {(bet.implied_probability * 100).toFixed(1)}%
+              </p>
+              <div className="mt-2 flex items-center justify-between text-[11px]">
+                <span className="font-semibold text-pl-cyan">+{(bet.edge * 100).toFixed(1)}% edge</span>
+                {bet.final_score && <span className={bet.won ? "text-win" : "text-loss"}>Final {bet.final_score}</span>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </section>
   );
 }
@@ -199,7 +231,9 @@ export function FixtureModal({ eventId, onClose }: Props) {
                   <span className="text-xs font-medium uppercase text-pl-text-faint">
                     {new Date(detail.commence_time).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}
                   </span>
-                  <span className="text-2xl font-black text-pl-text-faint">vs</span>
+                  {detail.post_match ? (
+                    <><span className="text-[10px] font-semibold uppercase tracking-wide text-pl-text-faint">Final</span><span className="text-2xl font-black text-pl-text">{detail.post_match.final_score.replace("-", "–")}</span></>
+                  ) : <span className="text-2xl font-black text-pl-text-faint">vs</span>}
                   <span className="text-xs text-pl-text-faint">
                     {new Date(detail.commence_time).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
                   </span>
@@ -264,7 +298,14 @@ export function FixtureModal({ eventId, onClose }: Props) {
                 )}
               </section>
 
-              <section>
+              {detail.post_match ? (
+                detail.pre_match_value_bets?.length > 0 ? <PreMatchValueBets bets={detail.pre_match_value_bets} /> : (
+                  <section>
+                    <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">Pre-match value bets</h3>
+                    <p className="rounded-lg bg-pl-850/60 px-3 py-2 text-xs text-pl-text-faint">No value bet qualified before kickoff for this fixture, so no pre-match bet was recorded.</p>
+                  </section>
+                )
+              ) : <section>
                 <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">Best value bet</h3>
                 {detail.recommended_bet ? (
                   <div className="rounded-xl border border-pl-cyan/40 bg-pl-cyan/10 p-3 text-sm">
@@ -291,7 +332,7 @@ export function FixtureModal({ eventId, onClose }: Props) {
                         : "Live match-result and goals odds have not loaded yet, so a value bet cannot be calculated."}
                   </p>
                 )}
-              </section>
+              </section>}
 
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 <div className="flex flex-col gap-6">

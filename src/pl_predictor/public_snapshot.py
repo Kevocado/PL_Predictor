@@ -41,14 +41,13 @@ from .config import PUBLIC_SNAPSHOT_PATH
 
 
 def build_snapshot(previous: dict | None = None) -> dict:
-    """`previous` is the last snapshot already written to disk (GitHub
-    Actions checks it out fresh every scheduled run, same as any other
-    tracked file). A fixture that was already finished in `previous` is
-    permanently decided — its detail/player data can never change again —
-    so it's reused as-is instead of recomputed. As a season progresses this
-    is most of the schedule; only the still-upcoming fixtures (plus any
-    fixture that just finished since the last run, so its real result gets
-    captured once) pay the live per-fixture computation cost each run."""
+    """Build the public read-only data bundle from local live-serving state.
+
+    Finished details are normally reused from the prior snapshot.  A detail
+    with no reported statistics is retried so delayed official box-score data
+    can still appear in the public app. Newer details also include their
+    immutable value-bet calls; legacy snapshot entries remain safely usable.
+    """
     print("Loading live-serving state (models, matches, fixtures)...")
     fd_org_matches = routes._get_fd_org_matches()
     has_matchday = not fd_org_matches.empty and fd_org_matches["matchday"].notna().any()
@@ -92,7 +91,20 @@ def build_snapshot(previous: dict | None = None) -> dict:
         for fixture in gw_data.get("fixtures", [])
         if fixture.get("event_id") and fixture.get("finished")
     }
-    reusable_ids = finished_event_ids & previous_finished_ids & previous_detail.keys()
+    def detail_needs_refresh(detail: object) -> bool:
+        # Older/synthetic partial snapshots can omit fixture-detail fields;
+        # retain their old reuse behaviour. Real fixture details include
+        # actual_stats, so a null value tells us the final box score had not
+        # reached the feed at the last snapshot run.
+        if not isinstance(detail, dict) or "actual_stats" not in detail:
+            return False
+        return detail.get("actual_stats") is None
+
+    reusable_ids = {
+        event_id
+        for event_id in finished_event_ids & previous_finished_ids & previous_detail.keys()
+        if not detail_needs_refresh(previous_detail[event_id])
+    }
 
     print(
         f"Building fixture detail + players for {len(event_ids)} fixtures "

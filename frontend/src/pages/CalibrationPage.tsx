@@ -8,6 +8,7 @@ import { WalkForwardBettingPanel } from "../components/WalkForwardBettingPanel";
 import { InfoTooltip } from "../components/InfoTooltip";
 import { FeatureImportanceChart } from "../components/FeatureImportanceChart";
 import { ModelFreshnessPanel } from "../components/ModelFreshnessPanel";
+import { SquadContinuityPanel } from "../components/SquadContinuityPanel";
 import { GLOSSARY } from "../lib/glossary";
 
 export function CalibrationPage() {
@@ -168,6 +169,8 @@ export function CalibrationPage() {
           </div>
         </div>
       )}
+
+      <SquadContinuityPanel />
 
       {manifest?.scoreline.chosen_model === "ml_scoreline" &&
         manifest.scoreline.ml_scoreline.importance_home &&

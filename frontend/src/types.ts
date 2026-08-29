@@ -112,6 +112,21 @@ export interface FixtureDetail extends FixtureSummary {
   away_context: FixtureTeamContext;
   post_match: FixturePostMatch | null;
   actual_stats: FixtureActualStats | null;
+  pre_match_value_bets: FixtureValueBetSnapshot[];
+}
+
+export interface FixtureValueBetSnapshot {
+  market: string;
+  probability: number;
+  implied_probability: number;
+  edge: number;
+  price: number;
+  bookmaker: string | null;
+  snapshotted_at: string;
+  resolved: boolean;
+  won: boolean | null;
+  final_score: string | null;
+  result_source: string | null;
 }
 
 export interface PostMatchVerdict {
@@ -216,6 +231,11 @@ export interface CalibrationResponse {
   bookmaker: CalibrationStat | null;
   naive: CalibrationStat;
   season: string | null;
+}
+
+export interface SquadContinuityResponse {
+  season: string;
+  teams: { team: string; squad_continuity: number }[];
 }
 
 export interface BacktestResults {

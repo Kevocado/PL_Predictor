@@ -23,7 +23,7 @@ from ..data.odds_api import OddsAPIKeyMissing, fetch_epl_odds
 from ..evaluate import backtest as backtest_lib
 from ..evaluate import betting_validation
 from ..evaluate import calibration as calibration_lib
-from ..features import head_to_head, player_form, ratings as ratings_mod, rolling_form
+from ..features import head_to_head, player_form, ratings as ratings_mod, rolling_form, squad_change
 from ..features.build import build_features_for_fixtures, build_training_frame
 from ..models import manifest as manifest_lib
 from ..models import player_goals, power_rankings as power_rankings_mod, projected_table, scoreline
@@ -738,6 +738,11 @@ def _build_fixture_detail(summary: FixtureSummary, home: str, away: str, read_on
         tracking_store.reconcile_fixture_market_predictions(matches_df)
     post_match = tracking_store.get_fixture_post_match(summary.event_id)
     actual_stats = _fixture_actual_stats(matches_df, home, away, summary.commence_time)
+    # The live odds table stops carrying a fixture after kickoff.  The
+    # ledger is therefore the only honest source for a completed fixture's
+    # value-bet call: it preserves the first displayed price and edge rather
+    # than silently recalculating (or forgetting) it afterwards.
+    pre_match_value_bets = value_bet_ledger.get_fixture_value_bets(summary.event_id)
 
     return FixtureDetail(
         **summary.model_dump(),
@@ -776,6 +781,7 @@ def _build_fixture_detail(summary: FixtureSummary, home: str, away: str, read_on
         ),
         post_match=post_match,
         actual_stats=actual_stats,
+        pre_match_value_bets=pre_match_value_bets,
     )
 
 
@@ -1276,6 +1282,27 @@ def get_calibration():
         "naive": calibration_lib.naive_favourite_baseline(val_df),
         "season": str(val_df["season"].iloc[0]) if not val_df.empty else None,
     }
+
+
+@router.get("/squad-continuity")
+def get_squad_continuity():
+    """Per-team squad continuity for the current season (EXP-2026-18, see
+    docs/AI_CONTINUITY.md and features/squad_change.py) — the fraction of
+    last season's playing-time minutes retained by players still
+    registered this season, lowest first (biggest off-season turnover).
+    Feeds `ml_scoreline`'s feature set directly (see features/build.py);
+    this endpoint just exposes the raw per-team numbers for display,
+    independent of which scoreline model happens to be `chosen_model`."""
+    season = football_data.season_str(football_data.CURRENT_SEASON_START_YEAR)
+
+    def build():
+        try:
+            table = squad_change.team_season_continuity_table([season])
+        except RuntimeError:
+            return []
+        return table.sort_values("squad_continuity")[["team", "squad_continuity"]].to_dict("records")
+
+    return {"season": season, "teams": _cached("squad_continuity", build, ttl=24 * 3600)}
 
 
 @router.post("/backtest", dependencies=[Depends(_admin_only)])

@@ -12,6 +12,7 @@ import type {
   RankingsResponse,
   PlayerHubResponse,
   ScorerAccuracyResponse,
+  SquadContinuityResponse,
   TeamHubResponse,
   TrackRecordResponse,
   ValueBetTrackRecordResponse,
@@ -65,6 +66,7 @@ export const api = {
   teamHub: () => get<TeamHubResponse>("/hub/teams"),
   playerHub: () => get<PlayerHubResponse>("/hub/players"),
   scorerTrackRecord: () => get<ScorerAccuracyResponse>("/scorer-track-record"),
+  squadContinuity: () => get<SquadContinuityResponse>("/squad-continuity"),
 };
 
 export class ApiError extends Error {}

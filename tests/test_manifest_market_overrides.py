@@ -1,6 +1,17 @@
 from pl_predictor.data import football_data
 from pl_predictor.models import manifest
 
+# 5 seasons, not 3 — confirmed directly that a 3-season/760-row window sits
+# inside EXP-2026-18's own documented squad-continuity regression zone (its
+# smallest-training-window fold is the one that regresses): on exactly
+# ["2023-2024", "2024-2025", "2025-2026"], adding squad_continuity flips
+# `chosen_model` away from `ml_scoreline` entirely, which would silently
+# defeat these tests' actual purpose (testing the override *mechanism*, not
+# which model wins). 5 seasons reproduces real production's ranking
+# (ml_scoreline decisively ahead of covariate_poisson, matching the real
+# 8-season manifest.json) while staying much faster than a full retrain.
+TEST_SEASONS = ["2021-2022", "2022-2023", "2023-2024", "2024-2025", "2025-2026"]
+
 
 def _patch_paths(monkeypatch, tmp_path):
     monkeypatch.setattr(manifest, "MODELS_DIR", tmp_path)
@@ -18,7 +29,7 @@ def _patch_paths(monkeypatch, tmp_path):
 def test_train_all_includes_covariate_poisson_as_a_fourth_candidate(monkeypatch, tmp_path):
     _patch_paths(monkeypatch, tmp_path)
 
-    result = manifest.train_all(seasons=["2023-2024", "2024-2025", "2025-2026"], include_current_season=False)
+    result = manifest.train_all(seasons=TEST_SEASONS, include_current_season=False)
 
     assert "covariate_poisson" in result["scoreline"]
     assert "rps" in result["scoreline"]["covariate_poisson"]["metrics"]
@@ -38,9 +49,9 @@ def test_train_all_includes_covariate_poisson_as_a_fourth_candidate(monkeypatch,
 
 def test_load_models_resolves_market_override_to_a_loaded_model_with_context(monkeypatch, tmp_path):
     _patch_paths(monkeypatch, tmp_path)
-    manifest.train_all(seasons=["2023-2024", "2024-2025", "2025-2026"], include_current_season=False)
+    manifest.train_all(seasons=TEST_SEASONS, include_current_season=False)
 
-    matches_df = football_data.load_training_data(seasons=["2023-2024", "2024-2025", "2025-2026"])
+    matches_df = football_data.load_training_data(seasons=TEST_SEASONS)
     models = manifest.load_models(matches_df=matches_df)
 
     assert "over_2_5" in models["scoreline_market_overrides"]
@@ -53,7 +64,7 @@ def test_load_models_resolves_market_override_to_a_loaded_model_with_context(mon
 
 def test_load_models_requires_matches_df_when_an_override_needs_context(monkeypatch, tmp_path):
     _patch_paths(monkeypatch, tmp_path)
-    manifest.train_all(seasons=["2023-2024", "2024-2025", "2025-2026"], include_current_season=False)
+    manifest.train_all(seasons=TEST_SEASONS, include_current_season=False)
 
     try:
         manifest.load_models(matches_df=None)

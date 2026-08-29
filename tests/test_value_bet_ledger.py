@@ -65,6 +65,23 @@ def test_record_keeps_model_and_best_quote_snapshot(clean_db):
     assert snapshot["home_win"]["bookmaker"] == "best-book"
 
 
+def test_fixture_value_bets_preserve_the_original_call_and_final_result(clean_db):
+    table = _flagged_table(home_win_bookmaker="first-book")
+    value_bet_ledger.record_value_bets(table)
+    matches_df = pd.DataFrame(
+        [{"team_home": "Arsenal", "team_away": "Chelsea", "date": pd.Timestamp("2020-01-01"), "goals_home": 2, "goals_away": 1, "ftr": "H"}]
+    )
+    value_bet_ledger.reconcile_value_bets(matches_df, result_source="official feed")
+
+    bets = value_bet_ledger.get_fixture_value_bets("e1")
+
+    assert [(bet["market"], bet["won"]) for bet in bets] == [("home_win", True), ("under_2_5", False)]
+    assert bets[0]["price"] == pytest.approx(2.2)
+    assert bets[0]["bookmaker"] == "first-book"
+    assert bets[0]["final_score"] == "2-1"
+    assert bets[0]["result_source"] == "official feed"
+
+
 def test_reconcile_and_replay_matches_offline_backtest_semantics(clean_db):
     table = _flagged_table()
     value_bet_ledger.record_value_bets(table)

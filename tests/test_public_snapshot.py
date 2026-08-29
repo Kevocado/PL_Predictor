@@ -117,6 +117,28 @@ def test_recomputes_a_fixture_that_just_finished(monkeypatch):
     assert "gw1-a" not in detail_calls
 
 
+def test_retries_finished_detail_until_delayed_box_score_is_available(monkeypatch):
+    fixtures_by_gameweek = _fake_fixtures_by_gameweek(finished_ids={"gw1-a", "gw1-b"})
+    detail_calls: list[str] = []
+    players_calls: list[str] = []
+    _patch_common(monkeypatch, fixtures_by_gameweek, detail_calls, players_calls)
+
+    previous = {
+        "fixtures_by_gameweek": _fake_fixtures_by_gameweek(finished_ids={"gw1-a", "gw1-b"}),
+        "fixture_detail_by_event_id": {
+            "gw1-a": {"event_id": "gw1-a", "actual_stats": None},
+            "gw1-b": {"event_id": "gw1-b", "actual_stats": {"home": {"Goals": 1}, "away": {"Goals": 0}}, "pre_match_value_bets": []},
+        },
+        "fixture_players_by_event_id": {},
+    }
+
+    snapshot = public_snapshot.build_snapshot(previous)
+
+    assert snapshot["fixture_detail_by_event_id"]["gw1-a"]["computed"] == "fresh"
+    assert "gw1-a" in detail_calls
+    assert "gw1-b" not in detail_calls
+
+
 def test_player_review_reused_and_backfilled_like_players(monkeypatch):
     """player_review_by_event_id must follow the exact same reuse rule as
     fixture_players_by_event_id: reused when the previous run already has

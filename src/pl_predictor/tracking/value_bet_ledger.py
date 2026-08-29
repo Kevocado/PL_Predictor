@@ -45,6 +45,7 @@ _SIDE_TO_MARKET = {
     "over_2_5": ("totals_2_5", "over"),
     "under_2_5": ("totals_2_5", "under"),
 }
+_MARKET_TO_SIDE = {market_outcome: side for side, market_outcome in _SIDE_TO_MARKET.items()}
 
 
 def _connect() -> sqlite3.Connection:
@@ -235,6 +236,55 @@ def reconcile_value_bets(matches_df: pd.DataFrame, lookback_days: int = 3, resul
             resolved_count += 1
 
         return resolved_count
+
+
+def get_fixture_value_bets(event_id: str) -> list[dict]:
+    """Return the immutable pre-kickoff value-bet rows for one fixture.
+
+    This is deliberately a direct view of the ledger rather than a fresh
+    odds calculation.  Once a bet was shown to a user, its original price,
+    model probability and edge must remain visible after kickoff.
+    """
+    with _connect() as conn:
+        rows = pd.read_sql(
+            "SELECT * FROM value_bets WHERE event_id = ? ORDER BY id ASC",
+            conn,
+            params=(str(event_id),),
+        )
+
+    bets = []
+    for _, row in rows.iterrows():
+        side = _MARKET_TO_SIDE.get((row["market"], row["outcome_name"]))
+        if side is None:
+            continue
+        try:
+            quote_snapshot = json.loads(row["quote_snapshot"]) if pd.notna(row["quote_snapshot"]) else {}
+        except (TypeError, json.JSONDecodeError):
+            quote_snapshot = {}
+        quote = quote_snapshot.get(side, {})
+        resolved = bool(row["resolved"])
+        home_goals, away_goals = row["actual_goals_home"], row["actual_goals_away"]
+        final_score = (
+            f"{int(home_goals)}-{int(away_goals)}"
+            if resolved and pd.notna(home_goals) and pd.notna(away_goals)
+            else None
+        )
+        bets.append(
+            {
+                "market": side,
+                "probability": float(row["model_prob"]),
+                "implied_probability": float(row["implied_prob"]),
+                "edge": float(row["edge"]),
+                "price": float(row["price"]),
+                "bookmaker": quote.get("bookmaker"),
+                "snapshotted_at": pd.Timestamp(row["snapshotted_at"]).isoformat(),
+                "resolved": resolved,
+                "won": bool(row["won"]) if resolved and pd.notna(row["won"]) else None,
+                "final_score": final_score,
+                "result_source": row["result_source"] if resolved and pd.notna(row["result_source"]) else None,
+            }
+        )
+    return bets
 
 
 def get_value_bet_track_record(
