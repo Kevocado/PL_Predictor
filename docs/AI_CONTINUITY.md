@@ -1319,6 +1319,114 @@ experiment; negative evidence prevents repeated work.
   removed from the frontend at the user's request. The first live ten-match
   check remains too small for a decision: RPS/Brier were effectively tied
   while ECE worsened.
+- **Two real bugs found in this feature's first real use (2026-08-29),
+  fixed directly:**
+  1. `data/fixtures.py::_fixtures_from_fpl_api` filtered upcoming fixtures
+     to `event >= bootstrap["is_next"] gameweek` on top of `not finished`.
+     FPL's `is_next` flag points at the gameweek *after* the one currently
+     being played, so while a gameweek is still in progress this silently
+     dropped its own remaining unplayed fixtures — confirmed live: GW2's
+     5 completed matches showed, its other 5 (not yet played) vanished
+     entirely, jumping straight to GW3. `not finished` alone is already
+     the correct, per-fixture test; the gameweek-number filter was
+     removed rather than adjusted, since it added no correct information
+     `not finished` didn't already have. Regression test:
+     `tests/test_fixtures.py::test_fpl_fallback_keeps_unplayed_fixtures_from_the_in_progress_gameweek`.
+  2. `models/fpl.py::transfer_recommendations` had two compounding bugs
+     that together made the transfer planner "not make sense": (a) `cost`
+     was `max(0.0, incoming.price - outgoing.price - bank)` — a price
+     *downgrade* (buying someone cheaper) always floored to a misleading
+     `£0.0m`, identical to a genuinely same-priced swap, hiding real price
+     gaps (confirmed against live bootstrap data — e.g. selling a
+     £12.0m player for a £9.5m one showed £0.0m, not a £2.5m refund);
+     (b) the returned list was the raw top-10 (out, in) pairs by
+     `net_gain` with no deduplication, so the single highest-
+     `projected_points` player in a position could appear as the
+     recommended "in" for four or five different outgoing players at
+     once, and the list length never respected `free_transfers` at all —
+     reading as a redundant, arbitrary bag of ideas rather than an actual
+     plan. Fixed: `cost` is now the true signed price delta (bank is
+     used only to exclude swaps that exceed it, not to adjust the
+     displayed number), and results are deduplicated to distinct
+     (outgoing, incoming) pairs, capped to `max(free_transfers, 1)`.
+     **Not fixed, flagged as a separate open question:** the underlying
+     `projected_points` for a 1-2-appearance early-season player can
+     still look inflated relative to an established starter (small-sample
+     variance in `_expected_minutes`/`_fixture_projection`) — this is a
+     projection-calibration question, not a mechanical bug, and needs its
+     own evaluation (this project's usual chronological/walk-forward
+     discipline) before touching the model, not a quick patch. Regression
+     tests: `tests/test_fpl_optimizer.py::test_transfer_cost_is_a_signed_price_delta_not_floored_at_zero`,
+     `::test_transfer_recommendations_are_deduplicated_and_capped_to_free_transfers`,
+     `::test_transfer_recommendations_exclude_unaffordable_swaps`.
+  3. **Consolidation pass, same date:** cached `/fpl/entry/{id}/transfers`'
+     outbound FPL call by `(entry_id, gameweek)` (`_LIVE_CACHE_TTL_SECONDS`)
+     — it was the only FPL endpoint making a fresh live network call with
+     zero caching on every request, a real cost/abuse surface once the
+     read-only public deployment gets any real anonymous traffic. Added
+     `data/tracking.db-shm`/`-wal` to `.gitignore` (SQLite WAL companion
+     files, previously untracked-but-not-ignored). Updated `README.md`'s
+     "What it does" to cover both the FPL tab and squad continuity, which
+     it didn't mention at all.
+
+### OPS-2026-04 — fixture-detail terminal-style redesign; reconcile-on-every-click fix
+
+- **Status:** shipped. Frontend-only visual redesign plus one backend
+  performance fix, both scoped from a user request to make the fixture
+  modal's probability/market display denser and more glanceable (inspired
+  by reference screenshots of a dark, monospace, terminal-style sports
+  data display) and to make fixture-detail loading faster.
+- **Performance fix:** `api/routes.py::_build_fixture_detail` called
+  `tracking_store.reconcile_fixture_market_predictions(matches_df)`
+  unconditionally on every fixture-detail request. Measured live: ~250ms
+  per call, unconditionally, with 476 unresolved rows in the table —
+  confirmed via two back-to-back calls updating zero rows both times, so
+  it was pure redundant work on the hot path of opening any fixture.
+  Throttled via this file's existing `_cached(key, fn, ttl=
+  _LIVE_CACHE_TTL_SECONDS)` pattern (same 5-minute TTL every other
+  expensive live lookup here already uses) — measured after the fix:
+  ~330ms → ~75ms per fixture-detail request. Cold-start latency (the very
+  first request after a server restart) was separately checked and found
+  to already be handled by the existing `warm_caches()` startup routine
+  (`api/routes.py`) — not a live gap, nothing further needed there.
+- **Visual redesign:** new `frontend/src/components/MarketBar.tsx` — a
+  thin horizontal probability bar (bar width ∝ probability, monospace
+  numerals) with optional props: `marketProb` (renders a market-comparison
+  tick on the bar plus a signed whole-number `%` delta, computed from the
+  raw fractional probabilities before rounding — not from the two already-
+  rounded percentages, which would drift up to 1 point from the backend's
+  real `edge = prob - implied`), `highlight` (`"flagged" | "hit" | "miss"`
+  — background/ring tinting), and `valueBet` (a literal "Value" badge,
+  **kept separate from `highlight`** because `highlight="flagged"` is
+  reused by the scoreline list for an unrelated "most likely" ring — the
+  badge must never piggyback on that shared prop or it would incorrectly
+  label a top scoreline as a value bet). Replaces `FixtureModal.tsx`'s old
+  `MarketRow` (flat text, no bar) at every call site, and
+  `ScorelineHeatmap.tsx`'s flat "next most likely scorelines" rows. The
+  separate "Best value bet" callout box is gone — its content now renders
+  as a one-line addendum directly beneath the matching market's own row.
+  Spec: `docs/superpowers/specs/2026-08-29-fixture-terminal-style-design.md`.
+  Plan: `docs/superpowers/plans/2026-08-29-fixture-terminal-style.md`.
+- **Follow-up fix, same day:** the first version of this redesign folded
+  the value-bet highlight in too subtly — a same-weight ring as the
+  hit/miss states, no label, in a list of 5-7 rows, which lost the
+  "glanceable at a fixture" quality the separate callout box used to
+  provide (flagged directly by the user after the initial redesign
+  shipped). Fixed by giving `highlight="flagged"` a visibly bolder ring/
+  background than hit/miss, and adding the explicit `valueBet` badge
+  described above. No live value bet existed at verification time to
+  screenshot directly (confirmed via `data/tracking.db`'s `value_bets`
+  table — the nearest recent one had already moved off its edge threshold
+  by the time it was checked, consistent with this project's own
+  documented "live edges are rare and short-lived" finding); the badge/
+  ring styling reuses this codebase's own existing "Value bet" badge
+  convention (`CurrentGameweekCard.tsx`'s `bg-pl-pink/20 text-pl-pink`
+  pill) rather than inventing a new one, so it is a low-risk styling
+  application even without a live screenshot.
+- **Not done:** applying this same treatment to the three Calibration-page
+  value-bet panels (`LiveValueBetPanel`, `BacktestPanel`,
+  `WalkForwardBettingPanel`) — explicitly out of scope per the spec's own
+  flagged scope question; revisit only if the user asks for it directly.
 
 ## Change checklist for future agents
 
