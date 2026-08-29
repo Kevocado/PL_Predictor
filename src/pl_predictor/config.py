@@ -33,6 +33,8 @@ ODDS_CACHE_DIR = CACHE_DIR / "odds"
 FPL_HISTORY_CACHE_DIR = CACHE_DIR / "fpl_history"
 FPL_PLAYER_CACHE_DIR = CACHE_DIR / "fpl_players"
 FPL_EVENT_CACHE_DIR = CACHE_DIR / "fpl_events"
+FPL_RESEARCH_CACHE_DIR = CACHE_DIR / "fpl_research"
+ODDS_SNAPSHOT_DIR = CACHE_DIR / "odds_snapshots"
 UNDERSTAT_CACHE_DIR = CACHE_DIR / "understat"
 # One file per MATCH, not per season (unlike every other cache dir here) —
 # see data/understat_shots.py's module docstring.
@@ -110,6 +112,8 @@ for _d in (
     FPL_HISTORY_CACHE_DIR,
     FPL_PLAYER_CACHE_DIR,
     FPL_EVENT_CACHE_DIR,
+    FPL_RESEARCH_CACHE_DIR,
+    ODDS_SNAPSHOT_DIR,
     UNDERSTAT_CACHE_DIR,
     UNDERSTAT_SHOTS_CACHE_DIR,
     PULSELIVE_CACHE_DIR,

@@ -6,8 +6,6 @@ export const GLOSSARY = {
     "The bookmaker's own probability for this outcome, backed out from their odds and adjusted (de-vigged) to remove their built-in margin.",
   btts: "Both Teams To Score — the model's probability that both sides find the net at least once.",
   teamTwoPlus: "The model's probability that this team alone scores 2 or more goals in the match.",
-  squadContinuity:
-    "What fraction of the team's total playing-time minutes last season came from players still registered to the club this season. Low continuity means heavy summer turnover (sales, loans, big signings) — a real squad-strength change the model's Elo/Pi ratings won't have proof of yet since it hasn't shown up in this season's results.",
   expectedCount:
     "The model's predicted average (λ) for this match — e.g. an expected value of 10.6 corners means the model's best guess is ~10-11 corners, priced against the line shown.",
   noLiveMarket:

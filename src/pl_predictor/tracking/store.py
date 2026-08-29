@@ -15,6 +15,7 @@ goals O/U 2.5, and BTTS. Corners/cards/player markets aren't tracked here
 
 from __future__ import annotations
 
+import json
 import sqlite3
 from datetime import datetime, timezone
 
@@ -49,7 +50,19 @@ def _naive(ts) -> pd.Timestamp:
 
 
 def _connect() -> sqlite3.Connection:
-    conn = sqlite3.connect(str(TRACKING_DB_PATH))
+    # Fixture views and the five-minute tracking task run concurrently in
+    # FastAPI worker threads. A tiny default SQLite timeout turns an ordinary
+    # short write into a user-visible 500/blank page; WAL lets readers keep
+    # serving while a snapshot is written and busy_timeout serialises the
+    # occasional competing write safely.
+    conn = sqlite3.connect(str(TRACKING_DB_PATH), timeout=15)
+    conn.execute("PRAGMA busy_timeout = 15000")
+    try:
+        conn.execute("PRAGMA journal_mode = WAL")
+    except sqlite3.OperationalError:
+        # A pre-existing external connection can temporarily block the mode
+        # switch. The busy timeout above still protects normal operations.
+        pass
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS predictions (
@@ -117,6 +130,34 @@ def _connect() -> sqlite3.Connection:
     )
     conn.execute(
         """
+        CREATE TABLE IF NOT EXISTS fixture_forecast_snapshots (
+            event_id TEXT NOT NULL,
+            stage TEXT NOT NULL,
+            commence_time TEXT NOT NULL,
+            snapshotted_at TEXT NOT NULL,
+            home_win REAL NOT NULL,
+            draw REAL NOT NULL,
+            away_win REAL NOT NULL,
+            over_2_5 REAL NOT NULL,
+            lineup_snapshot TEXT,
+            PRIMARY KEY (event_id, stage)
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS odds_timing_snapshots (
+            event_id TEXT NOT NULL,
+            stage TEXT NOT NULL,
+            commence_time TEXT NOT NULL,
+            snapshotted_at TEXT NOT NULL,
+            quote_snapshot TEXT NOT NULL,
+            PRIMARY KEY (event_id, stage)
+        )
+        """
+    )
+    conn.execute(
+        """
         CREATE TABLE IF NOT EXISTS player_prediction_snapshots (
             event_id TEXT NOT NULL,
             player_id INTEGER NOT NULL,
@@ -178,6 +219,94 @@ def _connect() -> sqlite3.Connection:
         """
     )
     return conn
+
+
+def record_fixture_forecast_snapshots(table: pd.DataFrame, stage: str, lineups: dict | None = None) -> int:
+    """Persist early and confirmed-XI forecasts independently.
+
+    The current outcome model has no unvalidated lineup coefficient, so the
+    confirmed stage records the honest baseline alongside the actual XI. It
+    creates the leakage-safe prospective dataset needed to test a future
+    late-model adjustment rather than pretending a historical reconstruction
+    was available before kickoff.
+    """
+    if table.empty:
+        return 0
+    now = datetime.now(timezone.utc).isoformat()
+    rows = []
+    for _, fixture in table.iterrows():
+        event_id = str(fixture["event_id"])
+        rows.append((
+            event_id, stage, _naive(fixture["commence_time"]).isoformat(), now,
+            float(fixture["home_win_prob"]), float(fixture["draw_prob"]),
+            float(fixture["away_win_prob"]), float(fixture["over_2_5_prob"]),
+            json.dumps((lineups or {}).get(event_id)) if lineups and event_id in lineups else None,
+        ))
+    with _connect() as conn:
+        result = conn.executemany(
+            """INSERT OR IGNORE INTO fixture_forecast_snapshots
+               (event_id, stage, commence_time, snapshotted_at, home_win, draw, away_win, over_2_5, lineup_snapshot)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            rows,
+        )
+        return result.rowcount
+
+
+def confirmed_xi_experiment_status() -> dict:
+    with _connect() as conn:
+        rows = conn.execute(
+            "SELECT stage, COUNT(*) FROM fixture_forecast_snapshots GROUP BY stage"
+        ).fetchall()
+    counts = {stage: count for stage, count in rows}
+    return {
+        "early_snapshots": counts.get("early", 0),
+        "confirmed_xi_snapshots": counts.get("confirmed_xi_baseline", 0),
+        "minimum_fixtures_for_decision": 60,
+        "status": "collecting_prospectively",
+        "note": "Confirmed-XI forecasts remain the independent baseline until a leakage-safe late-model experiment clears validation.",
+    }
+
+
+def capture_due_odds_snapshots(table: pd.DataFrame, now: pd.Timestamp | None = None) -> int:
+    """Save free live quotes only in tightly defined 24h/1h windows.
+
+    Closing prices in the historical CSV are deliberately excluded here:
+    they would be known after the scheduled decision point and create a
+    train/serve timing mismatch.
+    """
+    if table.empty:
+        return 0
+    now = _naive(now if now is not None else pd.Timestamp.now(tz="UTC"))
+    rows = []
+    quote_cols = [c for c in table.columns if c.endswith(("_price", "_implied", "_edge")) or c in {"odds_fetched_at", "odds_source"}]
+    for _, fixture in table.iterrows():
+        kickoff = _naive(fixture["commence_time"])
+        remaining_hours = (kickoff - now).total_seconds() / 3600
+        stage = "t24" if 23.0 <= remaining_hours <= 25.0 else "t1" if 0.5 <= remaining_hours <= 1.5 else None
+        if stage is None:
+            continue
+        quote = {col: (None if pd.isna(fixture.get(col)) else fixture.get(col)) for col in quote_cols}
+        rows.append((str(fixture["event_id"]), stage, kickoff.isoformat(), datetime.now(timezone.utc).isoformat(), json.dumps(quote, default=str)))
+    if not rows:
+        return 0
+    with _connect() as conn:
+        result = conn.executemany(
+            "INSERT OR IGNORE INTO odds_timing_snapshots (event_id, stage, commence_time, snapshotted_at, quote_snapshot) VALUES (?, ?, ?, ?, ?)",
+            rows,
+        )
+        return result.rowcount
+
+
+def odds_snapshot_status() -> dict:
+    with _connect() as conn:
+        rows = conn.execute("SELECT stage, COUNT(*) FROM odds_timing_snapshots GROUP BY stage").fetchall()
+    counts = {stage: count for stage, count in rows}
+    return {
+        "t24_snapshots": counts.get("t24", 0),
+        "t1_snapshots": counts.get("t1", 0),
+        "status": "collecting_prospectively",
+        "historical_closing_odds": "research-only benchmark; never used in a deployable or value-bet model",
+    }
 
 
 def record_predictions(table: pd.DataFrame, model_trained_at: str | None = None, backfilled: bool = False) -> int:

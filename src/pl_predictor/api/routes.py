@@ -11,11 +11,12 @@ import time
 from threading import Lock, Thread
 
 import pandas as pd
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 
 from ..config import PUBLIC_MODE, PUBLIC_SNAPSHOT_PATH
 from ..data import fixtures as fixtures_mod
 from ..data import espn, fpl_api, fpl_history
+from ..data.team_names import to_canonical
 from ..data import football_data
 from ..data import football_data_org
 from ..data.football_data_org import FootballDataOrgKeyMissing
@@ -23,10 +24,11 @@ from ..data.odds_api import OddsAPIKeyMissing, fetch_epl_odds
 from ..evaluate import backtest as backtest_lib
 from ..evaluate import betting_validation
 from ..evaluate import calibration as calibration_lib
+from ..evaluate import odds_benchmark
 from ..features import head_to_head, player_form, ratings as ratings_mod, rolling_form, squad_change
 from ..features.build import build_features_for_fixtures, build_training_frame
 from ..models import manifest as manifest_lib
-from ..models import player_goals, power_rankings as power_rankings_mod, projected_table, scoreline
+from ..models import fpl as fpl_model, player_goals, power_rankings as power_rankings_mod, projected_table, scoreline
 from ..models.manifest import chronological_split
 from ..odds import value_bets
 from ..tracking import store as tracking_store
@@ -42,6 +44,8 @@ from .schemas import (
     OverUnderPrediction,
     PlayerPrediction,
     SingleBetRecommendation,
+    FPLManualSquadRequest,
+    FPLTransferRequest,
 )
 from . import hub_analytics
 
@@ -278,11 +282,6 @@ def warm_caches() -> None:
         ("fixtures_df", _get_fixtures_df),
         ("remaining_fixtures_df", _get_remaining_fixtures_df),
         ("bootstrap", _get_bootstrap),
-        ("position_priors", _get_position_priors),
-        ("player_reliability_coeffs", _get_player_reliability_coeffs),
-        ("lineup_model", _get_lineup_model),
-        ("position_rate_models", _get_position_rate_models),
-        ("goal_contribution_model", _get_goal_contribution_model),
         ("odds_df", _get_odds_df),
     ]:
         try:
@@ -448,6 +447,8 @@ def _run_tracking_bookkeeping(table: pd.DataFrame) -> None:
         value_bet_ledger.reconcile_value_bets(_get_matches_df(), result_source="football-data.co.uk")
         trained_at = manifest_lib.load_manifest().get("trained_at") if manifest_lib.MANIFEST_PATH.exists() else None
         tracking_store.record_predictions(table, model_trained_at=trained_at)
+        tracking_store.record_fixture_forecast_snapshots(table, "early")
+        tracking_store.capture_due_odds_snapshots(table)
         _capture_fixture_market_predictions(table)
         tracking_store.reconcile_fixture_market_predictions(_get_matches_df())
         value_bet_ledger.record_value_bets(
@@ -561,24 +562,64 @@ def current_gameweek_fixtures(gameweek: int | None = None):
     track_summary = tracking_store.get_track_record()
     current_gameweek = track_summary["current_gameweek"]
 
+    # football-data.org is optional. When its key/feed is unavailable, FPL's
+    # cached full fixture list is enough to retain the future gameweek view.
+    # Without this branch, the app could still compute a value-bet table yet
+    # show an empty Fixtures tab after a completed round.
+    fallback_remaining = pd.DataFrame()
+    if fd_org_matches.empty:
+        try:
+            fallback_remaining = _get_remaining_fixtures_df()
+        except Exception:  # noqa: BLE001 - retain completed tracking rows
+            fallback_remaining = pd.DataFrame()
+
     if current_gameweek is None and not fd_org_matches.empty:
         unfinished = fd_org_matches[~fd_org_matches["finished"]]
         current_gameweek = int(unfinished["matchday"].min()) if not unfinished.empty else None
 
     current_gameweek = _resolve_current_gameweek(current_gameweek, fd_org_matches)
+    if current_gameweek is None and not fallback_remaining.empty and fallback_remaining["gameweek"].notna().any():
+        # With no tracked result yet (for example, before GW1), the next
+        # scheduled round is necessarily the current view. Once tracking has
+        # established a current gameweek, do not jump the user into a future
+        # round merely because the fallback only contains unplayed fixtures.
+        current_gameweek = int(pd.to_numeric(fallback_remaining["gameweek"], errors="coerce").dropna().min())
 
     target_gameweek = gameweek if gameweek is not None else current_gameweek
     if target_gameweek is None:
         return {"gameweek": None, "fixtures": [], "is_current": True, "min_gameweek": None, "max_gameweek": None}
 
+    # Keep previously completed rounds reachable even when the live fixture
+    # provider only has the remaining schedule (the FPL fallback starts at
+    # the next unplayed gameweek).  Those rows have the original pre-match
+    # snapshot and post-match detail in the tracking store.
+    groups = tracking_store.get_results_by_gameweek()
+    tracked_gameweeks = [
+        int(group["gameweek"])
+        for group in groups
+        if group.get("gameweek") is not None
+    ]
+
     has_matchday = not fd_org_matches.empty and fd_org_matches["matchday"].notna().any()
-    min_gameweek = int(fd_org_matches["matchday"].min()) if has_matchday else 1
-    max_gameweek = int(fd_org_matches["matchday"].max()) if has_matchday else 38
+    if has_matchday:
+        min_gameweek = int(fd_org_matches["matchday"].min())
+        max_gameweek = int(fd_org_matches["matchday"].max())
+    elif not fallback_remaining.empty and fallback_remaining["gameweek"].notna().any():
+        remaining_gw = pd.to_numeric(fallback_remaining["gameweek"], errors="coerce").dropna()
+        min_gameweek, max_gameweek = int(remaining_gw.min()), int(remaining_gw.max())
+        if tracked_gameweeks:
+            min_gameweek = min(min_gameweek, min(tracked_gameweeks))
+            max_gameweek = max(max_gameweek, max(tracked_gameweeks))
+    else:
+        min_gameweek, max_gameweek = (
+            (min(tracked_gameweeks), max(tracked_gameweeks))
+            if tracked_gameweeks
+            else (1, 38)
+        )
 
     fixtures = []
     completed_team_pairs: set[tuple[str, str]] = set()
 
-    groups = tracking_store.get_results_by_gameweek()
     completed_group = next((g for g in groups if g["gameweek"] == target_gameweek), None)
     if completed_group:
         completed_team_pairs = {(r["team_home"], r["team_away"]) for r in completed_group["fixtures"]}
@@ -631,7 +672,14 @@ def current_gameweek_fixtures(gameweek: int | None = None):
             upcoming_rows = upcoming_rows[
                 ~upcoming_rows.apply(lambda row: (row["team_home"], row["team_away"]) in completed_team_pairs, axis=1)
             ]
-        if not upcoming_rows.empty:
+    elif not fallback_remaining.empty:
+        upcoming_rows = fallback_remaining[
+            pd.to_numeric(fallback_remaining["gameweek"], errors="coerce") == target_gameweek
+        ]
+    else:
+        upcoming_rows = pd.DataFrame()
+
+    if not upcoming_rows.empty:
             models = _get_models()
             preds = scoreline.predict_fixtures_batch(
                 models["scoreline"], upcoming_rows, market_overrides=models.get("scoreline_market_overrides")
@@ -1149,6 +1197,11 @@ def background_tracking_tick() -> None:
             confirmed = espn.fetch_confirmed_lineups(fixture["team_home"], fixture["team_away"], fixture["commence_time"])
             if fixture["team_home"] not in confirmed or fixture["team_away"] not in confirmed:
                 continue
+            tracking_store.record_fixture_forecast_snapshots(
+                table.loc[[fixture.name]],
+                "confirmed_xi_baseline",
+                {str(fixture["event_id"]): confirmed},
+            )
             players = _rank_fixture_players(str(fixture["event_id"]), fixture["team_home"], fixture["team_away"], confirmed)
             _snapshot_or_reconcile_player_predictions(str(fixture["event_id"]), fixture["team_home"], fixture["team_away"], players)
     except Exception as exc:  # noqa: BLE001 - periodic tracking is best effort
@@ -1385,6 +1438,110 @@ def _current_season_label() -> str:
     return football_data.season_str(football_data.CURRENT_SEASON_START_YEAR)
 
 
+def _fpl_projections(gameweek: int | None = None) -> dict:
+    """Build the FPL view from the official live pool and the independent
+    scoreline model.  It is cached separately from fixtures because an FPL
+    page should not trigger one element-summary request per player."""
+    bootstrap = _get_bootstrap()
+    event_id = gameweek or fpl_api.get_current_event(bootstrap)
+    if event_id is None:
+        raise HTTPException(status_code=409, detail="FPL has not published a current or next gameweek yet.")
+
+    def build():
+        fixtures = fpl_api.fetch_fixtures()
+        models = _get_models()
+        teams = {int(team["id"]): team["name"] for team in bootstrap.get("teams", [])}
+        event_fixtures = [item for item in fixtures if item.get("event") == int(event_id) and not item.get("finished")]
+        batch_input = pd.DataFrame([
+            {
+                "team_home": to_canonical(teams.get(int(item["team_h"]), str(item["team_h"])), source="fpl"),
+                "team_away": to_canonical(teams.get(int(item["team_a"]), str(item["team_a"])), source="fpl"),
+                "commence_time": item.get("kickoff_time"),
+            }
+            for item in event_fixtures
+        ])
+        batch_predictions = scoreline.predict_fixtures_batch(
+            models["scoreline"], batch_input, market_overrides=models.get("scoreline_market_overrides")
+        ) if not batch_input.empty else []
+        prediction_by_pair = {
+            (row.team_home, row.team_away): {**prediction, "model_source": "independent_scoreline"}
+            for row, prediction in zip(batch_input.itertuples(index=False), batch_predictions)
+        }
+
+        def predict(home: str, away: str) -> dict:
+            return prediction_by_pair.get(
+                (to_canonical(home, source="fpl"), to_canonical(away, source="fpl")),
+                {"home_goal_expectation": 1.35, "away_goal_expectation": 1.15, "model_source": "fpl_fallback"},
+            )
+
+        return fpl_model.build_projections(bootstrap, fixtures, int(event_id), predict)
+
+    return _cached(f"fpl_projections_{event_id}", build, ttl=_LIVE_CACHE_TTL_SECONDS)
+
+
+@router.get("/fpl/projections")
+def fpl_projections(gameweek: int | None = None):
+    if PUBLIC_MODE:
+        return _public_snapshot().get("fpl", {}).get("projections", {"gameweek": gameweek, "players": []})
+    return _fpl_projections(gameweek)
+
+
+@router.get("/fpl/optimal-xi")
+def fpl_optimal_xi(gameweek: int | None = None, formation: str | None = None):
+    if PUBLIC_MODE:
+        return _public_snapshot().get("fpl", {}).get("optimal_xi", {})
+    data = _fpl_projections(gameweek)
+    try:
+        recommendation = fpl_model.optimal_xi(data["players"], formation=formation)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"gameweek": data["gameweek"], "model_source": data["model_source"], **recommendation}
+
+
+@router.get("/fpl/squad")
+def fpl_squad(gameweek: int | None = None, budget: float = 100.0):
+    if not 80.0 <= budget <= 120.0:
+        raise HTTPException(status_code=422, detail="Budget must be between £80m and £120m.")
+    if PUBLIC_MODE:
+        return _public_snapshot().get("fpl", {}).get("squad", {})
+    data = _fpl_projections(gameweek)
+    try:
+        recommendation = fpl_model.build_squad(data["players"], budget)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return {"gameweek": data["gameweek"], "model_source": data["model_source"], **recommendation}
+
+
+@router.post("/fpl/transfers/manual")
+def fpl_manual_transfers(request: FPLManualSquadRequest = Body(...), gameweek: int | None = None):
+    if len(set(request.player_ids)) != 15:
+        raise HTTPException(status_code=422, detail="A manual FPL squad must contain exactly 15 distinct player ids.")
+    data = _fpl_projections(gameweek)
+    try:
+        result = fpl_model.transfer_recommendations(data["players"], request.player_ids, request.bank, request.free_transfers)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"gameweek": data["gameweek"], "source": "manual", **result}
+
+
+@router.get("/fpl/entry/{entry_id}/transfers")
+def fpl_entry_transfers(entry_id: int, gameweek: int | None = None, free_transfers: int = 1):
+    """Public-entry convenience endpoint.  The ID is only used for this
+    request; no entry or squad is written to our tracking database."""
+    data = _fpl_projections(gameweek)
+    try:
+        picks, source_gameweek = fpl_api.fetch_latest_entry_picks(entry_id, data["gameweek"], _get_bootstrap())
+    except Exception as exc:  # noqa: BLE001 - FPL uses several failure shapes
+        raise HTTPException(status_code=502, detail="FPL could not load that public entry for this gameweek.") from exc
+    player_ids = [int(item["element"]) for item in picks.get("picks", [])]
+    bank = float(picks.get("entry_history", {}).get("bank", 0) or 0) / 10.0
+    try:
+        result = fpl_model.transfer_recommendations(data["players"], player_ids, bank, free_transfers)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"gameweek": data["gameweek"], "source_gameweek": source_gameweek, "source": "public_entry", "entry_id": entry_id, **result}
+
+
 @router.get("/hub/rankings")
 def get_power_rankings():
     if PUBLIC_MODE:
@@ -1498,3 +1655,22 @@ def get_player_hub():
 def get_scorer_track_record():
     """Keep player-model evaluation with the calibration surfaces, not discovery."""
     return tracking_store.get_scorer_accuracy()
+
+
+@router.get("/research/confirmed-xi")
+def get_confirmed_xi_experiment():
+    return tracking_store.confirmed_xi_experiment_status()
+
+
+@router.get("/research/odds-snapshots")
+def get_odds_snapshot_experiment():
+    return tracking_store.odds_snapshot_status()
+
+
+@router.get("/research/historical-closing-odds")
+def get_historical_closing_odds_benchmark():
+    return _cached(
+        "historical_closing_odds_benchmark",
+        lambda: odds_benchmark.closing_odds_benchmark(_get_matches_df()),
+        ttl=24 * 3600,
+    )

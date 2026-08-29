@@ -17,10 +17,8 @@ from fastapi.staticfiles import StaticFiles
 
 from ..config import FRONTEND_DIST_DIR, PUBLIC_MODE
 from .routes import (
-    backfill_completed_player_reviews,
     background_tracking_tick,
     maybe_auto_retrain,
-    prewarm_current_gameweek_player_details,
     router,
     warm_caches,
 )
@@ -50,8 +48,10 @@ async def _tracking_loop():
 
 async def _initial_sync():
     await asyncio.to_thread(warm_caches)
-    await asyncio.to_thread(backfill_completed_player_reviews)
-    await asyncio.to_thread(prewarm_current_gameweek_player_details)
+    # Player-history fitting and per-fixture player prewarming can issue
+    # dozens of remote requests and train several models. They are useful
+    # once a fixture modal is opened, but must not contend with the first
+    # dashboard/FPL request after local startup.
 
 
 @asynccontextmanager

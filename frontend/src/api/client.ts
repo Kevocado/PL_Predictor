@@ -6,13 +6,16 @@ import type {
   FixturePlayers,
   FixturePlayerReview,
   FixtureSummary,
+  FPLProjectionsResponse,
+  FPLRecommendation,
+  FPLSquadResponse,
+  FPLTransfersResponse,
   ManifestHistoryResponse,
   ManifestResponse,
   ProjectedTableResponse,
   RankingsResponse,
   PlayerHubResponse,
   ScorerAccuracyResponse,
-  SquadContinuityResponse,
   TeamHubResponse,
   TrackRecordResponse,
   ValueBetTrackRecordResponse,
@@ -43,6 +46,19 @@ async function post<T>(path: string, params?: Record<string, string>): Promise<T
   return res.json();
 }
 
+async function postJson<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const payload = await res.json().catch(() => ({}));
+    throw new Error(payload.detail ?? `${res.status} ${res.statusText}`);
+  }
+  return res.json();
+}
+
 export const api = {
   fixtures: () => get<FixtureSummary[]>("/fixtures"),
   currentGameweek: (gameweek?: number) =>
@@ -66,7 +82,13 @@ export const api = {
   teamHub: () => get<TeamHubResponse>("/hub/teams"),
   playerHub: () => get<PlayerHubResponse>("/hub/players"),
   scorerTrackRecord: () => get<ScorerAccuracyResponse>("/scorer-track-record"),
-  squadContinuity: () => get<SquadContinuityResponse>("/squad-continuity"),
+  fplProjections: () => get<FPLProjectionsResponse>("/fpl/projections"),
+  fplOptimalXi: (formation?: string) => get<FPLRecommendation & { gameweek: number; model_source: string }>(`/fpl/optimal-xi${formation ? `?formation=${formation}` : ""}`),
+  fplSquad: () => get<FPLSquadResponse>("/fpl/squad"),
+  fplManualTransfers: (playerIds: number[], bank: number, freeTransfers: number) =>
+    postJson<FPLTransfersResponse>("/fpl/transfers/manual", { player_ids: playerIds, bank, free_transfers: freeTransfers }),
+  fplEntryTransfers: (entryId: number, freeTransfers: number) =>
+    get<FPLTransfersResponse>(`/fpl/entry/${entryId}/transfers?free_transfers=${freeTransfers}`),
 };
 
 export class ApiError extends Error {}

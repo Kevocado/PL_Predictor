@@ -9,11 +9,10 @@ matches before the user sets up a key.
 
 from __future__ import annotations
 
-import requests
 import pandas as pd
 
-from ..config import FPL_API_BASE_URL
 from .odds_api import OddsAPIKeyMissing, fetch_epl_odds_raw
+from . import fpl_api
 from .team_names import to_canonical
 
 
@@ -36,8 +35,11 @@ def _fixtures_from_odds_api(gameweek_key: str, force_refresh: bool) -> pd.DataFr
 
 
 def _fixtures_from_fpl_api() -> pd.DataFrame:
-    bootstrap = requests.get(f"{FPL_API_BASE_URL}/bootstrap-static/", timeout=30).json()
-    fixtures = requests.get(f"{FPL_API_BASE_URL}/fixtures/", timeout=30).json()
+    # Reuse fpl_api's cached/offline-safe feed rather than bypassing it with
+    # raw requests. Otherwise a temporary FPL DNS/API outage makes every
+    # future fixture disappear even though we already have a valid cache.
+    bootstrap = fpl_api.fetch_bootstrap()
+    fixtures = fpl_api.fetch_fixtures()
 
     team_names = {t["id"]: t["name"] for t in bootstrap["teams"]}
     next_event = next((e["id"] for e in bootstrap["events"] if e.get("is_next")), None)
@@ -49,6 +51,7 @@ def _fixtures_from_fpl_api() -> pd.DataFrame:
     rows = [
         {
             "event_id": f["id"],
+            "gameweek": f.get("event"),
             "commence_time": f["kickoff_time"],
             "team_home": to_canonical(team_names[f["team_h"]], source="fpl"),
             "team_away": to_canonical(team_names[f["team_a"]], source="fpl"),

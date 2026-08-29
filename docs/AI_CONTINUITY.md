@@ -1271,6 +1271,55 @@ experiment; negative evidence prevents repeated work.
   the tests verify the override *mechanism* rather than being sensitive to
   which model wins on an arbitrarily small slice.
 
+### EXP-2026-19 — free-data FPL surface and prospective market/lineup research
+
+- **Status: infrastructure shipped; no model promotion.** Added a native React
+  FPL tab backed by the official FPL API: a player scout, position/price/
+  expected-minutes filters, pagination, an exact legal XI optimiser with
+  selectable formations, a £100m 15-player optimiser, and public-entry or
+  manual transfer planning. `models/fpl.py` uses a transparent pre-deadline
+  baseline with independent scoreline context; it is not presented as a
+  historically validated player-points hybrid until such a model beats this
+  baseline on chronological player-gameweek tests.
+- **Operational fixes:** the gameweek view now falls back to FPL's cached
+  full fixture feed (including FPL gameweek ids) when football-data.org is
+  unavailable, so future fixtures do not disappear. FPL entry planning falls
+  back from unavailable future-GW picks to the latest published public squad;
+  the future picks endpoint normally returns 404 until that deadline.
+  SQLite tracking now uses WAL/busy timeout and nonessential player-model
+  warmups are deferred so startup does not block the first UI request.
+- **Confirmed-XI track:** early and confirmed-XI baseline snapshots are now
+  stored separately in `tracking.db`. Current count: 0 / 0 — no fixture has
+  passed the prospective capture window while this code has been running.
+  It remains a data-collection experiment; no historical reconstruction or
+  late-model promotion has been claimed.
+- **Free live odds track:** raw quote snapshots are saved only in narrow
+  T-24h and T-1h windows. Current count: 0 / 0. The historical closing-odds
+  benchmark covers 2,870 fixtures with 1X2 Brier `0.561454` and ECE
+  `0.011836`; it is explicitly non-deployable because closing prices contain
+  late market/team-news information unavailable at those decision times.
+  The independent scoreline model remains the only model used for value-bet
+  decisions.
+- **Covariate-Poisson rho experiment:** each walk-forward fold fitted rho
+  from its training rows only, then evaluated it on its untouched validation
+  season. Results:
+
+  | Validation season | rho | O/U Brier: rho=0 → fitted | RPS: rho=0 → fitted |
+  | --- | ---: | ---: | ---: |
+  | 2021-22 | -0.025 | 0.246958 → 0.246956 | 0.196133 → 0.196153 |
+  | 2022-23 | -0.025 | 0.243295 → 0.243265 | 0.210731 → 0.210679 |
+  | 2023-24 | 0.000 | unchanged | unchanged |
+  | 2024-25 | 0.000 | unchanged | unchanged |
+  | 2025-26 | 0.000 | unchanged | unchanged |
+
+  **Decision: rejected.** It does not improve O/U Brier in every fold and
+  worsens RPS in 2021-22. The production covariate-Poisson model therefore
+  remains at `rho=0.0`; this experiment did not alter live predictions.
+- **Squad continuity UI:** retained as a model feature per EXP-2026-18, but
+  removed from the frontend at the user's request. The first live ten-match
+  check remains too small for a decision: RPS/Brier were effectively tied
+  while ECE worsened.
+
 ## Change checklist for future agents
 
 - Read this file, `README.md`, and relevant tests before editing.

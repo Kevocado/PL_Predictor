@@ -141,3 +141,13 @@ class FixtureDetail(FixtureSummary):
 class FixturePlayers(BaseModel):
     home_players: list[PlayerPrediction]
     away_players: list[PlayerPrediction]
+
+
+class FPLManualSquadRequest(BaseModel):
+    player_ids: list[int]
+    bank: float = 0.0
+    free_transfers: int = 1
+
+
+class FPLTransferRequest(FPLManualSquadRequest):
+    entry_id: int | None = None

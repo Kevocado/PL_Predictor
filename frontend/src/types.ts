@@ -233,11 +233,6 @@ export interface CalibrationResponse {
   season: string | null;
 }
 
-export interface SquadContinuityResponse {
-  season: string;
-  teams: { team: string; squad_continuity: number }[];
-}
-
 export interface BacktestResults {
   "Total Bets": number;
   "Successful Bets": number;
@@ -539,4 +534,75 @@ export interface ManifestHistoryEntry {
 
 export interface ManifestHistoryResponse {
   history: ManifestHistoryEntry[];
+}
+
+export interface FPLFixtureProjection {
+  opponent: string;
+  was_home: boolean;
+  difficulty: number;
+  expected_goals: number;
+  clean_sheet_probability: number;
+  expected_minutes: number;
+  model_source: string;
+}
+
+export interface FPLPlayerProjection {
+  player_id: number;
+  name: string;
+  web_name: string;
+  team: string;
+  team_id: number;
+  position: "GK" | "DEF" | "MID" | "FWD";
+  price: number;
+  status: string;
+  news: string;
+  availability: number;
+  expected_minutes: number;
+  projected_points: number;
+  fixture_count: number;
+  fixtures: FPLFixtureProjection[];
+  drivers: string[];
+}
+
+export interface FPLProjectionsResponse {
+  gameweek: number;
+  generated_at: string;
+  model_source: string;
+  data_freshness: string;
+  players: FPLPlayerProjection[];
+}
+
+export interface FPLRecommendation {
+  starting_xi: FPLPlayerProjection[];
+  captain: FPLPlayerProjection | null;
+  vice_captain: FPLPlayerProjection | null;
+  bench: FPLPlayerProjection[];
+  projected_points: number;
+}
+
+export interface FPLSquadResponse extends FPLRecommendation {
+  gameweek: number;
+  model_source: string;
+  squad: FPLPlayerProjection[];
+  budget: number;
+  spent: number;
+  remaining: number;
+}
+
+export interface FPLTransferIdea {
+  out: FPLPlayerProjection;
+  in: FPLPlayerProjection;
+  cost: number;
+  projected_gain: number;
+  net_gain: number;
+}
+
+export interface FPLTransfersResponse {
+  gameweek: number;
+  source_gameweek?: number;
+  source: "manual" | "public_entry";
+  entry_id?: number;
+  free_transfers: number;
+  bank: number;
+  recommendations: FPLTransferIdea[];
 }

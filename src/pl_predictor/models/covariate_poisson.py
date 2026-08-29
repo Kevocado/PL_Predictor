@@ -78,7 +78,7 @@ def _design_matrix(long_df: pd.DataFrame, team_categories: list[str]) -> pd.Data
     return X.astype(float)
 
 
-def fit(train_df: pd.DataFrame, xi: float = 0.0018, alpha: float = 1.0) -> "CovariatePoissonModel":
+def fit(train_df: pd.DataFrame, xi: float = 0.0018, alpha: float = 1.0, fit_rho: bool = False) -> "CovariatePoissonModel":
     """Fits on `train_df` (a `build_training_frame`-shaped historical
     frame — needs `elo_home`/`elo_away`/`pi_home`/`pi_away`, already
     computed there). Returns a `CovariatePoissonModel` with no live
@@ -92,7 +92,10 @@ def fit(train_df: pd.DataFrame, xi: float = 0.0018, alpha: float = 1.0) -> "Cova
     weights = pb.models.dixon_coles_weights(long_train["date"], xi=xi)
     model = PoissonRegressor(alpha=alpha, max_iter=300)
     model.fit(X_train, long_train["goals_scored"], sample_weight=weights)
-    return CovariatePoissonModel(model, list(X_train.columns), team_categories)
+    result = CovariatePoissonModel(model, list(X_train.columns), team_categories)
+    if fit_rho:
+        result.rho = estimate_rho(result, train_df)
+    return result
 
 
 class CovariatePoissonModel:
@@ -111,11 +114,12 @@ class CovariatePoissonModel:
     that method is already fast enough here; add one only if profiling
     ever shows otherwise."""
 
-    def __init__(self, model: PoissonRegressor, columns: list[str], team_categories: list[str], context=None):
+    def __init__(self, model: PoissonRegressor, columns: list[str], team_categories: list[str], context=None, rho: float = 0.0):
         self.model = model
         self.columns = columns
         self.teams = team_categories
         self.context = context
+        self.rho = float(rho)
 
     def _lambda(self, attack_team: str, defence_team: str, is_home: bool, elo_diff: float, pi_diff: float) -> float:
         row = {c: 0.0 for c in self.columns}
@@ -138,12 +142,12 @@ class CovariatePoissonModel:
         pi_home, pi_away = self.context.pi.get_team_rating(home), self.context.pi.get_team_rating(away)
         lam_home = self._lambda(home, away, True, elo_home - elo_away, pi_home - pi_away)
         lam_away = self._lambda(away, home, False, elo_away - elo_home, pi_away - pi_home)
-        return pb.models.create_dixon_coles_grid(lam_home, lam_away, rho=0.0, max_goals=max_goals)
+        return pb.models.create_dixon_coles_grid(lam_home, lam_away, rho=self.rho, max_goals=max_goals)
 
     def predict_from_row(self, row, max_goals: int = 10):
         lam_home = self._lambda(row["team_home"], row["team_away"], True, row["elo_home"] - row["elo_away"], row["pi_home"] - row["pi_away"])
         lam_away = self._lambda(row["team_away"], row["team_home"], False, row["elo_away"] - row["elo_home"], row["pi_away"] - row["pi_home"])
-        return pb.models.create_dixon_coles_grid(lam_home, lam_away, rho=0.0, max_goals=max_goals)
+        return pb.models.create_dixon_coles_grid(lam_home, lam_away, rho=self.rho, max_goals=max_goals)
 
 
 def predict_grids_batch(model: CovariatePoissonModel, val_df: pd.DataFrame, max_goals: int = 10) -> list:
@@ -158,9 +162,36 @@ def predict_grids_batch(model: CovariatePoissonModel, val_df: pd.DataFrame, max_
     n = len(val_df)
     lam_home, lam_away = preds[:n], preds[n:]
     return [
-        pb.models.create_dixon_coles_grid(float(h), float(a), rho=0.0, max_goals=max_goals)
+        pb.models.create_dixon_coles_grid(float(h), float(a), rho=model.rho, max_goals=max_goals)
         for h, a in zip(lam_home, lam_away)
     ]
+
+
+def estimate_rho(model: CovariatePoissonModel, train_df: pd.DataFrame, candidates: np.ndarray | None = None) -> float:
+    """Select a Dixon-Coles correlation on training likelihood only.
+
+    Validation folds are never used to tune rho.  The promotion decision is
+    made separately by ``evaluate.covariate_poisson_research`` across every
+    latest-season fold and calibration metric.
+    """
+    candidates = candidates if candidates is not None else np.linspace(-0.15, 0.15, 13)
+    long_df = _team_perspective(train_df)
+    X = _design_matrix(long_df, model.teams).reindex(columns=model.columns, fill_value=0.0)
+    lambdas = np.maximum(model.model.predict(X), MIN_LAMBDA)
+    n = len(train_df)
+    home, away = lambdas[:n], lambdas[n:]
+    goals_home = train_df["goals_home"].astype(int).to_numpy()
+    goals_away = train_df["goals_away"].astype(int).to_numpy()
+    best_rho, best_loss = 0.0, float("inf")
+    for rho in candidates:
+        losses = []
+        for h, a, gh, ga in zip(home, away, goals_home, goals_away):
+            grid = pb.models.create_dixon_coles_grid(float(h), float(a), rho=float(rho), max_goals=max(10, gh + 2, ga + 2))
+            losses.append(-np.log(max(float(grid.exact_score(int(gh), int(ga))), 1e-12)))
+        loss = float(np.mean(losses))
+        if loss < best_loss:
+            best_rho, best_loss = float(rho), loss
+    return best_rho
 
 
 def save(model: CovariatePoissonModel, path: Path) -> None:
@@ -168,10 +199,10 @@ def save(model: CovariatePoissonModel, path: Path) -> None:
     built from current match data, always reattached at load time (see
     `models/manifest.py::load_models`), not something to freeze at train time."""
     with open(path, "wb") as f:
-        pickle.dump({"model": model.model, "columns": model.columns, "teams": model.teams}, f)
+        pickle.dump({"model": model.model, "columns": model.columns, "teams": model.teams, "rho": model.rho}, f)
 
 
 def load(path: Path) -> CovariatePoissonModel:
     with open(path, "rb") as f:
         state = pickle.load(f)
-    return CovariatePoissonModel(state["model"], state["columns"], state["teams"])
+    return CovariatePoissonModel(state["model"], state["columns"], state["teams"], rho=state.get("rho", 0.0))

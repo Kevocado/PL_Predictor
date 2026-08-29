@@ -30,6 +30,7 @@ import penaltyblog as pb
 from sklearn.linear_model import PoissonRegressor
 
 from ..models import scoreline
+from ..models import covariate_poisson as production_covariate_poisson
 from .model_selection_by_segment import prepare_folds
 from ..models.scoreline import evaluate_grids_multi_market
 
@@ -169,6 +170,38 @@ def evaluate_covariate_specs(seasons: list[str] | None = None, min_train_seasons
 def summarize(per_fold: pd.DataFrame) -> pd.DataFrame:
     metric_cols = [c for c in per_fold.columns if c not in ("spec", "val_season")]
     return per_fold.groupby("spec", as_index=False)[metric_cols].mean()
+
+
+def evaluate_rho_promotion(seasons: list[str] | None = None, min_train_seasons: int = 3) -> tuple[pd.DataFrame, dict]:
+    """Prospective promotion gate for the production O/U specialist.
+
+    Each fold estimates rho solely from that fold's training history, then
+    evaluates it against rho=0 on the untouched validation season.  It is
+    promotable only when every fold improves O/U Brier and none worsens 1X2
+    RPS, a deliberately stronger bar than an attractive pooled average.
+    """
+    rows = []
+    for fold in prepare_folds(seasons, min_train_seasons):
+        baseline = production_covariate_poisson.fit(fold["train_df"], fit_rho=False)
+        baseline_metrics = scoreline.evaluate_grids_multi_market(
+            production_covariate_poisson.predict_grids_batch(baseline, fold["val_df"]), fold["val_df"]
+        )
+        fitted = production_covariate_poisson.fit(fold["train_df"], fit_rho=True)
+        fitted_metrics = scoreline.evaluate_grids_multi_market(
+            production_covariate_poisson.predict_grids_batch(fitted, fold["val_df"]), fold["val_df"]
+        )
+        rows.append({
+            "val_season": fold["val_season"], "rho": fitted.rho,
+            "baseline_rps": baseline_metrics["rps"], "rho_rps": fitted_metrics["rps"],
+            "baseline_over_2_5_brier": baseline_metrics["over_2_5_brier"],
+            "rho_over_2_5_brier": fitted_metrics["over_2_5_brier"],
+        })
+    result = pd.DataFrame(rows)
+    if result.empty:
+        return result, {"promote": False, "reason": "no folds"}
+    over_improves = bool((result["rho_over_2_5_brier"] < result["baseline_over_2_5_brier"]).all())
+    rps_safe = bool((result["rho_rps"] <= result["baseline_rps"] + 1e-12).all())
+    return result, {"promote": over_improves and rps_safe, "over_2_5_improves_every_fold": over_improves, "rps_safe_every_fold": rps_safe}
 
 
 if __name__ == "__main__":

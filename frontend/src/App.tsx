@@ -3,9 +3,10 @@ import { FixturesPage } from "./pages/FixturesPage";
 import { CalibrationPage } from "./pages/CalibrationPage";
 import { ModelSummaryPage } from "./pages/ModelSummaryPage";
 import { DataHubPage } from "./pages/DataHubPage";
+import { FPLPage } from "./pages/FPLPage";
 import { PUBLIC_MODE } from "./lib/publicMode";
 
-type Tab = "fixtures" | "calibration" | "hub";
+type Tab = "fixtures" | "calibration" | "hub" | "fpl";
 
 function App() {
   const [tab, setTab] = useState<Tab>("fixtures");
@@ -27,6 +28,7 @@ function App() {
             [
               ["fixtures", "Fixtures"],
               ["hub", "Data Hub"],
+              ["fpl", "FPL"],
               ["calibration", PUBLIC_MODE ? "Model" : "Calibration & Backtest"],
             ] as const
           ).map(([key, label]) => (
@@ -53,6 +55,9 @@ function App() {
         </div>
         <div style={{ display: tab === "hub" ? "block" : "none" }}>
           <DataHubPage />
+        </div>
+        <div style={{ display: tab === "fpl" ? "block" : "none" }}>
+          <FPLPage />
         </div>
         <div style={{ display: tab === "calibration" ? "block" : "none" }}>
           {PUBLIC_MODE ? <ModelSummaryPage /> : <CalibrationPage />}

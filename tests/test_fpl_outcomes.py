@@ -109,3 +109,28 @@ def test_fetch_fixtures_uses_the_last_successful_cache_when_fpl_is_unavailable(m
     (tmp_path / "fixtures.json").write_text('[{"id": 44}]')
 
     assert fpl_api.fetch_fixtures() == [{"id": 44}]
+
+
+def test_next_event_is_preferred_over_finished_current_event():
+    bootstrap = {"events": [
+        {"id": 2, "is_current": True, "finished": True},
+        {"id": 3, "is_next": True, "finished": False},
+    ]}
+    assert fpl_api.get_current_event(bootstrap) == 3
+
+
+def test_entry_picks_falls_back_from_unpublished_next_gameweek(monkeypatch):
+    calls = []
+    def fetch(entry_id, event_id):
+        calls.append((entry_id, event_id))
+        if event_id == 3:
+            raise requests.HTTPError("not published")
+        return {"picks": [{"element": i} for i in range(1, 16)]}
+
+    monkeypatch.setattr(fpl_api, "fetch_entry_picks", fetch)
+    payload, source_event = fpl_api.fetch_latest_entry_picks(
+        42, 3, {"events": [{"id": 2, "is_current": True}, {"id": 1, "finished": True}]}
+    )
+    assert source_event == 2
+    assert len(payload["picks"]) == 15
+    assert calls == [(42, 3), (42, 2)]

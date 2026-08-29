@@ -24,6 +24,7 @@ FPL_REQUEST_TIMEOUT_SECONDS = 10
 FPL_FAILURE_BACKOFF_SECONDS = 60
 _failed_fetches: dict[str, float] = {}
 _fixtures_memory_cache: tuple[float, list[dict]] | None = None
+_bootstrap_memory_cache: tuple[float, dict] | None = None
 
 # a=available, i=injured, d=doubtful, s=suspended, u=unavailable
 UNAVAILABLE_STATUSES = {"i", "s", "u"}
@@ -41,9 +42,80 @@ NUMERIC_STRING_COLS = [
 
 
 def fetch_bootstrap() -> dict:
-    resp = requests.get(f"{FPL_API_BASE_URL}/bootstrap-static/", timeout=30)
-    resp.raise_for_status()
-    return resp.json()
+    """Return the player pool, falling back to the last successful feed.
+
+    The player pool changes relatively slowly, so serving a cached copy is
+    much better than making the entire FPL/UI surface unavailable during a
+    short DNS or FPL API outage.
+    """
+    global _bootstrap_memory_cache
+    cache_path = FPL_EVENT_CACHE_DIR / "bootstrap.json"
+    cache_key = str(cache_path)
+    now = time.time()
+    if _bootstrap_memory_cache is not None and now - _bootstrap_memory_cache[0] < 300:
+        return _bootstrap_memory_cache[1]
+    if now - _failed_fetches.get(cache_key, 0) < FPL_FAILURE_BACKOFF_SECONDS and cache_path.exists():
+        payload = json.loads(cache_path.read_text())
+        _bootstrap_memory_cache = (now, payload)
+        return payload
+    try:
+        resp = requests.get(f"{FPL_API_BASE_URL}/bootstrap-static/", timeout=FPL_REQUEST_TIMEOUT_SECONDS)
+        resp.raise_for_status()
+        payload = resp.json()
+        cache_path.write_text(json.dumps(payload))
+        _bootstrap_memory_cache = (now, payload)
+        _failed_fetches.pop(cache_key, None)
+        return payload
+    except requests.RequestException:
+        _failed_fetches[cache_key] = now
+        if cache_path.exists():
+            payload = json.loads(cache_path.read_text())
+            _bootstrap_memory_cache = (now, payload)
+            return payload
+        raise
+
+
+def fetch_entry_picks(entry_id: int, event_id: int) -> dict:
+    """Public FPL squad for one gameweek.  This endpoint does not require
+    credentials; callers must still treat an entry id as user-supplied data
+    and never persist it."""
+    response = requests.get(
+        f"{FPL_API_BASE_URL}/entry/{int(entry_id)}/event/{int(event_id)}/picks/",
+        timeout=FPL_REQUEST_TIMEOUT_SECONDS,
+    )
+    response.raise_for_status()
+    return response.json()
+
+
+def fetch_latest_entry_picks(entry_id: int, desired_event_id: int, bootstrap: dict) -> tuple[dict, int]:
+    """Return next-gameweek picks when published, otherwise the latest
+    public squad for transfer planning.
+
+    The official public picks endpoint commonly returns 404 for the next
+    gameweek until its deadline, even though the latest squad is usable.
+    """
+    event_ids = [int(desired_event_id)]
+    event_ids.extend(sorted({
+        int(event["id"])
+        for event in bootstrap.get("events", [])
+        if event.get("id") is not None and int(event["id"]) < int(desired_event_id)
+        and (event.get("is_current") or event.get("finished"))
+    }, reverse=True))
+    last_error: Exception | None = None
+    for event_id in event_ids:
+        try:
+            payload = fetch_entry_picks(entry_id, event_id)
+            if len(payload.get("picks", [])) == 15:
+                return payload, event_id
+        except requests.RequestException as exc:
+            last_error = exc
+    raise requests.RequestException("FPL has not published public picks for this entry yet") from last_error
+
+
+def fetch_entry_history(entry_id: int) -> dict:
+    response = requests.get(f"{FPL_API_BASE_URL}/entry/{int(entry_id)}/history/", timeout=FPL_REQUEST_TIMEOUT_SECONDS)
+    response.raise_for_status()
+    return response.json()
 
 
 def fetch_fixtures() -> list[dict]:
@@ -275,11 +347,16 @@ def fixture_player_outcomes(
 
 def get_current_event(bootstrap: dict) -> int | None:
     events = bootstrap.get("events", [])
+    # At a completed deadline the FPL feed can leave ``is_current`` set for
+    # the just-finished gameweek. For recommendations we need the next
+    # playable deadline, not a gameweek with no remaining fixtures.
     for e in events:
-        if e.get("is_current") or e.get("is_next"):
+        if e.get("is_next"):
             return e["id"]
     unfinished = [e["id"] for e in events if not e.get("finished")]
-    return min(unfinished) if unfinished else None
+    if unfinished:
+        return min(unfinished)
+    return next((e["id"] for e in events if e.get("is_current")), None)
 
 
 def player_status_table(bootstrap: dict) -> pd.DataFrame:

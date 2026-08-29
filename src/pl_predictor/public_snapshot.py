@@ -17,7 +17,7 @@ guarded by a `if PUBLIC_MODE:` at the top of the function) for where it's
 read back instead of computing live.
 
 Deliberately scoped to only what the public frontend actually calls
-(Fixtures list + detail, Data Hub) — not a snapshot of the whole app's API
+(Fixtures list + detail, Data Hub, FPL) — not a snapshot of the whole app's API
 surface. The Model page's `/api/manifest` already just reads
 `models/manifest.json` directly (no heavy computation involved), so it
 needs no snapshot entry; same for the admin-only endpoints, which are
@@ -174,6 +174,17 @@ def build_snapshot(previous: dict | None = None) -> dict:
         "players": routes.get_player_hub(),
     }
 
+    print("Building FPL snapshot...")
+    try:
+        fpl = {
+            "projections": routes.fpl_projections(),
+            "optimal_xi": routes.fpl_optimal_xi(),
+            "squad": routes.fpl_squad(),
+        }
+    except Exception as exc:  # noqa: BLE001 - FPL data should not block a fixture deploy
+        print(f"  ! skipped FPL snapshot: {exc}")
+        fpl = {"projections": {"players": []}, "optimal_xi": {}, "squad": {}}
+
     return {
         "generated_at": pd.Timestamp.now(tz="UTC").isoformat(),
         "current_gameweek": current_gameweek,
@@ -184,6 +195,7 @@ def build_snapshot(previous: dict | None = None) -> dict:
         "fixture_players_by_event_id": fixture_players_by_event_id,
         "player_review_by_event_id": player_review_by_event_id,
         "hub": hub,
+        "fpl": fpl,
     }
 
 
