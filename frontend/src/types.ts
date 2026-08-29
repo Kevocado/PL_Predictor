@@ -33,6 +33,10 @@ export interface FixtureSummary {
   // record that predates this field.
   predicted_total_goals: number | null;
   predicted_margin: number | null;
+  // P(team scores >=2), same derived-from-the-grid reasoning and the same
+  // null-for-pre-existing-tracked-records caveat as the two fields above.
+  home_2plus_prob: number | null;
+  away_2plus_prob: number | null;
   value_bet_flags: string[];
   has_live_odds: boolean;
   odds_fetched_at: string | null;

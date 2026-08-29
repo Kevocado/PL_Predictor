@@ -13,10 +13,11 @@ CACHE_DIR = DATA_DIR / "cache"
 MODELS_DIR = PROJECT_ROOT / "models"
 FRONTEND_DIST_DIR = PROJECT_ROOT / "frontend" / "dist"
 
-# Public, password-gated read-only deployment (see api/auth.py) — unset/false
-# everywhere else, which reproduces this app's original private-network-only
-# behavior exactly (api/main.py's own CORS comment). Never set GUEST_PASSWORD
-# in a committed file; it's provided as a hosting-platform secret.
+# Public, read-only deployment — unset/false everywhere else, which
+# reproduces this app's original private-network-only behavior exactly
+# (api/main.py's own CORS comment). No login gate: the public deployment
+# has no admin surface reachable at all (routes.py::_admin_only 404s the
+# write endpoints regardless), so there's nothing a password would protect.
 PUBLIC_MODE = os.getenv("PUBLIC_MODE", "false").lower() == "true"
 
 # Precomputed data the public deployment serves instead of running this
@@ -26,7 +27,6 @@ PUBLIC_MODE = os.getenv("PUBLIC_MODE", "false").lower() == "true"
 # pl_predictor.public_snapshot`) and committed/pushed like any other
 # tracked file; Render's next deploy picks it up automatically.
 PUBLIC_SNAPSHOT_PATH = DATA_DIR / "public_snapshot.json"
-GUEST_PASSWORD = os.getenv("GUEST_PASSWORD")
 
 FOOTBALL_DATA_CACHE_DIR = CACHE_DIR / "football_data"
 ODDS_CACHE_DIR = CACHE_DIR / "odds"

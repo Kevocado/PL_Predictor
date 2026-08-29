@@ -286,10 +286,10 @@ fixtures/odds, backtest) live, no login. It's meant to stay that way for
 local/private use only; the backend has no real security beyond that
 assumption (see `api/main.py`'s CORS comment).
 
-To share a cut-down, password-gated version with other people (fixtures,
+To share a cut-down, public version with other people (fixtures,
 predictions, Data Hub, and a simplified model page — no admin controls, no
-retrain button), the repo-root `Dockerfile` builds one image serving both
-the API and the built frontend from a single origin.
+retrain button, no login), the repo-root `Dockerfile` builds one image
+serving both the API and the built frontend from a single origin.
 
 **This public deployment never runs the live-serving pipeline itself** —
 confirmed live that doing so (Elo/Pi replay, rolling form, xG, the whole
@@ -312,13 +312,10 @@ Setup:
 1. Push this repo to GitHub (a new or existing repo).
 2. Create a free [Render](https://render.com) account → "New Web Service" →
    connect that repo. Render auto-detects the `Dockerfile`.
-3. In Render's dashboard, set these environment variables (never commit
-   real values for either of these):
-   - `PUBLIC_MODE=true`
-   - `GUEST_PASSWORD=<pick something>` — the whole site is gated behind an
-     HTTP Basic Auth prompt (any username, this password) once this is set.
+3. In Render's dashboard, set `PUBLIC_MODE=true`.
 4. Deploy. Render gives you a free `https://<name>.onrender.com` link —
-   that's what you share, along with the guest password.
+   that's what you share. No password: it's read-only with no admin
+   surface reachable at all, so there's nothing a login would protect.
 
 Free-tier tradeoffs worth knowing: the service sleeps after ~15 minutes of
 no traffic (next visit takes ~30-60s to wake up), and data only updates
@@ -326,8 +323,8 @@ when you regenerate and push the snapshot — this is a deliberate tradeoff
 for staying on a free host, not a bug.
 
 Leaving `PUBLIC_MODE` unset (the default everywhere else, including
-locally) reproduces every current behavior exactly — no password prompt,
-every admin button/endpoint active, live computation as always.
+locally) reproduces every current behavior exactly — every admin
+button/endpoint active, live computation as always.
 
 ## Notebooks
 

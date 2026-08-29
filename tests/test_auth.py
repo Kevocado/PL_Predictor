@@ -1,73 +1,13 @@
-"""Guest-password gate for the public deployment — api/auth.py's
-GuestAuthMiddleware and api/routes.py's _admin_only dependency. Uses a
-minimal standalone FastAPI app rather than the real `main.app` (whose
-lifespan does real network calls via warm_caches) — same "test the piece in
-isolation" style as the rest of this suite."""
-
-import base64
+"""api/routes.py's _admin_only dependency — the public deployment's only
+access control now that it has no login gate: the four write endpoints
+(retrain/refresh-odds/refresh-fixtures/backtest) 404 unconditionally under
+PUBLIC_MODE regardless of who's asking, since the site is otherwise a
+plain public read-only page with nothing a password would protect."""
 
 from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
 
-from pl_predictor.api import auth as auth_mod
 from pl_predictor.api import routes
-
-
-def _basic(username: str, password: str) -> dict:
-    token = base64.b64encode(f"{username}:{password}".encode()).decode()
-    return {"Authorization": f"Basic {token}"}
-
-
-def _auth_app() -> FastAPI:
-    app = FastAPI()
-    app.add_middleware(auth_mod.GuestAuthMiddleware)
-
-    @app.get("/ping")
-    def ping():
-        return {"ok": True}
-
-    return app
-
-
-def test_no_auth_required_when_public_mode_off(monkeypatch):
-    monkeypatch.setattr(auth_mod, "PUBLIC_MODE", False)
-    client = TestClient(_auth_app())
-    assert client.get("/ping").status_code == 200
-
-
-def test_rejects_missing_credentials_in_public_mode(monkeypatch):
-    monkeypatch.setattr(auth_mod, "PUBLIC_MODE", True)
-    monkeypatch.setattr(auth_mod, "GUEST_PASSWORD", "guest")
-    client = TestClient(_auth_app())
-    resp = client.get("/ping")
-    assert resp.status_code == 401
-    assert resp.headers["www-authenticate"].startswith("Basic")
-
-
-def test_rejects_wrong_password_in_public_mode(monkeypatch):
-    monkeypatch.setattr(auth_mod, "PUBLIC_MODE", True)
-    monkeypatch.setattr(auth_mod, "GUEST_PASSWORD", "guest")
-    client = TestClient(_auth_app())
-    resp = client.get("/ping", headers=_basic("guest", "wrong"))
-    assert resp.status_code == 401
-
-
-def test_accepts_correct_password_any_username(monkeypatch):
-    monkeypatch.setattr(auth_mod, "PUBLIC_MODE", True)
-    monkeypatch.setattr(auth_mod, "GUEST_PASSWORD", "guest")
-    client = TestClient(_auth_app())
-    resp = client.get("/ping", headers=_basic("anyone", "guest"))
-    assert resp.status_code == 200
-
-
-def test_no_guest_password_configured_always_rejects_in_public_mode(monkeypatch):
-    """A misconfigured deployment (PUBLIC_MODE on, no GUEST_PASSWORD set)
-    must fail closed, not accept every password."""
-    monkeypatch.setattr(auth_mod, "PUBLIC_MODE", True)
-    monkeypatch.setattr(auth_mod, "GUEST_PASSWORD", None)
-    client = TestClient(_auth_app())
-    resp = client.get("/ping", headers=_basic("anyone", "anything"))
-    assert resp.status_code == 401
 
 
 def _admin_app() -> FastAPI:

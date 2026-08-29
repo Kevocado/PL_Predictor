@@ -50,11 +50,9 @@ router = APIRouter(prefix="/api")
 
 def _admin_only() -> None:
     """Dependency for the four state-changing endpoints (retrain/refresh/
-    backtest) — 404s them unconditionally on the public deployment, even
-    with a correct guest password (auth.py's GuestAuthMiddleware gates
-    *access to the app*, not admin privilege within it). Pretending the
-    route doesn't exist, rather than 403, avoids advertising an admin
-    surface to a public visitor at all."""
+    backtest) — 404s them unconditionally on the public deployment.
+    Pretending the route doesn't exist, rather than 403, avoids
+    advertising an admin surface to a public visitor at all."""
     if PUBLIC_MODE:
         raise HTTPException(status_code=404)
 
@@ -368,6 +366,8 @@ def _row_to_summary(row: pd.Series) -> FixtureSummary:
         data_confidence=row.get("data_confidence"),
         predicted_total_goals=row["home_goal_expectation"] + row["away_goal_expectation"],
         predicted_margin=row["home_goal_expectation"] - row["away_goal_expectation"],
+        home_2plus_prob=row["home_2plus_prob"],
+        away_2plus_prob=row["away_2plus_prob"],
         value_bet_flags=row["value_bet_flags"],
         has_live_odds=row.get("home_win_implied") is not None and not pd.isna(row.get("home_win_implied")),
         odds_fetched_at=_none_if_nan(row.get("odds_fetched_at")),
@@ -1176,6 +1176,8 @@ def _team_fixture_to_summary(fixture: pd.Series, pred: dict) -> FixtureSummary:
         data_confidence=pred["data_confidence"],
         predicted_total_goals=pred["home_goal_expectation"] + pred["away_goal_expectation"],
         predicted_margin=pred["home_goal_expectation"] - pred["away_goal_expectation"],
+        home_2plus_prob=pred["home_2plus_prob"],
+        away_2plus_prob=pred["away_2plus_prob"],
         value_bet_flags=[],
         has_live_odds=False,
     )

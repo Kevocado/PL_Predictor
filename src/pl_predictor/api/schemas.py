@@ -49,6 +49,11 @@ class FixtureSummary(BaseModel):
     # record that predates this field.
     predicted_total_goals: float | None = None
     predicted_margin: float | None = None
+    # P(team scores >=2), same "derived from the grid, not a separate
+    # model" reasoning, and the same None-for-pre-existing-tracked-records
+    # backward-compatibility caveat as predicted_total_goals/margin above.
+    home_2plus_prob: float | None = None
+    away_2plus_prob: float | None = None
     value_bet_flags: list[str]
     has_live_odds: bool
     odds_fetched_at: datetime | None = None

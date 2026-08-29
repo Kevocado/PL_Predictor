@@ -114,6 +114,8 @@ def build_value_bet_table(
             # this better than fitting either derived target directly.
             "home_goal_expectation": pred["home_goal_expectation"],
             "away_goal_expectation": pred["away_goal_expectation"],
+            "home_2plus_prob": pred["home_2plus_prob"],
+            "away_2plus_prob": pred["away_2plus_prob"],
         }
 
         odds_timestamp = None

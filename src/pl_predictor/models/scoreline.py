@@ -266,6 +266,11 @@ def predict_fixture(
         "btts_no": grid.btts_no,
         "over_2_5": grid.total_goals("over", 2.5),
         "under_2_5": grid.total_goals("under", 2.5),
+        # P(team scores >=2), derived from the same grid's marginal goal
+        # distribution — not a separate model, same reasoning as
+        # predicted_total_goals/predicted_margin elsewhere in this app.
+        "home_2plus_prob": float(grid.home_goal_distribution()[2:].sum()),
+        "away_2plus_prob": float(grid.away_goal_distribution()[2:].sum()),
         "home_goal_expectation": grid.home_goal_expectation,
         "away_goal_expectation": grid.away_goal_expectation,
         "top_scorelines": _top_n_scorelines(grid),
@@ -320,6 +325,8 @@ def predict_fixtures_batch(
                 "btts_no": g.btts_no,
                 "over_2_5": g.total_goals("over", 2.5),
                 "under_2_5": g.total_goals("under", 2.5),
+                "home_2plus_prob": float(g.home_goal_distribution()[2:].sum()),
+                "away_2plus_prob": float(g.away_goal_distribution()[2:].sum()),
                 "home_goal_expectation": g.home_goal_expectation,
                 "away_goal_expectation": g.away_goal_expectation,
                 "top_scorelines": _top_n_scorelines(g),

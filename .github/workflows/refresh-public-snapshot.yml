@@ -7,13 +7,17 @@ name: Refresh public snapshot
 
 on:
   schedule:
-    # Cron's day-of-week field is UTC, same as everything else here.
-    # Weekends carry almost every kickoff and lineups drop ~1h before each
-    # one, so refresh hourly then (0,6 = Sun,Sat). Weekdays mostly have no
-    # matches at all — every 4h is just to catch rare rearranged/midweek
-    # European fixtures without burning Actions minutes on empty refreshes.
-    - cron: "7 * * * 0,6"
-    - cron: "7 */4 * * 1-5"
+    # Checked this against this season's own real fixture list
+    # (fd_org_matches' actual commence_time values, not a guess): kickoffs
+    # happen on Friday, Saturday, Sunday, Monday, AND Wednesday (rearranged/
+    # midweek fixtures) — never just the weekend. The earliest kickoff all
+    # season is 11:30 UTC (Saturday), the latest is 20:00 UTC (Monday/
+    # Wednesday). A match plus stoppage time is done within ~2-2.5h, so
+    # 11:00-22:00 UTC covers every kickoff-to-final-whistle window on any
+    # day it could happen, without needing a separate weekday/weekend split
+    # or per-slot cron entries that would break the moment fixtures get
+    # rearranged. Cron's hour/day fields are UTC, same as everything here.
+    - cron: "7 11-22 * * *"
   workflow_dispatch: {} # "Run workflow" button on this workflow's Actions page — a manual refresh-now.
 
 permissions:

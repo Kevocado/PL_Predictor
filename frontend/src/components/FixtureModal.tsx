@@ -359,6 +359,28 @@ export function FixtureModal({ eventId, onClose }: Props) {
                         flagged={false}
                         postMatchHit={postMatchVerdict("BTTS")?.prediction === "yes" ? postMatchVerdict("BTTS")?.hit : undefined}
                       />
+                      {detail.home_2plus_prob !== null && (
+                        <MarketRow
+                          label={
+                            <span className="inline-flex items-center gap-1.5">
+                              {detail.team_home} to score 2+ <InfoTooltip text={GLOSSARY.teamTwoPlus} align="right" />
+                            </span>
+                          }
+                          edge={{ prob: detail.home_2plus_prob, implied: null, edge: null }}
+                          flagged={false}
+                        />
+                      )}
+                      {detail.away_2plus_prob !== null && (
+                        <MarketRow
+                          label={
+                            <span className="inline-flex items-center gap-1.5">
+                              {detail.team_away} to score 2+ <InfoTooltip text={GLOSSARY.teamTwoPlus} align="right" />
+                            </span>
+                          }
+                          edge={{ prob: detail.away_2plus_prob, implied: null, edge: null }}
+                          flagged={false}
+                        />
+                      )}
                       {detail.predicted_total_goals !== null && (
                         <OverUnderRow
                           label="Total goals"

@@ -16,7 +16,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from ..config import FRONTEND_DIST_DIR, PUBLIC_MODE
-from .auth import GuestAuthMiddleware
 from .routes import (
     backfill_completed_player_reviews,
     background_tracking_tick,
@@ -87,15 +86,16 @@ app = FastAPI(title="PL Predictor API", lifespan=lifespan)
 # private network (localhost, LAN, or a personal Tailscale tailnet) — never
 # exposed to the public internet — so there's no real origin to restrict to,
 # and restricting it would just break access from a phone/other device. The
-# one deliberate exception is the public, password-gated deployment (see
-# auth.py) — GuestAuthMiddleware, not CORS, is what protects that one.
+# public deployment (see PUBLIC_MODE branches throughout routes.py) is
+# read-only and has no admin surface reachable at all (see
+# routes.py::_admin_only) — there's nothing left for a login to protect,
+# so it's a plain public site with no guest password.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.add_middleware(GuestAuthMiddleware)
 
 app.include_router(router)
 

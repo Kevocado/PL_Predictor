@@ -48,6 +48,8 @@ def test_recommendation_uses_one_best_qualified_quote(monkeypatch):
                 "data_confidence": "established",
                 "home_goal_expectation": 1.8,
                 "away_goal_expectation": 0.9,
+                "home_2plus_prob": 0.3,
+                "away_2plus_prob": 0.1,
             }
         ],
     )
@@ -76,6 +78,8 @@ def test_recommendation_excludes_tail_prices_and_fallback(monkeypatch):
                 "data_confidence": "new",
                 "home_goal_expectation": 1.4,
                 "away_goal_expectation": 1.0,
+                "home_2plus_prob": 0.2,
+                "away_2plus_prob": 0.15,
             }
         ],
     )
@@ -88,7 +92,7 @@ def test_stale_odds_do_not_create_a_value_recommendation(monkeypatch):
     monkeypatch.setattr(
         value_bets.scoreline,
         "predict_fixtures_batch",
-        lambda *_, **__: [{"home_win": 0.90, "draw": 0.06, "away_win": 0.04, "btts_yes": 0.5, "over_2_5": 0.5, "under_2_5": 0.5, "top_scorelines": [{"home": 2, "away": 0}], "fallback": False, "data_confidence": "established", "home_goal_expectation": 2.1, "away_goal_expectation": 0.7}],
+        lambda *_, **__: [{"home_win": 0.90, "draw": 0.06, "away_win": 0.04, "btts_yes": 0.5, "over_2_5": 0.5, "under_2_5": 0.5, "top_scorelines": [{"home": 2, "away": 0}], "fallback": False, "data_confidence": "established", "home_goal_expectation": 2.1, "away_goal_expectation": 0.7, "home_2plus_prob": 0.4, "away_2plus_prob": 0.05}],
     )
     odds = _odds_frame().assign(odds_fetched_at=pd.Timestamp.now(tz="UTC") - pd.Timedelta(hours=2))
 
