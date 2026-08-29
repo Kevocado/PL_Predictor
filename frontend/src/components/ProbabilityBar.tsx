@@ -18,13 +18,13 @@ export function ProbabilityBar({ home, draw, away, homeLabel = "H", awayLabel = 
       </div>
       <div className="mt-1.5 flex justify-between text-[11px] font-medium text-pl-text-dim">
         <span>
-          {homeLabel} <span className="text-pl-text">{pct(home)}</span>
+          {homeLabel} <span className="font-mono text-pl-text">{pct(home)}</span>
         </span>
         <span>
-          D <span className="text-pl-text">{pct(draw)}</span>
+          D <span className="font-mono text-pl-text">{pct(draw)}</span>
         </span>
         <span>
-          {awayLabel} <span className="text-pl-text">{pct(away)}</span>
+          {awayLabel} <span className="font-mono text-pl-text">{pct(away)}</span>
         </span>
       </div>
     </div>
