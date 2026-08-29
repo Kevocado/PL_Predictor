@@ -6,6 +6,8 @@ __pycache__/
 data/cache/*
 !data/cache/.gitkeep
 data/tracking.db
+data/tracking.db-shm
+data/tracking.db-wal
 .ipynb_checkpoints/
 *.egg-info/
 build/

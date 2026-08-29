@@ -103,6 +103,17 @@ much of the current season has folded into training so far.
   review recorded result, totals, corners, cards, and tiered player calls.
   Historical player/corner reviews are labelled reconstructed when no true
   pre-kickoff snapshot existed.
+- **Squad continuity** — a leading indicator of off-season squad-strength
+  change: what fraction of a team's playing time last season is still on
+  the books this season. Feeds the scoreline model directly and is shown
+  per-team on the Calibration page, so a squad overhaul is visible to the
+  model *before* it's had to be proven by results.
+- **FPL tab** — a free-data Fantasy Premier League companion: a player
+  scout with position/price/minutes filters, a legal-XI optimiser with
+  selectable formations, a full 15-player squad optimiser, and transfer
+  planning from either a public FPL entry ID or a manually entered squad.
+  Built on a transparent pre-deadline baseline (no historical player-points
+  model has beaten it yet), not treated as a validated prediction.
 
 ## How it's built
 
