@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-29T04:01:19.437357+00:00",
+  "generated_at": "2026-08-29T04:30:24.437322+00:00",
   "current_gameweek": 2,
   "min_gameweek": 1,
   "max_gameweek": 38,
@@ -216,24 +216,21 @@
       "gameweek": 2,
       "fixtures": [
         {
-          "event_id": "backfill-Crystal Palace-Man City-2026-08-28",
+          "event_id": "560555",
           "team_home": "Crystal Palace",
           "team_away": "Man City",
-          "commence_time": "2026-08-28T19:00:00",
-          "finished": true,
-          "actual_goals_home": 1,
-          "actual_goals_away": 4,
-          "predicted_home_win": 0.14494930103279194,
-          "predicted_draw": 0.18961881740449074,
-          "predicted_away_win": 0.6654318815627173,
+          "commence_time": "2026-08-28T19:00:00+00:00",
+          "finished": false,
+          "actual_goals_home": null,
+          "actual_goals_away": null,
+          "predicted_home_win": 0.1465711775577374,
+          "predicted_draw": 0.19112742115370432,
+          "predicted_away_win": 0.6623014012885583,
           "predicted_scoreline": "0-2",
-          "hit": true,
-          "backfilled": true,
+          "hit": null,
+          "backfilled": false,
           "has_live_odds": false,
-          "value_bet_flags": [],
-          "home_player_events": [],
-          "away_player_events": [],
-          "player_events_pending": true
+          "value_bet_flags": []
         },
         {
           "event_id": "feafb731d0307bc91a58e18187aa2eab",
@@ -888,6 +885,23 @@
           "value_bet_flags": []
         },
         {
+          "event_id": "560590",
+          "team_home": "Man City",
+          "team_away": "Sunderland",
+          "commence_time": "2026-09-19T14:00:00+00:00",
+          "finished": false,
+          "actual_goals_home": null,
+          "actual_goals_away": null,
+          "predicted_home_win": 0.7104301767323585,
+          "predicted_draw": 0.16796387855201259,
+          "predicted_away_win": 0.12160594471562906,
+          "predicted_scoreline": "2-0",
+          "hit": null,
+          "backfilled": false,
+          "has_live_odds": false,
+          "value_bet_flags": []
+        },
+        {
           "event_id": "560589",
           "team_home": "Nott'm Forest",
           "team_away": "Coventry",
@@ -916,23 +930,6 @@
           "predicted_draw": 0.2375701527868175,
           "predicted_away_win": 0.3714498702133203,
           "predicted_scoreline": "1-1",
-          "hit": null,
-          "backfilled": false,
-          "has_live_odds": false,
-          "value_bet_flags": []
-        },
-        {
-          "event_id": "560590",
-          "team_home": "Man City",
-          "team_away": "Sunderland",
-          "commence_time": "2026-09-20T13:00:00+00:00",
-          "finished": false,
-          "actual_goals_home": null,
-          "actual_goals_away": null,
-          "predicted_home_win": 0.7104301767323585,
-          "predicted_draw": 0.16796387855201259,
-          "predicted_away_win": 0.12160594471562906,
-          "predicted_scoreline": "2-0",
           "hit": null,
           "backfilled": false,
           "has_live_odds": false,
@@ -7371,7 +7368,7 @@
         "xg_against_last_5": 0.7549928,
         "corners_last_5": 4.2,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.11723311928976932
+        "set_piece_xg_share_last_5": 0.1172331192897693
       },
       "post_match": null,
       "actual_stats": null
@@ -7729,7 +7726,7 @@
         "xg_against_last_5": 1.3993324,
         "corners_last_5": 6.0,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.11284789026914506
+        "set_piece_xg_share_last_5": 0.112847890269145
       },
       "away_context": {
         "rest_days": 10,
@@ -7737,7 +7734,7 @@
         "xg_against_last_5": 1.5090736,
         "corners_last_5": 4.0,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.21112123005411765
+        "set_piece_xg_share_last_5": 0.2111212300541176
       },
       "post_match": null,
       "actual_stats": null
@@ -7896,7 +7893,7 @@
         "xg_against_last_5": 1.2435174000000002,
         "corners_last_5": 8.4,
         "cards_last_5": 1.6,
-        "set_piece_xg_share_last_5": 0.23529053144412004
+        "set_piece_xg_share_last_5": 0.23529053144412002
       },
       "away_context": {
         "rest_days": 10,
@@ -8067,7 +8064,7 @@
         "xg_against_last_5": 2.2852699999999997,
         "corners_last_5": 3.2,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.08761801474324031
+        "set_piece_xg_share_last_5": 0.0876180147432403
       },
       "away_context": {
         "rest_days": 17,
@@ -8075,7 +8072,7 @@
         "xg_against_last_5": 1.0125208,
         "corners_last_5": 3.4,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.058505619445017004
+        "set_piece_xg_share_last_5": 0.058505619445017
       },
       "post_match": null,
       "actual_stats": null
@@ -8267,7 +8264,7 @@
         "xg_against_last_5": 1.8824406,
         "corners_last_5": 6.6,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.027231607011897002
+        "set_piece_xg_share_last_5": 0.027231607011897
       },
       "post_match": null,
       "actual_stats": null
@@ -8643,7 +8640,7 @@
         "xg_against_last_5": 1.57638,
         "corners_last_5": 6.4,
         "cards_last_5": 3.4,
-        "set_piece_xg_share_last_5": 0.051857332912353254
+        "set_piece_xg_share_last_5": 0.0518573329123532
       },
       "away_context": {
         "rest_days": 2,
@@ -8651,7 +8648,7 @@
         "xg_against_last_5": 1.925214,
         "corners_last_5": 4.8,
         "cards_last_5": 2.6,
-        "set_piece_xg_share_last_5": 0.45683251078739123
+        "set_piece_xg_share_last_5": 0.4568325107873912
       },
       "post_match": null,
       "actual_stats": null
@@ -8835,7 +8832,7 @@
         "xg_against_last_5": 1.5447598,
         "corners_last_5": 4.4,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.11656887767552987
+        "set_piece_xg_share_last_5": 0.1165688776755298
       },
       "away_context": {
         "rest_days": 17,
@@ -9014,7 +9011,7 @@
         "xg_against_last_5": 0.7549928,
         "corners_last_5": 4.2,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.11723311928976932
+        "set_piece_xg_share_last_5": 0.1172331192897693
       },
       "post_match": null,
       "actual_stats": null
@@ -9170,7 +9167,7 @@
         "xg_against_last_5": 1.3993324,
         "corners_last_5": 6.0,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.11284789026914506
+        "set_piece_xg_share_last_5": 0.112847890269145
       },
       "post_match": null,
       "actual_stats": null
@@ -9354,7 +9351,7 @@
         "xg_against_last_5": 1.5090736,
         "corners_last_5": 4.0,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.21112123005411765
+        "set_piece_xg_share_last_5": 0.2111212300541176
       },
       "away_context": {
         "rest_days": 6,
@@ -9362,7 +9359,7 @@
         "xg_against_last_5": 1.8306681999999999,
         "corners_last_5": 4.0,
         "cards_last_5": 2.2,
-        "set_piece_xg_share_last_5": 0.03593043878083801
+        "set_piece_xg_share_last_5": 0.035930438780838
       },
       "post_match": null,
       "actual_stats": null
@@ -9546,7 +9543,7 @@
         "xg_against_last_5": 1.2617175999999999,
         "corners_last_5": 5.4,
         "cards_last_5": 1.8,
-        "set_piece_xg_share_last_5": 0.09876175188003201
+        "set_piece_xg_share_last_5": 0.098761751880032
       },
       "away_context": {
         "rest_days": 21,
@@ -9554,7 +9551,7 @@
         "xg_against_last_5": 1.2435174000000002,
         "corners_last_5": 8.4,
         "cards_last_5": 1.6,
-        "set_piece_xg_share_last_5": 0.23529053144412004
+        "set_piece_xg_share_last_5": 0.23529053144412002
       },
       "post_match": null,
       "actual_stats": null
@@ -9894,7 +9891,7 @@
         "xg_against_last_5": 1.5447598,
         "corners_last_5": 4.4,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.11656887767552987
+        "set_piece_xg_share_last_5": 0.1165688776755298
       },
       "away_context": {
         "rest_days": 3,
@@ -10086,7 +10083,7 @@
         "xg_against_last_5": 1.8824406,
         "corners_last_5": 6.6,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.027231607011897002
+        "set_piece_xg_share_last_5": 0.027231607011897
       },
       "away_context": {
         "rest_days": 3,
@@ -10094,7 +10091,7 @@
         "xg_against_last_5": 1.2617175999999999,
         "corners_last_5": 5.4,
         "cards_last_5": 1.8,
-        "set_piece_xg_share_last_5": 0.09876175188003201
+        "set_piece_xg_share_last_5": 0.098761751880032
       },
       "post_match": null,
       "actual_stats": null
@@ -10257,7 +10254,7 @@
         "xg_against_last_5": 1.925214,
         "corners_last_5": 4.8,
         "cards_last_5": 2.6,
-        "set_piece_xg_share_last_5": 0.45683251078739123
+        "set_piece_xg_share_last_5": 0.4568325107873912
       },
       "away_context": {
         "rest_days": 3,
@@ -10265,7 +10262,7 @@
         "xg_against_last_5": 1.0125208,
         "corners_last_5": 3.4,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.058505619445017004
+        "set_piece_xg_share_last_5": 0.058505619445017
       },
       "post_match": null,
       "actual_stats": null
@@ -10449,7 +10446,7 @@
         "xg_against_last_5": 1.5090736,
         "corners_last_5": 4.0,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.21112123005411765
+        "set_piece_xg_share_last_5": 0.2111212300541176
       },
       "away_context": {
         "rest_days": 10,
@@ -10457,7 +10454,7 @@
         "xg_against_last_5": 2.2852699999999997,
         "corners_last_5": 3.2,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.08761801474324031
+        "set_piece_xg_share_last_5": 0.0876180147432403
       },
       "post_match": null,
       "actual_stats": null
@@ -10641,7 +10638,7 @@
         "xg_against_last_5": 1.3993324,
         "corners_last_5": 6.0,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.11284789026914506
+        "set_piece_xg_share_last_5": 0.112847890269145
       },
       "away_context": {
         "rest_days": 3,
@@ -10649,7 +10646,7 @@
         "xg_against_last_5": 0.7549928,
         "corners_last_5": 4.2,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.11723311928976932
+        "set_piece_xg_share_last_5": 0.1172331192897693
       },
       "post_match": null,
       "actual_stats": null
@@ -10833,7 +10830,7 @@
         "xg_against_last_5": 1.57638,
         "corners_last_5": 6.4,
         "cards_last_5": 3.4,
-        "set_piece_xg_share_last_5": 0.051857332912353254
+        "set_piece_xg_share_last_5": 0.0518573329123532
       },
       "away_context": {
         "rest_days": 2,
@@ -10989,7 +10986,7 @@
         "xg_against_last_5": 1.8306681999999999,
         "corners_last_5": 4.0,
         "cards_last_5": 2.2,
-        "set_piece_xg_share_last_5": 0.03593043878083801
+        "set_piece_xg_share_last_5": 0.035930438780838
       },
       "away_context": {
         "rest_days": 10,
@@ -11316,7 +11313,7 @@
         "xg_against_last_5": 1.2435174000000002,
         "corners_last_5": 8.4,
         "cards_last_5": 1.6,
-        "set_piece_xg_share_last_5": 0.23529053144412004
+        "set_piece_xg_share_last_5": 0.23529053144412002
       },
       "away_context": {
         "rest_days": 11,
@@ -11687,7 +11684,7 @@
         "xg_against_last_5": 1.3993324,
         "corners_last_5": 6.0,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.11284789026914506
+        "set_piece_xg_share_last_5": 0.112847890269145
       },
       "post_match": null,
       "actual_stats": null
@@ -11871,7 +11868,7 @@
         "xg_against_last_5": 0.7549928,
         "corners_last_5": 4.2,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.11723311928976932
+        "set_piece_xg_share_last_5": 0.1172331192897693
       },
       "away_context": {
         "rest_days": 30,
@@ -11879,7 +11876,7 @@
         "xg_against_last_5": 1.5090736,
         "corners_last_5": 4.0,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.21112123005411765
+        "set_piece_xg_share_last_5": 0.2111212300541176
       },
       "post_match": null,
       "actual_stats": null
@@ -12035,7 +12032,7 @@
         "xg_against_last_5": 1.925214,
         "corners_last_5": 4.8,
         "cards_last_5": 2.6,
-        "set_piece_xg_share_last_5": 0.45683251078739123
+        "set_piece_xg_share_last_5": 0.4568325107873912
       },
       "post_match": null,
       "actual_stats": null
@@ -12227,7 +12224,7 @@
         "xg_against_last_5": 1.5447598,
         "corners_last_5": 4.4,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.11656887767552987
+        "set_piece_xg_share_last_5": 0.1165688776755298
       },
       "post_match": null,
       "actual_stats": null
@@ -12411,7 +12408,7 @@
         "xg_against_last_5": 2.2852699999999997,
         "corners_last_5": 3.2,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.08761801474324031
+        "set_piece_xg_share_last_5": 0.0876180147432403
       },
       "away_context": {
         "rest_days": 46,
@@ -12575,7 +12572,7 @@
         "xg_against_last_5": 1.8306681999999999,
         "corners_last_5": 4.0,
         "cards_last_5": 2.2,
-        "set_piece_xg_share_last_5": 0.03593043878083801
+        "set_piece_xg_share_last_5": 0.035930438780838
       },
       "post_match": null,
       "actual_stats": null
@@ -12767,7 +12764,7 @@
         "xg_against_last_5": 1.2435174000000002,
         "corners_last_5": 8.4,
         "cards_last_5": 1.6,
-        "set_piece_xg_share_last_5": 0.23529053144412004
+        "set_piece_xg_share_last_5": 0.23529053144412002
       },
       "post_match": null,
       "actual_stats": null
@@ -12930,7 +12927,7 @@
         "xg_against_last_5": 1.0125208,
         "corners_last_5": 3.4,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.058505619445017004
+        "set_piece_xg_share_last_5": 0.058505619445017
       },
       "away_context": {
         "rest_days": 24,
@@ -12938,7 +12935,7 @@
         "xg_against_last_5": 1.8824406,
         "corners_last_5": 6.6,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.027231607011897002
+        "set_piece_xg_share_last_5": 0.027231607011897
       },
       "post_match": null,
       "actual_stats": null
@@ -13122,7 +13119,7 @@
         "xg_against_last_5": 1.2617175999999999,
         "corners_last_5": 5.4,
         "cards_last_5": 1.8,
-        "set_piece_xg_share_last_5": 0.09876175188003201
+        "set_piece_xg_share_last_5": 0.098761751880032
       },
       "away_context": {
         "rest_days": 23,
@@ -13130,7 +13127,7 @@
         "xg_against_last_5": 1.57638,
         "corners_last_5": 6.4,
         "cards_last_5": 3.4,
-        "set_piece_xg_share_last_5": 0.051857332912353254
+        "set_piece_xg_share_last_5": 0.0518573329123532
       },
       "post_match": null,
       "actual_stats": null
@@ -13470,7 +13467,7 @@
         "xg_against_last_5": 1.8824406,
         "corners_last_5": 6.6,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.027231607011897002
+        "set_piece_xg_share_last_5": 0.027231607011897
       },
       "away_context": {
         "rest_days": 38,
@@ -13662,7 +13659,7 @@
         "xg_against_last_5": 1.925214,
         "corners_last_5": 4.8,
         "cards_last_5": 2.6,
-        "set_piece_xg_share_last_5": 0.45683251078739123
+        "set_piece_xg_share_last_5": 0.4568325107873912
       },
       "away_context": {
         "rest_days": 37,
@@ -13833,7 +13830,7 @@
         "xg_against_last_5": 1.5447598,
         "corners_last_5": 4.4,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.11656887767552987
+        "set_piece_xg_share_last_5": 0.1165688776755298
       },
       "away_context": {
         "rest_days": 39,
@@ -14025,7 +14022,7 @@
         "xg_against_last_5": 1.5090736,
         "corners_last_5": 4.0,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.21112123005411765
+        "set_piece_xg_share_last_5": 0.2111212300541176
       },
       "away_context": {
         "rest_days": 31,
@@ -14033,7 +14030,7 @@
         "xg_against_last_5": 1.2617175999999999,
         "corners_last_5": 5.4,
         "cards_last_5": 1.8,
-        "set_piece_xg_share_last_5": 0.09876175188003201
+        "set_piece_xg_share_last_5": 0.098761751880032
       },
       "post_match": null,
       "actual_stats": null
@@ -14181,7 +14178,7 @@
         "xg_against_last_5": 1.57638,
         "corners_last_5": 6.4,
         "cards_last_5": 3.4,
-        "set_piece_xg_share_last_5": 0.051857332912353254
+        "set_piece_xg_share_last_5": 0.0518573329123532
       },
       "away_context": {
         "rest_days": 33,
@@ -14373,7 +14370,7 @@
         "xg_against_last_5": 1.8306681999999999,
         "corners_last_5": 4.0,
         "cards_last_5": 2.2,
-        "set_piece_xg_share_last_5": 0.03593043878083801
+        "set_piece_xg_share_last_5": 0.035930438780838
       },
       "away_context": {
         "rest_days": 30,
@@ -14573,7 +14570,7 @@
         "xg_against_last_5": 0.7549928,
         "corners_last_5": 4.2,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.11723311928976932
+        "set_piece_xg_share_last_5": 0.1172331192897693
       },
       "post_match": null,
       "actual_stats": null
@@ -14757,7 +14754,7 @@
         "xg_against_last_5": 1.3993324,
         "corners_last_5": 6.0,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.11284789026914506
+        "set_piece_xg_share_last_5": 0.112847890269145
       },
       "away_context": {
         "rest_days": 39,
@@ -14765,7 +14762,7 @@
         "xg_against_last_5": 2.2852699999999997,
         "corners_last_5": 3.2,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.08761801474324031
+        "set_piece_xg_share_last_5": 0.0876180147432403
       },
       "post_match": null,
       "actual_stats": null
@@ -14928,7 +14925,7 @@
         "xg_against_last_5": 1.2435174000000002,
         "corners_last_5": 8.4,
         "cards_last_5": 1.6,
-        "set_piece_xg_share_last_5": 0.23529053144412004
+        "set_piece_xg_share_last_5": 0.23529053144412002
       },
       "away_context": {
         "rest_days": 31,
@@ -14936,7 +14933,7 @@
         "xg_against_last_5": 1.0125208,
         "corners_last_5": 3.4,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.058505619445017004
+        "set_piece_xg_share_last_5": 0.058505619445017
       },
       "post_match": null,
       "actual_stats": null
@@ -15320,7 +15317,7 @@
         "xg_against_last_5": 1.3993324,
         "corners_last_5": 6.0,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.11284789026914506
+        "set_piece_xg_share_last_5": 0.112847890269145
       },
       "post_match": null,
       "actual_stats": null
@@ -15504,7 +15501,7 @@
         "xg_against_last_5": 2.2852699999999997,
         "corners_last_5": 3.2,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.08761801474324031
+        "set_piece_xg_share_last_5": 0.0876180147432403
       },
       "away_context": {
         "rest_days": 46,
@@ -15512,7 +15509,7 @@
         "xg_against_last_5": 1.8306681999999999,
         "corners_last_5": 4.0,
         "cards_last_5": 2.2,
-        "set_piece_xg_share_last_5": 0.03593043878083801
+        "set_piece_xg_share_last_5": 0.035930438780838
       },
       "post_match": null,
       "actual_stats": null
@@ -15704,7 +15701,7 @@
         "xg_against_last_5": 1.2435174000000002,
         "corners_last_5": 8.4,
         "cards_last_5": 1.6,
-        "set_piece_xg_share_last_5": 0.23529053144412004
+        "set_piece_xg_share_last_5": 0.23529053144412002
       },
       "post_match": null,
       "actual_stats": null
@@ -15888,7 +15885,7 @@
         "xg_against_last_5": 1.2617175999999999,
         "corners_last_5": 5.4,
         "cards_last_5": 1.8,
-        "set_piece_xg_share_last_5": 0.09876175188003201
+        "set_piece_xg_share_last_5": 0.098761751880032
       },
       "away_context": {
         "rest_days": 46,
@@ -15896,7 +15893,7 @@
         "xg_against_last_5": 1.5447598,
         "corners_last_5": 4.4,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.11656887767552987
+        "set_piece_xg_share_last_5": 0.1165688776755298
       },
       "post_match": null,
       "actual_stats": null
@@ -16080,7 +16077,7 @@
         "xg_against_last_5": 0.7549928,
         "corners_last_5": 4.2,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.11723311928976932
+        "set_piece_xg_share_last_5": 0.1172331192897693
       },
       "away_context": {
         "rest_days": 44,
@@ -16088,7 +16085,7 @@
         "xg_against_last_5": 1.925214,
         "corners_last_5": 4.8,
         "cards_last_5": 2.6,
-        "set_piece_xg_share_last_5": 0.45683251078739123
+        "set_piece_xg_share_last_5": 0.4568325107873912
       },
       "post_match": null,
       "actual_stats": null
@@ -16280,7 +16277,7 @@
         "xg_against_last_5": 1.57638,
         "corners_last_5": 6.4,
         "cards_last_5": 3.4,
-        "set_piece_xg_share_last_5": 0.051857332912353254
+        "set_piece_xg_share_last_5": 0.0518573329123532
       },
       "post_match": null,
       "actual_stats": null
@@ -16436,7 +16433,7 @@
         "xg_against_last_5": 1.8824406,
         "corners_last_5": 6.6,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.027231607011897002
+        "set_piece_xg_share_last_5": 0.027231607011897
       },
       "post_match": null,
       "actual_stats": null
@@ -16755,7 +16752,7 @@
         "xg_against_last_5": 1.0125208,
         "corners_last_5": 3.4,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.058505619445017004
+        "set_piece_xg_share_last_5": 0.058505619445017
       },
       "away_context": {
         "rest_days": 59,
@@ -16934,7 +16931,7 @@
         "xg_against_last_5": 1.5090736,
         "corners_last_5": 4.0,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.21112123005411765
+        "set_piece_xg_share_last_5": 0.2111212300541176
       },
       "post_match": null,
       "actual_stats": null
@@ -17118,7 +17115,7 @@
         "xg_against_last_5": 1.8306681999999999,
         "corners_last_5": 4.0,
         "cards_last_5": 2.2,
-        "set_piece_xg_share_last_5": 0.03593043878083801
+        "set_piece_xg_share_last_5": 0.035930438780838
       },
       "away_context": {
         "rest_days": 54,
@@ -17126,7 +17123,7 @@
         "xg_against_last_5": 1.925214,
         "corners_last_5": 4.8,
         "cards_last_5": 2.6,
-        "set_piece_xg_share_last_5": 0.45683251078739123
+        "set_piece_xg_share_last_5": 0.4568325107873912
       },
       "post_match": null,
       "actual_stats": null
@@ -17310,7 +17307,7 @@
         "xg_against_last_5": 1.2435174000000002,
         "corners_last_5": 8.4,
         "cards_last_5": 1.6,
-        "set_piece_xg_share_last_5": 0.23529053144412004
+        "set_piece_xg_share_last_5": 0.23529053144412002
       },
       "away_context": {
         "rest_days": 44,
@@ -17318,7 +17315,7 @@
         "xg_against_last_5": 1.3993324,
         "corners_last_5": 6.0,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.11284789026914506
+        "set_piece_xg_share_last_5": 0.112847890269145
       },
       "post_match": null,
       "actual_stats": null
@@ -17495,7 +17492,7 @@
         "xg_against_last_5": 1.5447598,
         "corners_last_5": 4.4,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.11656887767552987
+        "set_piece_xg_share_last_5": 0.1165688776755298
       },
       "away_context": {
         "rest_days": 51,
@@ -17503,7 +17500,7 @@
         "xg_against_last_5": 1.5090736,
         "corners_last_5": 4.0,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.21112123005411765
+        "set_piece_xg_share_last_5": 0.2111212300541176
       },
       "post_match": null,
       "actual_stats": null
@@ -17851,7 +17848,7 @@
         "xg_against_last_5": 1.2617175999999999,
         "corners_last_5": 5.4,
         "cards_last_5": 1.8,
-        "set_piece_xg_share_last_5": 0.09876175188003201
+        "set_piece_xg_share_last_5": 0.098761751880032
       },
       "post_match": null,
       "actual_stats": null
@@ -18035,7 +18032,7 @@
         "xg_against_last_5": 1.57638,
         "corners_last_5": 6.4,
         "cards_last_5": 3.4,
-        "set_piece_xg_share_last_5": 0.051857332912353254
+        "set_piece_xg_share_last_5": 0.0518573329123532
       },
       "away_context": {
         "rest_days": 52,
@@ -18043,7 +18040,7 @@
         "xg_against_last_5": 2.2852699999999997,
         "corners_last_5": 3.2,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.08761801474324031
+        "set_piece_xg_share_last_5": 0.0876180147432403
       },
       "post_match": null,
       "actual_stats": null
@@ -18235,7 +18232,7 @@
         "xg_against_last_5": 1.8824406,
         "corners_last_5": 6.6,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.027231607011897002
+        "set_piece_xg_share_last_5": 0.027231607011897
       },
       "post_match": null,
       "actual_stats": null
@@ -18391,7 +18388,7 @@
         "xg_against_last_5": 1.0125208,
         "corners_last_5": 3.4,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.058505619445017004
+        "set_piece_xg_share_last_5": 0.058505619445017
       },
       "post_match": null,
       "actual_stats": null
@@ -18775,7 +18772,7 @@
         "xg_against_last_5": 0.7549928,
         "corners_last_5": 4.2,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.11723311928976932
+        "set_piece_xg_share_last_5": 0.1172331192897693
       },
       "post_match": null,
       "actual_stats": null
@@ -18959,7 +18956,7 @@
         "xg_against_last_5": 1.5090736,
         "corners_last_5": 4.0,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.21112123005411765
+        "set_piece_xg_share_last_5": 0.2111212300541176
       },
       "away_context": {
         "rest_days": 51,
@@ -18967,7 +18964,7 @@
         "xg_against_last_5": 1.57638,
         "corners_last_5": 6.4,
         "cards_last_5": 3.4,
-        "set_piece_xg_share_last_5": 0.051857332912353254
+        "set_piece_xg_share_last_5": 0.0518573329123532
       },
       "post_match": null,
       "actual_stats": null
@@ -19151,7 +19148,7 @@
         "xg_against_last_5": 1.8824406,
         "corners_last_5": 6.6,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.027231607011897002
+        "set_piece_xg_share_last_5": 0.027231607011897
       },
       "away_context": {
         "rest_days": 59,
@@ -19159,7 +19156,7 @@
         "xg_against_last_5": 1.8306681999999999,
         "corners_last_5": 4.0,
         "cards_last_5": 2.2,
-        "set_piece_xg_share_last_5": 0.03593043878083801
+        "set_piece_xg_share_last_5": 0.035930438780838
       },
       "post_match": null,
       "actual_stats": null
@@ -19307,7 +19304,7 @@
         "xg_against_last_5": 1.925214,
         "corners_last_5": 4.8,
         "cards_last_5": 2.6,
-        "set_piece_xg_share_last_5": 0.45683251078739123
+        "set_piece_xg_share_last_5": 0.4568325107873912
       },
       "away_context": {
         "rest_days": 51,
@@ -19499,7 +19496,7 @@
         "xg_against_last_5": 2.2852699999999997,
         "corners_last_5": 3.2,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.08761801474324031
+        "set_piece_xg_share_last_5": 0.0876180147432403
       },
       "away_context": {
         "rest_days": 51,
@@ -19841,7 +19838,7 @@
         "xg_against_last_5": 1.0125208,
         "corners_last_5": 3.4,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.058505619445017004
+        "set_piece_xg_share_last_5": 0.058505619445017
       },
       "away_context": {
         "rest_days": 59,
@@ -19849,7 +19846,7 @@
         "xg_against_last_5": 1.5447598,
         "corners_last_5": 4.4,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.11656887767552987
+        "set_piece_xg_share_last_5": 0.1165688776755298
       },
       "post_match": null,
       "actual_stats": null
@@ -20033,7 +20030,7 @@
         "xg_against_last_5": 1.3993324,
         "corners_last_5": 6.0,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.11284789026914506
+        "set_piece_xg_share_last_5": 0.112847890269145
       },
       "away_context": {
         "rest_days": 52,
@@ -20225,7 +20222,7 @@
         "xg_against_last_5": 1.2617175999999999,
         "corners_last_5": 5.4,
         "cards_last_5": 1.8,
-        "set_piece_xg_share_last_5": 0.09876175188003201
+        "set_piece_xg_share_last_5": 0.098761751880032
       },
       "away_context": {
         "rest_days": 51,
@@ -20381,7 +20378,7 @@
         "xg_against_last_5": 0.7549928,
         "corners_last_5": 4.2,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.11723311928976932
+        "set_piece_xg_share_last_5": 0.1172331192897693
       },
       "away_context": {
         "rest_days": 59,
@@ -20581,7 +20578,7 @@
         "xg_against_last_5": 1.2435174000000002,
         "corners_last_5": 8.4,
         "cards_last_5": 1.6,
-        "set_piece_xg_share_last_5": 0.23529053144412004
+        "set_piece_xg_share_last_5": 0.23529053144412002
       },
       "post_match": null,
       "actual_stats": null
@@ -20773,7 +20770,7 @@
         "xg_against_last_5": 1.5090736,
         "corners_last_5": 4.0,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.21112123005411765
+        "set_piece_xg_share_last_5": 0.2111212300541176
       },
       "post_match": null,
       "actual_stats": null
@@ -20957,7 +20954,7 @@
         "xg_against_last_5": 1.2435174000000002,
         "corners_last_5": 8.4,
         "cards_last_5": 1.6,
-        "set_piece_xg_share_last_5": 0.23529053144412004
+        "set_piece_xg_share_last_5": 0.23529053144412002
       },
       "away_context": {
         "rest_days": 66,
@@ -20965,7 +20962,7 @@
         "xg_against_last_5": 1.8824406,
         "corners_last_5": 6.6,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.027231607011897002
+        "set_piece_xg_share_last_5": 0.027231607011897
       },
       "post_match": null,
       "actual_stats": null
@@ -21328,7 +21325,7 @@
         "xg_against_last_5": 1.2617175999999999,
         "corners_last_5": 5.4,
         "cards_last_5": 1.8,
-        "set_piece_xg_share_last_5": 0.09876175188003201
+        "set_piece_xg_share_last_5": 0.098761751880032
       },
       "post_match": null,
       "actual_stats": null
@@ -21484,7 +21481,7 @@
         "xg_against_last_5": 1.3993324,
         "corners_last_5": 6.0,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.11284789026914506
+        "set_piece_xg_share_last_5": 0.112847890269145
       },
       "post_match": null,
       "actual_stats": null
@@ -21668,7 +21665,7 @@
         "xg_against_last_5": 1.5447598,
         "corners_last_5": 4.4,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.11656887767552987
+        "set_piece_xg_share_last_5": 0.1165688776755298
       },
       "away_context": {
         "rest_days": 87,
@@ -21839,7 +21836,7 @@
         "xg_against_last_5": 1.57638,
         "corners_last_5": 6.4,
         "cards_last_5": 3.4,
-        "set_piece_xg_share_last_5": 0.051857332912353254
+        "set_piece_xg_share_last_5": 0.0518573329123532
       },
       "away_context": {
         "rest_days": 66,
@@ -21847,7 +21844,7 @@
         "xg_against_last_5": 1.0125208,
         "corners_last_5": 3.4,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.058505619445017004
+        "set_piece_xg_share_last_5": 0.058505619445017
       },
       "post_match": null,
       "actual_stats": null
@@ -22039,7 +22036,7 @@
         "xg_against_last_5": 1.925214,
         "corners_last_5": 4.8,
         "cards_last_5": 2.6,
-        "set_piece_xg_share_last_5": 0.45683251078739123
+        "set_piece_xg_share_last_5": 0.4568325107873912
       },
       "post_match": null,
       "actual_stats": null
@@ -22195,7 +22192,7 @@
         "xg_against_last_5": 2.2852699999999997,
         "corners_last_5": 3.2,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.08761801474324031
+        "set_piece_xg_share_last_5": 0.0876180147432403
       },
       "post_match": null,
       "actual_stats": null
@@ -22379,7 +22376,7 @@
         "xg_against_last_5": 1.8306681999999999,
         "corners_last_5": 4.0,
         "cards_last_5": 2.2,
-        "set_piece_xg_share_last_5": 0.03593043878083801
+        "set_piece_xg_share_last_5": 0.035930438780838
       },
       "away_context": {
         "rest_days": 66,
@@ -22387,7 +22384,7 @@
         "xg_against_last_5": 0.7549928,
         "corners_last_5": 4.2,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.11723311928976932
+        "set_piece_xg_share_last_5": 0.1172331192897693
       },
       "post_match": null,
       "actual_stats": null
@@ -22535,7 +22532,7 @@
         "xg_against_last_5": 1.5090736,
         "corners_last_5": 4.0,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.21112123005411765
+        "set_piece_xg_share_last_5": 0.2111212300541176
       },
       "away_context": {
         "rest_days": 72,
@@ -22706,7 +22703,7 @@
         "xg_against_last_5": 1.0125208,
         "corners_last_5": 3.4,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.058505619445017004
+        "set_piece_xg_share_last_5": 0.058505619445017
       },
       "away_context": {
         "rest_days": 72,
@@ -22898,7 +22895,7 @@
         "xg_against_last_5": 0.7549928,
         "corners_last_5": 4.2,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.11723311928976932
+        "set_piece_xg_share_last_5": 0.1172331192897693
       },
       "away_context": {
         "rest_days": 71,
@@ -22906,7 +22903,7 @@
         "xg_against_last_5": 1.2435174000000002,
         "corners_last_5": 8.4,
         "cards_last_5": 1.6,
-        "set_piece_xg_share_last_5": 0.23529053144412004
+        "set_piece_xg_share_last_5": 0.23529053144412002
       },
       "post_match": null,
       "actual_stats": null
@@ -23090,7 +23087,7 @@
         "xg_against_last_5": 1.2617175999999999,
         "corners_last_5": 5.4,
         "cards_last_5": 1.8,
-        "set_piece_xg_share_last_5": 0.09876175188003201
+        "set_piece_xg_share_last_5": 0.098761751880032
       },
       "away_context": {
         "rest_days": 73,
@@ -23282,7 +23279,7 @@
         "xg_against_last_5": 1.925214,
         "corners_last_5": 4.8,
         "cards_last_5": 2.6,
-        "set_piece_xg_share_last_5": 0.45683251078739123
+        "set_piece_xg_share_last_5": 0.4568325107873912
       },
       "away_context": {
         "rest_days": 72,
@@ -23474,7 +23471,7 @@
         "xg_against_last_5": 1.8824406,
         "corners_last_5": 6.6,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.027231607011897002
+        "set_piece_xg_share_last_5": 0.027231607011897
       },
       "away_context": {
         "rest_days": 80,
@@ -23482,7 +23479,7 @@
         "xg_against_last_5": 1.5447598,
         "corners_last_5": 4.4,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.11656887767552987
+        "set_piece_xg_share_last_5": 0.1165688776755298
       },
       "post_match": null,
       "actual_stats": null
@@ -23858,7 +23855,7 @@
         "xg_against_last_5": 1.3993324,
         "corners_last_5": 6.0,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.11284789026914506
+        "set_piece_xg_share_last_5": 0.112847890269145
       },
       "away_context": {
         "rest_days": 80,
@@ -23866,7 +23863,7 @@
         "xg_against_last_5": 1.8306681999999999,
         "corners_last_5": 4.0,
         "cards_last_5": 2.2,
-        "set_piece_xg_share_last_5": 0.03593043878083801
+        "set_piece_xg_share_last_5": 0.035930438780838
       },
       "post_match": null,
       "actual_stats": null
@@ -24037,7 +24034,7 @@
         "xg_against_last_5": 1.57638,
         "corners_last_5": 6.4,
         "cards_last_5": 3.4,
-        "set_piece_xg_share_last_5": 0.051857332912353254
+        "set_piece_xg_share_last_5": 0.0518573329123532
       },
       "post_match": null,
       "actual_stats": null
@@ -24185,7 +24182,7 @@
         "xg_against_last_5": 2.2852699999999997,
         "corners_last_5": 3.2,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.08761801474324031
+        "set_piece_xg_share_last_5": 0.0876180147432403
       },
       "away_context": {
         "rest_days": 80,
@@ -24377,7 +24374,7 @@
         "xg_against_last_5": 1.57638,
         "corners_last_5": 6.4,
         "cards_last_5": 3.4,
-        "set_piece_xg_share_last_5": 0.051857332912353254
+        "set_piece_xg_share_last_5": 0.0518573329123532
       },
       "away_context": {
         "rest_days": 78,
@@ -24385,7 +24382,7 @@
         "xg_against_last_5": 1.8824406,
         "corners_last_5": 6.6,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.027231607011897002
+        "set_piece_xg_share_last_5": 0.027231607011897
       },
       "post_match": null,
       "actual_stats": null
@@ -24904,7 +24901,7 @@
         "xg_against_last_5": 2.2852699999999997,
         "corners_last_5": 3.2,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.08761801474324031
+        "set_piece_xg_share_last_5": 0.0876180147432403
       },
       "post_match": null,
       "actual_stats": null
@@ -25096,7 +25093,7 @@
         "xg_against_last_5": 1.925214,
         "corners_last_5": 4.8,
         "cards_last_5": 2.6,
-        "set_piece_xg_share_last_5": 0.45683251078739123
+        "set_piece_xg_share_last_5": 0.4568325107873912
       },
       "post_match": null,
       "actual_stats": null
@@ -25288,7 +25285,7 @@
         "xg_against_last_5": 0.7549928,
         "corners_last_5": 4.2,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.11723311928976932
+        "set_piece_xg_share_last_5": 0.1172331192897693
       },
       "post_match": null,
       "actual_stats": null
@@ -25444,7 +25441,7 @@
         "xg_against_last_5": 1.0125208,
         "corners_last_5": 3.4,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.058505619445017004
+        "set_piece_xg_share_last_5": 0.058505619445017
       },
       "post_match": null,
       "actual_stats": null
@@ -25628,7 +25625,7 @@
         "xg_against_last_5": 1.2435174000000002,
         "corners_last_5": 8.4,
         "cards_last_5": 1.6,
-        "set_piece_xg_share_last_5": 0.23529053144412004
+        "set_piece_xg_share_last_5": 0.23529053144412002
       },
       "away_context": {
         "rest_days": 84,
@@ -25636,7 +25633,7 @@
         "xg_against_last_5": 1.5090736,
         "corners_last_5": 4.0,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.21112123005411765
+        "set_piece_xg_share_last_5": 0.2111212300541176
       },
       "post_match": null,
       "actual_stats": null
@@ -25820,7 +25817,7 @@
         "xg_against_last_5": 1.8306681999999999,
         "corners_last_5": 4.0,
         "cards_last_5": 2.2,
-        "set_piece_xg_share_last_5": 0.03593043878083801
+        "set_piece_xg_share_last_5": 0.035930438780838
       },
       "away_context": {
         "rest_days": 77,
@@ -25828,7 +25825,7 @@
         "xg_against_last_5": 1.2617175999999999,
         "corners_last_5": 5.4,
         "cards_last_5": 1.8,
-        "set_piece_xg_share_last_5": 0.09876175188003201
+        "set_piece_xg_share_last_5": 0.098761751880032
       },
       "post_match": null,
       "actual_stats": null
@@ -26012,7 +26009,7 @@
         "xg_against_last_5": 1.5447598,
         "corners_last_5": 4.4,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.11656887767552987
+        "set_piece_xg_share_last_5": 0.1165688776755298
       },
       "away_context": {
         "rest_days": 77,
@@ -26020,7 +26017,7 @@
         "xg_against_last_5": 1.3993324,
         "corners_last_5": 6.0,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.11284789026914506
+        "set_piece_xg_share_last_5": 0.112847890269145
       },
       "post_match": null,
       "actual_stats": null
@@ -26204,7 +26201,7 @@
         "xg_against_last_5": 1.57638,
         "corners_last_5": 6.4,
         "cards_last_5": 3.4,
-        "set_piece_xg_share_last_5": 0.051857332912353254
+        "set_piece_xg_share_last_5": 0.0518573329123532
       },
       "away_context": {
         "rest_days": 80,
@@ -26212,7 +26209,7 @@
         "xg_against_last_5": 0.7549928,
         "corners_last_5": 4.2,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.11723311928976932
+        "set_piece_xg_share_last_5": 0.1172331192897693
       },
       "post_match": null,
       "actual_stats": null
@@ -26360,7 +26357,7 @@
         "xg_against_last_5": 1.2617175999999999,
         "corners_last_5": 5.4,
         "cards_last_5": 1.8,
-        "set_piece_xg_share_last_5": 0.09876175188003201
+        "set_piece_xg_share_last_5": 0.098761751880032
       },
       "away_context": {
         "rest_days": 79,
@@ -26516,7 +26513,7 @@
         "xg_against_last_5": 1.5090736,
         "corners_last_5": 4.0,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.21112123005411765
+        "set_piece_xg_share_last_5": 0.2111212300541176
       },
       "away_context": {
         "rest_days": 80,
@@ -26524,7 +26521,7 @@
         "xg_against_last_5": 1.0125208,
         "corners_last_5": 3.4,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.058505619445017004
+        "set_piece_xg_share_last_5": 0.058505619445017
       },
       "post_match": null,
       "actual_stats": null
@@ -26687,7 +26684,7 @@
         "xg_against_last_5": 1.8306681999999999,
         "corners_last_5": 4.0,
         "cards_last_5": 2.2,
-        "set_piece_xg_share_last_5": 0.03593043878083801
+        "set_piece_xg_share_last_5": 0.035930438780838
       },
       "away_context": {
         "rest_days": 87,
@@ -27079,7 +27076,7 @@
         "xg_against_last_5": 1.2435174000000002,
         "corners_last_5": 8.4,
         "cards_last_5": 1.6,
-        "set_piece_xg_share_last_5": 0.23529053144412004
+        "set_piece_xg_share_last_5": 0.23529053144412002
       },
       "post_match": null,
       "actual_stats": null
@@ -27227,7 +27224,7 @@
         "xg_against_last_5": 1.5447598,
         "corners_last_5": 4.4,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.11656887767552987
+        "set_piece_xg_share_last_5": 0.1165688776755298
       },
       "away_context": {
         "rest_days": 87,
@@ -27427,7 +27424,7 @@
         "xg_against_last_5": 2.2852699999999997,
         "corners_last_5": 3.2,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.08761801474324031
+        "set_piece_xg_share_last_5": 0.0876180147432403
       },
       "post_match": null,
       "actual_stats": null
@@ -27619,7 +27616,7 @@
         "xg_against_last_5": 1.3993324,
         "corners_last_5": 6.0,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.11284789026914506
+        "set_piece_xg_share_last_5": 0.112847890269145
       },
       "post_match": null,
       "actual_stats": null
@@ -27803,7 +27800,7 @@
         "xg_against_last_5": 1.925214,
         "corners_last_5": 4.8,
         "cards_last_5": 2.6,
-        "set_piece_xg_share_last_5": 0.45683251078739123
+        "set_piece_xg_share_last_5": 0.4568325107873912
       },
       "away_context": {
         "rest_days": 80,
@@ -27811,7 +27808,7 @@
         "xg_against_last_5": 1.8824406,
         "corners_last_5": 6.6,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.027231607011897002
+        "set_piece_xg_share_last_5": 0.027231607011897
       },
       "post_match": null,
       "actual_stats": null
@@ -28166,7 +28163,7 @@
         "xg_against_last_5": 2.2852699999999997,
         "corners_last_5": 3.2,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.08761801474324031
+        "set_piece_xg_share_last_5": 0.0876180147432403
       },
       "away_context": {
         "rest_days": 86,
@@ -28174,7 +28171,7 @@
         "xg_against_last_5": 1.2617175999999999,
         "corners_last_5": 5.4,
         "cards_last_5": 1.8,
-        "set_piece_xg_share_last_5": 0.09876175188003201
+        "set_piece_xg_share_last_5": 0.098761751880032
       },
       "post_match": null,
       "actual_stats": null
@@ -28330,7 +28327,7 @@
         "xg_against_last_5": 1.57638,
         "corners_last_5": 6.4,
         "cards_last_5": 3.4,
-        "set_piece_xg_share_last_5": 0.051857332912353254
+        "set_piece_xg_share_last_5": 0.0518573329123532
       },
       "post_match": null,
       "actual_stats": null
@@ -28514,7 +28511,7 @@
         "xg_against_last_5": 1.3993324,
         "corners_last_5": 6.0,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.11284789026914506
+        "set_piece_xg_share_last_5": 0.112847890269145
       },
       "away_context": {
         "rest_days": 93,
@@ -28522,7 +28519,7 @@
         "xg_against_last_5": 1.925214,
         "corners_last_5": 4.8,
         "cards_last_5": 2.6,
-        "set_piece_xg_share_last_5": 0.45683251078739123
+        "set_piece_xg_share_last_5": 0.4568325107873912
       },
       "post_match": null,
       "actual_stats": null
@@ -28685,7 +28682,7 @@
         "xg_against_last_5": 1.0125208,
         "corners_last_5": 3.4,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.058505619445017004
+        "set_piece_xg_share_last_5": 0.058505619445017
       },
       "away_context": {
         "rest_days": 94,
@@ -28693,7 +28690,7 @@
         "xg_against_last_5": 1.8306681999999999,
         "corners_last_5": 4.0,
         "cards_last_5": 2.2,
-        "set_piece_xg_share_last_5": 0.03593043878083801
+        "set_piece_xg_share_last_5": 0.035930438780838
       },
       "post_match": null,
       "actual_stats": null
@@ -29033,7 +29030,7 @@
         "xg_against_last_5": 0.7549928,
         "corners_last_5": 4.2,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.11723311928976932
+        "set_piece_xg_share_last_5": 0.1172331192897693
       },
       "away_context": {
         "rest_days": 94,
@@ -29041,7 +29038,7 @@
         "xg_against_last_5": 1.5447598,
         "corners_last_5": 4.4,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.11656887767552987
+        "set_piece_xg_share_last_5": 0.1165688776755298
       },
       "post_match": null,
       "actual_stats": null
@@ -29225,7 +29222,7 @@
         "xg_against_last_5": 1.2435174000000002,
         "corners_last_5": 8.4,
         "cards_last_5": 1.6,
-        "set_piece_xg_share_last_5": 0.23529053144412004
+        "set_piece_xg_share_last_5": 0.23529053144412002
       },
       "away_context": {
         "rest_days": 93,
@@ -29425,7 +29422,7 @@
         "xg_against_last_5": 1.5090736,
         "corners_last_5": 4.0,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.21112123005411765
+        "set_piece_xg_share_last_5": 0.2111212300541176
       },
       "post_match": null,
       "actual_stats": null
@@ -29609,7 +29606,7 @@
         "xg_against_last_5": 1.8824406,
         "corners_last_5": 6.6,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.027231607011897002
+        "set_piece_xg_share_last_5": 0.027231607011897
       },
       "away_context": {
         "rest_days": 87,
@@ -29801,7 +29798,7 @@
         "xg_against_last_5": 1.5090736,
         "corners_last_5": 4.0,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.21112123005411765
+        "set_piece_xg_share_last_5": 0.2111212300541176
       },
       "away_context": {
         "rest_days": 94,
@@ -29809,7 +29806,7 @@
         "xg_against_last_5": 1.8824406,
         "corners_last_5": 6.6,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.027231607011897002
+        "set_piece_xg_share_last_5": 0.027231607011897
       },
       "post_match": null,
       "actual_stats": null
@@ -29972,7 +29969,7 @@
         "xg_against_last_5": 1.3993324,
         "corners_last_5": 6.0,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.11284789026914506
+        "set_piece_xg_share_last_5": 0.112847890269145
       },
       "away_context": {
         "rest_days": 94,
@@ -29980,7 +29977,7 @@
         "xg_against_last_5": 1.0125208,
         "corners_last_5": 3.4,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.058505619445017004
+        "set_piece_xg_share_last_5": 0.058505619445017
       },
       "post_match": null,
       "actual_stats": null
@@ -30172,7 +30169,7 @@
         "xg_against_last_5": 1.925214,
         "corners_last_5": 4.8,
         "cards_last_5": 2.6,
-        "set_piece_xg_share_last_5": 0.45683251078739123
+        "set_piece_xg_share_last_5": 0.4568325107873912
       },
       "post_match": null,
       "actual_stats": null
@@ -30364,7 +30361,7 @@
         "xg_against_last_5": 1.8306681999999999,
         "corners_last_5": 4.0,
         "cards_last_5": 2.2,
-        "set_piece_xg_share_last_5": 0.03593043878083801
+        "set_piece_xg_share_last_5": 0.035930438780838
       },
       "post_match": null,
       "actual_stats": null
@@ -30512,7 +30509,7 @@
         "xg_against_last_5": 1.2435174000000002,
         "corners_last_5": 8.4,
         "cards_last_5": 1.6,
-        "set_piece_xg_share_last_5": 0.23529053144412004
+        "set_piece_xg_share_last_5": 0.23529053144412002
       },
       "away_context": {
         "rest_days": 101,
@@ -30691,7 +30688,7 @@
         "xg_against_last_5": 2.2852699999999997,
         "corners_last_5": 3.2,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.08761801474324031
+        "set_piece_xg_share_last_5": 0.0876180147432403
       },
       "post_match": null,
       "actual_stats": null
@@ -30839,7 +30836,7 @@
         "xg_against_last_5": 1.5447598,
         "corners_last_5": 4.4,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.11656887767552987
+        "set_piece_xg_share_last_5": 0.1165688776755298
       },
       "away_context": {
         "rest_days": 93,
@@ -31031,7 +31028,7 @@
         "xg_against_last_5": 0.7549928,
         "corners_last_5": 4.2,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.11723311928976932
+        "set_piece_xg_share_last_5": 0.1172331192897693
       },
       "away_context": {
         "rest_days": 93,
@@ -31039,7 +31036,7 @@
         "xg_against_last_5": 1.2617175999999999,
         "corners_last_5": 5.4,
         "cards_last_5": 1.8,
-        "set_piece_xg_share_last_5": 0.09876175188003201
+        "set_piece_xg_share_last_5": 0.098761751880032
       },
       "post_match": null,
       "actual_stats": null
@@ -31231,7 +31228,7 @@
         "xg_against_last_5": 1.57638,
         "corners_last_5": 6.4,
         "cards_last_5": 3.4,
-        "set_piece_xg_share_last_5": 0.051857332912353254
+        "set_piece_xg_share_last_5": 0.0518573329123532
       },
       "post_match": null,
       "actual_stats": null
@@ -31615,7 +31612,7 @@
         "xg_against_last_5": 1.5090736,
         "corners_last_5": 4.0,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.21112123005411765
+        "set_piece_xg_share_last_5": 0.2111212300541176
       },
       "post_match": null,
       "actual_stats": null
@@ -31799,7 +31796,7 @@
         "xg_against_last_5": 1.2617175999999999,
         "corners_last_5": 5.4,
         "cards_last_5": 1.8,
-        "set_piece_xg_share_last_5": 0.09876175188003201
+        "set_piece_xg_share_last_5": 0.098761751880032
       },
       "away_context": {
         "rest_days": 122,
@@ -31991,7 +31988,7 @@
         "xg_against_last_5": 2.2852699999999997,
         "corners_last_5": 3.2,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.08761801474324031
+        "set_piece_xg_share_last_5": 0.0876180147432403
       },
       "away_context": {
         "rest_days": 101,
@@ -31999,7 +31996,7 @@
         "xg_against_last_5": 0.7549928,
         "corners_last_5": 4.2,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.11723311928976932
+        "set_piece_xg_share_last_5": 0.1172331192897693
       },
       "post_match": null,
       "actual_stats": null
@@ -32162,7 +32159,7 @@
         "xg_against_last_5": 1.925214,
         "corners_last_5": 4.8,
         "cards_last_5": 2.6,
-        "set_piece_xg_share_last_5": 0.45683251078739123
+        "set_piece_xg_share_last_5": 0.4568325107873912
       },
       "away_context": {
         "rest_days": 108,
@@ -32510,7 +32507,7 @@
         "xg_against_last_5": 1.8306681999999999,
         "corners_last_5": 4.0,
         "cards_last_5": 2.2,
-        "set_piece_xg_share_last_5": 0.03593043878083801
+        "set_piece_xg_share_last_5": 0.035930438780838
       },
       "away_context": {
         "rest_days": 99,
@@ -32518,7 +32515,7 @@
         "xg_against_last_5": 1.2435174000000002,
         "corners_last_5": 8.4,
         "cards_last_5": 1.6,
-        "set_piece_xg_share_last_5": 0.23529053144412004
+        "set_piece_xg_share_last_5": 0.23529053144412002
       },
       "post_match": null,
       "actual_stats": null
@@ -32702,7 +32699,7 @@
         "xg_against_last_5": 1.8824406,
         "corners_last_5": 6.6,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.027231607011897002
+        "set_piece_xg_share_last_5": 0.027231607011897
       },
       "away_context": {
         "rest_days": 100,
@@ -32710,7 +32707,7 @@
         "xg_against_last_5": 1.3993324,
         "corners_last_5": 6.0,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.11284789026914506
+        "set_piece_xg_share_last_5": 0.112847890269145
       },
       "post_match": null,
       "actual_stats": null
@@ -32894,7 +32891,7 @@
         "xg_against_last_5": 1.57638,
         "corners_last_5": 6.4,
         "cards_last_5": 3.4,
-        "set_piece_xg_share_last_5": 0.051857332912353254
+        "set_piece_xg_share_last_5": 0.0518573329123532
       },
       "away_context": {
         "rest_days": 108,
@@ -32902,7 +32899,7 @@
         "xg_against_last_5": 1.5447598,
         "corners_last_5": 4.4,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.11656887767552987
+        "set_piece_xg_share_last_5": 0.1165688776755298
       },
       "post_match": null,
       "actual_stats": null
@@ -33221,7 +33218,7 @@
         "xg_against_last_5": 1.0125208,
         "corners_last_5": 3.4,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.058505619445017004
+        "set_piece_xg_share_last_5": 0.058505619445017
       },
       "away_context": {
         "rest_days": 101,
@@ -33413,7 +33410,7 @@
         "xg_against_last_5": 1.8824406,
         "corners_last_5": 6.6,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.027231607011897002
+        "set_piece_xg_share_last_5": 0.027231607011897
       },
       "away_context": {
         "rest_days": 106,
@@ -33421,7 +33418,7 @@
         "xg_against_last_5": 0.7549928,
         "corners_last_5": 4.2,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.11723311928976932
+        "set_piece_xg_share_last_5": 0.1172331192897693
       },
       "post_match": null,
       "actual_stats": null
@@ -33953,7 +33950,7 @@
         "xg_against_last_5": 1.8306681999999999,
         "corners_last_5": 4.0,
         "cards_last_5": 2.2,
-        "set_piece_xg_share_last_5": 0.03593043878083801
+        "set_piece_xg_share_last_5": 0.035930438780838
       },
       "away_context": {
         "rest_days": 127,
@@ -34117,7 +34114,7 @@
         "xg_against_last_5": 1.5090736,
         "corners_last_5": 4.0,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.21112123005411765
+        "set_piece_xg_share_last_5": 0.2111212300541176
       },
       "post_match": null,
       "actual_stats": null
@@ -34280,7 +34277,7 @@
         "xg_against_last_5": 1.2617175999999999,
         "corners_last_5": 5.4,
         "cards_last_5": 1.8,
-        "set_piece_xg_share_last_5": 0.09876175188003201
+        "set_piece_xg_share_last_5": 0.098761751880032
       },
       "away_context": {
         "rest_days": 113,
@@ -34451,7 +34448,7 @@
         "xg_against_last_5": 1.0125208,
         "corners_last_5": 3.4,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.058505619445017004
+        "set_piece_xg_share_last_5": 0.058505619445017
       },
       "away_context": {
         "rest_days": 112,
@@ -34643,7 +34640,7 @@
         "xg_against_last_5": 1.57638,
         "corners_last_5": 6.4,
         "cards_last_5": 3.4,
-        "set_piece_xg_share_last_5": 0.051857332912353254
+        "set_piece_xg_share_last_5": 0.0518573329123532
       },
       "away_context": {
         "rest_days": 105,
@@ -34651,7 +34648,7 @@
         "xg_against_last_5": 1.3993324,
         "corners_last_5": 6.0,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.11284789026914506
+        "set_piece_xg_share_last_5": 0.112847890269145
       },
       "post_match": null,
       "actual_stats": null
@@ -34835,7 +34832,7 @@
         "xg_against_last_5": 1.925214,
         "corners_last_5": 4.8,
         "cards_last_5": 2.6,
-        "set_piece_xg_share_last_5": 0.45683251078739123
+        "set_piece_xg_share_last_5": 0.4568325107873912
       },
       "away_context": {
         "rest_days": 104,
@@ -34843,7 +34840,7 @@
         "xg_against_last_5": 1.2435174000000002,
         "corners_last_5": 8.4,
         "cards_last_5": 1.6,
-        "set_piece_xg_share_last_5": 0.23529053144412004
+        "set_piece_xg_share_last_5": 0.23529053144412002
       },
       "post_match": null,
       "actual_stats": null
@@ -35027,7 +35024,7 @@
         "xg_against_last_5": 2.2852699999999997,
         "corners_last_5": 3.2,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.08761801474324031
+        "set_piece_xg_share_last_5": 0.0876180147432403
       },
       "away_context": {
         "rest_days": 113,
@@ -35035,7 +35032,7 @@
         "xg_against_last_5": 1.5447598,
         "corners_last_5": 4.4,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.11656887767552987
+        "set_piece_xg_share_last_5": 0.1165688776755298
       },
       "post_match": null,
       "actual_stats": null
@@ -35219,7 +35216,7 @@
         "xg_against_last_5": 1.5447598,
         "corners_last_5": 4.4,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.11656887767552987
+        "set_piece_xg_share_last_5": 0.1165688776755298
       },
       "away_context": {
         "rest_days": 107,
@@ -35419,7 +35416,7 @@
         "xg_against_last_5": 2.2852699999999997,
         "corners_last_5": 3.2,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.08761801474324031
+        "set_piece_xg_share_last_5": 0.0876180147432403
       },
       "post_match": null,
       "actual_stats": null
@@ -35603,7 +35600,7 @@
         "xg_against_last_5": 1.5090736,
         "corners_last_5": 4.0,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.21112123005411765
+        "set_piece_xg_share_last_5": 0.2111212300541176
       },
       "away_context": {
         "rest_days": 114,
@@ -35611,7 +35608,7 @@
         "xg_against_last_5": 1.925214,
         "corners_last_5": 4.8,
         "cards_last_5": 2.6,
-        "set_piece_xg_share_last_5": 0.45683251078739123
+        "set_piece_xg_share_last_5": 0.4568325107873912
       },
       "post_match": null,
       "actual_stats": null
@@ -35774,7 +35771,7 @@
         "xg_against_last_5": 0.7549928,
         "corners_last_5": 4.2,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.11723311928976932
+        "set_piece_xg_share_last_5": 0.1172331192897693
       },
       "away_context": {
         "rest_days": 108,
@@ -35782,7 +35779,7 @@
         "xg_against_last_5": 1.0125208,
         "corners_last_5": 3.4,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.058505619445017004
+        "set_piece_xg_share_last_5": 0.058505619445017
       },
       "post_match": null,
       "actual_stats": null
@@ -36286,7 +36283,7 @@
         "xg_against_last_5": 1.8306681999999999,
         "corners_last_5": 4.0,
         "cards_last_5": 2.2,
-        "set_piece_xg_share_last_5": 0.03593043878083801
+        "set_piece_xg_share_last_5": 0.035930438780838
       },
       "post_match": null,
       "actual_stats": null
@@ -36478,7 +36475,7 @@
         "xg_against_last_5": 1.8824406,
         "corners_last_5": 6.6,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.027231607011897002
+        "set_piece_xg_share_last_5": 0.027231607011897
       },
       "post_match": null,
       "actual_stats": null
@@ -36662,7 +36659,7 @@
         "xg_against_last_5": 1.3993324,
         "corners_last_5": 6.0,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.11284789026914506
+        "set_piece_xg_share_last_5": 0.112847890269145
       },
       "away_context": {
         "rest_days": 107,
@@ -36670,7 +36667,7 @@
         "xg_against_last_5": 1.2617175999999999,
         "corners_last_5": 5.4,
         "cards_last_5": 1.8,
-        "set_piece_xg_share_last_5": 0.09876175188003201
+        "set_piece_xg_share_last_5": 0.098761751880032
       },
       "post_match": null,
       "actual_stats": null
@@ -36854,7 +36851,7 @@
         "xg_against_last_5": 1.2435174000000002,
         "corners_last_5": 8.4,
         "cards_last_5": 1.6,
-        "set_piece_xg_share_last_5": 0.23529053144412004
+        "set_piece_xg_share_last_5": 0.23529053144412002
       },
       "away_context": {
         "rest_days": 107,
@@ -36862,7 +36859,7 @@
         "xg_against_last_5": 1.57638,
         "corners_last_5": 6.4,
         "cards_last_5": 3.4,
-        "set_piece_xg_share_last_5": 0.051857332912353254
+        "set_piece_xg_share_last_5": 0.0518573329123532
       },
       "post_match": null,
       "actual_stats": null
@@ -37046,7 +37043,7 @@
         "xg_against_last_5": 0.7549928,
         "corners_last_5": 4.2,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.11723311928976932
+        "set_piece_xg_share_last_5": 0.1172331192897693
       },
       "away_context": {
         "rest_days": 113,
@@ -37238,7 +37235,7 @@
         "xg_against_last_5": 1.5090736,
         "corners_last_5": 4.0,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.21112123005411765
+        "set_piece_xg_share_last_5": 0.2111212300541176
       },
       "away_context": {
         "rest_days": 111,
@@ -37246,7 +37243,7 @@
         "xg_against_last_5": 1.2435174000000002,
         "corners_last_5": 8.4,
         "cards_last_5": 1.6,
-        "set_piece_xg_share_last_5": 0.23529053144412004
+        "set_piece_xg_share_last_5": 0.23529053144412002
       },
       "post_match": null,
       "actual_stats": null
@@ -37430,7 +37427,7 @@
         "xg_against_last_5": 1.2617175999999999,
         "corners_last_5": 5.4,
         "cards_last_5": 1.8,
-        "set_piece_xg_share_last_5": 0.09876175188003201
+        "set_piece_xg_share_last_5": 0.098761751880032
       },
       "away_context": {
         "rest_days": 120,
@@ -37438,7 +37435,7 @@
         "xg_against_last_5": 1.8306681999999999,
         "corners_last_5": 4.0,
         "cards_last_5": 2.2,
-        "set_piece_xg_share_last_5": 0.03593043878083801
+        "set_piece_xg_share_last_5": 0.035930438780838
       },
       "post_match": null,
       "actual_stats": null
@@ -37622,7 +37619,7 @@
         "xg_against_last_5": 1.3993324,
         "corners_last_5": 6.0,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.11284789026914506
+        "set_piece_xg_share_last_5": 0.112847890269145
       },
       "away_context": {
         "rest_days": 120,
@@ -37630,7 +37627,7 @@
         "xg_against_last_5": 1.5447598,
         "corners_last_5": 4.4,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.11656887767552987
+        "set_piece_xg_share_last_5": 0.1165688776755298
       },
       "post_match": null,
       "actual_stats": null
@@ -37970,7 +37967,7 @@
         "xg_against_last_5": 1.8824406,
         "corners_last_5": 6.6,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.027231607011897002
+        "set_piece_xg_share_last_5": 0.027231607011897
       },
       "away_context": {
         "rest_days": 112,
@@ -37978,7 +37975,7 @@
         "xg_against_last_5": 1.57638,
         "corners_last_5": 6.4,
         "cards_last_5": 3.4,
-        "set_piece_xg_share_last_5": 0.051857332912353254
+        "set_piece_xg_share_last_5": 0.0518573329123532
       },
       "post_match": null,
       "actual_stats": null
@@ -38162,7 +38159,7 @@
         "xg_against_last_5": 1.925214,
         "corners_last_5": 4.8,
         "cards_last_5": 2.6,
-        "set_piece_xg_share_last_5": 0.45683251078739123
+        "set_piece_xg_share_last_5": 0.4568325107873912
       },
       "away_context": {
         "rest_days": 112,
@@ -38525,7 +38522,7 @@
         "xg_against_last_5": 2.2852699999999997,
         "corners_last_5": 3.2,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.08761801474324031
+        "set_piece_xg_share_last_5": 0.0876180147432403
       },
       "away_context": {
         "rest_days": 119,
@@ -38681,7 +38678,7 @@
         "xg_against_last_5": 1.0125208,
         "corners_last_5": 3.4,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.058505619445017004
+        "set_piece_xg_share_last_5": 0.058505619445017
       },
       "away_context": {
         "rest_days": 112,
@@ -38852,7 +38849,7 @@
         "xg_against_last_5": 1.5447598,
         "corners_last_5": 4.4,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.11656887767552987
+        "set_piece_xg_share_last_5": 0.1165688776755298
       },
       "away_context": {
         "rest_days": 122,
@@ -38860,7 +38857,7 @@
         "xg_against_last_5": 1.0125208,
         "corners_last_5": 3.4,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.058505619445017004
+        "set_piece_xg_share_last_5": 0.058505619445017
       },
       "post_match": null,
       "actual_stats": null
@@ -39044,7 +39041,7 @@
         "xg_against_last_5": 1.2435174000000002,
         "corners_last_5": 8.4,
         "cards_last_5": 1.6,
-        "set_piece_xg_share_last_5": 0.23529053144412004
+        "set_piece_xg_share_last_5": 0.23529053144412002
       },
       "away_context": {
         "rest_days": 143,
@@ -39415,7 +39412,7 @@
         "xg_against_last_5": 1.3993324,
         "corners_last_5": 6.0,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.11284789026914506
+        "set_piece_xg_share_last_5": 0.112847890269145
       },
       "post_match": null,
       "actual_stats": null
@@ -39607,7 +39604,7 @@
         "xg_against_last_5": 1.2617175999999999,
         "corners_last_5": 5.4,
         "cards_last_5": 1.8,
-        "set_piece_xg_share_last_5": 0.09876175188003201
+        "set_piece_xg_share_last_5": 0.098761751880032
       },
       "post_match": null,
       "actual_stats": null
@@ -39791,7 +39788,7 @@
         "xg_against_last_5": 1.57638,
         "corners_last_5": 6.4,
         "cards_last_5": 3.4,
-        "set_piece_xg_share_last_5": 0.051857332912353254
+        "set_piece_xg_share_last_5": 0.0518573329123532
       },
       "away_context": {
         "rest_days": 128,
@@ -39799,7 +39796,7 @@
         "xg_against_last_5": 1.5090736,
         "corners_last_5": 4.0,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.21112123005411765
+        "set_piece_xg_share_last_5": 0.2111212300541176
       },
       "post_match": null,
       "actual_stats": null
@@ -39955,7 +39952,7 @@
         "xg_against_last_5": 1.925214,
         "corners_last_5": 4.8,
         "cards_last_5": 2.6,
-        "set_piece_xg_share_last_5": 0.45683251078739123
+        "set_piece_xg_share_last_5": 0.4568325107873912
       },
       "post_match": null,
       "actual_stats": null
@@ -40147,7 +40144,7 @@
         "xg_against_last_5": 2.2852699999999997,
         "corners_last_5": 3.2,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.08761801474324031
+        "set_piece_xg_share_last_5": 0.0876180147432403
       },
       "post_match": null,
       "actual_stats": null
@@ -40303,7 +40300,7 @@
         "xg_against_last_5": 0.7549928,
         "corners_last_5": 4.2,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.11723311928976932
+        "set_piece_xg_share_last_5": 0.1172331192897693
       },
       "post_match": null,
       "actual_stats": null
@@ -40487,7 +40484,7 @@
         "xg_against_last_5": 1.8306681999999999,
         "corners_last_5": 4.0,
         "cards_last_5": 2.2,
-        "set_piece_xg_share_last_5": 0.03593043878083801
+        "set_piece_xg_share_last_5": 0.035930438780838
       },
       "away_context": {
         "rest_days": 122,
@@ -40495,7 +40492,7 @@
         "xg_against_last_5": 1.8824406,
         "corners_last_5": 6.6,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.027231607011897002
+        "set_piece_xg_share_last_5": 0.027231607011897
       },
       "post_match": null,
       "actual_stats": null
@@ -40643,7 +40640,7 @@
         "xg_against_last_5": 1.0125208,
         "corners_last_5": 3.4,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.058505619445017004
+        "set_piece_xg_share_last_5": 0.058505619445017
       },
       "away_context": {
         "rest_days": 136,
@@ -40835,7 +40832,7 @@
         "xg_against_last_5": 1.925214,
         "corners_last_5": 4.8,
         "cards_last_5": 2.6,
-        "set_piece_xg_share_last_5": 0.45683251078739123
+        "set_piece_xg_share_last_5": 0.4568325107873912
       },
       "away_context": {
         "rest_days": 129,
@@ -41191,7 +41188,7 @@
         "xg_against_last_5": 1.5447598,
         "corners_last_5": 4.4,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.11656887767552987
+        "set_piece_xg_share_last_5": 0.1165688776755298
       },
       "post_match": null,
       "actual_stats": null
@@ -41375,7 +41372,7 @@
         "xg_against_last_5": 0.7549928,
         "corners_last_5": 4.2,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.11723311928976932
+        "set_piece_xg_share_last_5": 0.1172331192897693
       },
       "away_context": {
         "rest_days": 136,
@@ -41383,7 +41380,7 @@
         "xg_against_last_5": 1.8306681999999999,
         "corners_last_5": 4.0,
         "cards_last_5": 2.2,
-        "set_piece_xg_share_last_5": 0.03593043878083801
+        "set_piece_xg_share_last_5": 0.035930438780838
       },
       "post_match": null,
       "actual_stats": null
@@ -41567,7 +41564,7 @@
         "xg_against_last_5": 1.5090736,
         "corners_last_5": 4.0,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.21112123005411765
+        "set_piece_xg_share_last_5": 0.2111212300541176
       },
       "away_context": {
         "rest_days": 135,
@@ -41759,7 +41756,7 @@
         "xg_against_last_5": 1.8824406,
         "corners_last_5": 6.6,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.027231607011897002
+        "set_piece_xg_share_last_5": 0.027231607011897
       },
       "away_context": {
         "rest_days": 128,
@@ -41951,7 +41948,7 @@
         "xg_against_last_5": 1.2617175999999999,
         "corners_last_5": 5.4,
         "cards_last_5": 1.8,
-        "set_piece_xg_share_last_5": 0.09876175188003201
+        "set_piece_xg_share_last_5": 0.098761751880032
       },
       "away_context": {
         "rest_days": 128,
@@ -42143,7 +42140,7 @@
         "xg_against_last_5": 1.3993324,
         "corners_last_5": 6.0,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.11284789026914506
+        "set_piece_xg_share_last_5": 0.112847890269145
       },
       "away_context": {
         "rest_days": 127,
@@ -42151,7 +42148,7 @@
         "xg_against_last_5": 1.2435174000000002,
         "corners_last_5": 8.4,
         "cards_last_5": 1.6,
-        "set_piece_xg_share_last_5": 0.23529053144412004
+        "set_piece_xg_share_last_5": 0.23529053144412002
       },
       "post_match": null,
       "actual_stats": null
@@ -42335,7 +42332,7 @@
         "xg_against_last_5": 2.2852699999999997,
         "corners_last_5": 3.2,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.08761801474324031
+        "set_piece_xg_share_last_5": 0.0876180147432403
       },
       "away_context": {
         "rest_days": 128,
@@ -42343,7 +42340,7 @@
         "xg_against_last_5": 1.57638,
         "corners_last_5": 6.4,
         "cards_last_5": 3.4,
-        "set_piece_xg_share_last_5": 0.051857332912353254
+        "set_piece_xg_share_last_5": 0.0518573329123532
       },
       "post_match": null,
       "actual_stats": null
@@ -42506,7 +42503,7 @@
         "xg_against_last_5": 1.57638,
         "corners_last_5": 6.4,
         "cards_last_5": 3.4,
-        "set_piece_xg_share_last_5": 0.051857332912353254
+        "set_piece_xg_share_last_5": 0.0518573329123532
       },
       "away_context": {
         "rest_days": 143,
@@ -42706,7 +42703,7 @@
         "xg_against_last_5": 1.2617175999999999,
         "corners_last_5": 5.4,
         "cards_last_5": 1.8,
-        "set_piece_xg_share_last_5": 0.09876175188003201
+        "set_piece_xg_share_last_5": 0.098761751880032
       },
       "post_match": null,
       "actual_stats": null
@@ -42890,7 +42887,7 @@
         "xg_against_last_5": 1.8306681999999999,
         "corners_last_5": 4.0,
         "cards_last_5": 2.2,
-        "set_piece_xg_share_last_5": 0.03593043878083801
+        "set_piece_xg_share_last_5": 0.035930438780838
       },
       "away_context": {
         "rest_days": 135,
@@ -42898,7 +42895,7 @@
         "xg_against_last_5": 1.3993324,
         "corners_last_5": 6.0,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.11284789026914506
+        "set_piece_xg_share_last_5": 0.112847890269145
       },
       "post_match": null,
       "actual_stats": null
@@ -43054,7 +43051,7 @@
         "xg_against_last_5": 2.2852699999999997,
         "corners_last_5": 3.2,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.08761801474324031
+        "set_piece_xg_share_last_5": 0.0876180147432403
       },
       "post_match": null,
       "actual_stats": null
@@ -43210,7 +43207,7 @@
         "xg_against_last_5": 1.5090736,
         "corners_last_5": 4.0,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.21112123005411765
+        "set_piece_xg_share_last_5": 0.2111212300541176
       },
       "post_match": null,
       "actual_stats": null
@@ -43394,7 +43391,7 @@
         "xg_against_last_5": 1.5447598,
         "corners_last_5": 4.4,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.11656887767552987
+        "set_piece_xg_share_last_5": 0.1165688776755298
       },
       "away_context": {
         "rest_days": 136,
@@ -43402,7 +43399,7 @@
         "xg_against_last_5": 1.8824406,
         "corners_last_5": 6.6,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.027231607011897002
+        "set_piece_xg_share_last_5": 0.027231607011897
       },
       "post_match": null,
       "actual_stats": null
@@ -43786,7 +43783,7 @@
         "xg_against_last_5": 1.925214,
         "corners_last_5": 4.8,
         "cards_last_5": 2.6,
-        "set_piece_xg_share_last_5": 0.45683251078739123
+        "set_piece_xg_share_last_5": 0.4568325107873912
       },
       "post_match": null,
       "actual_stats": null
@@ -43970,7 +43967,7 @@
         "xg_against_last_5": 1.2435174000000002,
         "corners_last_5": 8.4,
         "cards_last_5": 1.6,
-        "set_piece_xg_share_last_5": 0.23529053144412004
+        "set_piece_xg_share_last_5": 0.23529053144412002
       },
       "away_context": {
         "rest_days": 136,
@@ -43978,7 +43975,7 @@
         "xg_against_last_5": 0.7549928,
         "corners_last_5": 4.2,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.11723311928976932
+        "set_piece_xg_share_last_5": 0.1172331192897693
       },
       "post_match": null,
       "actual_stats": null
@@ -44149,7 +44146,7 @@
         "xg_against_last_5": 1.0125208,
         "corners_last_5": 3.4,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.058505619445017004
+        "set_piece_xg_share_last_5": 0.058505619445017
       },
       "post_match": null,
       "actual_stats": null
@@ -44333,7 +44330,7 @@
         "xg_against_last_5": 0.7549928,
         "corners_last_5": 4.2,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.11723311928976932
+        "set_piece_xg_share_last_5": 0.1172331192897693
       },
       "away_context": {
         "rest_days": 142,
@@ -44489,7 +44486,7 @@
         "xg_against_last_5": 1.3993324,
         "corners_last_5": 6.0,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.11284789026914506
+        "set_piece_xg_share_last_5": 0.112847890269145
       },
       "away_context": {
         "rest_days": 150,
@@ -44816,7 +44813,7 @@
         "xg_against_last_5": 2.2852699999999997,
         "corners_last_5": 3.2,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.08761801474324031
+        "set_piece_xg_share_last_5": 0.0876180147432403
       },
       "away_context": {
         "rest_days": 142,
@@ -44987,7 +44984,7 @@
         "xg_against_last_5": 1.0125208,
         "corners_last_5": 3.4,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.058505619445017004
+        "set_piece_xg_share_last_5": 0.058505619445017
       },
       "away_context": {
         "rest_days": 142,
@@ -44995,7 +44992,7 @@
         "xg_against_last_5": 1.57638,
         "corners_last_5": 6.4,
         "cards_last_5": 3.4,
-        "set_piece_xg_share_last_5": 0.051857332912353254
+        "set_piece_xg_share_last_5": 0.0518573329123532
       },
       "post_match": null,
       "actual_stats": null
@@ -45179,7 +45176,7 @@
         "xg_against_last_5": 1.925214,
         "corners_last_5": 4.8,
         "cards_last_5": 2.6,
-        "set_piece_xg_share_last_5": 0.45683251078739123
+        "set_piece_xg_share_last_5": 0.4568325107873912
       },
       "away_context": {
         "rest_days": 150,
@@ -45187,7 +45184,7 @@
         "xg_against_last_5": 1.8306681999999999,
         "corners_last_5": 4.0,
         "cards_last_5": 2.2,
-        "set_piece_xg_share_last_5": 0.03593043878083801
+        "set_piece_xg_share_last_5": 0.035930438780838
       },
       "post_match": null,
       "actual_stats": null
@@ -45371,7 +45368,7 @@
         "xg_against_last_5": 1.8824406,
         "corners_last_5": 6.6,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.027231607011897002
+        "set_piece_xg_share_last_5": 0.027231607011897
       },
       "away_context": {
         "rest_days": 141,
@@ -45379,7 +45376,7 @@
         "xg_against_last_5": 1.2435174000000002,
         "corners_last_5": 8.4,
         "cards_last_5": 1.6,
-        "set_piece_xg_share_last_5": 0.23529053144412004
+        "set_piece_xg_share_last_5": 0.23529053144412002
       },
       "post_match": null,
       "actual_stats": null
@@ -45556,7 +45553,7 @@
         "xg_against_last_5": 1.5090736,
         "corners_last_5": 4.0,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.21112123005411765
+        "set_piece_xg_share_last_5": 0.2111212300541176
       },
       "away_context": {
         "rest_days": 150,
@@ -45564,7 +45561,7 @@
         "xg_against_last_5": 1.5447598,
         "corners_last_5": 4.4,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.11656887767552987
+        "set_piece_xg_share_last_5": 0.1165688776755298
       },
       "post_match": null,
       "actual_stats": null
@@ -45748,7 +45745,7 @@
         "xg_against_last_5": 1.2617175999999999,
         "corners_last_5": 5.4,
         "cards_last_5": 1.8,
-        "set_piece_xg_share_last_5": 0.09876175188003201
+        "set_piece_xg_share_last_5": 0.098761751880032
       },
       "away_context": {
         "rest_days": 149,
@@ -46132,7 +46129,7 @@
         "xg_against_last_5": 1.925214,
         "corners_last_5": 4.8,
         "cards_last_5": 2.6,
-        "set_piece_xg_share_last_5": 0.45683251078739123
+        "set_piece_xg_share_last_5": 0.4568325107873912
       },
       "away_context": {
         "rest_days": 154,
@@ -46140,7 +46137,7 @@
         "xg_against_last_5": 1.5090736,
         "corners_last_5": 4.0,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.21112123005411765
+        "set_piece_xg_share_last_5": 0.2111212300541176
       },
       "post_match": null,
       "actual_stats": null
@@ -46644,7 +46641,7 @@
         "xg_against_last_5": 1.5447598,
         "corners_last_5": 4.4,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.11656887767552987
+        "set_piece_xg_share_last_5": 0.1165688776755298
       },
       "post_match": null,
       "actual_stats": null
@@ -46828,7 +46825,7 @@
         "xg_against_last_5": 2.2852699999999997,
         "corners_last_5": 3.2,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.08761801474324031
+        "set_piece_xg_share_last_5": 0.0876180147432403
       },
       "away_context": {
         "rest_days": 148,
@@ -47020,7 +47017,7 @@
         "xg_against_last_5": 1.8306681999999999,
         "corners_last_5": 4.0,
         "cards_last_5": 2.2,
-        "set_piece_xg_share_last_5": 0.03593043878083801
+        "set_piece_xg_share_last_5": 0.035930438780838
       },
       "away_context": {
         "rest_days": 154,
@@ -47212,7 +47209,7 @@
         "xg_against_last_5": 1.8824406,
         "corners_last_5": 6.6,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.027231607011897002
+        "set_piece_xg_share_last_5": 0.027231607011897
       },
       "away_context": {
         "rest_days": 169,
@@ -47404,7 +47401,7 @@
         "xg_against_last_5": 1.57638,
         "corners_last_5": 6.4,
         "cards_last_5": 3.4,
-        "set_piece_xg_share_last_5": 0.051857332912353254
+        "set_piece_xg_share_last_5": 0.0518573329123532
       },
       "away_context": {
         "rest_days": 146,
@@ -47412,7 +47409,7 @@
         "xg_against_last_5": 1.2435174000000002,
         "corners_last_5": 8.4,
         "cards_last_5": 1.6,
-        "set_piece_xg_share_last_5": 0.23529053144412004
+        "set_piece_xg_share_last_5": 0.23529053144412002
       },
       "post_match": null,
       "actual_stats": null
@@ -47596,7 +47593,7 @@
         "xg_against_last_5": 1.2617175999999999,
         "corners_last_5": 5.4,
         "cards_last_5": 1.8,
-        "set_piece_xg_share_last_5": 0.09876175188003201
+        "set_piece_xg_share_last_5": 0.098761751880032
       },
       "away_context": {
         "rest_days": 147,
@@ -47604,7 +47601,7 @@
         "xg_against_last_5": 1.3993324,
         "corners_last_5": 6.0,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.11284789026914506
+        "set_piece_xg_share_last_5": 0.112847890269145
       },
       "post_match": null,
       "actual_stats": null
@@ -47767,7 +47764,7 @@
         "xg_against_last_5": 1.0125208,
         "corners_last_5": 3.4,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.058505619445017004
+        "set_piece_xg_share_last_5": 0.058505619445017
       },
       "away_context": {
         "rest_days": 148,
@@ -47775,7 +47772,7 @@
         "xg_against_last_5": 0.7549928,
         "corners_last_5": 4.2,
         "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.11723311928976932
+        "set_piece_xg_share_last_5": 0.1172331192897693
       },
       "post_match": null,
       "actual_stats": null
@@ -47959,7 +47956,7 @@
         "xg_against_last_5": 1.2435174000000002,
         "corners_last_5": 8.4,
         "cards_last_5": 1.6,
-        "set_piece_xg_share_last_5": 0.23529053144412004
+        "set_piece_xg_share_last_5": 0.23529053144412002
       },
       "away_context": {
         "rest_days": 164,
@@ -47967,7 +47964,7 @@
         "xg_against_last_5": 1.8306681999999999,
         "corners_last_5": 4.0,
         "cards_last_5": 2.2,
-        "set_piece_xg_share_last_5": 0.03593043878083801
+        "set_piece_xg_share_last_5": 0.035930438780838
       },
       "post_match": null,
       "actual_stats": null
@@ -48151,7 +48148,7 @@
         "xg_against_last_5": 1.5447598,
         "corners_last_5": 4.4,
         "cards_last_5": 2.0,
-        "set_piece_xg_share_last_5": 0.11656887767552987
+        "set_piece_xg_share_last_5": 0.1165688776755298
       },
       "away_context": {
         "rest_days": 164,
@@ -48159,7 +48156,7 @@
         "xg_against_last_5": 2.2852699999999997,
         "corners_last_5": 3.2,
         "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.08761801474324031
+        "set_piece_xg_share_last_5": 0.0876180147432403
       },
       "post_match": null,
       "actual_stats": null
@@ -74098,228 +74095,6 @@
         }
       }
     },
-    "backfill-Crystal Palace-Man City-2026-08-28": {
-      "event_id": "backfill-Crystal Palace-Man City-2026-08-28",
-      "commence_time": "2026-08-28T19:00:00",
-      "team_home": "Crystal Palace",
-      "team_away": "Man City",
-      "home_win": {
-        "prob": 0.14494930103279194,
-        "implied": null,
-        "edge": null
-      },
-      "draw": {
-        "prob": 0.18961881740449074,
-        "implied": null,
-        "edge": null
-      },
-      "away_win": {
-        "prob": 0.6654318815627173,
-        "implied": null,
-        "edge": null
-      },
-      "over_2_5": {
-        "prob": 0.5922252228139744,
-        "implied": null,
-        "edge": null
-      },
-      "under_2_5": {
-        "prob": 0.4077747771860257,
-        "implied": null,
-        "edge": null
-      },
-      "btts_yes_prob": 0.5378291514387364,
-      "top_scoreline": "0-2",
-      "is_fallback_prediction": false,
-      "data_confidence": null,
-      "predicted_total_goals": null,
-      "predicted_margin": null,
-      "value_bet_flags": [],
-      "has_live_odds": false,
-      "odds_fetched_at": null,
-      "odds_is_stale": false,
-      "recommended_bet": null,
-      "score_grid": [
-        [
-          0.04373846297077939,
-          0.09669782522754733,
-          0.10689069492432915,
-          0.07877199329988009,
-          0.043537654981303985,
-          0.019250775021573057
-        ],
-        [
-          0.040521134654443076,
-          0.08958489463735782,
-          0.0990279938558745,
-          0.07297765697975671,
-          0.040335097765431746,
-          0.017834720149464158
-        ],
-        [
-          0.01877023381892115,
-          0.041497589673300146,
-          0.045871829975759074,
-          0.033804771182952525,
-          0.018684057655902364,
-          0.0082614139548474
-        ],
-        [
-          0.005796508918477679,
-          0.012815032085222954,
-          0.014165858248038702,
-          0.010439382883528942,
-          0.0057698965223659665,
-          0.0025512393788209775
-        ],
-        [
-          0.001342531849874518,
-          0.002968094929817527,
-          0.0032809603411762325,
-          0.002417869826697906,
-          0.0013363681417039744,
-          0.0005908936173293723
-        ],
-        [
-          0.0002487554896612979,
-          0.0005499533643816225,
-          0.0006079236751849695,
-          0.0004480030717585817,
-          0.00024761342644377633,
-          0.00010948569386286223
-        ]
-      ],
-      "top_scorelines": [
-        {
-          "home": 0,
-          "away": 2,
-          "prob": 0.10689069492432915
-        },
-        {
-          "home": 1,
-          "away": 2,
-          "prob": 0.0990279938558745
-        },
-        {
-          "home": 0,
-          "away": 1,
-          "prob": 0.09669782522754733
-        },
-        {
-          "home": 1,
-          "away": 1,
-          "prob": 0.08958489463735782
-        },
-        {
-          "home": 0,
-          "away": 3,
-          "prob": 0.07877199329988009
-        }
-      ],
-      "corners": {
-        "lambda_": 10.139613151550293,
-        "line": 9.5,
-        "over": 0.559410908667607,
-        "under": 0.440589091332393
-      },
-      "cards": {
-        "lambda_": 3.402644634246826,
-        "line": 3.5,
-        "over": 0.4422210170558254,
-        "under": 0.5577789829441746
-      },
-      "head_to_head": [
-        {
-          "date": "2026-05-13",
-          "team_home": "Man City",
-          "team_away": "Crystal Palace",
-          "goals_home": 3,
-          "goals_away": 0
-        },
-        {
-          "date": "2025-12-14",
-          "team_home": "Crystal Palace",
-          "team_away": "Man City",
-          "goals_home": 0,
-          "goals_away": 3
-        },
-        {
-          "date": "2025-04-12",
-          "team_home": "Man City",
-          "team_away": "Crystal Palace",
-          "goals_home": 5,
-          "goals_away": 2
-        },
-        {
-          "date": "2024-12-07",
-          "team_home": "Crystal Palace",
-          "team_away": "Man City",
-          "goals_home": 2,
-          "goals_away": 2
-        },
-        {
-          "date": "2024-04-06",
-          "team_home": "Crystal Palace",
-          "team_away": "Man City",
-          "goals_home": 2,
-          "goals_away": 4
-        }
-      ],
-      "home_recent_form": [
-        "L"
-      ],
-      "away_recent_form": [
-        "W"
-      ],
-      "home_context": {
-        "rest_days": 6,
-        "xg_for_last_5": 1.2828192,
-        "xg_against_last_5": 2.2852699999999997,
-        "corners_last_5": 3.2,
-        "cards_last_5": 1.2,
-        "set_piece_xg_share_last_5": 0.0876180147432403
-      },
-      "away_context": {
-        "rest_days": 5,
-        "xg_for_last_5": 1.929574,
-        "xg_against_last_5": 1.2435174000000002,
-        "corners_last_5": 8.4,
-        "cards_last_5": 1.6,
-        "set_piece_xg_share_last_5": 0.23529053144412002
-      },
-      "post_match": {
-        "final_score": "1-4",
-        "provenance": "reconstructed",
-        "verdicts": [
-          {
-            "label": "Exact score",
-            "prediction": "0-2",
-            "actual": "1-4",
-            "hit": false
-          },
-          {
-            "label": "Match result",
-            "prediction": "away_win",
-            "actual": "away_win",
-            "hit": true
-          },
-          {
-            "label": "Goals O/U 2.5",
-            "prediction": "over",
-            "actual": "over",
-            "hit": true
-          },
-          {
-            "label": "BTTS",
-            "prediction": "yes",
-            "actual": "yes",
-            "hit": true
-          }
-        ],
-        "player_calls": []
-      },
-      "actual_stats": null
-    },
     "backfill-Everton-Crystal Palace-2026-08-22": {
       "event_id": "backfill-Everton-Crystal Palace-2026-08-22",
       "commence_time": "2026-08-22T14:00:00",
@@ -77736,6 +77511,268 @@
         }
       ]
     },
+    "3b81531990da7ea3e461c43e8827672b": {
+      "home_players": [
+        {
+          "player_id": 138,
+          "name": "Kostoulas",
+          "position": "FWD",
+          "anytime_goal_prob": 0.27891218892316816,
+          "anytime_assist_prob": 0.11812973245057601,
+          "anytime_goal_contribution_prob": 0.3640940991190459,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": false,
+          "confirmed_starter": false,
+          "expected_minutes": 32.28533501896334,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false
+        },
+        {
+          "player_id": 127,
+          "name": "Gomez",
+          "position": "MID",
+          "anytime_goal_prob": 0.2691129765907624,
+          "anytime_assist_prob": 0.19363617906016828,
+          "anytime_goal_contribution_prob": 0.4106391471283869,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": false,
+          "confirmed_starter": false,
+          "expected_minutes": 36.44741379310345,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false
+        },
+        {
+          "player_id": 125,
+          "name": "Georginio",
+          "position": "FWD",
+          "anytime_goal_prob": 0.21327343167937596,
+          "anytime_assist_prob": 0.19472154956987797,
+          "anytime_goal_contribution_prob": 0.3664660481505604,
+          "status": "d",
+          "news": "Unspecified injury - 75% chance of playing",
+          "confidence": "prior_season",
+          "predicted_starter": false,
+          "confirmed_starter": false,
+          "expected_minutes": 27.335560344827588,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false
+        },
+        {
+          "player_id": 123,
+          "name": "Hinshelwood",
+          "position": "MID",
+          "anytime_goal_prob": 0.14110974176351054,
+          "anytime_assist_prob": 0.11948575698016883,
+          "anytime_goal_contribution_prob": 0.2437348944317902,
+          "status": "d",
+          "news": "Unspecified injury - 25% chance of playing",
+          "confidence": "prior_season",
+          "predicted_starter": false,
+          "confirmed_starter": false,
+          "expected_minutes": 8.056211890243903,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false
+        },
+        {
+          "player_id": 115,
+          "name": "De Cuyper",
+          "position": "DEF",
+          "anytime_goal_prob": 0.12102691779355013,
+          "anytime_assist_prob": 0.21921416766430146,
+          "anytime_goal_contribution_prob": 0.31371027040876276,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": false,
+          "confirmed_starter": false,
+          "expected_minutes": 32.22484756097561,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false
+        },
+        {
+          "player_id": 135,
+          "name": "Yohanna",
+          "position": "MID",
+          "anytime_goal_prob": 0.09762230978060882,
+          "anytime_assist_prob": 0.07792796286296644,
+          "anytime_goal_contribution_prob": 0.16794276491239502,
+          "status": "a",
+          "news": "",
+          "confidence": "position_avg",
+          "predicted_starter": false,
+          "confirmed_starter": false,
+          "expected_minutes": 26.198713235294115,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false
+        },
+        {
+          "player_id": 129,
+          "name": "Ayari",
+          "position": "MID",
+          "anytime_goal_prob": 0.09277000164488758,
+          "anytime_assist_prob": 0.13328047241373497,
+          "anytime_goal_contribution_prob": 0.21368604441356898,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": false,
+          "confirmed_starter": false,
+          "expected_minutes": 32.22484756097561,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false
+        },
+        {
+          "player_id": 600,
+          "name": "Osman",
+          "position": "MID",
+          "anytime_goal_prob": 0.08903417149215098,
+          "anytime_assist_prob": 0.0956456870309148,
+          "anytime_goal_contribution_prob": 0.17616412402147064,
+          "status": "a",
+          "news": "",
+          "confidence": "position_avg",
+          "predicted_starter": false,
+          "confirmed_starter": false,
+          "expected_minutes": 26.198713235294115,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false
+        }
+      ],
+      "away_players": [
+        {
+          "player_id": 346,
+          "name": "Calvert-Lewin",
+          "position": "FWD",
+          "anytime_goal_prob": 0.18461603166423746,
+          "anytime_assist_prob": 0.051684168622128435,
+          "anytime_goal_contribution_prob": 0.22675847417548334,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": false,
+          "confirmed_starter": false,
+          "expected_minutes": 36.44741379310345,
+          "is_penalty_taker": true,
+          "is_set_piece_taker": false
+        },
+        {
+          "player_id": 335,
+          "name": "Stach",
+          "position": "MID",
+          "anytime_goal_prob": 0.09035995499020633,
+          "anytime_assist_prob": 0.09710688117008781,
+          "anytime_goal_contribution_prob": 0.1786922627485258,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": false,
+          "confirmed_starter": false,
+          "expected_minutes": 36.44741379310345,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": true
+        },
+        {
+          "player_id": 336,
+          "name": "Okafor",
+          "position": "MID",
+          "anytime_goal_prob": 0.05467908129980037,
+          "anytime_assist_prob": 0.04258908800155203,
+          "anytime_goal_contribution_prob": 0.09493943709603114,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": false,
+          "confirmed_starter": false,
+          "expected_minutes": 32.28533501896334,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false
+        },
+        {
+          "player_id": 337,
+          "name": "Aaronson",
+          "position": "MID",
+          "anytime_goal_prob": 0.045335547401543774,
+          "anytime_assist_prob": 0.03144003225329284,
+          "anytime_goal_contribution_prob": 0.07535022858231144,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": false,
+          "confirmed_starter": false,
+          "expected_minutes": 33.160000000000004,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false
+        },
+        {
+          "player_id": 339,
+          "name": "Longstaff",
+          "position": "MID",
+          "anytime_goal_prob": 0.027282783416089917,
+          "anytime_assist_prob": 0.02451303577313646,
+          "anytime_goal_contribution_prob": 0.05112703534335705,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": false,
+          "confirmed_starter": false,
+          "expected_minutes": 25.536471861471863,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false
+        },
+        {
+          "player_id": 334,
+          "name": "Muharemovi\u0107",
+          "position": "DEF",
+          "anytime_goal_prob": 0.021899143578854474,
+          "anytime_assist_prob": 0.0027728507518340884,
+          "anytime_goal_contribution_prob": 0.024611271273951463,
+          "status": "a",
+          "news": "",
+          "confidence": "position_avg",
+          "predicted_starter": false,
+          "confirmed_starter": false,
+          "expected_minutes": 36.44741379310345,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false
+        },
+        {
+          "player_id": 260,
+          "name": "Wilson",
+          "position": "MID",
+          "anytime_goal_prob": 0.02093400698072323,
+          "anytime_assist_prob": 0.04158037890772193,
+          "anytime_goal_contribution_prob": 0.06164394194612988,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": false,
+          "confirmed_starter": false,
+          "expected_minutes": 32.22484756097561,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false
+        },
+        {
+          "player_id": 327,
+          "name": "Bijol",
+          "position": "DEF",
+          "anytime_goal_prob": 0.020919568438104386,
+          "anytime_assist_prob": 0.0043010072805279576,
+          "anytime_goal_contribution_prob": 0.02513060050247451,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": false,
+          "confirmed_starter": false,
+          "expected_minutes": 36.44741379310345,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false
+        }
+      ]
+    },
     "3db5f919507eb8ab0c8c72bddaca8f08": {
       "home_players": [
         {
@@ -79827,6 +79864,268 @@
           "predicted_starter": false,
           "confirmed_starter": false,
           "expected_minutes": 24.167238562091505,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false
+        }
+      ]
+    },
+    "560579": {
+      "home_players": [
+        {
+          "player_id": 346,
+          "name": "Calvert-Lewin",
+          "position": "FWD",
+          "anytime_goal_prob": 0.2537956313373799,
+          "anytime_assist_prob": 0.1155105901107979,
+          "anytime_goal_contribution_prob": 0.3399901383048545,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": false,
+          "confirmed_starter": false,
+          "expected_minutes": 36.44741379310345,
+          "is_penalty_taker": true,
+          "is_set_piece_taker": false
+        },
+        {
+          "player_id": 335,
+          "name": "Stach",
+          "position": "MID",
+          "anytime_goal_prob": 0.16349481258073795,
+          "anytime_assist_prob": 0.15331382630070878,
+          "anytime_goal_contribution_prob": 0.2917426235843765,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": false,
+          "confirmed_starter": false,
+          "expected_minutes": 36.44741379310345,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": true
+        },
+        {
+          "player_id": 336,
+          "name": "Okafor",
+          "position": "MID",
+          "anytime_goal_prob": 0.10586291998124253,
+          "anytime_assist_prob": 0.08881312013925091,
+          "anytime_goal_contribution_prob": 0.18527402388990744,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": false,
+          "confirmed_starter": false,
+          "expected_minutes": 32.28533501896334,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false
+        },
+        {
+          "player_id": 337,
+          "name": "Aaronson",
+          "position": "MID",
+          "anytime_goal_prob": 0.09148064952853685,
+          "anytime_assist_prob": 0.07151535571874612,
+          "anytime_goal_contribution_prob": 0.15645373405486773,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": false,
+          "confirmed_starter": false,
+          "expected_minutes": 33.160000000000004,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false
+        },
+        {
+          "player_id": 339,
+          "name": "Longstaff",
+          "position": "MID",
+          "anytime_goal_prob": 0.05860904515358234,
+          "anytime_assist_prob": 0.0558842252247147,
+          "anytime_goal_contribution_prob": 0.11121794929872875,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": false,
+          "confirmed_starter": false,
+          "expected_minutes": 25.536471861471863,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false
+        },
+        {
+          "player_id": 260,
+          "name": "Wilson",
+          "position": "MID",
+          "anytime_goal_prob": 0.05183672688182894,
+          "anytime_assist_prob": 0.08717307662410889,
+          "anytime_goal_contribution_prob": 0.13449103654152506,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": false,
+          "confirmed_starter": false,
+          "expected_minutes": 32.22484756097561,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false
+        },
+        {
+          "player_id": 334,
+          "name": "Muharemovi\u0107",
+          "position": "DEF",
+          "anytime_goal_prob": 0.04878662273090084,
+          "anytime_assist_prob": 0.016432721071922285,
+          "anytime_goal_contribution_prob": 0.06441764683944506,
+          "status": "a",
+          "news": "",
+          "confidence": "position_avg",
+          "predicted_starter": false,
+          "confirmed_starter": false,
+          "expected_minutes": 36.44741379310345,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false
+        },
+        {
+          "player_id": 327,
+          "name": "Bijol",
+          "position": "DEF",
+          "anytime_goal_prob": 0.04719354928498698,
+          "anytime_assist_prob": 0.01895104683907156,
+          "anytime_goal_contribution_prob": 0.06525022896105681,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": false,
+          "confirmed_starter": false,
+          "expected_minutes": 36.44741379310345,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false
+        }
+      ],
+      "away_players": [
+        {
+          "player_id": 464,
+          "name": "Wissa",
+          "position": "FWD",
+          "anytime_goal_prob": 0.19731027196208195,
+          "anytime_assist_prob": 0.01187969948485712,
+          "anytime_goal_contribution_prob": 0.2068459847107541,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": false,
+          "confirmed_starter": false,
+          "expected_minutes": 36.44741379310345,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false
+        },
+        {
+          "player_id": 460,
+          "name": "Willock",
+          "position": "MID",
+          "anytime_goal_prob": 0.13608373343657532,
+          "anytime_assist_prob": 0.12142827258082534,
+          "anytime_goal_contribution_prob": 0.24098759333984787,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": false,
+          "confirmed_starter": false,
+          "expected_minutes": 32.28533501896334,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false
+        },
+        {
+          "player_id": 454,
+          "name": "Elanga",
+          "position": "MID",
+          "anytime_goal_prob": 0.12404733305285576,
+          "anytime_assist_prob": 0.07789857008459444,
+          "anytime_goal_contribution_prob": 0.19228279326982523,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": false,
+          "confirmed_starter": false,
+          "expected_minutes": 32.22484756097561,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false
+        },
+        {
+          "player_id": 453,
+          "name": "Barnes",
+          "position": "MID",
+          "anytime_goal_prob": 0.06554420885917112,
+          "anytime_assist_prob": 0.04747118036583786,
+          "anytime_goal_contribution_prob": 0.10990392826431916,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": false,
+          "confirmed_starter": false,
+          "expected_minutes": 36.44741379310345,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false
+        },
+        {
+          "player_id": 456,
+          "name": "J.Ramsey",
+          "position": "MID",
+          "anytime_goal_prob": 0.05723203269536059,
+          "anytime_assist_prob": 0.04966835161028027,
+          "anytime_goal_contribution_prob": 0.10405776358235663,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": false,
+          "confirmed_starter": false,
+          "expected_minutes": 32.28533501896334,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false
+        },
+        {
+          "player_id": 457,
+          "name": "J.Murphy",
+          "position": "MID",
+          "anytime_goal_prob": 0.040406138472447894,
+          "anytime_assist_prob": 0.03282280583521624,
+          "anytime_goal_contribution_prob": 0.07190270147003208,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": false,
+          "confirmed_starter": false,
+          "expected_minutes": 29.00445205479452,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false
+        },
+        {
+          "player_id": 559,
+          "name": "Bamba",
+          "position": "MID",
+          "anytime_goal_prob": 0.037498450550714435,
+          "anytime_assist_prob": 0.033277204823330964,
+          "anytime_goal_contribution_prob": 0.06952781175451173,
+          "status": "a",
+          "news": "",
+          "confidence": "position_avg",
+          "predicted_starter": false,
+          "confirmed_starter": false,
+          "expected_minutes": 29.00445205479452,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false
+        },
+        {
+          "player_id": 462,
+          "name": "Steur",
+          "position": "MID",
+          "anytime_goal_prob": 0.027966950966116455,
+          "anytime_assist_prob": 0.026827431868451823,
+          "anytime_goal_contribution_prob": 0.054044101362956454,
+          "status": "a",
+          "news": "",
+          "confidence": "position_avg",
+          "predicted_starter": false,
+          "confirmed_starter": false,
+          "expected_minutes": 22.60909090909091,
           "is_penalty_taker": false,
           "is_set_piece_taker": false
         }
@@ -172842,268 +173141,6 @@
         }
       ]
     },
-    "backfill-Crystal Palace-Man City-2026-08-28": {
-      "home_players": [
-        {
-          "player_id": 224,
-          "name": "Nketiah",
-          "position": "FWD",
-          "anytime_goal_prob": 0.21507107622047872,
-          "anytime_assist_prob": 0.15695329632581256,
-          "anytime_goal_contribution_prob": 0.3382682581891471,
-          "status": "a",
-          "news": "",
-          "confidence": "prior_season",
-          "predicted_starter": true,
-          "confirmed_starter": false,
-          "expected_minutes": 59.08922914466737,
-          "is_penalty_taker": false,
-          "is_set_piece_taker": false
-        },
-        {
-          "player_id": 222,
-          "name": "Strand Larsen",
-          "position": "FWD",
-          "anytime_goal_prob": 0.19694872774431782,
-          "anytime_assist_prob": 0.09783324524565173,
-          "anytime_goal_contribution_prob": 0.2755138398077406,
-          "status": "a",
-          "news": "",
-          "confidence": "prior_season",
-          "predicted_starter": true,
-          "confirmed_starter": false,
-          "expected_minutes": 57.34970588235295,
-          "is_penalty_taker": false,
-          "is_set_piece_taker": false
-        },
-        {
-          "player_id": 211,
-          "name": "Yeremy",
-          "position": "MID",
-          "anytime_goal_prob": 0.11673741074059563,
-          "anytime_assist_prob": 0.1736594783736608,
-          "anytime_goal_contribution_prob": 0.2701243312583528,
-          "status": "a",
-          "news": "",
-          "confidence": "prior_season",
-          "predicted_starter": true,
-          "confirmed_starter": false,
-          "expected_minutes": 61.78987915407855,
-          "is_penalty_taker": false,
-          "is_set_piece_taker": true
-        },
-        {
-          "player_id": 214,
-          "name": "Kamada",
-          "position": "MID",
-          "anytime_goal_prob": 0.07755788859270685,
-          "anytime_assist_prob": 0.12373255263357308,
-          "anytime_goal_contribution_prob": 0.191694005693834,
-          "status": "a",
-          "news": "",
-          "confidence": "prior_season",
-          "predicted_starter": true,
-          "confirmed_starter": false,
-          "expected_minutes": 78.52551903114188,
-          "is_penalty_taker": false,
-          "is_set_piece_taker": false
-        },
-        {
-          "player_id": 42,
-          "name": "Guessand",
-          "position": "MID",
-          "anytime_goal_prob": 0.07538523439794187,
-          "anytime_assist_prob": 0.06418347057039309,
-          "anytime_goal_contribution_prob": 0.13473021899491244,
-          "status": "a",
-          "news": "",
-          "confidence": "prior_season",
-          "predicted_starter": false,
-          "confirmed_starter": false,
-          "expected_minutes": 48.3260429835651,
-          "is_penalty_taker": false,
-          "is_set_piece_taker": false
-        },
-        {
-          "player_id": 210,
-          "name": "Wharton",
-          "position": "MID",
-          "anytime_goal_prob": 0.07370758786620935,
-          "anytime_assist_prob": 0.12163341245696002,
-          "anytime_goal_contribution_prob": 0.1863756948870311,
-          "status": "a",
-          "news": "",
-          "confidence": "prior_season",
-          "predicted_starter": true,
-          "confirmed_starter": false,
-          "expected_minutes": 78.52551903114188,
-          "is_penalty_taker": false,
-          "is_set_piece_taker": false
-        },
-        {
-          "player_id": 241,
-          "name": "McNeil",
-          "position": "MID",
-          "anytime_goal_prob": 0.06169407469335508,
-          "anytime_assist_prob": 0.06249205279245351,
-          "anytime_goal_contribution_prob": 0.12033073811308981,
-          "status": "a",
-          "news": "",
-          "confidence": "prior_season",
-          "predicted_starter": false,
-          "confirmed_starter": false,
-          "expected_minutes": 45.13,
-          "is_penalty_taker": false,
-          "is_set_piece_taker": false
-        },
-        {
-          "player_id": 595,
-          "name": "Gozo",
-          "position": "MID",
-          "anytime_goal_prob": 0.03821439755753131,
-          "anytime_assist_prob": 0.036069486012669016,
-          "anytime_goal_contribution_prob": 0.07290550989201638,
-          "status": "a",
-          "news": "",
-          "confidence": "position_avg",
-          "predicted_starter": false,
-          "confirmed_starter": false,
-          "expected_minutes": 28.8790780141844,
-          "is_penalty_taker": false,
-          "is_set_piece_taker": false
-        }
-      ],
-      "away_players": [
-        {
-          "player_id": 411,
-          "name": "Haaland",
-          "position": "FWD",
-          "anytime_goal_prob": 0.6417025539141515,
-          "anytime_assist_prob": 0.22405644769648547,
-          "anytime_goal_contribution_prob": 0.7219814069028697,
-          "status": "a",
-          "news": "",
-          "confidence": "prior_season",
-          "predicted_starter": true,
-          "confirmed_starter": false,
-          "expected_minutes": 78.52551903114188,
-          "is_penalty_taker": true,
-          "is_set_piece_taker": false
-        },
-        {
-          "player_id": 399,
-          "name": "Cherki",
-          "position": "MID",
-          "anytime_goal_prob": 0.42546348906976506,
-          "anytime_assist_prob": 0.4756081309796514,
-          "anytime_goal_contribution_prob": 0.6987177252128641,
-          "status": "a",
-          "news": "",
-          "confidence": "prior_season",
-          "predicted_starter": true,
-          "confirmed_starter": false,
-          "expected_minutes": 61.78987915407855,
-          "is_penalty_taker": false,
-          "is_set_piece_taker": true
-        },
-        {
-          "player_id": 397,
-          "name": "Semenyo",
-          "position": "MID",
-          "anytime_goal_prob": 0.353267782197358,
-          "anytime_assist_prob": 0.21765281350837384,
-          "anytime_goal_contribution_prob": 0.4940308689886135,
-          "status": "a",
-          "news": "",
-          "confidence": "prior_season",
-          "predicted_starter": true,
-          "confirmed_starter": false,
-          "expected_minutes": 78.52551903114188,
-          "is_penalty_taker": false,
-          "is_set_piece_taker": false
-        },
-        {
-          "player_id": 398,
-          "name": "Foden",
-          "position": "MID",
-          "anytime_goal_prob": 0.3423689677232743,
-          "anytime_assist_prob": 0.4257562209710005,
-          "anytime_goal_contribution_prob": 0.622359470818671,
-          "status": "a",
-          "news": "",
-          "confidence": "prior_season",
-          "predicted_starter": true,
-          "confirmed_starter": false,
-          "expected_minutes": 75.61955503512881,
-          "is_penalty_taker": false,
-          "is_set_piece_taker": false
-        },
-        {
-          "player_id": 616,
-          "name": "Bouaddi",
-          "position": "MID",
-          "anytime_goal_prob": 0.2963338178156275,
-          "anytime_assist_prob": 0.10533217098750924,
-          "anytime_goal_contribution_prob": 0.3704525044355996,
-          "status": "a",
-          "news": "",
-          "confidence": "position_avg",
-          "predicted_starter": false,
-          "confirmed_starter": false,
-          "expected_minutes": 44.16838235294117,
-          "is_penalty_taker": false,
-          "is_set_piece_taker": false
-        },
-        {
-          "player_id": 621,
-          "name": "McAidoo",
-          "position": "MID",
-          "anytime_goal_prob": 0.2477849141588636,
-          "anytime_assist_prob": 0.28487032080234465,
-          "anytime_goal_contribution_prob": 0.46206866697479143,
-          "status": "a",
-          "news": "",
-          "confidence": "position_avg",
-          "predicted_starter": false,
-          "confirmed_starter": false,
-          "expected_minutes": 44.16838235294117,
-          "is_penalty_taker": false,
-          "is_set_piece_taker": false
-        },
-        {
-          "player_id": 481,
-          "name": "Anderson",
-          "position": "MID",
-          "anytime_goal_prob": 0.1568766617779197,
-          "anytime_assist_prob": 0.16975263812992414,
-          "anytime_goal_contribution_prob": 0.2999990727100261,
-          "status": "a",
-          "news": "",
-          "confidence": "prior_season",
-          "predicted_starter": true,
-          "confirmed_starter": false,
-          "expected_minutes": 60.885062240663906,
-          "is_penalty_taker": false,
-          "is_set_piece_taker": false
-        },
-        {
-          "player_id": 388,
-          "name": "Gu\u00e9hi",
-          "position": "DEF",
-          "anytime_goal_prob": 0.14620068144580922,
-          "anytime_assist_prob": 0.17714756949810784,
-          "anytime_goal_contribution_prob": 0.29744915556682483,
-          "status": "a",
-          "news": "",
-          "confidence": "prior_season",
-          "predicted_starter": true,
-          "confirmed_starter": false,
-          "expected_minutes": 78.52551903114188,
-          "is_penalty_taker": false,
-          "is_set_piece_taker": false
-        }
-      ]
-    },
     "backfill-Everton-Crystal Palace-2026-08-22": {
       "home_players": [
         {
@@ -176002,99 +176039,6 @@
       ],
       "overperformed": []
     },
-    "backfill-Crystal Palace-Man City-2026-08-28": {
-      "provenance": "reconstructed",
-      "correct": [
-        {
-          "name": "Haaland",
-          "team": "Man City",
-          "goal_probability": 0.6417025539141515,
-          "assist_probability": 0.22405644769648547,
-          "contribution_probability": 0.7219814069028697,
-          "goals": 2,
-          "assists": 0,
-          "hit": true,
-          "is_recommended": true,
-          "review_label": "Goal call",
-          "review_probability": 0.6417025539141515,
-          "review_market": "Goal"
-        },
-        {
-          "name": "Semenyo",
-          "team": "Man City",
-          "goal_probability": 0.353267782197358,
-          "assist_probability": 0.21765281350837384,
-          "contribution_probability": 0.4940308689886135,
-          "goals": 0,
-          "assists": 1,
-          "hit": true,
-          "is_recommended": false,
-          "review_label": "G+A call",
-          "review_probability": 0.4940308689886135,
-          "review_market": "G+A"
-        },
-        {
-          "name": "Foden",
-          "team": "Man City",
-          "goal_probability": 0.3423689677232743,
-          "assist_probability": 0.4257562209710005,
-          "contribution_probability": 0.622359470818671,
-          "goals": 0,
-          "assists": 2,
-          "hit": true,
-          "is_recommended": true,
-          "review_label": "Assist call",
-          "review_probability": 0.4257562209710005,
-          "review_market": "Assist"
-        },
-        {
-          "name": "Cherki",
-          "team": "Man City",
-          "goal_probability": 0.42546348906976506,
-          "assist_probability": 0.4756081309796514,
-          "contribution_probability": 0.6987177252128641,
-          "goals": 2,
-          "assists": 0,
-          "hit": true,
-          "is_recommended": true,
-          "review_label": "Goal call",
-          "review_probability": 0.42546348906976506,
-          "review_market": "Goal"
-        }
-      ],
-      "missed": [
-        {
-          "name": "Nketiah",
-          "team": "Crystal Palace",
-          "goal_probability": 0.21507107622047872,
-          "assist_probability": 0.15695329632581256,
-          "contribution_probability": 0.3382682581891471,
-          "goals": 0,
-          "assists": 0,
-          "hit": false,
-          "is_recommended": false,
-          "review_label": "G+A call",
-          "review_probability": 0.3382682581891471,
-          "review_market": "G+A"
-        }
-      ],
-      "overperformed": [
-        {
-          "name": "Yeremy",
-          "team": "Crystal Palace",
-          "goal_probability": 0.11673741074059563,
-          "assist_probability": 0.1736594783736608,
-          "contribution_probability": 0.2701243312583528,
-          "goals": 0,
-          "assists": 1,
-          "hit": true,
-          "is_recommended": false,
-          "review_label": "Overperformer",
-          "review_probability": 0.2701243312583528,
-          "review_market": "G+A"
-        }
-      ]
-    },
     "backfill-Everton-Crystal Palace-2026-08-22": {
       "provenance": "reconstructed",
       "correct": [
@@ -177482,21 +177426,16 @@
     },
     "track_record": {
       "summary": {
-        "n_resolved_fixtures": 11,
-        "pct_correct_overall": 0.5454545454545454,
-        "current_gameweek": 2,
-        "pct_correct_current_gameweek": 1.0,
-        "n_fixtures_current_gameweek": 1,
+        "n_resolved_fixtures": 10,
+        "pct_correct_overall": 0.5,
+        "current_gameweek": 1,
+        "pct_correct_current_gameweek": 0.5,
+        "n_fixtures_current_gameweek": 10,
         "gameweek_trend": [
           {
             "gameweek": 1,
             "pct_correct": 0.5,
             "n_fixtures": 10
-          },
-          {
-            "gameweek": 2,
-            "pct_correct": 1.0,
-            "n_fixtures": 1
           }
         ]
       },
@@ -177553,28 +177492,6 @@
         }
       ],
       "gameweeks": [
-        {
-          "gameweek": 2,
-          "pct_correct": 1.0,
-          "n_fixtures": 1,
-          "fixtures": [
-            {
-              "event_id": "backfill-Crystal Palace-Man City-2026-08-28",
-              "team_home": "Crystal Palace",
-              "team_away": "Man City",
-              "commence_time": "2026-08-28T19:00:00",
-              "predicted_scoreline": "0-2",
-              "actual_goals_home": 1,
-              "actual_goals_away": 4,
-              "predicted_home_win": 0.14494930103279194,
-              "predicted_draw": 0.18961881740449074,
-              "predicted_away_win": 0.6654318815627173,
-              "actual_outcome": "away_win",
-              "hit": true,
-              "backfilled": true
-            }
-          ]
-        },
         {
           "gameweek": 1,
           "pct_correct": 0.5,
