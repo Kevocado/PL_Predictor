@@ -1,4 +1,5 @@
 import type { PlayerPrediction } from "../types";
+import { InfoTooltip } from "./InfoTooltip";
 
 const STATUS_COLOR: Record<string, string> = {
   a: "bg-win",
@@ -35,12 +36,15 @@ function PlayerRow({ player }: { player: PlayerPrediction }) {
         {player.is_penalty_taker && <span className="rounded bg-pl-accent/20 px-1.5 py-0.5 text-[10px] font-semibold text-pl-accent">PK</span>}
         {!player.is_penalty_taker && player.is_set_piece_taker && <span className="rounded bg-pl-700 px-1.5 py-0.5 text-[10px] font-semibold text-pl-text">SP</span>}
       </div>
-      <div className="flex shrink-0 items-center gap-3 text-xs">
+      <div className="flex shrink-0 items-center gap-2 text-[11px] sm:gap-3 sm:text-xs">
         <span className="text-pl-text-faint">
           Goal <span className="font-semibold text-pl-text">{(player.anytime_goal_prob * 100).toFixed(0)}%</span>
         </span>
         <span className="text-pl-text-faint">
           Assist <span className="font-semibold text-pl-text">{(player.anytime_assist_prob * 100).toFixed(0)}%</span>
+        </span>
+        <span className="text-pl-text-faint">
+          G+A <span className="font-semibold text-pl-text">{(player.anytime_goal_contribution_prob * 100).toFixed(0)}%</span>
         </span>
       </div>
     </div>
@@ -48,27 +52,19 @@ function PlayerRow({ player }: { player: PlayerPrediction }) {
 }
 
 function TeamPlayerPredictions({ team, players }: { team: string; players: PlayerPrediction[] }) {
-  const byContribution = [...players].sort(
-    (left, right) => right.anytime_goal_contribution_prob - left.anytime_goal_contribution_prob,
-  );
   const confirmed = players.some((player) => player.confirmed_starter);
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
         <span className="text-[11px] font-semibold text-pl-text-faint">{team}</span>
         {confirmed && <span className="text-[10px] font-semibold uppercase text-win">Official lineup</span>}
+        <InfoTooltip
+          align="left"
+          text="Goal is the chance of scoring at least once. Assist is the chance of registering at least one assist. G+A is the chance of doing either (or both), so it is not the two percentages added together."
+        />
       </div>
       <div className="flex flex-col gap-1.5">
         {players.map((player) => <PlayerRow key={player.player_id} player={player} />)}
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <span className="text-[10px] font-semibold uppercase text-pl-text-faint">Goal + assist chance</span>
-        {byContribution.map((player) => (
-          <div key={`contribution-${player.player_id}`} className="flex items-center justify-between rounded-lg bg-pl-850/40 px-3 py-1.5 text-xs">
-            <span className="truncate text-pl-text">{player.name}</span>
-            <span className="font-semibold text-pl-text">{(player.anytime_goal_contribution_prob * 100).toFixed(0)}%</span>
-          </div>
-        ))}
       </div>
     </div>
   );
