@@ -1,6 +1,6 @@
 # PL Predictor: AI Continuity and Improvement Log
 
-**Last reviewed:** 2026-08-24  
+**Last reviewed:** 2026-08-29  
 **Purpose:** this is the maintained handoff document for any future human or AI
 working on the project. Update it when an experiment, data source, model,
 validation rule, or production assumption changes. It records evidence rather
@@ -1120,6 +1120,107 @@ experiment; negative evidence prevents repeated work.
   (i.e., re-run this check partway through a season once those competitions
   are actually in progress) — the current measurement was taken before any
   of them had kicked off, which is close to a worst case for their coverage.
+
+### EXP-2026-18 — squad continuity as a leading indicator of off-season squad change
+
+- **Status:** promising — clears this project's hardest bar (fixed
+  most-recent-season corroboration), but has a real fold-level regression
+  and a modest effect size. **Not yet wired into production** (`models/
+  manifest.py`/`features/build.py` untouched); flagged here for a
+  decision rather than auto-promoted, per this doc's own protocol.
+- **Question:** prompted directly by a user observation (Newcastle 2026-27
+  "looks hot" 2 games in, ahead of what the model expects) — the model's
+  only channel for team strength is Elo/Pi carried over from last season
+  plus this-season match evidence, which barely exists a few games in.
+  Does a leading indicator of squad-strength change — available before a
+  ball is kicked, from data outside match results — help, specifically in
+  fixtures where a team's actual results end up diverging most from the
+  model's own expectation?
+- **Explicitly not a re-run of already-rejected ideas:** this project has
+  twice rejected general "retrain more" / "weight recent form more"
+  candidates (EXP-2026-05's seasonal/consensus study; EXP-2026-06's
+  within-season-only model) and once rejected recency-decay tuning
+  (EXP-2026-13) — all three failed the same way, a walk-forward average
+  improvement that reversed on the fixed most-recent season. This
+  candidate is a different category: a new pre-match *feature* (squad
+  continuity), not a retrain cadence or decay-rate change.
+- **Data/availability:** `data/fpl_history.py` (vaastav's archive, already
+  used elsewhere in this project) — no new external source. **Real data
+  quality finding along the way:** FPL's numeric `element` (player) id is
+  **not stable across seasons** — confirmed directly, Bruno Fernandes is
+  element `333` in the 2022-23 archive and `373` in 2023-24, same player,
+  same club. Any cross-season player join in this codebase must use
+  `name`, not `element` — `features/squad_change.py`'s own docstring
+  flags this for whoever touches this data next.
+- **Candidate:** `features/squad_change.py::squad_continuity(team,
+  start_year, history)` — the fraction of a team's total minutes last
+  season played by players still registered to that team this season.
+  "Registered" is read from whether a player has *any* row (played or
+  not) at the new season's gameweek 1 — confirmed directly that vaastav's
+  GW1 slice includes dozens of 0-minute rows per club, the full
+  registered squad rather than just who started or was named to a bench
+  — so this is genuinely known before a ball is kicked, safe to use for
+  every fixture of a season including its very first one. Wired into the
+  walk-forward comparison via `evaluate.walk_forward.prepare_folds`'s
+  existing `extra_feature_frame` mechanism (`evaluate/
+  squad_change_prior.py`), not merged into `features/build.py`.
+- **Baseline:** `ml_scoreline`, default hyperparameters, the standard
+  8-season chronological walk-forward (2021-22 through 2025-26 validation
+  seasons).
+- **Segment, pre-registered against EXP-2026-14's mistake:** that
+  experiment's "cold-start" segment turned out to be one newly-promoted
+  team's first 10 matches, re-run every season (n=10, noise). This one is
+  every team-season across all 8 seasons whose actual PPG over its first
+  8 matches deviated most (top/bottom 15%, either direction) from the
+  *baseline model's own* expected PPG for those same matches — 15 of 100
+  team-seasons, spanning 8 different seasons and 15 different clubs (not
+  one team dominating): Crystal Palace 2024-25, Liverpool 2022-23, Wolves
+  2025-26, Leeds 2021-22, Southampton 2024-25, Luton 2023-24, Newcastle
+  2021-22, Nott'm Forest 2025-26, Leicester 2022-23, Sheffield United
+  2023-24 (all underperformed expectation); West Ham 2023-24, Chelsea
+  2021-22, Arsenal 2022-23, Man United 2022-23, Tottenham 2023-24 (all
+  overperformed). Composition checked and reported before trusting any
+  metric on it, per that lesson.
+- **Results (5-fold walk-forward, `n=1,900` fixtures total):**
+  | | RPS | Brier |
+  | --- | ---:| ---:|
+  | Overall — baseline | 0.19993 | 0.58104 |
+  | Overall — candidate | 0.19965 | 0.58046 |
+  | Segment (n=536) — baseline | 0.19355 | 0.56944 |
+  | Segment (n=536) — candidate | 0.19273 | 0.56771 |
+
+  Per-season RPS (the non-negotiable most-recent-season check):
+  | Season | Baseline | Candidate | Delta |
+  | --- | ---:| ---:| ---:|
+  | 2021-22 | 0.200231 | 0.200769 | +0.00054 (worse) |
+  | 2022-23 | 0.201436 | 0.201761 | +0.00033 (worse) |
+  | 2023-24 | 0.191604 | 0.191002 | −0.00060 (better) |
+  | 2024-25 | 0.198883 | 0.198145 | −0.00074 (better) |
+  | **2025-26** | **0.207499** | **0.206594** | **−0.00091 (better)** |
+
+  The candidate improves the overall average, improves more on the
+  surprise segment specifically than overall (the hypothesis this
+  experiment set out to test), and — unlike EXP-2026-05/06/13 — **holds
+  on the fixed 2025-26 holdout**. It regresses on the two oldest folds
+  (2021-22, 2022-23), both by a similar small magnitude to the gains
+  elsewhere. Every delta here is small in absolute terms, the same order
+  of magnitude as EXP-2026-09's streak feature (`+0.00069` RPS average) —
+  this is a modest signal, not a dramatic one.
+- **Decision: not yet made — flagged for a human call, not auto-promoted.**
+  This clears the specific bar that sank three prior candidates (recent-
+  season corroboration), which is genuinely notable, but the 2-of-5 fold
+  regression and small effect size mean it isn't an unambiguous win
+  either. Options if picked back up: (a) promote as-is given the recent-
+  season evidence is the strongest signal this project weights most
+  heavily, (b) re-run with a second held-out most-recent-season check
+  once 2026-27 completes to see if the win direction holds a second time,
+  or (c) investigate whether the two regressed folds share something
+  (e.g. fewer FPL-archive seasons available for their own "prior season"
+  lookup) before deciding either way.
+- **Follow-ups explicitly not started** (see the plan this experiment came
+  from): manager-change flag, transfer spend/activity, and preseason
+  market movement are all still just candidate ideas — no source has been
+  researched or licensed for any of them yet.
 
 ## Change checklist for future agents
 
