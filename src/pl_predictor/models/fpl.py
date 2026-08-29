@@ -245,7 +245,27 @@ def build_squad(players: list[dict], budget: float = 100.0) -> dict:
 
 
 def transfer_recommendations(players: list[dict], current_ids: list[int], bank: float = 0.0, free_transfers: int = 1) -> dict:
-    """Rank legal like-for-like transfers from a current 15-player squad."""
+    """Rank legal like-for-like transfers from a current 15-player squad.
+
+    `cost` is the *signed* price delta (`incoming - outgoing`) a user would
+    actually pay from their bank — negative means the swap pays money back,
+    not "no price difference". Previously this was floored at zero
+    (`max(0.0, ...)`), which silently hid every downgrade-in-price swap
+    behind a misleading "£0.0m", making a real price gap (e.g. selling a
+    £12.0m player for a £9.5m one) look like a same-price lateral move.
+    `bank` is used only to decide whether a swap is affordable, not folded
+    into the displayed cost — a user's bank doesn't change what a specific
+    swap actually costs.
+
+    Results are deduplicated to distinct (outgoing, incoming) pairs — every
+    player appears as an "out" or "in" at most once across the returned
+    list — and capped to `free_transfers` (minimum 1). Without this, the
+    single highest-`projected_points` player in a position can flood the
+    entire list as the "in" side of nearly every row (e.g. one popular
+    defender recommended as the answer for four different weaker
+    defenders), which reads as a redundant, arbitrary bag of ideas rather
+    than an actual N-transfer plan matching how many transfers the user
+    has."""
     pool = _eligible(players)
     # An injured, suspended, or blank-GW player is precisely someone a user
     # may need to sell, so current-squad validation intentionally uses the
@@ -261,11 +281,28 @@ def transfer_recommendations(players: list[dict], current_ids: list[int], bank: 
         for incoming in pool:
             if incoming["position"] != outgoing["position"] or incoming["player_id"] in set(current_ids):
                 continue
-            cost = max(0.0, incoming["price"] - outgoing["price"] - bank)
+            cost = incoming["price"] - outgoing["price"]
+            if cost > bank:
+                continue
             if clubs[incoming["team_id"]] + (0 if incoming["team_id"] == outgoing["team_id"] else 1) > 3:
                 continue
             gain = incoming["projected_points"] - outgoing["projected_points"]
             if gain > 0:
                 ideas.append({"out": outgoing, "in": incoming, "cost": round(cost, 1), "projected_gain": round(gain, 2), "net_gain": round(gain - (4 if free_transfers < 1 else 0), 2)})
     ideas.sort(key=lambda x: x["net_gain"], reverse=True)
-    return {"free_transfers": max(0, int(free_transfers)), "bank": round(bank, 1), "recommendations": ideas[:10]}
+
+    deduped = []
+    used_out: set[int] = set()
+    used_in: set[int] = set()
+    limit = max(1, int(free_transfers))
+    for idea in ideas:
+        out_id, in_id = idea["out"]["player_id"], idea["in"]["player_id"]
+        if out_id in used_out or in_id in used_in:
+            continue
+        deduped.append(idea)
+        used_out.add(out_id)
+        used_in.add(in_id)
+        if len(deduped) >= limit:
+            break
+
+    return {"free_transfers": max(0, int(free_transfers)), "bank": round(bank, 1), "recommendations": deduped}
