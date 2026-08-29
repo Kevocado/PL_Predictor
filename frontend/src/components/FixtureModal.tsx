@@ -1,10 +1,11 @@
-import { useEffect, useState, type ReactNode } from "react";
-import type { FixtureDetail, FixturePlayerReview, FixturePlayers, FixturePostMatch, FixtureValueBetSnapshot, MarketEdge } from "../types";
+import { useEffect, useState } from "react";
+import type { FixtureDetail, FixturePlayerReview, FixturePlayers, FixturePostMatch, FixtureValueBetSnapshot } from "../types";
 import { api } from "../api/client";
 import { TeamBadge } from "./TeamBadge";
 import { ScorelineHeatmap } from "./ScorelineHeatmap";
 import { FormStrip } from "./FormStrip";
 import { InfoTooltip } from "./InfoTooltip";
+import { MarketBar } from "./MarketBar";
 import { PlayerHighlights, PlayerScorerList } from "./PlayerScorerList";
 import { GLOSSARY } from "../lib/glossary";
 
@@ -29,28 +30,11 @@ function marketType(market: string) {
   return ["home_win", "draw", "away_win"].includes(market) ? "Match result" : "Goals total";
 }
 
-function MarketRow({ label, edge, flagged, postMatchHit }: { label: ReactNode; edge: MarketEdge; flagged: boolean; postMatchHit?: boolean }) {
-  return (
-    <div
-      className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm ${
-        postMatchHit === true ? "bg-win/10 ring-1 ring-win/30" : postMatchHit === false ? "bg-loss/10" : flagged ? "bg-pl-pink/10 ring-1 ring-pl-pink/40" : "bg-pl-850/60"
-      }`}
-    >
-      <span className="text-pl-text-dim">{label}</span>
-      <div className="flex items-center gap-3">
-        <span className="font-semibold text-pl-text">{(edge.prob * 100).toFixed(1)}%</span>
-        {edge.implied !== null && (
-          <>
-            <span className="text-xs text-pl-text-faint">mkt {(edge.implied * 100).toFixed(1)}%</span>
-            <span className={`text-xs font-semibold ${(edge.edge ?? 0) > 0 ? "text-pl-cyan" : "text-pl-text-faint"}`}>
-              {(edge.edge ?? 0) > 0 ? "+" : ""}
-              {((edge.edge ?? 0) * 100).toFixed(2)}%
-            </span>
-          </>
-        )}
-      </div>
-    </div>
-  );
+function highlightFor(flagged: boolean, postMatchHit?: boolean): "flagged" | "hit" | "miss" | undefined {
+  if (postMatchHit === true) return "hit";
+  if (postMatchHit === false) return "miss";
+  if (flagged) return "flagged";
+  return undefined;
 }
 
 function OverUnderRow({ label, lam, line, over, postMatchHit }: { label: string; lam: number; line: number; over: number; postMatchHit?: boolean }) {
@@ -298,41 +282,14 @@ export function FixtureModal({ eventId, onClose }: Props) {
                 )}
               </section>
 
-              {detail.post_match ? (
+              {detail.post_match && (
                 detail.pre_match_value_bets?.length > 0 ? <PreMatchValueBets bets={detail.pre_match_value_bets} /> : (
                   <section>
                     <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">Pre-match value bets</h3>
                     <p className="rounded-lg bg-pl-850/60 px-3 py-2 text-xs text-pl-text-faint">No value bet qualified before kickoff for this fixture, so no pre-match bet was recorded.</p>
                   </section>
                 )
-              ) : <section>
-                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">Best value bet</h3>
-                {detail.recommended_bet ? (
-                  <div className="rounded-xl border border-pl-cyan/40 bg-pl-cyan/10 p-3 text-sm">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <span className="font-semibold text-pl-text">{MARKET_LABELS[detail.recommended_bet.market]}</span>
-                        <span className="ml-2 text-[10px] font-semibold uppercase text-pl-text-faint">{marketType(detail.recommended_bet.market)}</span>
-                      </div>
-                      <span className="font-semibold text-pl-cyan">+{(detail.recommended_bet.edge * 100).toFixed(1)}% edge</span>
-                    </div>
-                    <p className="mt-1 text-xs text-pl-text-dim">
-                      Best observed price: {americanOdds(detail.recommended_bet.price)} at {detail.recommended_bet.bookmaker} · model {(detail.recommended_bet.probability * 100).toFixed(1)}%
-                    </p>
-                    <p className="mt-2 text-[11px] text-pl-text-faint">This highlights the strongest qualifying row below; it is educational only, never a parlay.</p>
-                  </div>
-                ) : (
-                  <p className="rounded-lg bg-pl-850/60 px-3 py-2 text-xs text-pl-text-faint">
-                    {new Date(detail.commence_time).getTime() <= Date.now()
-                      ? "Kickoff has passed, so pre-match odds can no longer be used to calculate a value bet."
-                      : detail.odds_is_stale
-                        ? `Live odds were last fetched ${detail.odds_fetched_at ? new Date(detail.odds_fetched_at).toLocaleString() : "too long ago"}. Refresh odds before treating an edge as actionable.`
-                      : detail.has_live_odds
-                        ? "No value bet clears the current 5-point edge and price filters."
-                        : "Live match-result and goals odds have not loaded yet, so a value bet cannot be calculated."}
-                  </p>
-                )}
-              </section>}
+              )}
 
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 <div className="flex flex-col gap-6">
@@ -378,48 +335,62 @@ export function FixtureModal({ eventId, onClose }: Props) {
                     </h3>
                     <div className="flex flex-col gap-1.5">
                       {(["home_win", "draw", "away_win", "over_2_5", "under_2_5"] as const).map((k) => (
-                        <MarketRow
+                        <MarketBar
                           key={k}
                           label={MARKET_LABELS[k]}
-                          edge={detail[k]}
-                          flagged={detail.value_bet_flags.includes(k)}
-                          postMatchHit={(() => {
-                            const verdict = postMatchVerdict(k === "home_win" || k === "draw" || k === "away_win" ? "Match result" : "Goals O/U 2.5");
-                            const selection = k === "home_win" || k === "draw" || k === "away_win" ? k : k === "over_2_5" ? "over" : "under";
-                            return verdict?.prediction === selection ? verdict.hit : undefined;
-                          })()}
+                          prob={detail[k].prob}
+                          marketProb={detail[k].implied}
+                          highlight={highlightFor(
+                            detail.value_bet_flags.includes(k),
+                            (() => {
+                              const verdict = postMatchVerdict(k === "home_win" || k === "draw" || k === "away_win" ? "Match result" : "Goals O/U 2.5");
+                              const selection = k === "home_win" || k === "draw" || k === "away_win" ? k : k === "over_2_5" ? "over" : "under";
+                              return verdict?.prediction === selection ? verdict.hit : undefined;
+                            })()
+                          )}
+                          detail={
+                            !detail.post_match && detail.recommended_bet?.market === k ? (
+                              <>
+                                Best observed price: {americanOdds(detail.recommended_bet.price)} at {detail.recommended_bet.bookmaker} ·{" "}
+                                <span className="font-mono font-semibold text-pl-cyan">
+                                  +{(detail.recommended_bet.edge * 100).toFixed(1)}%
+                                </span>{" "}
+                                edge
+                              </>
+                            ) : undefined
+                          }
                         />
                       ))}
-                      <MarketRow
+                      <MarketBar
                         label={
                           <span className="inline-flex items-center gap-1.5">
                             BTTS: Yes <InfoTooltip text={GLOSSARY.btts} align="right" />
                           </span>
                         }
-                        edge={{ prob: detail.btts_yes_prob, implied: null, edge: null }}
-                        flagged={false}
-                        postMatchHit={postMatchVerdict("BTTS")?.prediction === "yes" ? postMatchVerdict("BTTS")?.hit : undefined}
+                        prob={detail.btts_yes_prob}
+                        highlight={highlightFor(
+                          false,
+                          postMatchVerdict("BTTS")?.prediction === "yes" ? postMatchVerdict("BTTS")?.hit : undefined
+                        )}
                       />
                       {detail.home_2plus_prob !== null && (
-                        <MarketRow
+                        <MarketBar
                           label={
                             <span className="inline-flex items-center gap-1.5">
                               {detail.team_home} to score 2+ <InfoTooltip text={GLOSSARY.teamTwoPlus} align="right" />
                             </span>
                           }
-                          edge={{ prob: detail.home_2plus_prob, implied: null, edge: null }}
-                          flagged={false}
+                          prob={detail.home_2plus_prob}
                         />
                       )}
                       {detail.away_2plus_prob !== null && (
-                        <MarketRow
+                        <MarketBar
                           label={
                             <span className="inline-flex items-center gap-1.5">
                               {detail.team_away} to score 2+ <InfoTooltip text={GLOSSARY.teamTwoPlus} align="right" />
                             </span>
                           }
-                          edge={{ prob: detail.away_2plus_prob, implied: null, edge: null }}
-                          flagged={false}
+                          prob={detail.away_2plus_prob}
                         />
                       )}
                       {detail.predicted_total_goals !== null && (
@@ -444,6 +415,17 @@ export function FixtureModal({ eventId, onClose }: Props) {
                       )}
                     </div>
                     {!detail.has_live_odds && <p className="mt-2 text-xs text-pl-text-faint">{GLOSSARY.noLiveMarket}</p>}
+                    {!detail.post_match && !detail.recommended_bet && (
+                      <p className="mt-2 text-xs text-pl-text-faint">
+                        {new Date(detail.commence_time).getTime() <= Date.now()
+                          ? "Kickoff has passed, so pre-match odds can no longer be used to calculate a value bet."
+                          : detail.odds_is_stale
+                            ? `Live odds were last fetched ${detail.odds_fetched_at ? new Date(detail.odds_fetched_at).toLocaleString() : "too long ago"}. Refresh odds before treating an edge as actionable.`
+                          : detail.has_live_odds
+                            ? "No value bet clears the current 5-point edge and price filters."
+                            : "Live match-result and goals odds have not loaded yet, so a value bet cannot be calculated."}
+                      </p>
+                    )}
                   </section>
 
                   <section>
