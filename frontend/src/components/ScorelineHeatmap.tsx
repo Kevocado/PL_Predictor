@@ -1,3 +1,5 @@
+import { MarketBar } from "./MarketBar";
+
 interface ScorelineEntry {
   home: number;
   away: number;
@@ -95,17 +97,16 @@ export function ScorelineHeatmap({ grid, homeTeam, awayTeam, topScorelines }: Pr
           </p>
           <div className="flex flex-col gap-1">
             {topScorelines.map((s, i) => (
-              <div
+              <MarketBar
                 key={i}
-                className={`flex items-center justify-between rounded-lg px-3 py-1.5 text-xs ${
-                  i === 0 ? "bg-pl-pink/10 ring-1 ring-pl-pink/30" : "bg-pl-850/60"
-                }`}
-              >
-                <span className="font-mono font-medium text-pl-text">
-                  {homeTeam} {s.home}–{s.away} {awayTeam}
-                </span>
-                <span className="font-semibold text-pl-text-dim">{(s.prob * 100).toFixed(1)}%</span>
-              </div>
+                label={
+                  <span className="font-mono font-medium text-pl-text">
+                    {homeTeam} {s.home}–{s.away} {awayTeam}
+                  </span>
+                }
+                prob={s.prob}
+                highlight={i === 0 ? "flagged" : undefined}
+              />
             ))}
           </div>
         </div>
