@@ -42,11 +42,17 @@ def _fixtures_from_fpl_api() -> pd.DataFrame:
     fixtures = fpl_api.fetch_fixtures()
 
     team_names = {t["id"]: t["name"] for t in bootstrap["teams"]}
-    next_event = next((e["id"] for e in bootstrap["events"] if e.get("is_next")), None)
 
+    # `not f["finished"]` is already the correct, per-fixture test for
+    # "still to be played" — a prior version of this also required
+    # `event >= bootstrap["is_next"] gameweek`, which silently dropped the
+    # still-unplayed matches of the *current, in-progress* gameweek (FPL's
+    # `is_next` flag points at the gameweek *after* the current one while
+    # the current one is still underway, e.g. it's GW3 while GW2 has only
+    # 5 of its 10 matches played). Confirmed live: that extra filter was
+    # the reason GW2's remaining fixtures disappeared from the Fixtures
+    # tab entirely instead of showing alongside its completed matches.
     upcoming = [f for f in fixtures if not f["finished"] and f.get("kickoff_time")]
-    if next_event is not None:
-        upcoming = [f for f in upcoming if f["event"] is None or f["event"] >= next_event]
 
     rows = [
         {
