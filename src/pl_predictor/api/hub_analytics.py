@@ -131,7 +131,31 @@ def _set_piece_rows(season_start: int) -> pd.DataFrame:
     return pd.concat([home, away], ignore_index=True)
 
 
-def build_team_hub(matches: pd.DataFrame, season: str) -> dict:
+def _team_fpl_totals(bootstrap: dict | None) -> dict[str, dict[str, float | int]]:
+    """Assists and expected-assists per team, summed straight off the FPL
+    bootstrap's per-player totals — the same source `build_player_hub`
+    (below) already reads `assists`/`expected_assists` from, just grouped
+    by team instead of listed per player. `season_matches` (used for every
+    other team_hub stat) has no assist data at all, so this is the only
+    source for it."""
+    totals: dict[str, dict[str, float | int]] = {}
+    if not bootstrap:
+        return totals
+    team_names = {team["id"]: to_canonical(team["name"], source="fpl") for team in bootstrap.get("teams", [])}
+    for element in bootstrap.get("elements", []):
+        team = team_names.get(element["team"])
+        if team is None:
+            continue
+        entry = totals.setdefault(team, {"assists": 0, "xa": 0.0, "has_xa": False})
+        entry["assists"] += int(element.get("assists", 0))
+        xa = element.get("expected_assists")
+        if xa is not None and not pd.isna(xa):
+            entry["xa"] += float(xa)
+            entry["has_xa"] = True
+    return totals
+
+
+def build_team_hub(matches: pd.DataFrame, season: str, bootstrap: dict | None = None) -> dict:
     """Return current-season form, underlying performance, and team styles."""
     season_matches = matches[matches["season"] == season].copy()
     if season_matches.empty:
@@ -143,6 +167,7 @@ def build_team_hub(matches: pd.DataFrame, season: str) -> dict:
     rows = rows.merge(_understat_team_rows(season_start), on=keys, how="left")
     rows = rows.merge(_set_piece_rows(season_start), on=keys, how="left")
     current_streaks = streaks.latest_streaks(season_matches)
+    fpl_totals = _team_fpl_totals(bootstrap)
     teams = []
     for team, group in rows.groupby("team", sort=True):
         played = len(group)
@@ -150,6 +175,7 @@ def build_team_hub(matches: pd.DataFrame, season: str) -> dict:
         xg_for = group["xg_for"].sum(min_count=1)
         xg_against = group["xg_against"].sum(min_count=1)
         form_points_per_match, form_trend = _form_summary(group)
+        fpl_team_totals = fpl_totals.get(team, {})
         teams.append(
             {
                 "team": team,
@@ -160,6 +186,8 @@ def build_team_hub(matches: pd.DataFrame, season: str) -> dict:
                 "losses": int((group["result"] == "L").sum()),
                 "goals_for": int(group["goals_for"].sum()),
                 "goals_against": int(group["goals_against"].sum()),
+                "assists": int(fpl_team_totals.get("assists", 0)),
+                "xa": _number(fpl_team_totals["xa"]) if fpl_team_totals.get("has_xa") else None,
                 "points_per_match": _number(group["points"].mean()),
                 "form_points_per_match": form_points_per_match,
                 "form_trend": form_trend,

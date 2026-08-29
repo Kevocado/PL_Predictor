@@ -31,6 +31,39 @@ def test_team_hub_combines_form_xg_and_style(monkeypatch):
     assert arsenal["recent_matches"][0]["result"] == "W"
     assert arsenal["form_points_per_match"] == 3.0
     assert arsenal["form_trend"] == "new"
+    # No bootstrap supplied — assists/xa degrade to a neutral default
+    # rather than crashing (matches_df alone has no assist data at all).
+    assert arsenal["assists"] == 0
+    assert arsenal["xa"] is None
+
+
+def test_team_hub_sums_assists_and_xa_from_fpl_bootstrap():
+    matches = pd.DataFrame(
+        [
+            {
+                "season": "2026-2027", "date": pd.Timestamp("2026-08-15"), "team_home": "Arsenal", "team_away": "Chelsea",
+                "goals_home": 2, "goals_away": 1, "hs": 12, "as": 8, "hst": 5, "ast": 3,
+                "hc": 6, "ac": 4, "hf": 9, "af": 11, "hy": 2, "ay": 3, "hr": 0, "ar": 0,
+            }
+        ]
+    )
+    bootstrap = {
+        "teams": [{"id": 1, "name": "Arsenal"}, {"id": 2, "name": "Chelsea"}],
+        "elements": [
+            {"id": 1, "team": 1, "assists": 5, "expected_assists": "3.2"},
+            {"id": 2, "team": 1, "assists": 2, "expected_assists": "1.1"},
+            {"id": 3, "team": 2, "assists": 4, "expected_assists": None},
+        ],
+    }
+
+    report = hub_analytics.build_team_hub(matches, "2026-2027", bootstrap=bootstrap)
+    arsenal = next(team for team in report["teams"] if team["team"] == "Arsenal")
+    chelsea = next(team for team in report["teams"] if team["team"] == "Chelsea")
+
+    assert arsenal["assists"] == 7
+    assert arsenal["xa"] == 4.3
+    assert chelsea["assists"] == 4
+    assert chelsea["xa"] is None
 
 
 def test_player_hub_exposes_form_table_stats_without_squad_health():

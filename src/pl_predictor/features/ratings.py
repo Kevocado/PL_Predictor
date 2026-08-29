@@ -75,24 +75,67 @@ def fit_pi_ratings(matches_df: pd.DataFrame) -> pb.ratings.PiRatingSystem:
     return pi
 
 
-def team_rating_timeseries(matches_df: pd.DataFrame, k: float = 20.0, home_field_advantage: float = 100.0) -> pd.DataFrame:
+def _gameweek_lookup(fd_org_matches: pd.DataFrame | None) -> pd.DataFrame | None:
+    """`matches_df` (football-data.co.uk, replayed above) has no gameweek
+    column — only `fd_org_matches` (football-data.org) does. Both describe
+    the same real matches from different providers, so join on team pair +
+    nearest date rather than assuming identical date formatting between
+    the two (same idea `_fixture_actual_stats` in routes.py uses for a
+    different pair of mismatched sources)."""
+    if fd_org_matches is None or fd_org_matches.empty:
+        return None
+    lookup = fd_org_matches[["team_home", "team_away", "commence_time", "matchday"]].dropna(subset=["matchday"]).copy()
+    if lookup.empty:
+        return None
+    lookup = lookup.rename(columns={"commence_time": "date"})
+    lookup["date"] = pd.to_datetime(lookup["date"])
+    if lookup["date"].dt.tz is not None:
+        lookup["date"] = lookup["date"].dt.tz_localize(None)
+    return lookup
+
+
+def _nearest_gameweek(lookup: pd.DataFrame | None, home: str, away: str, date, max_days: int = 3) -> int | None:
+    if lookup is None:
+        return None
+    candidates = lookup[(lookup["team_home"] == home) & (lookup["team_away"] == away)]
+    if candidates.empty:
+        return None
+    date = pd.Timestamp(date).tz_localize(None) if pd.Timestamp(date).tzinfo is not None else pd.Timestamp(date)
+    deltas = (candidates["date"] - date).abs()
+    nearest_idx = deltas.idxmin()
+    if deltas.loc[nearest_idx] > pd.Timedelta(days=max_days):
+        return None
+    return int(candidates.loc[nearest_idx, "matchday"])
+
+
+def team_rating_timeseries(
+    matches_df: pd.DataFrame, fd_org_matches: pd.DataFrame | None = None, k: float = 20.0, home_field_advantage: float = 100.0
+) -> pd.DataFrame:
     """Long-format *post*-match Elo/Pi rating for both sides of every match
     — for charting a team's rating trend over time. `replay_elo`/
     `replay_pi_ratings` return *pre*-match values instead, since those feed
     model training and must never see the match's own outcome; here the
-    match's outcome is exactly what we want reflected."""
+    match's outcome is exactly what we want reflected.
+
+    `fd_org_matches`, when given, attaches a `gameweek` to each row (see
+    `_gameweek_lookup`/`_nearest_gameweek`) — used to group the chart by
+    gameweek visually without changing its date-based x-axis."""
     df = matches_df.sort_values("date")
     elo = pb.ratings.Elo(k=k, home_field_advantage=home_field_advantage)
     pi = pb.ratings.PiRatingSystem()
+    gameweek_lookup = _gameweek_lookup(fd_org_matches)
 
     rows = []
     for _, row in df.iterrows():
         home, away = row["team_home"], row["team_away"]
         elo.update_ratings(home, away, _RESULT_CODE[row["ftr"]])
         pi.update_ratings(home, away, int(row["goals_home"] - row["goals_away"]), date=row["date"])
+        gameweek = _nearest_gameweek(gameweek_lookup, home, away, row["date"])
 
         for team in (home, away):
-            rows.append({"date": row["date"], "team": team, "elo": elo.get_team_rating(team), "pi": pi.get_team_rating(team)})
+            rows.append(
+                {"date": row["date"], "team": team, "elo": elo.get_team_rating(team), "pi": pi.get_team_rating(team), "gameweek": gameweek}
+            )
 
     return pd.DataFrame(rows)
 

@@ -1,9 +1,39 @@
-import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import type { Key } from "react";
+import { CartesianGrid, Legend, Line, LineChart, ReferenceArea, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { RankingsResponse, TeamRanking } from "../types";
 import { TeamBadge } from "./TeamBadge";
 import { InfoTooltip } from "./InfoTooltip";
-import { teamColor } from "../lib/teamColors";
+import { teamColor, teamCrestUrl, teamInitials } from "../lib/teamColors";
 import { GLOSSARY } from "../lib/glossary";
+
+const CREST_DOT_SIZE = 22;
+
+// Recharts dots render inside the chart's SVG tree, so TeamBadge (an HTML
+// component) can't be reused directly here — this mirrors its same
+// crest-or-initials fallback using raw SVG instead.
+function TeamCrestDot(props: { cx?: number; cy?: number; index?: number; team: string; lastIndex: number }) {
+  const { cx, cy, index, team, lastIndex } = props;
+  if (cx === undefined || cy === undefined || index !== lastIndex) return <g />;
+  const crestUrl = teamCrestUrl(team);
+  const color = teamColor(team);
+  const half = CREST_DOT_SIZE / 2;
+  if (crestUrl) {
+    return (
+      <g>
+        <circle cx={cx} cy={cy} r={half + 2} fill="var(--color-pl-900)" stroke={color} strokeWidth={1.5} />
+        <image href={crestUrl} x={cx - half + 2} y={cy - half + 2} width={CREST_DOT_SIZE - 4} height={CREST_DOT_SIZE - 4} />
+      </g>
+    );
+  }
+  return (
+    <g>
+      <circle cx={cx} cy={cy} r={half} fill={color} stroke="var(--color-pl-900)" strokeWidth={1.5} />
+      <text x={cx} y={cy} textAnchor="middle" dominantBaseline="central" fontSize={9} fontWeight={700} fill="#fff">
+        {teamInitials(team)}
+      </text>
+    </g>
+  );
+}
 
 function badgeFor(confidence: TeamRanking["confidence"], fitted: boolean): { label: string; tooltip: string } | null {
   if (confidence === "preseason") {
@@ -90,6 +120,36 @@ export function PowerRankings({ data }: { data: RankingsResponse }) {
     chartData.push(row);
   }
 
+  // The most recent date each team actually has a rating for — that's
+  // where its crest marker goes, not on every point along the line.
+  const lastIndexByTeam: Record<string, number> = {};
+  for (const team of teams) {
+    for (let i = chartData.length - 1; i >= 0; i--) {
+      if (chartData[i][team] !== undefined) {
+        lastIndexByTeam[team] = i;
+        break;
+      }
+    }
+  }
+
+  // Group the date axis by gameweek visually (shaded bands), without
+  // changing the axis itself away from real calendar dates.
+  const datesByGameweek = new Map<number, string[]>();
+  for (const points of Object.values(data.ratings_history)) {
+    for (const point of points) {
+      if (point.gameweek == null) continue;
+      const existing = datesByGameweek.get(point.gameweek);
+      if (existing) existing.push(point.date);
+      else datesByGameweek.set(point.gameweek, [point.date]);
+    }
+  }
+  const gameweekBands = [...datesByGameweek.entries()]
+    .map(([gameweek, gwDates]) => {
+      const sorted = [...gwDates].sort();
+      return { gameweek, start: sorted[0], end: sorted[sorted.length - 1] };
+    })
+    .sort((a, b) => a.gameweek - b.gameweek);
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -134,8 +194,24 @@ export function PowerRankings({ data }: { data: RankingsResponse }) {
         ) : (
           <div className="clip-corner-lg h-96 rounded-xl border border-pl-border bg-pl-850/70 p-4">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData} margin={{ top: 10, right: 20, bottom: 0, left: 0 }}>
+              <LineChart data={chartData} margin={{ top: 10, right: 30, bottom: 0, left: 0 }}>
                 <CartesianGrid stroke="var(--color-pl-border)" strokeDasharray="3 3" />
+                {gameweekBands.map(
+                  (band, i) =>
+                    band.start !== band.end && (
+                      <ReferenceArea
+                        key={band.gameweek}
+                        x1={band.start}
+                        x2={band.end}
+                        fill={i % 2 === 0 ? "var(--color-pl-text-faint)" : "transparent"}
+                        fillOpacity={i % 2 === 0 ? 0.1 : 0}
+                        stroke="var(--color-pl-border)"
+                        strokeOpacity={0.6}
+                        ifOverflow="visible"
+                        label={{ value: `GW${band.gameweek}`, position: "insideTop", fill: "var(--color-pl-text-faint)", fontSize: 9 }}
+                      />
+                    ),
+                )}
                 <XAxis dataKey="date" tick={{ fill: "var(--color-pl-text-faint)", fontSize: 10 }} />
                 <YAxis domain={["auto", "auto"]} tick={{ fill: "var(--color-pl-text-faint)", fontSize: 11 }} />
                 <Tooltip
@@ -144,7 +220,17 @@ export function PowerRankings({ data }: { data: RankingsResponse }) {
                 />
                 <Legend wrapperStyle={{ fontSize: 10 }} />
                 {teams.map((team) => (
-                  <Line key={team} type="monotone" dataKey={team} stroke={teamColor(team)} strokeWidth={1.5} dot={false} connectNulls />
+                  <Line
+                    key={team}
+                    type="monotone"
+                    dataKey={team}
+                    stroke={teamColor(team)}
+                    strokeWidth={1.5}
+                    connectNulls
+                    dot={(dotProps: { key?: Key | null; cx?: number; cy?: number; index?: number }) => (
+                      <TeamCrestDot key={dotProps.key ?? `${team}-${dotProps.index}`} {...dotProps} team={team} lastIndex={lastIndexByTeam[team] ?? -1} />
+                    )}
+                  />
                 ))}
               </LineChart>
             </ResponsiveContainer>

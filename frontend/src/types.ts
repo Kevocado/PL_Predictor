@@ -319,6 +319,7 @@ export interface RatingPoint {
   date: string;
   elo: number;
   pi: number;
+  gameweek: number | null;
 }
 
 export interface RankingsResponse {
@@ -346,6 +347,8 @@ export interface TeamHubTeam {
   losses: number;
   goals_for: number;
   goals_against: number;
+  assists: number;
+  xa: number | null;
   points_per_match: number | null;
   form_points_per_match: number | null;
   form_trend: "up" | "down" | "steady" | "new";

@@ -1396,13 +1396,14 @@ def get_power_rankings():
         ttl=_LIVE_CACHE_TTL_SECONDS,
     )
 
-    history = ratings_mod.team_rating_timeseries(season_matches)
+    history = ratings_mod.team_rating_timeseries(season_matches, fd_org_matches=_get_fd_org_matches())
     if history.empty:
         ratings_history = {}
     else:
         history["date"] = history["date"].dt.date.astype(str)
+        history["gameweek"] = history["gameweek"].apply(lambda v: int(v) if pd.notna(v) else None)
         ratings_history = {
-            team: group[["date", "elo", "pi"]].to_dict("records") for team, group in history.groupby("team")
+            team: group[["date", "elo", "pi", "gameweek"]].to_dict("records") for team, group in history.groupby("team")
         }
 
     return {"rankings": rankings, "ratings_history": ratings_history, "season": current_season}
@@ -1452,7 +1453,7 @@ def get_team_hub():
     current_match_count = len(matches_df[matches_df["season"] == season])
     return _cached(
         f"team_hub_{season}_{current_match_count}",
-        lambda: hub_analytics.build_team_hub(matches_df, season),
+        lambda: hub_analytics.build_team_hub(matches_df, season, bootstrap=_get_bootstrap()),
         ttl=_LIVE_CACHE_TTL_SECONDS,
     )
 
