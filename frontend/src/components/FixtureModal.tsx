@@ -348,6 +348,7 @@ export function FixtureModal({ eventId, onClose }: Props) {
                               return verdict?.prediction === selection ? verdict.hit : undefined;
                             })()
                           )}
+                          valueBet={detail.value_bet_flags.includes(k)}
                           detail={
                             !detail.post_match && detail.recommended_bet?.market === k ? (
                               <>
