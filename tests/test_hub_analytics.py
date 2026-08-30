@@ -126,3 +126,51 @@ def test_player_hub_exposes_form_table_stats_without_squad_health():
     assert report["leaderboards"]["GK"][0]["name"] == "Raya"
     assert next(player for player in report["players"] if player["name"] == "Raya")["position"] == "GK"
     assert "squad_health" not in report
+
+
+def test_player_hub_leaderboards_sort_by_live_form_not_overall(monkeypatch):
+    """Quality is a role-aware prior blended with historical evidence — early
+    in a season it's still mostly last season's number, not something the
+    player has earned yet this year. The leaderboards must surface who's
+    actually in form right now, so they sort by Live Form even when that
+    disagrees with who has the higher Overall/Quality rating."""
+    from pl_predictor.api import hub_analytics as hub_analytics_module
+
+    monkeypatch.setattr(
+        hub_analytics_module.player_ratings,
+        "rate_bootstrap_elements",
+        lambda elements, positions, historical_priors=None: {
+            # Established star: high Quality/Overall from prior seasons, but
+            # cold so far this season.
+            1: {"quality_rating": 85.0, "form_rating": 2.0, "live_form_rating": 20.0, "live_form_vs_quality": -65.0, "overall_rating": 87.0, "current_impact_rating": 30.0},
+            # In-form breakout: lower Quality/Overall, but the hottest form
+            # in the position right now.
+            2: {"quality_rating": 55.0, "form_rating": 12.0, "live_form_rating": 90.0, "live_form_vs_quality": 35.0, "overall_rating": 67.0, "current_impact_rating": 80.0},
+        },
+    )
+
+    report = hub_analytics.build_player_hub(
+        {
+            "teams": [{"id": 1, "name": "Arsenal"}],
+            "element_types": [{"id": 3, "singular_name_short": "MID"}],
+            "elements": [
+                {
+                    "id": 1, "web_name": "Star", "team": 1, "element_type": 3, "status": "a",
+                    "minutes": 900, "starts": 10, "appearances": 10, "goals_scored": 1, "assists": 0,
+                    "expected_goals": "0", "expected_assists": "0", "expected_goal_involvements": "0",
+                    "threat": "0", "creativity": "0", "ict_index": "0", "bps": 20, "bonus": 0, "news": "",
+                },
+                {
+                    "id": 2, "web_name": "Breakout", "team": 1, "element_type": 3, "status": "a",
+                    "minutes": 900, "starts": 10, "appearances": 10, "goals_scored": 6, "assists": 3,
+                    "expected_goals": "4", "expected_assists": "2", "expected_goal_involvements": "6",
+                    "threat": "80.0", "creativity": "60.0", "ict_index": "20.0", "bps": 60, "bonus": 9, "news": "",
+                },
+            ],
+        }
+    )
+
+    leaders = report["leaderboards"]["MID"]
+    assert [player["name"] for player in leaders] == ["Breakout", "Star"]
+    assert leaders[0]["quality_rating"] == 55.0
+    assert leaders[0]["live_form_rating"] == 90.0

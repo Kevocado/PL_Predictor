@@ -277,10 +277,18 @@ def build_player_hub(bootstrap: dict) -> dict:
             }
         )
     players.sort(key=lambda player: (player.get("overall_rating", 0), player["minutes"]), reverse=True)
+    # Sorted by Live Form, not Overall/Quality: Quality is a role-aware
+    # prior blended with historical evidence, so early in a season (or for
+    # a player with few minutes) it's still mostly last season's prior —
+    # it hasn't "earned" its current value from this season's evidence yet.
+    # Live Form is the minutes/starts-capped current-season signal, so it's
+    # the more honest answer to "who's actually playing well right now."
+    # Quality is still shown alongside each entry for context, not sorted
+    # on, since the two can and do disagree (see live_form_vs_quality).
     leaderboards = {
         position: sorted(
             (player for player in players if player["position"] == position),
-            key=lambda player: player.get("overall_rating", 0),
+            key=lambda player: player.get("live_form_rating", 0),
             reverse=True,
         )[:5]
         for position in ("GK", "DEF", "MID", "FWD")
