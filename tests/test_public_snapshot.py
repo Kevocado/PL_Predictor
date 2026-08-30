@@ -25,11 +25,31 @@ def _fake_fixtures_by_gameweek(finished_ids: set[str]) -> dict:
     }
 
 
-def _patch_common(monkeypatch, fixtures_by_gameweek: dict, detail_calls: list, players_calls: list, review_calls: list | None = None):
-    monkeypatch.setattr(routes, "_get_fd_org_matches", lambda: pd.DataFrame({"matchday": [1, 2]}))
-    monkeypatch.setattr(routes.tracking_store, "get_track_record", lambda: {"current_gameweek": 2})
-    monkeypatch.setattr(routes, "_resolve_current_gameweek", lambda *_a, **_k: 2)
-    monkeypatch.setattr(routes, "current_gameweek_fixtures", lambda gameweek: fixtures_by_gameweek[str(gameweek)])
+def _patch_common(
+    monkeypatch,
+    fixtures_by_gameweek: dict,
+    detail_calls: list,
+    players_calls: list,
+    review_calls: list | None = None,
+    current_gameweek: int = 2,
+    matchdays: list | None = None,
+    model_fingerprint: str = "fp-fixed",
+):
+    monkeypatch.setattr(routes, "_get_fd_org_matches", lambda: pd.DataFrame({"matchday": matchdays or [1, 2]}))
+    monkeypatch.setattr(routes.tracking_store, "get_track_record", lambda: {"current_gameweek": current_gameweek})
+    monkeypatch.setattr(routes, "_resolve_current_gameweek", lambda *_a, **_k: current_gameweek)
+    gameweek_calls: list[int] = []
+
+    def fake_gameweek_fixtures(gameweek):
+        gameweek_calls.append(gameweek)
+        return fixtures_by_gameweek[str(gameweek)]
+
+    monkeypatch.setattr(routes, "current_gameweek_fixtures", fake_gameweek_fixtures)
+    # Fixed rather than the real manifest.json's hash: this is a pure unit
+    # test and must not depend on whatever happens to be on disk in this
+    # dev environment. Individual tests override this via monkeypatch again
+    # when they need to simulate a real model change.
+    monkeypatch.setattr(routes.manifest_lib, "manifest_fingerprint", lambda: model_fingerprint)
     review_calls = review_calls if review_calls is not None else []
 
     def fake_detail(event_id, read_only=False):
@@ -52,6 +72,7 @@ def _patch_common(monkeypatch, fixtures_by_gameweek: dict, detail_calls: list, p
     monkeypatch.setattr(routes, "get_hub_track_record", lambda: {})
     monkeypatch.setattr(routes, "get_team_hub", lambda: {})
     monkeypatch.setattr(routes, "get_player_hub", lambda: {})
+    return gameweek_calls
 
 
 def test_reuses_previously_finished_fixtures(monkeypatch):
@@ -194,3 +215,67 @@ def test_no_previous_snapshot_recomputes_everything(monkeypatch):
 
     assert set(detail_calls) == {"gw1-a", "gw1-b", "gw2-a", "gw2-b"}
     assert all(v["computed"] == "fresh" for v in snapshot["fixture_detail_by_event_id"].values())
+
+
+def _fake_wide_fixtures_by_gameweek(gameweeks: range) -> dict:
+    def fixture(event_id: str) -> dict:
+        return {"event_id": event_id, "finished": False}
+
+    return {str(gw): {"fixtures": [fixture(f"gw{gw}-a")]} for gw in gameweeks}
+
+
+def test_reuses_gameweeks_outside_the_rebuild_window(monkeypatch):
+    """Only current_gameweek-1 .. current_gameweek+REBUILD_GAMEWEEKS_AHEAD is
+    freshly computed each run — this is the fix for a full-season rebuild
+    (all 38 gameweeks, confirmed live to take ~9 minutes) touching gameweeks
+    months away that nobody's browsing yet and that haven't changed since
+    the last run."""
+    gameweeks = range(1, 11)
+    fixtures_by_gameweek = _fake_wide_fixtures_by_gameweek(gameweeks)
+    detail_calls: list[str] = []
+    players_calls: list[str] = []
+    gameweek_calls = _patch_common(
+        monkeypatch, fixtures_by_gameweek, detail_calls, players_calls,
+        current_gameweek=5, matchdays=list(gameweeks),
+    )
+
+    previous = {
+        "model_fingerprint": "fp-fixed",
+        "fixtures_by_gameweek": {str(gw): {"fixtures": [{"event_id": f"gw{gw}-a", "finished": False, "computed": "previous-run"}]} for gw in gameweeks},
+        "fixture_detail_by_event_id": {},
+        "fixture_players_by_event_id": {},
+    }
+
+    snapshot = public_snapshot.build_snapshot(previous)
+
+    # current_gameweek=5, REBUILD_GAMEWEEKS_AHEAD=5 -> window is 4..10.
+    assert set(gameweek_calls) == {4, 5, 6, 7, 8, 9, 10}
+    for gw in (1, 2, 3):
+        assert gw not in gameweek_calls
+        assert snapshot["fixtures_by_gameweek"][str(gw)]["fixtures"][0]["computed"] == "previous-run"
+
+
+def test_model_change_forces_a_full_rebuild_of_every_gameweek(monkeypatch):
+    """A retrain can move any prediction at once, not just the near-term
+    ones — the window optimisation must not leave stale predictions behind
+    a real model change."""
+    gameweeks = range(1, 11)
+    fixtures_by_gameweek = _fake_wide_fixtures_by_gameweek(gameweeks)
+    detail_calls: list[str] = []
+    players_calls: list[str] = []
+    gameweek_calls = _patch_common(
+        monkeypatch, fixtures_by_gameweek, detail_calls, players_calls,
+        current_gameweek=5, matchdays=list(gameweeks), model_fingerprint="fp-new",
+    )
+
+    previous = {
+        "model_fingerprint": "fp-old",
+        "fixtures_by_gameweek": {str(gw): {"fixtures": [{"event_id": f"gw{gw}-a", "finished": False, "computed": "previous-run"}]} for gw in gameweeks},
+        "fixture_detail_by_event_id": {},
+        "fixture_players_by_event_id": {},
+    }
+
+    snapshot = public_snapshot.build_snapshot(previous)
+
+    assert set(gameweek_calls) == set(gameweeks)
+    assert snapshot["model_fingerprint"] == "fp-new"

@@ -40,6 +40,18 @@ from .api import routes
 from .config import PUBLIC_SNAPSHOT_PATH
 
 
+# How many gameweeks past the current one still get freshly rebuilt every
+# run. Everything further out reuses the previous snapshot verbatim until
+# it enters this window — a full-season rebuild (all 38 gameweeks) was
+# confirmed live to take ~9 minutes and touch 380 fixtures every single
+# run, the large majority of them months away and unchanged since the
+# last run. 5 covers over a month of lookahead, which is what actually
+# gets browsed/planned against; a real model retrain still forces a full
+# rebuild regardless (see `model_changed` below), since a retrain can
+# move every prediction at once, not just the near-term ones.
+REBUILD_GAMEWEEKS_AHEAD = 5
+
+
 def build_snapshot(previous: dict | None = None) -> dict:
     """Build the public read-only data bundle from local live-serving state.
 
@@ -47,6 +59,14 @@ def build_snapshot(previous: dict | None = None) -> dict:
     with no reported statistics is retried so delayed official box-score data
     can still appear in the public app. Newer details also include their
     immutable value-bet calls; legacy snapshot entries remain safely usable.
+
+    Only gameweeks within `REBUILD_GAMEWEEKS_AHEAD` of the current one are
+    freshly computed each run — everything else (fully-finished past
+    gameweeks, and far-future ones nobody's browsing yet) is carried
+    forward from `previous` unchanged, unless the model itself was
+    retrained since the last snapshot (`model_fingerprint` mismatch),
+    in which case every gameweek rebuilds since a retrain can change any
+    prediction, not just near-term ones.
     """
     print("Loading live-serving state (models, matches, fixtures)...")
     fd_org_matches = routes._get_fd_org_matches()
@@ -61,33 +81,51 @@ def build_snapshot(previous: dict | None = None) -> dict:
         current_gameweek = int(unfinished["matchday"].min()) if not unfinished.empty else min_gameweek
     current_gameweek = routes._resolve_current_gameweek(current_gameweek, fd_org_matches) or min_gameweek
 
-    print(f"Building fixtures for gameweeks {min_gameweek}-{max_gameweek} (current: {current_gameweek})...")
+    previous = previous or {}
+    previous_fixtures_by_gameweek = previous.get("fixtures_by_gameweek", {})
+    model_fingerprint = routes.manifest_lib.manifest_fingerprint()
+    model_changed = previous.get("model_fingerprint") != model_fingerprint or not previous_fixtures_by_gameweek
+
+    # One gameweek of look-back margin (not just >= current_gameweek) so a
+    # fixture whose stats arrived late is still retried at least once after
+    # its gameweek finishes, not frozen the instant it rolls out of window.
+    rebuild_from = max(min_gameweek, current_gameweek - 1)
+    rebuild_to = min(max_gameweek, current_gameweek + REBUILD_GAMEWEEKS_AHEAD)
+    rebuild_window = set(range(rebuild_from, rebuild_to + 1))
+
+    print(
+        f"Building fixtures for gameweeks {min_gameweek}-{max_gameweek} (current: {current_gameweek}); "
+        f"{'model changed, rebuilding all' if model_changed else f'rebuilding {rebuild_from}-{rebuild_to}, reusing the rest'}..."
+    )
     fixtures_by_gameweek = {}
+    reused_gameweeks: set[int] = set()
     for gw in range(min_gameweek, max_gameweek + 1):
+        if not model_changed and gw not in rebuild_window and str(gw) in previous_fixtures_by_gameweek:
+            fixtures_by_gameweek[str(gw)] = previous_fixtures_by_gameweek[str(gw)]
+            reused_gameweeks.add(gw)
+            continue
         print(f"  gameweek {gw}")
         fixtures_by_gameweek[str(gw)] = routes.current_gameweek_fixtures(gameweek=gw)
 
-    event_ids = sorted(
-        {
-            fixture["event_id"]
-            for gw_data in fixtures_by_gameweek.values()
-            for fixture in gw_data.get("fixtures", [])
-            if fixture.get("event_id")
-        }
-    )
+    event_id_to_gw = {
+        fixture["event_id"]: int(gw)
+        for gw, gw_data in fixtures_by_gameweek.items()
+        for fixture in gw_data.get("fixtures", [])
+        if fixture.get("event_id")
+    }
+    event_ids = sorted(event_id_to_gw)
     finished_event_ids = {
         fixture["event_id"]
         for gw_data in fixtures_by_gameweek.values()
         for fixture in gw_data.get("fixtures", [])
         if fixture.get("event_id") and fixture.get("finished")
     }
-    previous = previous or {}
     previous_detail = previous.get("fixture_detail_by_event_id", {})
     previous_players = previous.get("fixture_players_by_event_id", {})
     previous_review = previous.get("player_review_by_event_id", {})
     previous_finished_ids = {
         fixture["event_id"]
-        for gw_data in previous.get("fixtures_by_gameweek", {}).values()
+        for gw_data in previous_fixtures_by_gameweek.values()
         for fixture in gw_data.get("fixtures", [])
         if fixture.get("event_id") and fixture.get("finished")
     }
@@ -102,8 +140,18 @@ def build_snapshot(previous: dict | None = None) -> dict:
 
     reusable_ids = {
         event_id
-        for event_id in finished_event_ids & previous_finished_ids & previous_detail.keys()
-        if not detail_needs_refresh(previous_detail[event_id])
+        for event_id in event_ids
+        if event_id in previous_detail
+        and (
+            # Whole gameweek carried forward untouched above — its detail
+            # can't have changed either, finished or not.
+            event_id_to_gw.get(event_id) in reused_gameweeks
+            or (
+                event_id in finished_event_ids
+                and event_id in previous_finished_ids
+                and not detail_needs_refresh(previous_detail[event_id])
+            )
+        )
     }
 
     print(
@@ -187,6 +235,7 @@ def build_snapshot(previous: dict | None = None) -> dict:
 
     return {
         "generated_at": pd.Timestamp.now(tz="UTC").isoformat(),
+        "model_fingerprint": model_fingerprint,
         "current_gameweek": current_gameweek,
         "min_gameweek": min_gameweek,
         "max_gameweek": max_gameweek,
