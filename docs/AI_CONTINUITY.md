@@ -27,6 +27,26 @@ targeted pytest modules. The trained artifact is `models/manifest.json`; it
 must not be treated as a permanent source of truth because retraining replaces
 it.
 
+### FPL FIFA-style interface — 2026-08-29
+
+- The FPL tab now uses one shared `PlayerCard` component for both the compact
+  starting-XI pitch and the £100m squad grid. Cards show the club badge,
+  position, availability marker, projected FPL points, player name, and price
+  where space permits; the legacy `PitchPlayer` and `PlayerLine` displays were
+  removed.
+- The XI, £100m squad, and transfer planner are mutually exclusive, instant
+  views in a three-way toggle. They reuse data fetched on page load; changing
+  view must never trigger a new optimisation or data request. The player scout
+  remains an always-visible table below the toggle.
+- Once transfer recommendations are available, the planner shows the free
+  transfers and bank used by the calculation, then up to two existing
+  projection-driver phrases below each suggested swap. This is explanatory UI
+  only: it adds no new transfer-model or persistence logic.
+- Manual QA at normal desktop width confirmed compact pitch cards remain
+  legible and the £100m grid keeps player prices visible. The frontend
+  TypeScript build was clean; the local shell could not reach the already
+  running backend for a synthetic transfer submission during that QA pass.
+
 ## Architecture and ownership
 
 | Area | Main modules | Responsibility |
