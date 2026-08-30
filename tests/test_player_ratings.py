@@ -69,6 +69,27 @@ def test_goalkeeper_saves_without_prevention_advantage_cannot_become_elite():
     assert priors["elite keeper"]["quality_rating"] > priors["busy keeper"]["quality_rating"]
 
 
+def test_goalkeeper_quality_uses_xg_prevention_not_a_weaker_reserve_as_the_benchmark():
+    """A weaker backup must not turn a short Darlow-like spell into the top keeper rating."""
+    rows = []
+    for season in ("2023-24", "2024-25", "2025-26"):
+        rows.extend([
+            _history_row("Elite Keeper", "GK", "Elite FC", season, clean_sheets=12, goals_conceded=25, expected_goals_conceded=40.0, bps=450),
+            _history_row("League Average", "GK", "Average FC", season, clean_sheets=7, goals_conceded=33, expected_goals_conceded=33.0, bps=330),
+            _history_row("Average Reserve", "GK", "Average FC", season, minutes=100, clean_sheets=0, goals_conceded=5, expected_goals_conceded=5.0, bps=10),
+            _history_row("Weak Starter", "GK", "Weak FC", season, clean_sheets=4, goals_conceded=45, expected_goals_conceded=45.0, bps=290),
+            _history_row("Weak Reserve", "GK", "Weak FC", season, minutes=100, clean_sheets=0, goals_conceded=10, expected_goals_conceded=10.0, bps=10),
+        ])
+    rows.extend([
+        _history_row("Karl Darlow", "GK", "Leeds", "2025-26", clean_sheets=5, goals_conceded=27, expected_goals_conceded=27.5, bps=334),
+        _history_row("Leeds Reserve", "GK", "Leeds", "2025-26", minutes=100, clean_sheets=0, goals_conceded=15, expected_goals_conceded=15.0, bps=10),
+    ])
+
+    priors = player_ratings.build_historical_priors(pd.DataFrame(rows))
+
+    assert priors["elite keeper"]["quality_rating"] > priors["karl darlow"]["quality_rating"]
+
+
 def test_insufficient_recent_history_is_provisional():
     """Removing the evidence threshold would silently rank a 300-minute player."""
     history = pd.DataFrame([
@@ -84,21 +105,22 @@ def test_insufficient_recent_history_is_provisional():
     assert priors["new signing"]["evidence_minutes"] == 300
 
 
-def test_one_strong_season_cannot_claim_a_sustained_elite_quality_rating():
-    """Removing the multi-season cap would recreate Darlow-like false elites."""
+@pytest.mark.parametrize("position", ["DEF", "MID", "FWD"])
+def test_one_strong_season_cannot_claim_a_sustained_elite_quality_rating(position):
+    """Calling a one-season player established would recreate Darlow-like false rankings."""
     rows = []
     for season in ("2023-24", "2024-25", "2025-26"):
         rows.extend(
             [
-                _history_row("Good Forward", "FWD", "Chelsea", season, goals_scored=12, assists=5, expected_goals=12.0, expected_assists=4.0, expected_goal_involvements=16.0),
-                _history_row("Average Forward", "FWD", "Everton", season, goals_scored=7, assists=2, expected_goals=7.0, expected_assists=2.0, expected_goal_involvements=9.0),
+                    _history_row("Good Player", position, "Chelsea", season, goals_scored=12, assists=5, expected_goals=12.0, expected_assists=4.0, expected_goal_involvements=16.0),
+                    _history_row("Average Player", position, "Everton", season, goals_scored=7, assists=2, expected_goals=7.0, expected_assists=2.0, expected_goal_involvements=9.0),
             ]
         )
-    rows.append(_history_row("Single Season Star", "FWD", "Leeds", "2025-26", goals_scored=30, assists=10, expected_goals=28.0, expected_assists=8.0, expected_goal_involvements=36.0))
+    rows.append(_history_row("Single Season Star", position, "Leeds", "2025-26", goals_scored=30, assists=10, expected_goals=28.0, expected_assists=8.0, expected_goal_involvements=36.0))
 
     prior = player_ratings.build_historical_priors(pd.DataFrame(rows))["single season star"]
 
-    assert prior["rating_status"] == "established"
+    assert prior["rating_status"] == "limited"
     assert prior["quality_rating"] <= 76
 
 
@@ -115,6 +137,38 @@ def test_historical_prior_adds_unique_first_last_alias_for_current_fpl_name():
 
     assert priors["bruno fernandes"]["rating_status"] == "established"
     assert priors["bruno fernandes"]["quality_rating"] == priors["bruno borges fernandes"]["quality_rating"]
+
+
+def test_historical_name_variant_is_one_player_before_multi_season_evidence_is_scored():
+    """Keeping name variants separate lets a stable-name backup outrank an established starter."""
+    history = pd.DataFrame([
+        _history_row("Alisson Ramses Becker", "GK", "Liverpool", "2023-24", minutes=1_900, clean_sheets=13),
+        _history_row("Alisson Ramses Becker", "GK", "Liverpool", "2024-25", minutes=1_800, clean_sheets=12),
+        _history_row("Alisson Becker", "GK", "Liverpool", "2025-26", minutes=1_850, clean_sheets=12),
+        _history_row("Comparable Keeper", "GK", "Arsenal", "2023-24", minutes=1_900, clean_sheets=8),
+        _history_row("Comparable Keeper", "GK", "Arsenal", "2024-25", minutes=1_900, clean_sheets=8),
+        _history_row("Comparable Keeper", "GK", "Arsenal", "2025-26", minutes=1_900, clean_sheets=8),
+    ])
+
+    prior = player_ratings.build_historical_priors(history)["alisson becker"]
+
+    assert prior["evidence_minutes"] == 5_550
+
+
+def test_history_identity_variants_follow_the_shortest_safe_name_through_multiple_merges():
+    """Leaving a transitive alias at an intermediate name silently re-splits evidence."""
+    history = pd.DataFrame([
+        _history_row("Alex John Paul Smith", "MID", "Arsenal", "2023-24", minutes=1_800),
+        _history_row("Alex John Smith", "MID", "Arsenal", "2024-25", minutes=1_850),
+        _history_row("Alex Smith", "MID", "Arsenal", "2025-26", minutes=1_900),
+        _history_row("Comparable Mid", "MID", "Chelsea", "2023-24"),
+        _history_row("Comparable Mid", "MID", "Chelsea", "2024-25"),
+        _history_row("Comparable Mid", "MID", "Chelsea", "2025-26"),
+    ])
+
+    prior = player_ratings.build_historical_priors(history)["alex smith"]
+
+    assert prior["evidence_minutes"] == 5_550
 
 
 def test_provisional_player_has_no_rankable_overall_but_keeps_live_form_and_impact():
@@ -143,6 +197,20 @@ def test_availability_only_changes_impact_for_an_established_player():
     assert ratings[1]["quality_rating"] == ratings[2]["quality_rating"]
     assert ratings[1]["overall_rating"] == ratings[2]["overall_rating"]
     assert ratings[2]["current_impact_rating"] < ratings[1]["current_impact_rating"]
+
+
+def test_quality_ignores_fpl_points_and_projection_fields():
+    """Adding a projection dependency would make the descriptive rating circular."""
+    element = _element(1, minutes=900, starts=10, goals=5, xg=4.0, xa=2.0, total_points=20)
+    priors = {"": {"quality_rating": 82.0, "rating_status": "established", "evidence_minutes": 4_000}}
+
+    baseline = player_ratings.rate_bootstrap_elements([element], {3: "MID"}, historical_priors=priors)[1]
+    changed = player_ratings.rate_bootstrap_elements(
+        [{**element, "total_points": 999, "projected_points": 999}], {3: "MID"}, historical_priors=priors
+    )[1]
+
+    assert changed["quality_rating"] == baseline["quality_rating"]
+    assert changed["overall_rating"] == baseline["overall_rating"]
 
 
 def test_role_component_ceilings_are_equalised_across_positions():

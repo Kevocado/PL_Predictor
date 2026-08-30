@@ -1505,6 +1505,50 @@ experiment; negative evidence prevents repeated work.
   research-only and must not be wired into `features/build.py` or the
   manifest. Raw tables: `/tmp/exp-2026-21-recheck-report.md`.
 
+#### Player Hub data-led rating rebuild (2026-08-30)
+
+- **Status:** descriptive Player Hub upgrade shipped; no scoreline feature was
+  promoted or retrained. The earlier fixed-cap rating could still make a
+  low-current-minute player look implausibly strong because its only durable
+  input was a one-season, FPL-oriented prior. Karl Darlow exposed both
+  mechanisms: 1,980 minutes at Leeds in 2025-26 were carried into a
+  zero-minute Manchester United state, while raw saves and BPS rewarded a
+  goalkeeper facing more work.
+- **Evidence-source correction (2026-08-30):** this first release still
+  split archive spelling variants after aggregation: for example, `Alisson
+  Ramses Becker` (2,508 minutes) and `Alisson Becker` (2,430) became separate
+  records. Historical identity is now resolved *before* scoring only where
+  names are same-role token subsets, their clubs overlap, and they never
+  coexist in a season. This joins a safe archive naming change without making
+  a broad, unsafe fuzzy-name merge. The display score excludes
+  `total_points`, FPL projections, and fixture predictions entirely.
+- **Goalkeeper correction (2026-08-30):** Karl Darlow also revealed that the
+  old goalkeeper proxy was wrong: comparing a starter with a weaker reserve
+  at the same club can manufacture apparent "shot prevention." GK evidence
+  now uses the archive's observed `expected_goals_conceded - goals_conceded`
+  per 90, with clean sheets, saves, and BPS only supporting signals. The
+  team-season baseline remains a defensive-context measure for DEF; it is not
+  a goalkeeper ability proxy. MID/FWD continue to use observed xGI/xA and
+  goal/assist per-90 evidence. Role values are calibrated against fixed
+  historical robust distribution anchors, then recency weighted 0.55/0.30/
+  0.15. Quality and Overall cap at 95, never 100.
+- **Evidence-status contract:** fewer than 900 recent Premier League minutes
+  is `Provisional`; at least 900 minutes but only one qualifying season is
+  `Limited evidence`. Neither receives a rankable Quality or Overall; Live
+  Form and upcoming-gameweek Impact remain visible. Two qualifying seasons
+  are required for `Established` Quality/Overall, so a backup's one good year
+  cannot rank above sustained starters. Availability only discounts Impact.
+- **Live sanity check after correction:** Darlow has 1,980 historical minutes
+  and is `Limited evidence`, so he has no Overall rank; he cannot be the best
+  goalkeeper in the Player Hub or at Manchester United. The current
+  established-GK ordering begins Pickford 64.3, Raya 64.2, Sels 60.8, and
+  Kelleher 58.2. This is descriptive UI evidence only, not a scoreline-model
+  result.
+- **Model boundary:** EXP-2026-21's existing eight unit features are still
+  rejected. A future experiment must build a completely shifted counterpart
+  of this latent role evidence and pass lower mean/recent RPS, Brier, and log
+  loss without calibration regression before it can enter `features/build.py`.
+
 ### EXP-2026-20 — forecast-time coverage, confirmed-XI, and metric-specific gates
 
 - **Status:** live-data integrity shipped; confirmed-XI adjustment remains

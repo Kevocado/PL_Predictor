@@ -420,7 +420,7 @@ export interface PlayerHubPlayer {
   current_impact_rating: number;
   rating_driver: string;
   rating_expected_minutes: number;
-  rating_status: "established" | "provisional";
+  rating_status: "established" | "limited" | "provisional";
   rating_evidence_minutes: number;
   rating_model_source: string;
 }

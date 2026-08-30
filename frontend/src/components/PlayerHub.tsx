@@ -9,7 +9,7 @@ const COLUMNS: Array<{ key: SortKey; label: string; tooltip?: string; numeric?: 
   { key: "name", label: "Player" },
   { key: "team", label: "Team" },
   { key: "position", label: "Pos" },
-  { key: "overall_rating", label: "Overall", tooltip: "Overall combines multi-season observed, role-aware Quality with a capped current Form lift. It never uses FPL point projections or match predictions; players without enough Premier League evidence are shown as Provisional rather than ranked.", numeric: true },
+  { key: "overall_rating", label: "Overall", tooltip: "Overall combines multi-season observed, role-aware Quality with a capped current Form lift. It never uses FPL point projections or match predictions; players with limited evidence are labelled rather than ranked.", numeric: true },
   { key: "quality_rating", label: "Quality", tooltip: "Quality is durable, multi-season role evidence on a common 0–95 scale. 85+ is rare sustained elite performance; 70–84 is established good Premier League performance.", numeric: true },
   { key: "live_form_rating", label: "Live form", tooltip: "Live Form scales the official FPL recent-form signal against the player's role, while capping early-season scores until minutes and starts provide enough evidence.", numeric: true },
   { key: "live_form_vs_quality", label: "vs Quality", tooltip: "Live Form minus the player's underlying Quality. Positive numbers identify players currently outperforming their established level; negative numbers indicate cooler current form.", numeric: true },
@@ -50,8 +50,9 @@ function RatingCell({ value, tone = "text-pl-text", signed = false }: { value: n
 }
 
 function OverallCell({ player }: { player: PlayerHubPlayer }) {
-  if (player.rating_status === "provisional") {
-    return <td className="px-1.5 py-2 text-right"><span className="inline-flex rounded-md border border-pl-pink/50 bg-pl-pink/10 px-2 py-1 text-[10px] font-bold text-pl-pink">Provisional</span></td>;
+  if (player.rating_status !== "established") {
+    const label = player.rating_status === "limited" ? "Limited evidence" : "Provisional";
+    return <td className="px-1.5 py-2 text-right"><span className="inline-flex rounded-md border border-pl-pink/50 bg-pl-pink/10 px-2 py-1 text-[10px] font-bold text-pl-pink">{label}</span></td>;
   }
   return <RatingCell value={player.overall_rating} tone="text-pl-pink" />;
 }
@@ -107,7 +108,7 @@ export function PlayerHub({ data }: { data: PlayerHubResponse }) {
       <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h3 className="text-lg font-semibold text-pl-text">Player ratings &amp; form</h3>
-          <p className="mt-1 text-sm text-pl-text-dim">Overall is durable Quality plus a capped current-form lift. Read Quality beside it, then Live Form and vs Quality to see who is outperforming their usual level. Provisional means fewer than 900 recent Premier League minutes, so the player is not rankable yet. {(data.rating_model_source ?? "season form").replaceAll("_", " ")} · {data.data_freshness ?? "cached FPL data"}</p>
+          <p className="mt-1 text-sm text-pl-text-dim">Overall is durable Quality plus a capped current-form lift. Read Quality beside it, then Live Form and vs Quality to see who is outperforming their usual level. Provisional means fewer than 900 recent Premier League minutes; Limited evidence means only one qualifying season. Neither is rankable yet. {(data.rating_model_source ?? "season form").replaceAll("_", " ")} · {data.data_freshness ?? "cached FPL data"}</p>
         </div>
         <label className="text-xs font-semibold text-pl-text-faint">
           Search players
@@ -115,7 +116,7 @@ export function PlayerHub({ data }: { data: PlayerHubResponse }) {
         </label>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {Object.entries(data.leaderboards ?? {}).map(([position, leaders]) => <div key={position} className="rounded-xl border border-pl-border bg-pl-850/40 p-3"><p className="flex items-center gap-1 text-[10px] font-bold tracking-wide text-pl-text-faint">TOP {position} FORM<InfoTooltip text="Sorted by Live Form, not Overall. Provisional players can still feature here because this panel reports what they are doing now, but they do not receive an Overall rank until they have enough Premier League evidence." align="left" /></p>{leaders.map((player) => <div key={player.id} className="mt-2 flex items-center justify-between text-xs"><span className="min-w-0 truncate font-semibold text-pl-text">{player.name}</span><span className="shrink-0 text-pl-text-dim">{player.rating_status === "provisional" ? <span className="text-pl-pink">Provisional</span> : <>Q {(player.quality_rating ?? 0).toFixed(0)} · </>}<span className="text-pl-pink">{(player.live_form_rating ?? 0).toFixed(0)}</span></span></div>)}</div>)}
+          {Object.entries(data.leaderboards ?? {}).map(([position, leaders]) => <div key={position} className="rounded-xl border border-pl-border bg-pl-850/40 p-3"><p className="flex items-center gap-1 text-[10px] font-bold tracking-wide text-pl-text-faint">TOP {position} FORM<InfoTooltip text="Sorted by Live Form, not Overall. Players with Provisional or Limited evidence can still feature here because this panel reports what they are doing now, but they do not receive an Overall rank until their role evidence is sustained." align="left" /></p>{leaders.map((player) => <div key={player.id} className="mt-2 flex items-center justify-between text-xs"><span className="min-w-0 truncate font-semibold text-pl-text">{player.name}</span><span className="shrink-0 text-pl-text-dim">{player.rating_status !== "established" ? <span className="text-pl-pink">{player.rating_status === "limited" ? "Limited" : "Provisional"}</span> : <>Q {(player.quality_rating ?? 0).toFixed(0)} · </>}<span className="text-pl-pink">{(player.live_form_rating ?? 0).toFixed(0)}</span></span></div>)}</div>)}
       </div>
       <div className="flex flex-wrap items-end gap-3 rounded-xl border border-pl-border bg-pl-850/40 p-3 text-xs text-pl-text-dim">
         <div className="flex gap-1 rounded-lg border border-pl-border p-1">

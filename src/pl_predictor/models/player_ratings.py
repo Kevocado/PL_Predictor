@@ -186,7 +186,7 @@ def cached_historical_priors() -> dict[str, dict[str, float]]:
 _HISTORICAL_PRIOR_COLUMNS = (
     "minutes", "starts", "goals_scored", "assists", "expected_goals",
     "expected_assists", "expected_goal_involvements", "clean_sheets",
-    "saves", "goals_conceded", "defensive_contribution", "bps",
+    "saves", "goals_conceded", "expected_goals_conceded", "defensive_contribution", "bps",
 )
 _HISTORICAL_RECENCY_WEIGHTS = (0.15, 0.30, 0.55)
 _PROVISIONAL_MINUTES = 900.0
@@ -216,6 +216,43 @@ def _historical_name_aliases(name_key: str) -> set[str]:
     return aliases
 
 
+def _conservative_history_identities(rows: pd.DataFrame) -> pd.Series:
+    """Unify archive spelling variants only when the observed identity is safe.
+
+    The FPL archive can shorten a player's middle names between seasons.  A
+    post-aggregation alias is too late: it leaves their minutes split across
+    multiple priors.  We merge only same-position names where the shorter
+    name's tokens are a subset of the longer one, the club overlaps, and the
+    two spellings never occur in the same season.  Those guards avoid merging
+    distinct players who merely share a first and last name.
+    """
+    full_keys = rows["name_key"]
+    identities = {name_key: name_key for name_key in full_keys.unique()}
+    metadata = rows.groupby("name_key").agg(
+        position=("position", "first"),
+        teams=("team", lambda values: {str(value) for value in values if pd.notna(value)}),
+        seasons=("season", lambda values: {str(value) for value in values if pd.notna(value)}),
+    )
+    names = list(metadata.index)
+    for index, shorter in enumerate(names):
+        shorter_tokens = set(shorter.split())
+        for longer in names[index + 1:]:
+            longer_tokens = set(longer.split())
+            if len(shorter_tokens) == len(longer_tokens):
+                continue
+            if not (shorter_tokens < longer_tokens or longer_tokens < shorter_tokens):
+                continue
+            source, target = (longer, shorter) if len(shorter_tokens) < len(longer_tokens) else (shorter, longer)
+            if metadata.at[source, "position"] != metadata.at[target, "position"]:
+                continue
+            if not (metadata.at[source, "teams"] & metadata.at[target, "teams"]):
+                continue
+            if metadata.at[source, "seasons"] & metadata.at[target, "seasons"]:
+                continue
+            identities[source] = target
+    return full_keys.map(lambda name_key: identities[name_key])
+
+
 def _aggregate_player_seasons(history: pd.DataFrame) -> pd.DataFrame:
     """Aggregate only observed pre-existing player-season data.
 
@@ -226,11 +263,27 @@ def _aggregate_player_seasons(history: pd.DataFrame) -> pd.DataFrame:
     rows = history.copy()
     rows["name_key"] = rows["name"].astype(str).map(_normalise_name)
     rows = rows[(rows["name_key"] != "") & rows["position"].isin(ROLE_PRIORS)].copy()
+    raw_expected_goals_conceded = (
+        pd.to_numeric(rows["expected_goals_conceded"], errors="coerce")
+        if "expected_goals_conceded" in rows
+        else None
+    )
     for column in _HISTORICAL_PRIOR_COLUMNS:
         rows[column] = _history_numeric(rows, column)
+    # Older archive slices and deliberately minimal test records need a
+    # neutral fallback.  Where xGC is available, it is the correct external
+    # benchmark for goalkeeper shot prevention—not the record of a reserve
+    # keeper at the same club.
+    if raw_expected_goals_conceded is None:
+        rows["expected_goals_conceded"] = rows["goals_conceded"]
+    else:
+        rows["expected_goals_conceded"] = raw_expected_goals_conceded.where(
+            raw_expected_goals_conceded.notna(), rows["goals_conceded"]
+        )
     rows = rows[rows["minutes"] > 0].copy()
     if rows.empty:
         return rows
+    rows["name_key"] = _conservative_history_identities(rows)
 
     gk = rows[rows["position"] == "GK"]
     team_baseline = gk.groupby(["season", "team"], as_index=False).agg(
@@ -254,6 +307,10 @@ def _aggregate_player_seasons(history: pd.DataFrame) -> pd.DataFrame:
         prevention_above_team=("prevention_above_team", "sum"),
     )
     grouped["prevention_per90"] = grouped["prevention_above_team"] * 90.0 / grouped["minutes"].clip(lower=1.0)
+    grouped["xg_prevention_per90"] = (
+        (grouped["expected_goals_conceded"] - grouped["goals_conceded"]) * 90.0
+        / grouped["minutes"].clip(lower=1.0)
+    )
     return grouped
 
 
@@ -270,7 +327,7 @@ def _historical_role_evidence(row: pd.Series) -> tuple[float, str]:
     if position == "GK":
         components = {
             "clean_sheets": per90("clean_sheets") * 1.8,
-            "shot_prevention": max(-1.5, min(1.5, float(row["prevention_per90"]))) * 2.6,
+            "shot_prevention": max(-0.6, min(0.6, float(row["xg_prevention_per90"]))) * 2.6,
             "bonus_point_system": bps * 0.04,
             "save_support": min(4.0, per90("saves")) * 0.05,
         }
@@ -337,7 +394,15 @@ def _calibrate_role_priors(player_seasons: pd.DataFrame, seasons: list[str]) -> 
         confidence = min(1.0, evidence_minutes / _FULL_EVIDENCE_MINUTES)
         quality = 50.0 + (weighted_quality - 50.0) * confidence
         qualifying_seasons = int((group["minutes"] >= _PROVISIONAL_MINUTES).sum())
-        status = "established" if evidence_minutes >= _PROVISIONAL_MINUTES else "provisional"
+        if evidence_minutes < _PROVISIONAL_MINUTES:
+            status = "provisional"
+        elif qualifying_seasons < 2:
+            # A full single season is useful descriptive evidence, but it is
+            # not durable enough to rank a player above multi-season starters
+            # in the shared Quality scale.
+            status = "limited"
+        else:
+            status = "established"
         # A single full season is enough to be useful, but not enough to
         # represent a sustained world-class level. Current Form can still
         # add a separate lift once the player has actually featured.

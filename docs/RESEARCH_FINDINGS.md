@@ -273,6 +273,21 @@ these three didn't.
   regression. So the Player Hub calibration fix is kept, while the aggregate
   team-strength feature remains rejected rather than being fed to XGBoost.
 
+- **Data-led Player Hub rating rebuild (2026-08-30): display-only, more
+  credible scale.** The existing one-season FPL prior could rate an inactive
+  player highly and raw keeper saves could reward exposure rather than
+  prevention. After a Darlow regression, the replacement also joins safe
+  cross-season archive spelling variants before aggregation and uses observed
+  xGC prevented (`expected_goals_conceded - goals_conceded` per 90) for GK
+  shot prevention rather than the quality of a reserve at the same club. It
+  does not read FPL points, FPL projections, or fixture-model outputs. Players
+  below 900 recent Premier League minutes are Provisional; a player with only
+  one qualifying season is Limited evidence, and neither is rankable until
+  two qualifying seasons exist. This makes Player Hub more interpretable but
+  is **not evidence of a scoreline-model improvement**: the separate team-unit
+  candidate remains rejected until a new shifted walk-forward experiment
+  clears every promotion gate.
+
 - **Cards features from EXP-2026-11's dominance study** won 3 of 5 folds
   outright but were inconclusive on the most-recent-season check — the
   most interesting unresolved thread in the project, worth another look
