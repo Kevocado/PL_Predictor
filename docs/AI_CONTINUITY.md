@@ -1450,6 +1450,12 @@ experiment; negative evidence prevents repeated work.
 
 ## Change checklist for future agents
 
+### EXP-2026-08 — role-aware expected-XI unit strength
+
+- **Status:** research-only, not deployed. `evaluate/goal_contribution_research.py` builds legal expected XIs exclusively from shifted starts and minutes, then aggregates shifted Quality plus capped Form into exactly eight fields: home/away GK, DEF, MID, and FWD unit strength.
+- **Promotion rule:** a manual reviewer must confirm lower mean RPS, no Brier/ECE/log-loss calibration regression, and a non-regressing newest fold. Coverage and feature-importance output are evidence only; no result may append these fields to the live scoreline model or manifest automatically.
+- **Leakage boundary:** realised current-fixture lineup, minutes, availability, and outputs are prohibited. Availability is only eligible for the separate prospective confirmed-XI track.
+
 - Read this file, `README.md`, and relevant tests before editing.
 - Use `rg` to find every consumption point of a changed schema/feature.
 - Add source attribution/licence and cache policy for every external input.

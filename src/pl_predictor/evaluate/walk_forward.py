@@ -21,6 +21,7 @@ directly, or from a notebook).
 from __future__ import annotations
 
 import pandas as pd
+import numpy as np
 
 from ..data import football_data
 from ..features.build import build_training_frame
@@ -105,15 +106,14 @@ def evaluate_folds(folds: list[dict], hyperparams: dict | None = None) -> pd.Dat
             fold["X_train"], train_df["goals_home"], train_df["goals_away"], hyperparams=hyperparams
         )
         metrics = ml_scoreline.evaluate_on_holdout(home_model, away_model, fold["X_val"], val_df)
-        rows.append(
-            {
-                "val_season": fold["val_season"],
-                "n_train": len(train_df),
-                "n_val": len(val_df),
-                "rps": metrics["rps"],
-                "brier": metrics["brier"],
-            }
-        )
+        importance = (np.asarray(home_model.feature_importances_) + np.asarray(away_model.feature_importances_)) / 2
+        rows.append({
+            "val_season": fold["val_season"],
+            "n_train": len(train_df),
+            "n_val": len(val_df),
+            **metrics,
+            "top_feature": str(fold["X_train"].columns[int(importance.argmax())]),
+        })
     return pd.DataFrame(rows)
 
 

@@ -23,6 +23,7 @@ import numpy as np
 import pandas as pd
 import penaltyblog as pb
 import xgboost as xgb
+from sklearn.metrics import log_loss
 
 MIN_LAMBDA = 0.05  # create_dixon_coles_grid requires strictly positive lambdas
 
@@ -129,9 +130,16 @@ def evaluate_on_holdout(home_model, away_model, X_val: pd.DataFrame, val_df: pd.
     grids = predict_grids_batch(home_model, away_model, X_val)
     probs = np.array([[g.home_win, g.draw, g.away_win] for g in grids])
     outcomes = val_df["ftr"].map(result_code).to_numpy()
+    confidence = probs.max(axis=1)
+    correct = (probs.argmax(axis=1) == outcomes).astype(float)
+    buckets = np.clip((confidence * 10).astype(int), 0, 9)
+    ece = sum(abs(correct[buckets == bucket].mean() - confidence[buckets == bucket].mean()) * (buckets == bucket).mean() for bucket in range(10) if (buckets == bucket).any())
     return {
         "rps": float(pb.metrics.rps_average(probs, outcomes)),
         "brier": float(pb.metrics.multiclass_brier_score(probs, outcomes)),
+        "log_loss": float(log_loss(outcomes, probs, labels=[0, 1, 2])),
+        "ece": float(ece),
+        "coverage": float(np.isfinite(probs).all(axis=1).mean()),
     }
 
 

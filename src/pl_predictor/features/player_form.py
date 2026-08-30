@@ -51,7 +51,10 @@ def build_historical_player_form(df: pd.DataFrame, windows: tuple[int, ...] = WI
     below, where the source column is present), using only *prior*
     appearances (shift(1)) so a row never sees its own outcome."""
     played = df[df["minutes"] > 0].sort_values(["element", "kickoff_time"]).copy()
-    grouped = played.groupby("element", sort=False)
+    # FPL element identifiers are season-local.  Grouping across seasons can
+    # accidentally seed a new season's first fixture with another season's
+    # history when an id is reused.
+    grouped = played.groupby(_group_keys(played), sort=False)
 
     feature_cols = []
     for w in windows:

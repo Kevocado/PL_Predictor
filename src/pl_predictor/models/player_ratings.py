@@ -138,12 +138,35 @@ def rate_bootstrap_elements(elements: list[dict], positions: dict[int, str]) -> 
     return result
 
 
-def evaluate_role_models(history: pd.DataFrame) -> pd.DataFrame:
-    """Chronologically compare per-position FPL-points-per-90 models.
+ROLE_TARGETS = {
+    "GK": "shot_prevention",
+    "DEF": "defence_and_attack",
+    "MID": "creation_and_output",
+    "FWD": "finishing_and_output",
+}
 
-    This is intentionally an offline research entry point, never called by
-    the API.  Every feature is already shifted by ``player_form`` before the
-    target row is scored; the newest completed season is the holdout.
+
+def _historical_role_target(rows: pd.DataFrame) -> pd.Series:
+    """Role-specific descriptive targets, never live-serving outputs."""
+    minutes = rows["minutes"].clip(lower=1)
+    def rate(column: str) -> pd.Series:
+        values = rows[column] if column in rows else pd.Series(0.0, index=rows.index)
+        return pd.to_numeric(values, errors="coerce").fillna(0.0) / minutes * 90.0
+    position = rows["position"].fillna("MID")
+    target = pd.Series(0.0, index=rows.index)
+    target.loc[position == "GK"] = (rate("saves") * .40 + rate("clean_sheets") * 3.0 + rate("bps") * .08)[position == "GK"]
+    target.loc[position == "DEF"] = (rate("clean_sheets") * 3.0 + rate("defensive_contribution") * .02 + rate("expected_goal_involvements") * 1.5)[position == "DEF"]
+    target.loc[position == "MID"] = (rate("expected_goal_involvements") * 1.4 + (rate("goals_scored") + rate("assists")) * .8)[position == "MID"]
+    target.loc[position == "FWD"] = (rate("expected_goals") * 1.4 + rate("expected_goal_involvements") + rate("goals_scored") * .8)[position == "FWD"]
+    return target
+
+
+def evaluate_role_models(history: pd.DataFrame) -> pd.DataFrame:
+    """Walk-forward role-model comparison using only role-specific targets.
+
+    This offline report intentionally cannot influence serving.  Rich models
+    must improve MAE and not regress RMSE in every chronological fold before
+    their report row is labelled ``rich``.
     """
     from sklearn.linear_model import Ridge
     from sklearn.metrics import mean_absolute_error, mean_squared_error
@@ -154,37 +177,54 @@ def evaluate_role_models(history: pd.DataFrame) -> pd.DataFrame:
 
     rows, feature_cols = build_historical_player_form(history)
     rows = rows.copy()
-    rows["target_points_per90"] = rows["total_points"] / rows["minutes"] * 90
-    latest = sorted(rows["season"].dropna().unique())[-1]
+    rows["role_target"] = _historical_role_target(rows)
+    seasons = sorted(rows["season"].dropna().unique())
     report = []
     for position in ("GK", "DEF", "MID", "FWD"):
-        role = rows[rows["position"] == position].dropna(subset=feature_cols + ["target_points_per90"])
-        train, validation = role[role["season"] != latest], role[role["season"] == latest]
-        if len(train) < 30 or validation.empty:
+        role = rows[rows["position"] == position].copy()
+        folds, drivers = [], []
+        for index in range(2, len(seasons)):
+            train = role[role["season"].isin(seasons[:index])]
+            validation = role[role["season"] == seasons[index]]
+            if len(train) < 30 or validation.empty:
+                continue
+            X_train = train[feature_cols].replace([float("inf"), float("-inf")], 0).fillna(0)
+            X_validation = validation[feature_cols].replace([float("inf"), float("-inf")], 0).fillna(0)
+            baseline = float(train["role_target"].mean())
+            baseline_prediction = [baseline] * len(validation)
+            model = make_pipeline(StandardScaler(), Ridge(alpha=3.0))
+            model.fit(X_train, train["role_target"])
+            rich_prediction = model.predict(X_validation)
+            folds.append(
+                {
+                    "season": seasons[index],
+                    "baseline_mae": mean_absolute_error(validation["role_target"], baseline_prediction),
+                    "rich_mae": mean_absolute_error(validation["role_target"], rich_prediction),
+                    "baseline_rmse": mean_squared_error(validation["role_target"], baseline_prediction) ** .5,
+                    "rich_rmse": mean_squared_error(validation["role_target"], rich_prediction) ** .5,
+                    "n_train": len(train),
+                    "n_validation": len(validation),
+                }
+            )
+            coefficients = model.named_steps["ridge"].coef_
+            drivers.append(feature_cols[int(abs(coefficients).argmax())])
+        if not folds:
             continue
-        baseline = float(train["target_points_per90"].mean())
-        baseline_prediction = [baseline] * len(validation)
-        model = make_pipeline(StandardScaler(), Ridge(alpha=3.0))
-        model.fit(train[feature_cols], train["target_points_per90"])
-        rich_prediction = model.predict(validation[feature_cols])
-        baseline_mae = mean_absolute_error(validation["target_points_per90"], baseline_prediction)
-        rich_mae = mean_absolute_error(validation["target_points_per90"], rich_prediction)
-        baseline_rmse = mean_squared_error(validation["target_points_per90"], baseline_prediction) ** 0.5
-        rich_rmse = mean_squared_error(validation["target_points_per90"], rich_prediction) ** 0.5
-        coefficients = model.named_steps["ridge"].coef_
-        driver = feature_cols[int(abs(coefficients).argmax())]
+        fold_report = pd.DataFrame(folds)
+        selected = bool(((fold_report["rich_mae"] < fold_report["baseline_mae"]) & (fold_report["rich_rmse"] <= fold_report["baseline_rmse"])).all())
         report.append(
             {
                 "position": position,
-                "validation_season": latest,
-                "baseline_mae": float(baseline_mae),
-                "rich_mae": float(rich_mae),
-                "baseline_rmse": float(baseline_rmse),
-                "rich_rmse": float(rich_rmse),
-                "selected_model": "rich" if rich_mae < baseline_mae and rich_rmse <= baseline_rmse else "baseline",
-                "top_driver": driver,
-                "n_train": len(train),
-                "n_validation": len(validation),
+                "target": ROLE_TARGETS[position],
+                "validation_seasons": ",".join(fold_report["season"]),
+                "baseline_mae": float(fold_report["baseline_mae"].mean()),
+                "rich_mae": float(fold_report["rich_mae"].mean()),
+                "baseline_rmse": float(fold_report["baseline_rmse"].mean()),
+                "rich_rmse": float(fold_report["rich_rmse"].mean()),
+                "selected_model": "rich" if selected else "baseline",
+                "top_driver": pd.Series(drivers).mode().iat[0],
+                "n_train": int(fold_report["n_train"].mean()),
+                "n_validation": int(fold_report["n_validation"].mean()),
             }
         )
     return pd.DataFrame(report)

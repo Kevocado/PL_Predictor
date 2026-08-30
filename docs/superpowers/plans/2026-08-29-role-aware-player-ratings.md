@@ -182,7 +182,7 @@ Commit: `git add frontend/src/types.ts frontend/src/components/PlayerHub.tsx && 
 - Consumes: historical FPL rows and shifted start/form features.
 - Produces: exactly eight home/away role-strength fields plus a research-only walk-forward report.
 
-- [ ] **Step 1: Write failing causal expected-XI tests**
+- [x] **Step 1: Write failing causal expected-XI tests**
 
 ```python
 features = build_projected_team_player_features(seasons=["2023-24"])
@@ -195,13 +195,13 @@ assert first[units].fillna(0).sum() == 0
 
 Add a test that mutates current-match realised minutes/goals and proves same-fixture units do not change.
 
-- [ ] **Step 2: Confirm the temporary proxy fails the new contract**
+- [x] **Step 2: Confirm the temporary proxy fails the new contract**
 
 Run: `PYTHONPATH="$(pwd)/src" python -m pytest tests/test_goal_contribution_research.py tests/test_walk_forward.py -q`
 
 Expected: FAIL because current `position_quality` is raw goals/xG and lacks promotion metrics.
 
-- [ ] **Step 3: Implement shifted Quality-plus-Form aggregation and report**
+- [x] **Step 3: Implement shifted Quality-plus-Form aggregation and report**
 
 ```python
 rows["historical_quality"] = _historical_role_quality(rows)
@@ -213,11 +213,11 @@ rows["weighted_unit_score"] = rows["historical_overall"] * rows["expected_xi_wei
 
 Use shifted columns only, pivot by home/away and `GK/DEF/MID/FWD`, and extend folds with RPS, Brier, ECE, scoreline log loss, coverage, and importance. Return `promotion_eligible=False`; no training/API code may read it.
 
-- [ ] **Step 4: Record mandatory manual gates**
+- [x] **Step 4: Record mandatory manual gates**
 
 Document the exact eight fields, lower mean RPS/no calibration regression/non-regressing recent fold gates, and `not deployed` status in `docs/AI_CONTINUITY.md`.
 
-- [ ] **Step 5: Verify and commit**
+- [x] **Step 5: Verify and commit**
 
 Run: `PYTHONPATH="$(pwd)/src" python -m pytest tests/test_goal_contribution_research.py tests/test_walk_forward.py -q`
 
@@ -236,7 +236,7 @@ Commit: `git add src/pl_predictor/evaluate/goal_contribution_research.py tests/t
 - Consumes: historical shifted form rows.
 - Produces: `evaluate_role_models(history)` with position, target, MAE/RMSE, selected source, and strongest driver.
 
-- [ ] **Step 1: Write failing chronological promotion-gate test**
+- [x] **Step 1: Write failing chronological promotion-gate test**
 
 ```python
 report = evaluate_role_models(history)
@@ -244,22 +244,22 @@ assert {"position", "target", "baseline_mae", "rich_mae", "baseline_rmse", "rich
 assert (report.loc[report["selected_model"] == "rich", "rich_mae"] < report.loc[report["selected_model"] == "rich", "baseline_mae"]).all()
 ```
 
-- [ ] **Step 2: Confirm old FPL-points-per-90 evaluator fails**
+- [x] **Step 2: Confirm old FPL-points-per-90 evaluator fails**
 
 Run: `PYTHONPATH="$(pwd)/src" python -m pytest tests/test_player_ratings.py -q`
 
 Expected: FAIL because the old evaluator lacks role-target metadata.
 
-- [ ] **Step 3: Implement strict role-target evaluation**
+- [x] **Step 3: Implement strict role-target evaluation**
 
 Use shifted historical composites: GK save/clean-sheet/BPS; DEF clean-sheet/defensive/attack; MID xGI/creation/output; FWD xG/xGI/output. Train only prior seasons and label rich only if MAE improves and RMSE does not regress. Do not alter live serving without manual review.
 
-- [ ] **Step 4: Document outcomes and verify**
+- [x] **Step 4: Document outcomes and verify**
 
 Run: `PYTHONPATH="$(pwd)/src" python -m pytest tests/test_player_ratings.py tests/test_hub_analytics.py tests/test_public_snapshot_routes.py tests/test_goal_contribution_research.py tests/test_walk_forward.py -q && cd frontend && npm run build && git diff --check`
 
 Expected: focused tests pass, frontend builds, diff check is empty. Record selected role source and unit deployability in `docs/RESEARCH_FINDINGS.md`, without claiming promotion if gates fail.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Commit: `git add src/pl_predictor/models/player_ratings.py tests/test_player_ratings.py docs/RESEARCH_FINDINGS.md && git commit -m "docs: record role-aware rating research results"`

@@ -237,6 +237,28 @@ these three didn't.
 
 ## 6. Open threads worth revisiting
 
+### EXP-2026-08 — role-aware player ratings and team-unit strength
+
+- **Player Hub status:** descriptive baseline shipped; not a scoreline-model
+  feature. The old within-position percentile rating was removed because it
+  mechanically assigned a 100 to the leading player in every tiny pool. The
+  replacement shows separately: fixed-scale role-aware Quality (0–92),
+  evidence-gated Form (0–15), Overall (capped at 100), and availability/
+  expected-minutes-adjusted Impact.
+- **Role-model result:** a two-fold chronological check (2024-25 and
+  2025-26 validation) did not clear the strict rich-model gate for any
+  role. Average MAE/RMSE, baseline → rich: GK 1.983/2.346 → 2.020/2.396;
+  DEF 1.021/1.532 → 0.990/1.533; MID 1.011/4.052 → 0.997/4.090; FWD
+  1.857/7.482 → 1.919/7.488. DEF and MID reduced MAE slightly but worsened
+  RMSE, so all roles correctly retain the baseline.
+- **Team-unit status:** eight legal expected-XI Quality-plus-Form unit
+  fields (home/away GK, DEF, MID, FWD) now have a causal research path.
+  They are not deployed. The initial 2024-25 held-out fold regressed RPS
+  (0.20405 → 0.20479), Brier (0.59326 → 0.59430), and log loss (0.99386 →
+  0.99526), although ECE improved (0.07054 → 0.06370). It therefore fails
+  the first promotion gate; a full multi-fold run is still useful evidence,
+  but cannot reverse this latest-fold regression on its own.
+
 - **Cards features from EXP-2026-11's dominance study** won 3 of 5 folds
   outright but were inconclusive on the most-recent-season check — the
   most interesting unresolved thread in the project, worth another look

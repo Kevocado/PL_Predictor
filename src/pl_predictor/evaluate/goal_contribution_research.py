@@ -164,6 +164,72 @@ def evaluate_goal_contribution_models(seasons: list[str] | None = None, min_trai
     return {"metrics": metrics, "summary": summary, "feature_importance": feature_importance}
 
 
+def _column(rows: pd.DataFrame, name: str) -> pd.Series:
+    return pd.to_numeric(rows.get(name, 0.0), errors="coerce").fillna(0.0) if name in rows else pd.Series(0.0, index=rows.index)
+
+
+def _historical_role_quality(rows: pd.DataFrame) -> pd.Series:
+    """Fixed-scale Quality built exclusively from shifted pre-match fields."""
+    position = rows["position"].fillna("MID")
+    xg = _column(rows, "expected_goals_per90_last10")
+    xa = _column(rows, "expected_assists_per90_last10")
+    xgi = _column(rows, "expected_goal_involvements_per90_last10")
+    goals = _column(rows, "goals_per90_last10")
+    saves = _column(rows, "saves_per90_last10")
+    clean_sheets = _column(rows, "clean_sheets_per90_last10")
+    bps = _column(rows, "bps_last10")
+    defensive = _column(rows, "defensive_contribution_last10")
+    raw = pd.Series(50.0, index=rows.index)
+    raw += np.where(position == "GK", np.minimum(18, saves * 4) + np.minimum(17, clean_sheets * 17) + np.minimum(13, bps * 1.5), 0)
+    raw += np.where(position == "DEF", np.minimum(18, clean_sheets * 18) + np.minimum(12, defensive * .12) + np.minimum(15, xgi * 25) + np.minimum(8, bps * .9), 0)
+    raw += np.where(position == "MID", np.minimum(26, xgi * 25) + np.minimum(12, xa * 15) + np.minimum(8, goals * 9), 0)
+    raw += np.where(position == "FWD", np.minimum(28, xg * 38) + np.minimum(18, xgi * 20) + np.minimum(10, goals * 12), 0)
+    confidence = ((_column(rows, "starts_last10") * 10 / 10) + (_column(rows, "minutes_ema") / 90)) / 2
+    return (50.0 + (raw.clip(upper=92.0) - 50.0) * confidence.clip(0, 1)).clip(0, 92)
+
+
+def _historical_form_lift(rows: pd.DataFrame) -> pd.Series:
+    """Capped form lift; no row can read its current-match outcome."""
+    position = rows["position"].fillna("MID")
+    starts = _column(rows, "starts_last5") * 5
+    opportunity = ((_column(rows, "starts_last5") + _column(rows, "minutes_ema") / 90) / 2).clip(0, 1)
+    xg = _column(rows, "expected_goals_per90_last3")
+    xgi = _column(rows, "expected_goal_involvements_per90_last3")
+    output = _column(rows, "goals_per90_last3") + _column(rows, "assists_per90_last3")
+    underlying = np.where(position == "FWD", (xg / .75 + xgi / .95) / 2, xgi / .75)
+    actual = np.where(position == "FWD", output / .85, output / .75)
+    form = (6 * np.minimum(1, underlying) + 5 * np.minimum(1, actual) + 4 * opportunity).clip(0, 15)
+    return pd.Series(np.where(starts >= 4, form, 0.0), index=rows.index)
+
+
+def _legal_expected_xi_weight(rows: pd.DataFrame, group_keys: list[str]) -> pd.Series:
+    """Select a legal, pre-match projected XI without realised lineups."""
+    weights = pd.Series(0.0, index=rows.index)
+    max_per_position = {"GK": 1, "DEF": 5, "MID": 5, "FWD": 3}
+    minimum = {"GK": 1, "DEF": 3, "MID": 2, "FWD": 1}
+    for _, group in rows.groupby(group_keys, sort=False):
+        candidates = group[group["position"].isin(max_per_position)].copy()
+        candidates["selection_score"] = _column(candidates, "starts_last5") * _column(candidates, "minutes_ema").clip(0, 90)
+        selected: list[int] = []
+        counts = {position: 0 for position in max_per_position}
+        for position, required in minimum.items():
+            picks = candidates[candidates["position"] == position].sort_values("selection_score", ascending=False).head(required)
+            selected.extend(picks.index.tolist())
+            counts[position] += len(picks)
+        remaining = candidates.drop(index=selected, errors="ignore").sort_values("selection_score", ascending=False)
+        for index, row in remaining.iterrows():
+            if len(selected) >= 11:
+                break
+            if counts[row["position"]] < max_per_position[row["position"]]:
+                selected.append(index)
+                counts[row["position"]] += 1
+        selected_rows = candidates.loc[selected] if selected else candidates.iloc[0:0]
+        weights.loc[selected_rows.index] = (
+            _column(selected_rows, "starts_last5").clip(0, 1) * _column(selected_rows, "minutes_ema").clip(0, 90) / 90
+        )
+    return weights
+
+
 def build_projected_team_player_features(seasons: list[str] | None = None) -> pd.DataFrame:
     """Aggregate shifted player form into strictly pre-kickoff team features.
 
@@ -198,7 +264,43 @@ def build_projected_team_player_features(seasons: list[str] | None = None) -> pd
     away = totals[~totals["was_home"]].drop(columns="was_home").rename(columns={"team": "team_away"})
     home = home.rename(columns={name: f"home_{name}" for name in aggregate_names})
     away = away.rename(columns={name: f"away_{name}" for name in aggregate_names})
-    return home.merge(away, on=["kickoff_date", "fixture"], how="inner")
+    merged = home.merge(away, on=["kickoff_date", "fixture"], how="inner")
+
+    # Research-only role-unit candidate.  All source columns are shifted;
+    # legal expected-XI selection therefore cannot read a realised lineup,
+    # minutes, availability, or outcome from the current match.
+    rows["historical_quality"] = _historical_role_quality(rows)
+    rows["historical_form"] = _historical_form_lift(rows)
+    rows["historical_overall"] = (rows["historical_quality"] + rows["historical_form"]).clip(upper=100)
+    rows["expected_xi_weight"] = _legal_expected_xi_weight(rows, group_keys)
+    rows["weighted_unit_score"] = rows["historical_overall"] * rows["expected_xi_weight"]
+    units = rows.groupby(group_keys + ["position"], as_index=False)["weighted_unit_score"].sum()
+    units = units[units["position"].isin(["GK", "DEF", "MID", "FWD"])]
+    home_units = units[units["was_home"]].pivot_table(index=["kickoff_date", "fixture"], columns="position", values="weighted_unit_score", fill_value=0).reset_index()
+    away_units = units[~units["was_home"]].pivot_table(index=["kickoff_date", "fixture"], columns="position", values="weighted_unit_score", fill_value=0).reset_index()
+    home_units = home_units.rename(columns={position: f"home_{position.lower()}_unit_strength" for position in ("GK", "DEF", "MID", "FWD")})
+    away_units = away_units.rename(columns={position: f"away_{position.lower()}_unit_strength" for position in ("GK", "DEF", "MID", "FWD")})
+    for frame, prefix in ((home_units, "home"), (away_units, "away")):
+        for position in ("gk", "def", "mid", "fwd"):
+            column = f"{prefix}_{position}_unit_strength"
+            if column not in frame:
+                frame[column] = 0.0
+    return merged.merge(home_units, on=["kickoff_date", "fixture"], how="left").merge(away_units, on=["kickoff_date", "fixture"], how="left")
+
+
+def summarise_team_unit_experiment(results: pd.DataFrame) -> dict:
+    """Summarise candidate folds without allowing automatic promotion."""
+    metrics = [metric for metric in ("rps", "brier", "ece", "log_loss", "coverage") if metric in results]
+    baseline = results[results["model"] == "production_features"]
+    candidate = results[results["model"] == "role_unit_strength"]
+    return {
+        "baseline_metrics": baseline[metrics].mean().to_dict(),
+        "candidate_metrics": candidate[metrics].mean().to_dict(),
+        "feature_importance": candidate.get("top_feature", pd.Series(dtype=str)).value_counts().to_dict(),
+        "manual_review_required": True,
+        "promotion_eligible": False,
+        "promotion_gate": "Manual review requires lower mean RPS, no calibration regression, and a non-regressing recent fold.",
+    }
 
 
 def evaluate_scoreline_player_aggregates(seasons: list[str] | None = None) -> pd.DataFrame:
@@ -249,11 +351,7 @@ def evaluate_scoreline_player_aggregates_walk_forward(
     from . import walk_forward
 
     aggregates = build_projected_team_player_features(seasons=fpl_history.default_completed_seasons(n=8))
-    aggregate_cols = [
-        column
-        for column in aggregates.columns
-        if column.startswith(("home_projected_", "away_projected_", "home_top_", "away_top_"))
-    ]
+    aggregate_cols = [column for column in aggregates.columns if column.endswith("_unit_strength")]
 
     baseline_folds = walk_forward.prepare_folds(seasons=seasons, min_train_seasons=min_train_seasons)
     candidate_folds = walk_forward.prepare_folds(
@@ -266,7 +364,7 @@ def evaluate_scoreline_player_aggregates_walk_forward(
     baseline = walk_forward.evaluate_folds(baseline_folds)
     baseline["model"] = "production_features"
     candidate = walk_forward.evaluate_folds(candidate_folds)
-    candidate["model"] = "projected_player_aggregates"
+    candidate["model"] = "role_unit_strength"
     return pd.concat([baseline, candidate], ignore_index=True)
 
 
