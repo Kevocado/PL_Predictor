@@ -11,15 +11,20 @@ const MODE_LABELS: Record<"gameweek" | "squad" | "transfers", string> = {
   transfers: "My team & transfers",
 };
 
-function LineupCard({ data, title, requestedFormation }: { data: FPLRecommendation; title: string; requestedFormation: string }) {
+function LineupCard({ data, title, requestedFormation, supplementarySummary, showBenchCards = false }: { data: FPLRecommendation; title: string; requestedFormation: string; supplementarySummary?: string; showBenchCards?: boolean }) {
   const positions = (position: FPLPlayerProjection["position"]) => data.starting_xi.filter((player) => player.position === position);
   const formation = `${positions("DEF").length}-${positions("MID").length}-${positions("FWD").length}`;
   return <section className="rounded-xl border border-pl-border bg-pl-900/50 p-4">
-    <div className="mb-3 flex items-start justify-between gap-2"><div><h3 className="font-semibold text-pl-text">{title}</h3><p className="text-xs text-pl-text-dim">{requestedFormation === "Auto" ? `Optimizer chose ${formation}` : `${formation} selected`} · {data.projected_points.toFixed(1)} points before captaincy</p></div><span className="rounded bg-pl-pink/15 px-2 py-1 text-xs font-bold text-pl-pink">C {data.captain?.web_name ?? "—"}</span></div>
+    <div className="mb-3 flex items-start justify-between gap-2"><div><h3 className="font-semibold text-pl-text">{title}</h3><p className="text-xs text-pl-text-dim">{requestedFormation === "Auto" ? `Optimizer chose ${formation}` : `${formation} selected`} · {data.projected_points.toFixed(1)} points before captaincy{supplementarySummary && ` · ${supplementarySummary}`}</p></div><span className="rounded bg-pl-pink/15 px-2 py-1 text-xs font-bold text-pl-pink">C {data.captain?.web_name ?? "—"}</span></div>
     <div className="space-y-4 rounded-lg border border-emerald-300/30 bg-[repeating-linear-gradient(0deg,rgba(255,255,255,.08)_0,rgba(255,255,255,.08)_1px,transparent_1px,transparent_25%)] bg-emerald-800/80 px-3 py-4">
       {(["FWD", "MID", "DEF", "GK"] as const).map((position) => <div key={position} className="mx-auto grid w-full max-w-md gap-2" style={{ gridTemplateColumns: `repeat(${Math.max(positions(position).length, 1)}, minmax(0, 1fr))` }}>{positions(position).map((player) => <PlayerCard key={player.player_id} player={player} size="sm" marker={data.captain?.player_id === player.player_id ? "C" : data.vice_captain?.player_id === player.player_id ? "VC" : undefined} />)}</div>)}
     </div>
-    <p className="mt-3 text-xs text-pl-text-faint">Bench order: {data.bench.map((p) => p.web_name).join(" · ") || "—"}</p>
+    {showBenchCards ? (
+      <div className="mt-3 rounded-lg border border-pl-border/70 bg-pl-850/30 p-2.5">
+        <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-pl-text-faint">Substitutes · bench order</p>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{data.bench.map((player) => <PlayerCard key={player.player_id} player={player} size="sm" />)}</div>
+      </div>
+    ) : <p className="mt-3 text-xs text-pl-text-faint">Bench order: {data.bench.map((p) => p.web_name).join(" · ") || "—"}</p>}
   </section>;
 }
 
@@ -119,7 +124,7 @@ export function FPLPage() {
     )}
 
     {mode === "squad" && (
-      <div>{squad ? <section className="rounded-xl border border-pl-border bg-pl-900/50 p-4"><div className="mb-3 flex justify-between"><div><h3 className="font-semibold text-pl-text">Best £100m squad</h3><p className="text-xs text-pl-text-dim">£{squad.spent.toFixed(1)}m spent · £{squad.remaining.toFixed(1)}m remaining</p></div><span className="text-xs text-pl-text-faint">Normal gameweek only</span></div><div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">{squad.squad.map((player) => <PlayerCard key={player.player_id} player={player} size="md" marker={squad.captain?.player_id === player.player_id ? "C" : undefined} />)}</div></section> : <section className="rounded-xl border border-pl-border bg-pl-900/50 p-4 text-sm text-pl-text-faint">Optimising the £100m squad…</section>}</div>
+      <div>{squad ? <LineupCard data={squad} title="Best £100m squad" requestedFormation="Auto" supplementarySummary={`£${squad.spent.toFixed(1)}m spent · £${squad.remaining.toFixed(1)}m remaining`} showBenchCards /> : <section className="rounded-xl border border-pl-border bg-pl-900/50 p-4 text-sm text-pl-text-faint">Optimising the £100m squad…</section>}</div>
     )}
 
     {mode === "transfers" && (
