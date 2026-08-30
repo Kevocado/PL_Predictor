@@ -19,6 +19,13 @@ const STATUS_LABEL: Record<string, string> = {
 
 function PlayerRow({ player }: { player: PlayerPrediction }) {
   const dimmed = player.anytime_goal_prob < 0.01 && player.anytime_assist_prob < 0.01;
+  const strongestProbability = Math.max(
+    player.anytime_goal_contribution_prob,
+    player.anytime_goal_prob,
+    player.anytime_assist_prob,
+  );
+  const probabilityClass = (probability: number) =>
+    probability === strongestProbability ? "font-bold text-pl-text" : "font-semibold text-pl-text";
   return (
     <div className={`flex items-center justify-between rounded-lg bg-pl-850/60 px-3 py-2 text-sm ${dimmed ? "opacity-50" : ""}`}>
       <div className="flex min-w-0 items-center gap-2">
@@ -38,13 +45,13 @@ function PlayerRow({ player }: { player: PlayerPrediction }) {
       </div>
       <div className="flex shrink-0 items-center gap-2 text-[11px] sm:gap-3 sm:text-xs">
         <span className="text-pl-text-faint">
-          Goal <span className="font-semibold text-pl-text">{(player.anytime_goal_prob * 100).toFixed(0)}%</span>
+          G+A <span className={probabilityClass(player.anytime_goal_contribution_prob)}>{(player.anytime_goal_contribution_prob * 100).toFixed(0)}%</span>
         </span>
         <span className="text-pl-text-faint">
-          Assist <span className="font-semibold text-pl-text">{(player.anytime_assist_prob * 100).toFixed(0)}%</span>
+          Goal <span className={probabilityClass(player.anytime_goal_prob)}>{(player.anytime_goal_prob * 100).toFixed(0)}%</span>
         </span>
         <span className="text-pl-text-faint">
-          G+A <span className="font-semibold text-pl-text">{(player.anytime_goal_contribution_prob * 100).toFixed(0)}%</span>
+          Assist <span className={probabilityClass(player.anytime_assist_prob)}>{(player.anytime_assist_prob * 100).toFixed(0)}%</span>
         </span>
       </div>
     </div>
