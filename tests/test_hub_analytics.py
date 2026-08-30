@@ -66,6 +66,35 @@ def test_team_hub_sums_assists_and_xa_from_fpl_bootstrap():
     assert chelsea["xa"] is None
 
 
+def test_team_hub_uses_official_live_results_for_the_current_table(monkeypatch):
+    """A provisional FPL final score must move the visible Team Hub table."""
+    matches = pd.DataFrame(
+        [
+            {
+                "season": "2026-2027", "date": pd.Timestamp("2026-08-15"), "team_home": "Man City", "team_away": "Bournemouth",
+                "goals_home": 2, "goals_away": 1, "hs": 12, "as": 8, "hst": 5, "ast": 3,
+                "hc": 6, "ac": 4, "hf": 9, "af": 11, "hy": 2, "ay": 3, "hr": 0, "ar": 0,
+            }
+        ]
+    )
+    live_results = pd.DataFrame(
+        [
+            {"date": pd.Timestamp("2026-08-15"), "team_home": "Man City", "team_away": "Bournemouth", "goals_home": 2, "goals_away": 1},
+            {"date": pd.Timestamp("2026-08-28"), "team_home": "Crystal Palace", "team_away": "Man City", "goals_home": 1, "goals_away": 4},
+        ]
+    )
+    monkeypatch.setattr(hub_analytics.understat, "load_xg_data", lambda **_: pd.DataFrame())
+    monkeypatch.setattr(hub_analytics.understat_shots, "load_shot_situation_data", lambda **_: pd.DataFrame())
+
+    report = hub_analytics.build_team_hub(matches, "2026-2027", live_results=live_results)
+
+    city = next(team for team in report["teams"] if team["team"] == "Man City")
+    assert city["played"] == 2
+    assert city["points"] == 6
+    assert city["goals_for"] == 6
+    assert city["streak"] == 2
+
+
 def test_player_hub_exposes_form_table_stats_without_squad_health():
     report = hub_analytics.build_player_hub(
         {
@@ -91,7 +120,7 @@ def test_player_hub_exposes_form_table_stats_without_squad_health():
     saka = next(player for player in report["players"] if player["name"] == "Saka")
     assert saka["xgi"] == 1.2
     assert saka["status"] == "d"
-    assert {"quality_rating", "form_rating", "overall_rating", "current_impact_rating"} <= saka.keys()
+    assert {"quality_rating", "form_rating", "live_form_rating", "live_form_vs_quality", "overall_rating", "current_impact_rating"} <= saka.keys()
     assert report["rating_model_source"] == "role_aware_evidence_baseline"
     assert report["leaderboards"]["MID"][0]["overall_rating"] == saka["overall_rating"]
     assert report["leaderboards"]["GK"][0]["name"] == "Raya"

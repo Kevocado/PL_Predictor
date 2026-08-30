@@ -126,6 +126,23 @@ def _form_score(element: dict, position: str) -> float:
     return round(min(15.0, 6.0 * underlying + 5.0 * actual + 4.0 * opportunity), 1)
 
 
+def _live_fpl_form_score(element: dict, position: str) -> float:
+    """Recent official-FPL form on a common 0–100 scale.
+
+    FPL's ``form`` is valuable immediate information, but a single standout
+    appearance must not look elite.  Short samples can clear a player's
+    durable Quality, but their live-score ceiling rises only with starts and
+    minutes.
+    """
+    raw_form = _number(element.get("form"))
+    minutes, starts = _number(element.get("minutes")), _number(element.get("starts"))
+    role_baseline = {"GK": 3.5, "DEF": 3.5, "MID": 4.0, "FWD": 4.0}.get(position, 4.0)
+    unshrunk = min(100.0, max(0.0, 50.0 + (raw_form - role_baseline) * 9.0))
+    evidence = min(1.0, (minutes / 900.0 + starts / 10.0) / 2.0)
+    ceiling = 70.0 + 30.0 * evidence
+    return round(min(unshrunk, ceiling), 1)
+
+
 def _normalise_name(value: str) -> str:
     ascii_value = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii").lower()
     return re.sub(r"[^a-z0-9]+", " ", ascii_value).strip()
@@ -174,6 +191,7 @@ def rate_bootstrap_elements(
         prior = (historical_priors or {}).get(_element_name_key(element), {})
         quality, driver = _quality_score(element, position, prior_quality=prior.get("quality_rating"))
         form = _form_score(element, position)
+        live_form = _live_fpl_form_score(element, position)
         overall = round(min(100.0, quality + form), 1)
         availability = _availability(element)
         expected_minutes = _expected_minutes(element, availability)
@@ -181,6 +199,8 @@ def rate_bootstrap_elements(
         result[int(element["id"])] = {
             "quality_rating": quality,
             "form_rating": form,
+            "live_form_rating": live_form,
+            "live_form_vs_quality": round(live_form - quality, 1),
             "overall_rating": overall,
             "current_impact_rating": impact,
             "rating_driver": driver,

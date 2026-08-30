@@ -37,6 +37,26 @@ def test_optimal_xi_honours_selected_formation():
     assert positions.count("FWD") == 3
 
 
+def test_optimal_xi_returns_a_legal_matchday_bench_in_fpl_order():
+    """The unlimited-budget XI still needs a usable, legal FPL bench.
+
+    A display-only list of the next four highest projected players can omit a
+    reserve goalkeeper and breach the three-per-club cap once it is combined
+    with the XI.  The gameweek recommendation must instead form a legal
+    15-player squad while preserving the best XI.
+    """
+    result = fpl.optimal_xi(_pool())
+    combined = result["starting_xi"] + result["bench"]
+
+    assert len(result["bench"]) == 4
+    assert {position: sum(p["position"] == position for p in combined) for position in fpl.SQUAD_SHAPE} == fpl.SQUAD_SHAPE
+    assert max(sum(p["team_id"] == team for p in combined) for team in {p["team_id"] for p in combined}) <= 3
+    assert result["bench"][-1]["position"] == "GK"
+    assert [p["projected_points"] for p in result["bench"][:3]] == sorted(
+        p["projected_points"] for p in result["bench"][:3]
+    )[::-1]
+
+
 def test_squad_respects_shape_budget_and_club_limit():
     result = fpl.build_squad(_pool(), budget=100.0)
     squad = result["squad"]
@@ -44,6 +64,15 @@ def test_squad_respects_shape_budget_and_club_limit():
     assert result["spent"] <= 100.0
     assert {position: sum(p["position"] == position for p in squad) for position in fpl.SQUAD_SHAPE} == fpl.SQUAD_SHAPE
     assert max(sum(p["team_id"] == team for p in squad) for team in {p["team_id"] for p in squad}) <= 3
+
+
+def test_existing_squad_can_be_rendered_as_a_formation_with_bench():
+    selected = fpl.build_squad(_pool(), budget=100.0)["squad"]
+    result = fpl.squad_lineup(selected)
+
+    assert {player["player_id"] for player in result["squad"]} == {player["player_id"] for player in selected}
+    assert len(result["starting_xi"]) == 11
+    assert len(result["bench"]) == 4
 
 
 def test_transfer_recommendations_are_like_for_like():

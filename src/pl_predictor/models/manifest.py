@@ -398,6 +398,23 @@ def load_manifest_history() -> list[Dict]:
     return [json.loads(line) for line in lines if line.strip()]
 
 
+def score_change_history(history: list[Dict]) -> list[Dict]:
+    """Keep the first validation point and meaningful held-out score moves.
+
+    Retrains can refresh artefacts without changing the validation score.
+    Showing every one of those as a chart point visually invents movement, so
+    the Calibration surface consumes this compact, chronological series.
+    """
+    changes: list[Dict] = []
+    previous: tuple[float | None, float | None] | None = None
+    for entry in history:
+        score = (entry.get("rps"), entry.get("brier"))
+        if previous is None or score != previous:
+            changes.append(entry)
+            previous = score
+    return changes
+
+
 def load_manifest() -> Dict:
     if not MANIFEST_PATH.exists():
         raise FileNotFoundError(

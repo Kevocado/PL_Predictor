@@ -152,6 +152,45 @@ def fetch_fixtures() -> list[dict]:
         raise
 
 
+def fetch_current_season_results() -> pd.DataFrame:
+    """Completed current-season fixtures from the same official FPL feed.
+
+    This intentionally contains only result data.  It is the authoritative
+    fallback for live standings, while the richer football-data/PulseLive
+    frames remain the scoreline model's training source.
+    """
+    bootstrap = fetch_bootstrap()
+    team_names = {int(team["id"]): to_canonical(team["name"], source="fpl") for team in bootstrap.get("teams", [])}
+    rows = []
+    for fixture in fetch_fixtures():
+        home_goals, away_goals = fixture.get("team_h_score"), fixture.get("team_a_score")
+        # FPL publishes the final score immediately, then keeps
+        # ``finished`` false while its own bonus/points reconciliation runs.
+        # A scored, ``finished_provisional`` fixture is therefore a real
+        # completed result for the live league table; waiting for the later
+        # flag leaves the standings behind the fixture surface.
+        completed = bool(fixture.get("finished") or fixture.get("finished_provisional"))
+        if not completed or home_goals is None or away_goals is None or not fixture.get("kickoff_time"):
+            continue
+        home, away = team_names.get(int(fixture["team_h"])), team_names.get(int(fixture["team_a"]))
+        if home is None or away is None:
+            continue
+        rows.append(
+            {
+                "event_id": str(fixture["id"]),
+                "gameweek": fixture.get("event"),
+                "date": pd.Timestamp(fixture["kickoff_time"]),
+                "team_home": home,
+                "team_away": away,
+                "goals_home": int(home_goals),
+                "goals_away": int(away_goals),
+                "ftr": "H" if home_goals > away_goals else ("A" if away_goals > home_goals else "D"),
+            }
+        )
+    columns = ["event_id", "gameweek", "date", "team_home", "team_away", "goals_home", "goals_away", "ftr"]
+    return pd.DataFrame(rows, columns=columns).sort_values("date").reset_index(drop=True) if rows else pd.DataFrame(columns=columns)
+
+
 def fetch_event_live(event_id: int) -> dict:
     """Confirmed per-player outcomes, retaining final gameweek data offline."""
     cache_path = FPL_EVENT_CACHE_DIR / f"event_{int(event_id)}.json"

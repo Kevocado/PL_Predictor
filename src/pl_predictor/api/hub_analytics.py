@@ -156,54 +156,70 @@ def _team_fpl_totals(bootstrap: dict | None) -> dict[str, dict[str, float | int]
     return totals
 
 
-def build_team_hub(matches: pd.DataFrame, season: str, bootstrap: dict | None = None) -> dict:
-    """Return current-season form, underlying performance, and team styles."""
+def build_team_hub(
+    matches: pd.DataFrame, season: str, bootstrap: dict | None = None, live_results: pd.DataFrame | None = None
+) -> dict:
+    """Return current-season form, underlying performance, and team styles.
+
+    Rich historical rows supply the underlying metrics.  The official FPL
+    result feed is allowed to supersede only the visible current-table and
+    recent-form values, because it publishes final scores before the rich
+    provider catches up.
+    """
     season_matches = matches[matches["season"] == season].copy()
-    if season_matches.empty:
+    if season_matches.empty and (live_results is None or live_results.empty):
         return {"season": season, "teams": []}
 
     season_start = int(season[:4])
-    rows = _team_match_rows(season_matches)
-    keys = ["date", "team", "opponent", "venue"]
-    rows = rows.merge(_understat_team_rows(season_start), on=keys, how="left")
-    rows = rows.merge(_set_piece_rows(season_start), on=keys, how="left")
-    current_streaks = streaks.latest_streaks(season_matches)
+    rows = _team_match_rows(season_matches) if not season_matches.empty else pd.DataFrame()
+    if not rows.empty:
+        keys = ["date", "team", "opponent", "venue"]
+        rows = rows.merge(_understat_team_rows(season_start), on=keys, how="left")
+        rows = rows.merge(_set_piece_rows(season_start), on=keys, how="left")
+    current_source = live_results.copy() if live_results is not None and not live_results.empty else season_matches
+    if "season" not in current_source:
+        current_source["season"] = season
+    current_rows = _team_match_rows(current_source) if not current_source.empty else rows.copy()
+    current_streaks = streaks.latest_streaks(current_source)
     fpl_totals = _team_fpl_totals(bootstrap)
     teams = []
-    for team, group in rows.groupby("team", sort=True):
-        played = len(group)
-        recent = group.sort_values("date", ascending=False).head(10)
-        xg_for = group["xg_for"].sum(min_count=1)
-        xg_against = group["xg_against"].sum(min_count=1)
-        form_points_per_match, form_trend = _form_summary(group)
+    all_teams = sorted(set(current_rows.get("team", pd.Series(dtype=str))) | set(rows.get("team", pd.Series(dtype=str))))
+    for team in all_teams:
+        analysis_group = rows[rows["team"] == team] if not rows.empty else pd.DataFrame()
+        current_group = current_rows[current_rows["team"] == team]
+        stats_group = analysis_group if not analysis_group.empty else current_group
+        recent = current_group.sort_values("date", ascending=False).head(10)
+        xg_for = analysis_group["xg_for"].sum(min_count=1) if not analysis_group.empty else float("nan")
+        xg_against = analysis_group["xg_against"].sum(min_count=1) if not analysis_group.empty else float("nan")
+        form_points_per_match, form_trend = _form_summary(current_group)
         fpl_team_totals = fpl_totals.get(team, {})
         teams.append(
             {
                 "team": team,
-                "played": played,
-                "points": int(group["points"].sum()),
-                "wins": int((group["result"] == "W").sum()),
-                "draws": int((group["result"] == "D").sum()),
-                "losses": int((group["result"] == "L").sum()),
-                "goals_for": int(group["goals_for"].sum()),
-                "goals_against": int(group["goals_against"].sum()),
+                "played": len(current_group),
+                "points": int(current_group["points"].sum()),
+                "wins": int((current_group["result"] == "W").sum()),
+                "draws": int((current_group["result"] == "D").sum()),
+                "losses": int((current_group["result"] == "L").sum()),
+                "goals_for": int(current_group["goals_for"].sum()),
+                "goals_against": int(current_group["goals_against"].sum()),
                 "assists": int(fpl_team_totals.get("assists", 0)),
                 "xa": _number(fpl_team_totals["xa"]) if fpl_team_totals.get("has_xa") else None,
-                "points_per_match": _number(group["points"].mean()),
+                "points_per_match": _number(current_group["points"].mean()),
                 "form_points_per_match": form_points_per_match,
                 "form_trend": form_trend,
-                "goals_for_per_match": _number(group["goals_for"].mean()),
-                "goals_against_per_match": _number(group["goals_against"].mean()),
-                "shots_per_match": _number(group["shots"].mean()),
-                "shots_on_target_per_match": _number(group["shots_on_target"].mean()),
-                "corners_per_match": _number(group["corners"].mean()),
-                "fouls_per_match": _number(group["fouls"].mean()),
-                "cards_per_match": _number(group["cards"].mean()),
+                "goals_for_per_match": _number(current_group["goals_for"].mean()),
+                "goals_against_per_match": _number(current_group["goals_against"].mean()),
+                "shots_per_match": _number(stats_group["shots"].mean()),
+                "shots_on_target_per_match": _number(stats_group["shots_on_target"].mean()),
+                "corners_per_match": _number(stats_group["corners"].mean()),
+                "fouls_per_match": _number(stats_group["fouls"].mean()),
+                "cards_per_match": _number(stats_group["cards"].mean()),
                 "xg_for": _number(xg_for),
                 "xg_against": _number(xg_against),
-                "goals_minus_xg": _number(group["goals_for"].sum() - xg_for) if not pd.isna(xg_for) else None,
-                "goals_conceded_minus_xg": _number(group["goals_against"].sum() - xg_against) if not pd.isna(xg_against) else None,
-                "set_piece_xg_share": _number(group["set_piece_xg_share"].mean()),
+                "goals_minus_xg": _number(current_group["goals_for"].sum() - xg_for) if not pd.isna(xg_for) else None,
+                "goals_conceded_minus_xg": _number(current_group["goals_against"].sum() - xg_against) if not pd.isna(xg_against) else None,
+                "set_piece_xg_share": _number(analysis_group["set_piece_xg_share"].mean()) if not analysis_group.empty else None,
                 "streak": int(current_streaks.get(team, 0)),
                 "recent_matches": [
                     {
@@ -212,8 +228,8 @@ def build_team_hub(matches: pd.DataFrame, season: str, bootstrap: dict | None = 
                         "venue": row.venue,
                         "result": row.result,
                         "score": f"{int(row.goals_for)}-{int(row.goals_against)}",
-                        "xg_for": _number(row.xg_for),
-                        "xg_against": _number(row.xg_against),
+                        "xg_for": _number(getattr(row, "xg_for", None)),
+                        "xg_against": _number(getattr(row, "xg_against", None)),
                     }
                     for row in recent.itertuples()
                 ],

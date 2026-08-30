@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import time
+from datetime import datetime, timezone
 from threading import Lock, Thread
 
 import pandas as pd
@@ -87,9 +88,11 @@ _CACHE_TTL_SECONDS = 1800
 # (the expensive part of this refreshing) benchmarks at ~0.4s on top of the
 # ~7.5s data reload — trivial to redo this often for a personal app.
 _LIVE_CACHE_TTL_SECONDS = 300
+_LIVE_RESULTS_CACHE_TTL_SECONDS = 60
 _cache: dict[str, tuple[float, object]] = {}
 _cache_locks: dict[str, Lock] = {}
 _player_outcome_backfill_lock = Lock()
+_warmup_status = {"state": "not_started", "started_at": None, "completed_at": None, "failures": []}
 
 
 def _cached(key: str, build_fn, ttl: float = _CACHE_TTL_SECONDS, force: bool = False):
@@ -110,6 +113,23 @@ def _cached(key: str, build_fn, ttl: float = _CACHE_TTL_SECONDS, force: bool = F
 def _clear_cache(*keys: str):
     for k in keys:
         _cache.pop(k, None)
+
+
+def _clear_cache_prefix(prefix: str) -> None:
+    for key in list(_cache):
+        if key.startswith(prefix):
+            _cache.pop(key, None)
+
+
+@router.get("/health")
+def get_health():
+    """Small readiness probe for the local UI and deployment checks.
+
+    The server accepts requests while the expensive local caches warm in the
+    background.  Exposing that state lets the frontend explain a temporarily
+    slow first request instead of presenting it as a mysterious fetch error.
+    """
+    return {"status": "ok", "cache_warmup": dict(_warmup_status)}
 
 
 def _refresh_player_outcomes_in_background(gameweek: int) -> None:
@@ -135,6 +155,16 @@ def _get_matches_df() -> pd.DataFrame:
         return df.sort_values("date").reset_index(drop=True)
 
     return _cached("matches_df", build, ttl=_LIVE_CACHE_TTL_SECONDS)
+
+
+def _get_live_current_results_df() -> pd.DataFrame:
+    """Official FPL results, shared with the fixture fallback.
+
+    This is deliberately separate from the rich current-season training
+    frame: FPL final scores are timely enough for the live table but do not
+    carry the shots/cards/referee inputs needed for a safe scoreline retrain.
+    """
+    return _cached("live_current_results", fpl_api.fetch_current_season_results, ttl=_LIVE_RESULTS_CACHE_TTL_SECONDS)
 
 
 def _get_models() -> dict:
@@ -187,7 +217,20 @@ def _get_fd_org_standings() -> pd.DataFrame:
         except FootballDataOrgKeyMissing:
             return pd.DataFrame()
 
-    return _cached("fd_org_standings", build, ttl=_LIVE_CACHE_TTL_SECONDS)
+    return _cached("fd_org_standings", build, ttl=_LIVE_RESULTS_CACHE_TTL_SECONDS)
+
+
+def _get_live_current_standings(current_season: str) -> tuple[pd.DataFrame, str]:
+    """Prefer the licensed live table; fall back to the same FPL results
+    feed that drives the fixture surface when no football-data.org key exists."""
+    standings = _get_fd_org_standings()
+    if not standings.empty:
+        return standings, "football_data_org"
+    results = _get_live_current_results_df().copy()
+    if results.empty:
+        return pd.DataFrame(columns=["team", "played", "points", "goals_for", "goals_against", "goal_diff"]), "official_fpl"
+    results["season"] = current_season
+    return projected_table.compute_standings(results), "official_fpl"
 
 
 def _get_fd_org_matches() -> pd.DataFrame:
@@ -276,18 +319,40 @@ def warm_caches() -> None:
     5-minute live TTL and would eventually need re-warming anyway, but
     warming them too means a server that's just started is fast immediately
     rather than on whatever request happens to land first."""
+    global _warmup_status
+    _warmup_status = {
+        "state": "warming",
+        "started_at": datetime.now(timezone.utc).isoformat(),
+        "completed_at": None,
+        "failures": [],
+    }
+    failures: list[str] = []
+    # The first interactive dashboard calls Calibration and the projected
+    # table.  Warm their shared dependencies and Calibration first, before
+    # lower-priority fixture/odds payloads, so a cold start cannot make the
+    # user wait behind work unrelated to the page they opened.
     for name, fn in [
         ("matches_df", _get_matches_df),
         ("models", _get_models),
+        ("calibration", get_calibration),
         ("fixtures_df", _get_fixtures_df),
         ("remaining_fixtures_df", _get_remaining_fixtures_df),
         ("bootstrap", _get_bootstrap),
         ("odds_df", _get_odds_df),
+        ("power_rankings", get_power_rankings),
+        ("projected_table", get_projected_table),
     ]:
         try:
             fn()
         except Exception as exc:  # noqa: BLE001 - warming is best-effort, never fatal
+            failures.append(name)
             print(f"[warm_caches] {name} skipped: {exc}")
+    _warmup_status = {
+        "state": "ready" if not failures else "degraded",
+        "started_at": _warmup_status["started_at"],
+        "completed_at": datetime.now(timezone.utc).isoformat(),
+        "failures": failures,
+    }
 
 
 def maybe_auto_retrain() -> None:
@@ -1325,25 +1390,36 @@ def team_fixtures(team: str, limit: int = 5):
 def get_manifest():
     if not manifest_lib.MANIFEST_PATH.exists():
         raise HTTPException(status_code=409, detail="No trained models yet — call POST /api/retrain first.")
-    return manifest_lib.load_manifest()
+    manifest = manifest_lib.load_manifest().copy()
+    try:
+        manifest["live_current_season_matches"] = int(len(_get_live_current_results_df()))
+        manifest["live_results_source"] = "official_fpl"
+    except Exception:  # noqa: BLE001 - a metadata probe must not hide the trained model
+        manifest["live_results_source"] = "unavailable"
+    return manifest
 
 
 @router.get("/manifest/history")
 def get_manifest_history():
-    return {"history": manifest_lib.load_manifest_history()}
+    return {"history": manifest_lib.score_change_history(manifest_lib.load_manifest_history())}
 
 
 @router.get("/calibration")
 def get_calibration():
-    models = _get_models()
-    df, _ = build_training_frame()
-    train_df, val_df = chronological_split(df)
-    return {
-        "model": calibration_lib.model_calibration(models["scoreline"], val_df),
-        "bookmaker": calibration_lib.bookmaker_calibration(val_df),
-        "naive": calibration_lib.naive_favourite_baseline(val_df),
-        "season": str(val_df["season"].iloc[0]) if not val_df.empty else None,
-    }
+    trained_at = manifest_lib.load_manifest().get("trained_at", "untrained") if manifest_lib.MANIFEST_PATH.exists() else "untrained"
+
+    def build():
+        models = _get_models()
+        df, _ = build_training_frame()
+        _, val_df = chronological_split(df)
+        return {
+            "model": calibration_lib.model_calibration(models["scoreline"], val_df),
+            "bookmaker": calibration_lib.bookmaker_calibration(val_df),
+            "naive": calibration_lib.naive_favourite_baseline(val_df),
+            "season": str(val_df["season"].iloc[0]) if not val_df.empty else None,
+        }
+
+    return _cached(f"calibration_{trained_at}", build, ttl=_LIVE_CACHE_TTL_SECONDS)
 
 
 @router.get("/squad-continuity")
@@ -1432,7 +1508,9 @@ def refresh_odds():
 
 @router.post("/refresh-fixtures", dependencies=[Depends(_admin_only)])
 def refresh_fixtures():
-    _clear_cache("fixtures_df", "value_bet_table")
+    _clear_cache("fixtures_df", "value_bet_table", "live_current_results", "fd_org_standings")
+    _clear_cache_prefix("projected_table_")
+    _clear_cache_prefix("team_hub_")
     _get_fixtures_df(force=True)
     return {"status": "ok"}
 
@@ -1530,7 +1608,13 @@ def fpl_manual_transfers(request: FPLManualSquadRequest = Body(...), gameweek: i
         result = fpl_model.transfer_recommendations(data["players"], request.player_ids, request.bank, request.free_transfers)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    return {"gameweek": data["gameweek"], "source": "manual", **result}
+    current_squad = [player for player in data["players"] if player["player_id"] in set(request.player_ids)]
+    return {
+        "gameweek": data["gameweek"],
+        "source": "manual",
+        "current_lineup": fpl_model.squad_lineup(current_squad),
+        **result,
+    }
 
 
 @router.get("/fpl/entry/{entry_id}/transfers")
@@ -1562,7 +1646,15 @@ def fpl_entry_transfers(entry_id: int, gameweek: int | None = None, free_transfe
         result = fpl_model.transfer_recommendations(data["players"], player_ids, bank, free_transfers)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    return {"gameweek": data["gameweek"], "source_gameweek": source_gameweek, "source": "public_entry", "entry_id": entry_id, **result}
+    current_squad = [player for player in data["players"] if player["player_id"] in set(player_ids)]
+    return {
+        "gameweek": data["gameweek"],
+        "source_gameweek": source_gameweek,
+        "source": "public_entry",
+        "entry_id": entry_id,
+        "current_lineup": fpl_model.squad_lineup(current_squad),
+        **result,
+    }
 
 
 @router.get("/hub/rankings")
@@ -1622,22 +1714,26 @@ def get_power_rankings():
 def get_projected_table():
     if PUBLIC_MODE:
         return _public_snapshot().get("hub", {}).get("table", {"table": [], "season": None})
-    models = _get_models()
     matches_df = _get_matches_df()
     current_season = _current_season_label()
+    live_results = _get_live_current_results_df()
+    live_result_signature = tuple(
+        live_results[["event_id", "goals_home", "goals_away"]].itertuples(index=False, name=None)
+    ) if not live_results.empty else ()
+    trained_at = manifest_lib.load_manifest().get("trained_at", "untrained") if manifest_lib.MANIFEST_PATH.exists() else "untrained"
 
-    # Prefer football-data.org's already-computed live standings (fresher,
-    # one call, no reconstruction needed — see
-    # data/football_data_org.py::fetch_standings) over rebuilding them from
-    # football-data.co.uk's own current-season results, which is what
-    # compute_standings does; same column shape either way so
-    # project_table doesn't need to know which source it got.
-    standings = _get_fd_org_standings()
-    if standings.empty:
-        standings = projected_table.compute_standings(matches_df[matches_df["season"] == current_season])
-    remaining_fixtures = _get_remaining_fixtures_df()
-    table = projected_table.project_table(models["scoreline"], remaining_fixtures, standings)
-    return {"table": table, "season": current_season}
+    def build():
+        models = _get_models()
+        standings, _ = _get_live_current_standings(current_season)
+        if standings.empty:
+            standings = projected_table.compute_standings(matches_df[matches_df["season"] == current_season])
+        remaining_fixtures = _get_remaining_fixtures_df()
+        table = projected_table.project_table(models["scoreline"], remaining_fixtures, standings)
+        return {"table": table, "season": current_season}
+
+    return _cached(
+        f"projected_table_{current_season}_{live_result_signature}_{trained_at}", build, ttl=_LIVE_CACHE_TTL_SECONDS
+    )
 
 
 @router.get("/hub/track-record")
@@ -1659,10 +1755,13 @@ def get_team_hub():
         return _public_snapshot().get("hub", {}).get("teams", {})
     matches_df = _get_matches_df()
     season = _current_season_label()
-    current_match_count = len(matches_df[matches_df["season"] == season])
+    live_results = _get_live_current_results_df()
+    live_result_signature = tuple(
+        live_results[["event_id", "goals_home", "goals_away"]].itertuples(index=False, name=None)
+    ) if not live_results.empty else ()
     return _cached(
-        f"team_hub_{season}_{current_match_count}",
-        lambda: hub_analytics.build_team_hub(matches_df, season, bootstrap=_get_bootstrap()),
+        f"team_hub_{season}_{live_result_signature}",
+        lambda: hub_analytics.build_team_hub(matches_df, season, bootstrap=_get_bootstrap(), live_results=live_results),
         ttl=_LIVE_CACHE_TTL_SECONDS,
     )
 

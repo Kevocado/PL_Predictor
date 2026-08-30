@@ -10,7 +10,7 @@ as the rest of this project's tests."""
 import pandas as pd
 import pytest
 
-from pl_predictor.data import football_data, pulselive
+from pl_predictor.data import football_data, fpl_api, pulselive
 
 
 def test_falls_back_to_pulselive_when_football_data_co_uk_has_nothing(monkeypatch):
@@ -87,3 +87,64 @@ def test_returns_none_when_pulselive_itself_errors(monkeypatch):
     monkeypatch.setattr(pulselive, "fetch_current_season_matches", _pulselive_fails)
 
     assert football_data.fetch_current_season_partial() is None
+
+
+def test_fpl_finished_results_exposes_the_same_completed_scores_as_the_fixture_feed(monkeypatch):
+    """The live table must advance even when rich training stats lag."""
+    monkeypatch.setattr(
+        fpl_api,
+        "fetch_bootstrap",
+        lambda: {"teams": [{"id": 1, "name": "Arsenal"}, {"id": 2, "name": "Chelsea"}]},
+    )
+    monkeypatch.setattr(
+        fpl_api,
+        "fetch_fixtures",
+        lambda: [
+            {
+                "id": 10,
+                "event": 3,
+                "team_h": 1,
+                "team_a": 2,
+                "team_h_score": 2,
+                "team_a_score": 1,
+                "kickoff_time": "2026-08-30T14:00:00Z",
+                "finished": True,
+            },
+            {
+                "id": 11,
+                "event": 3,
+                "team_h": 2,
+                "team_a": 1,
+                "team_h_score": 1,
+                "team_a_score": 4,
+                "kickoff_time": "2026-09-02T14:00:00Z",
+                "finished": False,
+                "finished_provisional": True,
+            },
+        ],
+    )
+
+    results = fpl_api.fetch_current_season_results()
+
+    assert results.to_dict("records") == [
+        {
+            "event_id": "10",
+            "gameweek": 3,
+            "date": pd.Timestamp("2026-08-30T14:00:00Z"),
+            "team_home": "Arsenal",
+            "team_away": "Chelsea",
+            "goals_home": 2,
+            "goals_away": 1,
+            "ftr": "H",
+        },
+        {
+            "event_id": "11",
+            "gameweek": 3,
+            "date": pd.Timestamp("2026-09-02T14:00:00Z"),
+            "team_home": "Chelsea",
+            "team_away": "Arsenal",
+            "goals_home": 1,
+            "goals_away": 4,
+            "ftr": "A",
+        }
+    ]

@@ -1,6 +1,19 @@
 from pl_predictor.models import manifest
 
 
+def test_score_change_history_omits_retrains_without_a_validation_score_change():
+    history = [
+        {"trained_at": "a", "rps": 0.208, "brier": 0.617, "n_current_season_matches": 10},
+        {"trained_at": "b", "rps": 0.208, "brier": 0.617, "n_current_season_matches": 10},
+        {"trained_at": "c", "rps": 0.207, "brier": 0.617, "n_current_season_matches": 20},
+        {"trained_at": "d", "rps": 0.207, "brier": 0.615, "n_current_season_matches": 20},
+    ]
+
+    changes = manifest.score_change_history(history)
+
+    assert [entry["trained_at"] for entry in changes] == ["a", "c", "d"]
+
+
 def test_train_all_reuses_the_same_frame_when_windows_match(monkeypatch, tmp_path):
     """When an explicit `seasons` override is passed, it applies uniformly
     to every market (MARKET_TRAINING_WINDOWS is bypassed) — the corners

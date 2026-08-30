@@ -48,3 +48,17 @@ def test_dominant_team_projects_top(fitted_model):
     assert by_team["Strong"]["projected_points"] > by_team["Weak"]["projected_points"]
     assert by_team["Strong"]["projected_goal_diff"] > 0
     assert by_team["Weak"]["projected_goal_diff"] < 0
+
+
+def test_compute_standings_uses_goals_for_after_goal_difference():
+    """The live league table follows the Premier League tie-break order."""
+    matches = pd.DataFrame(
+        [
+                {"date": "2026-08-21", "season": "2026-2027", "team_home": "Arsenal", "team_away": "Chelsea", "goals_home": 1, "goals_away": 0},
+                {"date": "2026-08-22", "season": "2026-2027", "team_home": "Chelsea", "team_away": "Burnley", "goals_home": 2, "goals_away": 0},
+        ]
+    )
+
+    standings = compute_standings(matches)
+
+    assert standings["team"].tolist()[:2] == ["Chelsea", "Arsenal"]

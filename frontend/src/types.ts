@@ -414,6 +414,8 @@ export interface PlayerHubPlayer {
   news: string;
   quality_rating: number;
   form_rating: number;
+  live_form_rating: number;
+  live_form_vs_quality: number;
   overall_rating: number;
   current_impact_rating: number;
   rating_driver: string;
@@ -518,6 +520,8 @@ export interface ManifestResponse {
   n_train: number;
   n_val: number;
   n_current_season_matches: number;
+  live_current_season_matches?: number;
+  live_results_source?: string;
   features: string[];
   scoreline: {
     chosen_model: string;

@@ -1,15 +1,30 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FixturesPage } from "./pages/FixturesPage";
 import { CalibrationPage } from "./pages/CalibrationPage";
 import { ModelSummaryPage } from "./pages/ModelSummaryPage";
 import { DataHubPage } from "./pages/DataHubPage";
 import { FPLPage } from "./pages/FPLPage";
 import { PUBLIC_MODE } from "./lib/publicMode";
+import { api } from "./api/client";
 
 type Tab = "fixtures" | "calibration" | "hub" | "fpl";
 
 function App() {
   const [tab, setTab] = useState<Tab>("fixtures");
+  const [mountedTabs, setMountedTabs] = useState<Set<Tab>>(() => new Set(["fixtures"]));
+
+  const selectTab = (next: Tab) => {
+    setTab(next);
+    setMountedTabs((current) => new Set(current).add(next));
+  };
+
+  useEffect(() => {
+    // Let the first Fixtures paint, then make the dashboard data available
+    // in the background. The API client reuses these promises when the user
+    // opens Data Hub or Calibration, instead of issuing a second cold call.
+    const id = window.setTimeout(() => { void api.preloadDashboards(); }, 750);
+    return () => window.clearTimeout(id);
+  }, []);
 
   return (
     <div className="mx-auto min-h-screen max-w-7xl px-6 py-8">
@@ -34,7 +49,7 @@ function App() {
           ).map(([key, label]) => (
             <button
               key={key}
-              onClick={() => setTab(key)}
+              onClick={() => selectTab(key)}
               className={`rounded-md px-3.5 py-1.5 text-sm font-medium transition ${
                 tab === key ? "bg-pl-pink text-white" : "text-pl-text-dim hover:text-pl-text"
               }`}
@@ -45,23 +60,21 @@ function App() {
         </nav>
       </header>
 
-      {/* All three pages mount immediately on page load (not on first
-          click) and stay mounted for the rest of the session — hidden with
-          CSS rather than unmounted, so switching tabs never re-fetches data
-          that's already loaded. */}
+      {/* Tabs mount on first visit, then stay mounted. Dashboard data itself
+          is warmed after the Fixtures page has painted. */}
       <main>
-        <div style={{ display: tab === "fixtures" ? "block" : "none" }}>
+        {mountedTabs.has("fixtures") && <div style={{ display: tab === "fixtures" ? "block" : "none" }}>
           <FixturesPage />
-        </div>
-        <div style={{ display: tab === "hub" ? "block" : "none" }}>
+        </div>}
+        {mountedTabs.has("hub") && <div style={{ display: tab === "hub" ? "block" : "none" }}>
           <DataHubPage />
-        </div>
-        <div style={{ display: tab === "fpl" ? "block" : "none" }}>
+        </div>}
+        {mountedTabs.has("fpl") && <div style={{ display: tab === "fpl" ? "block" : "none" }}>
           <FPLPage />
-        </div>
-        <div style={{ display: tab === "calibration" ? "block" : "none" }}>
+        </div>}
+        {mountedTabs.has("calibration") && <div style={{ display: tab === "calibration" ? "block" : "none" }}>
           {PUBLIC_MODE ? <ModelSummaryPage /> : <CalibrationPage />}
-        </div>
+        </div>}
       </main>
     </div>
   );

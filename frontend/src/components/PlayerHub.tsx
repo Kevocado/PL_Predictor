@@ -3,16 +3,15 @@ import type { PlayerHubPlayer, PlayerHubResponse } from "../types";
 import { InfoTooltip } from "./InfoTooltip";
 import { GLOSSARY } from "../lib/glossary";
 
-type SortKey = keyof Pick<PlayerHubPlayer, "name" | "team" | "position" | "overall_rating" | "quality_rating" | "form_rating" | "current_impact_rating" | "minutes" | "starts" | "goals" | "assists" | "xg" | "xa" | "xgi" | "threat" | "creativity" | "ict" | "bps" | "bonus">;
+type SortKey = keyof Pick<PlayerHubPlayer, "name" | "team" | "position" | "overall_rating" | "quality_rating" | "form_rating" | "live_form_rating" | "live_form_vs_quality" | "current_impact_rating" | "minutes" | "starts" | "goals" | "assists" | "xg" | "xa" | "xgi" | "threat" | "creativity" | "ict" | "bps" | "bonus">;
 
 const COLUMNS: Array<{ key: SortKey; label: string; tooltip?: string; numeric?: boolean }> = [
   { key: "name", label: "Player" },
   { key: "team", label: "Team" },
   { key: "position", label: "Pos" },
-  { key: "overall_rating", label: "Overall", numeric: true },
-  { key: "quality_rating", label: "Quality", numeric: true },
-  { key: "form_rating", label: "Form", numeric: true },
-  { key: "current_impact_rating", label: "Impact", numeric: true },
+  { key: "overall_rating", label: "Overall", tooltip: "Overall is a role-aware Quality baseline plus a capped, validated model lift. It measures the player's longer-term football ability, rather than a single recent FPL return.", numeric: true },
+  { key: "live_form_rating", label: "Live form", tooltip: "Live Form scales the official FPL recent-form signal against the player's role, while capping early-season scores until minutes and starts provide enough evidence.", numeric: true },
+  { key: "live_form_vs_quality", label: "vs Quality", tooltip: "Live Form minus the player's underlying Quality. Positive numbers identify players currently outperforming their established level; negative numbers indicate cooler current form.", numeric: true },
   { key: "starts", label: "Starts", numeric: true },
   { key: "minutes", label: "Min", tooltip: GLOSSARY.playerMinutes, numeric: true },
   { key: "goals", label: "Goals", numeric: true },
@@ -35,6 +34,17 @@ function display(value: number | string | null) {
 const PAGE_SIZE = 20;
 const POSITION_ORDER: Record<string, number> = { GK: 0, DEF: 1, MID: 2, FWD: 3 };
 type GroupBy = "none" | "team" | "position";
+
+function RatingCell({ value, tone = "text-pl-text", signed = false }: { value: number | null | undefined; tone?: string; signed?: boolean }) {
+  const present = value ?? 0;
+  return (
+    <td className="px-1.5 py-2 text-right">
+      <span className={`inline-flex min-w-12 justify-center rounded-md border border-pl-border bg-pl-900/70 px-2 py-1 font-bold tabular-nums ${tone}`}>
+        {signed && present > 0 ? "+" : ""}{present.toFixed(0)}
+      </span>
+    </td>
+  );
+}
 
 export function PlayerHub({ data }: { data: PlayerHubResponse }) {
   const [sortKey, setSortKey] = useState<SortKey>("overall_rating");
@@ -87,7 +97,7 @@ export function PlayerHub({ data }: { data: PlayerHubResponse }) {
       <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h3 className="text-lg font-semibold text-pl-text">Player ratings &amp; form</h3>
-          <p className="mt-1 text-sm text-pl-text-dim">Overall combines durable role-aware Quality with a capped current Form lift. Impact then accounts for availability and expected minutes. {(data.rating_model_source ?? "season form").replaceAll("_", " ")} · {data.data_freshness ?? "cached FPL data"}</p>
+          <p className="mt-1 text-sm text-pl-text-dim">Read the three boxed ratings across each row: Overall is the longer-term score, Live Form is what the player is doing now, and vs Quality shows whether that form is above or below their normal level. {(data.rating_model_source ?? "season form").replaceAll("_", " ")} · {data.data_freshness ?? "cached FPL data"}</p>
         </div>
         <label className="text-xs font-semibold text-pl-text-faint">
           Search players
@@ -107,11 +117,11 @@ export function PlayerHub({ data }: { data: PlayerHubResponse }) {
         <div className="ml-auto flex gap-1 rounded-lg border border-pl-border p-1"><span className="px-1 py-1.5 text-pl-text-faint">Group</span>{(["none", "team", "position"] as GroupBy[]).map((mode) => <button key={mode} onClick={() => { setGroupBy(mode); setPage(1); }} className={`rounded-md px-2 py-1.5 font-semibold capitalize ${groupBy === mode ? "bg-pl-pink text-white" : "hover:text-pl-text"}`}>{mode}</button>)}</div>
       </div>
       <div className="overflow-x-auto rounded-xl border border-pl-border">
-        <table className="w-full min-w-[1260px] text-left text-xs">
+        <table className="w-full min-w-[1220px] text-left text-xs">
           <thead className="bg-pl-850 text-[10px] uppercase tracking-wide text-pl-text-faint">
             <tr>{COLUMNS.map((column) => <th key={column.key} className={`whitespace-nowrap px-2 py-2 ${column.numeric ? "text-right" : ""}`}><button onClick={() => selectSort(column.key)} className="inline-flex items-center gap-1 hover:text-pl-text">{column.label}{column.tooltip && <InfoTooltip text={column.tooltip} align="left" />}{sortKey === column.key && <span>{descending ? "↓" : "↑"}</span>}</button></th>)}</tr>
           </thead>
-          <tbody>{visiblePlayers.map((player, index) => <Fragment key={player.id}>{groupBy !== "none" && (index === 0 || (groupBy === "team" ? player.team !== visiblePlayers[index - 1].team : player.position !== visiblePlayers[index - 1].position)) && <tr className="border-t border-pl-border bg-pl-900/80"><td colSpan={COLUMNS.length} className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-pl-pink">{groupBy === "team" ? player.team : player.position}</td></tr>}<tr className="border-t border-pl-border/70 text-pl-text-dim hover:bg-pl-850/50"><td className="px-2 py-2 font-semibold text-pl-text">{player.name}<span className="ml-1 text-[10px] font-normal text-pl-text-faint">{player.rating_driver ?? ""}</span></td><td className="px-2 py-2">{player.team}</td><td className="px-2 py-2">{player.position}</td><td className="px-2 py-2 text-right font-bold text-pl-pink">{(player.overall_rating ?? 0).toFixed(0)}</td><td className="px-2 py-2 text-right font-semibold text-pl-text">{(player.quality_rating ?? 0).toFixed(0)}</td><td className="px-2 py-2 text-right text-pl-sky">+{(player.form_rating ?? 0).toFixed(0)}</td><td className="px-2 py-2 text-right font-semibold text-pl-text">{(player.current_impact_rating ?? 0).toFixed(0)}</td><td className="px-2 py-2 text-right">{player.starts}</td><td className="px-2 py-2 text-right">{player.minutes}</td><td className="px-2 py-2 text-right">{player.goals}</td><td className="px-2 py-2 text-right">{player.assists}</td><td className="px-2 py-2 text-right">{display(player.xg)}</td><td className="px-2 py-2 text-right">{display(player.xa)}</td><td className="px-2 py-2 text-right font-semibold text-pl-text">{display(player.xgi)}</td><td className="px-2 py-2 text-right">{display(player.threat)}</td><td className="px-2 py-2 text-right">{display(player.creativity)}</td><td className="px-2 py-2 text-right">{display(player.ict)}</td><td className="px-2 py-2 text-right">{player.bps}</td><td className="px-2 py-2 text-right">{player.bonus}</td></tr></Fragment>)}</tbody>
+          <tbody>{visiblePlayers.map((player, index) => <Fragment key={player.id}>{groupBy !== "none" && (index === 0 || (groupBy === "team" ? player.team !== visiblePlayers[index - 1].team : player.position !== visiblePlayers[index - 1].position)) && <tr className="border-t border-pl-border bg-pl-900/80"><td colSpan={COLUMNS.length} className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-pl-pink">{groupBy === "team" ? player.team : player.position}</td></tr>}<tr className="border-t border-pl-border/70 text-pl-text-dim hover:bg-pl-850/50"><td className="px-2 py-2 font-semibold text-pl-text">{player.name}<span className="ml-1 text-[10px] font-normal text-pl-text-faint">{player.rating_driver ?? ""}</span></td><td className="px-2 py-2">{player.team}</td><td className="px-2 py-2">{player.position}</td><RatingCell value={player.overall_rating} tone="text-pl-pink" /><RatingCell value={player.live_form_rating} /><RatingCell value={player.live_form_vs_quality} signed tone={(player.live_form_vs_quality ?? 0) > 0 ? "text-win" : "text-pl-text-faint"} /><td className="px-2 py-2 text-right">{player.starts}</td><td className="px-2 py-2 text-right">{player.minutes}</td><td className="px-2 py-2 text-right">{player.goals}</td><td className="px-2 py-2 text-right">{player.assists}</td><td className="px-2 py-2 text-right">{display(player.xg)}</td><td className="px-2 py-2 text-right">{display(player.xa)}</td><td className="px-2 py-2 text-right font-semibold text-pl-text">{display(player.xgi)}</td><td className="px-2 py-2 text-right">{display(player.threat)}</td><td className="px-2 py-2 text-right">{display(player.creativity)}</td><td className="px-2 py-2 text-right">{display(player.ict)}</td><td className="px-2 py-2 text-right">{player.bps}</td><td className="px-2 py-2 text-right">{player.bonus}</td></tr></Fragment>)}</tbody>
         </table>
       </div>
       {players.length === 0 ? <p className="mt-3 text-sm text-pl-text-faint">No player matches those filters.</p> : <div className="flex items-center justify-between text-xs text-pl-text-dim"><span>{players.length} players · showing {visiblePlayers.length} · page {safePage} of {pageCount}</span><div className="flex gap-2"><button disabled={safePage <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))} className="rounded border border-pl-border px-2 py-1 disabled:opacity-30">Previous</button><button disabled={safePage >= pageCount} onClick={() => setPage((value) => Math.min(pageCount, value + 1))} className="rounded border border-pl-border px-2 py-1 disabled:opacity-30">Next</button></div></div>}

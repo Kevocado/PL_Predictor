@@ -26,7 +26,7 @@ def compute_standings(matches_df: pd.DataFrame) -> pd.DataFrame:
         .reset_index()
     )
     standings["goal_diff"] = standings["goals_for"] - standings["goals_against"]
-    return standings.sort_values(["points", "goal_diff"], ascending=False).reset_index(drop=True)
+    return standings.sort_values(["points", "goal_diff", "goals_for"], ascending=False).reset_index(drop=True)
 
 
 def project_table(model, upcoming_fixtures_df: pd.DataFrame, standings: pd.DataFrame) -> list[dict]:
@@ -56,8 +56,11 @@ def project_table(model, upcoming_fixtures_df: pd.DataFrame, standings: pd.DataF
     # newly-promoted side before their first match) has no real position to
     # compare against, so gets `current_position: None` rather than a
     # misleading last-place ranking.
-    ranked_by_current = standings.sort_values(["points", "goal_diff"], ascending=False).reset_index(drop=True)
-    current_position = {row["team"]: i + 1 for i, row in ranked_by_current.iterrows()}
+    if "position" in standings.columns:
+        current_position = {row["team"]: int(row["position"]) for _, row in standings.dropna(subset=["position"]).iterrows()}
+    else:
+        ranked_by_current = standings.sort_values(["points", "goal_diff", "goals_for"], ascending=False).reset_index(drop=True)
+        current_position = {row["team"]: i + 1 for i, row in ranked_by_current.iterrows()}
 
     standings_by_team = standings.set_index("team")
     rows = []

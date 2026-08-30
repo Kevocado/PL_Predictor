@@ -177,6 +177,56 @@ def _valid_team(players: list[dict], budget: float | None = None) -> bool:
     return True
 
 
+def _legal_bench(candidates: list[dict], starting_xi: list[dict]) -> list[dict]:
+    """Select the highest-projected legal four-player FPL bench.
+
+    The XI is deliberately fixed first: an unlimited-budget gameweek
+    recommendation must never sacrifice its best eleven merely to make room
+    for substitutes.  The second solve fills the exact position deficits and
+    remaining club slots, producing a real 15-player squad rather than four
+    arbitrary high-projection names.
+    """
+    starter_ids = {player["player_id"] for player in starting_xi}
+    remaining = [player for player in candidates if player["player_id"] not in starter_ids]
+    required = {
+        position: total - sum(player["position"] == position for player in starting_xi)
+        for position, total in SQUAD_SHAPE.items()
+    }
+    if any(value < 0 for value in required.values()) or sum(required.values()) != 4:
+        return []
+
+    starter_clubs = defaultdict(int)
+    for player in starting_xi:
+        starter_clubs[player["team_id"]] += 1
+
+    rows = [np.ones(len(remaining))]
+    lower, upper = [4.0], [4.0]
+    for position, count in required.items():
+        rows.append(np.array([1.0 if player["position"] == position else 0.0 for player in remaining]))
+        lower.append(float(count)); upper.append(float(count))
+    for team_id in {player["team_id"] for player in remaining}:
+        rows.append(np.array([1.0 if player["team_id"] == team_id else 0.0 for player in remaining]))
+        lower.append(0.0); upper.append(float(3 - starter_clubs[team_id]))
+
+    solution = milp(
+        c=-np.array([player["projected_points"] for player in remaining]),
+        integrality=np.ones(len(remaining)),
+        bounds=Bounds(0, 1),
+        constraints=LinearConstraint(np.vstack(rows), np.array(lower), np.array(upper)),
+        options={"time_limit": 2.0},
+    )
+    bench = [player for player, chosen in zip(remaining, solution.x if solution.success else []) if chosen > 0.5]
+    if len(bench) != 4:
+        return []
+
+    # FPL's practical substitute order is three outfield players followed by
+    # the reserve goalkeeper.  The outfield ordering reflects the model's
+    # replacement preference rather than an arbitrary player-id ordering.
+    outfield = sorted((player for player in bench if player["position"] != "GK"), key=lambda p: p["projected_points"], reverse=True)
+    goalkeepers = sorted((player for player in bench if player["position"] == "GK"), key=lambda p: p["projected_points"], reverse=True)
+    return outfield + goalkeepers
+
+
 def optimal_xi(players: list[dict], formation: str | None = None) -> dict:
     """Find the highest projected legal starting XI from a player pool.
 
@@ -214,8 +264,19 @@ def optimal_xi(players: list[dict], formation: str | None = None) -> dict:
         return {"starting_xi": [], "captain": None, "vice_captain": None, "bench": [], "projected_points": 0.0}
     ordered = sorted(best, key=lambda p: (p["position"], -p["projected_points"]))
     captain, vice = sorted(best, key=lambda p: p["projected_points"], reverse=True)[:2]
-    bench = sorted([p for p in candidates if p["player_id"] not in {x["player_id"] for x in best}], key=lambda p: p["projected_points"], reverse=True)[:4]
+    bench = _legal_bench(candidates, best)
     return {"starting_xi": ordered, "captain": captain, "vice_captain": vice, "bench": bench, "projected_points": round(sum(p["projected_points"] for p in best), 2)}
+
+
+def squad_lineup(squad: list[dict]) -> dict:
+    """Turn an existing legal FPL squad into a visual XI and bench.
+
+    Transfer planning needs this separately from ``build_squad``: the user
+    owns these exact fifteen players, so the optimiser may choose their best
+    formation but must never replace a player merely for display.
+    """
+    lineup = optimal_xi(squad)
+    return {"squad": sorted(squad, key=lambda p: (p["position"], -p["projected_points"])), **lineup}
 
 
 def build_squad(players: list[dict], budget: float = 100.0) -> dict:

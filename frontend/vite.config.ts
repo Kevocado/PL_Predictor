@@ -10,5 +10,8 @@ export default defineConfig({
     // Bind all interfaces, not just localhost — needed to reach this from
     // another device (phone over Tailscale, or another machine on the LAN).
     host: true,
+    proxy: {
+      "/api": "http://127.0.0.1:8000",
+    },
   },
 })

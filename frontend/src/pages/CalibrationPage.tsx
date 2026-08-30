@@ -14,19 +14,22 @@ export function CalibrationPage() {
   const [calibration, setCalibration] = useState<CalibrationResponse | null>(null);
   const [manifest, setManifest] = useState<ManifestResponse | null>(null);
   const [scorerAccuracy, setScorerAccuracy] = useState<ScorerAccuracyResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [panelErrors, setPanelErrors] = useState<Partial<Record<"calibration" | "manifest" | "scorer", string>>>({});
   const [loading, setLoading] = useState(true);
   const [retraining, setRetraining] = useState(false);
 
-  const load = () => {
-    setError(null);
-    return Promise.all([api.calibration(), api.manifest(), api.scorerTrackRecord()])
-      .then(([cal, man, scorer]) => {
-        setCalibration(cal);
-        setManifest(man);
-        setScorerAccuracy(scorer);
+  const load = (force = false) => {
+    return Promise.allSettled([api.calibration(force), api.manifest(force), api.scorerTrackRecord(force)])
+      .then(([calibrationResult, manifestResult, scorerResult]) => {
+        if (calibrationResult.status === "fulfilled") setCalibration(calibrationResult.value);
+        if (manifestResult.status === "fulfilled") setManifest(manifestResult.value);
+        if (scorerResult.status === "fulfilled") setScorerAccuracy(scorerResult.value);
+        const message = (result: PromiseSettledResult<unknown>) => result.status === "rejected"
+          ? (result.reason instanceof Error ? result.reason.message : "This calibration panel could not load.")
+          : undefined;
+        setPanelErrors({ calibration: message(calibrationResult), manifest: message(manifestResult), scorer: message(scorerResult) });
       })
-      .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   };
 
@@ -38,16 +41,19 @@ export function CalibrationPage() {
 
   const retrain = async () => {
     setRetraining(true);
-    setError(null);
+    setActionError(null);
     try {
       await api.retrain();
       // Keep the busy state through the post-retrain refetch too — this is
       // what "Retrain" actually pulling the latest result means end to
       // end, not just the training step. Without this the button briefly
       // looked clickable again while stale numbers were still on screen.
-      await load();
+      // Retraining changes the manifest/calibration cache key. Bypass the
+      // short browser read cache so the page cannot briefly re-render the
+      // previous model version after a successful retrain.
+      await load(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setActionError(e instanceof Error ? e.message : String(e));
     } finally {
       setRetraining(false);
     }
@@ -76,16 +82,19 @@ export function CalibrationPage() {
         </button>
       </div>
 
-      {error && <div className="rounded-lg border border-loss/40 bg-loss/10 px-4 py-3 text-sm text-loss">{error}</div>}
+      {actionError && <div className="rounded-lg border border-loss/40 bg-loss/10 px-4 py-3 text-sm text-loss">{actionError}</div>}
 
-      {loading && !calibration && !error && (
+      {loading && !calibration && !panelErrors.calibration && (
         <div className="py-16 text-center text-pl-text-faint">Loading calibration data…</div>
       )}
 
+      {panelErrors.calibration && <div className="rounded-lg border border-loss/40 bg-loss/10 px-4 py-3 text-sm text-loss">Calibration data is unavailable: {panelErrors.calibration} <button onClick={() => { void load(true); }} className="ml-2 rounded border border-loss/50 px-2 py-1 text-xs font-semibold">Retry</button></div>}
       {calibration && <CalibrationPanel data={calibration} />}
 
+      {panelErrors.manifest && <div className="rounded-lg border border-loss/40 bg-loss/10 px-4 py-3 text-sm text-loss">Model metadata is unavailable: {panelErrors.manifest} <button onClick={() => { void load(true); }} className="ml-2 rounded border border-loss/50 px-2 py-1 text-xs font-semibold">Retry</button></div>}
       {manifest && <ModelFreshnessPanel manifest={manifest} />}
 
+      {panelErrors.scorer && <div className="rounded-lg border border-loss/40 bg-loss/10 px-4 py-3 text-sm text-loss">Scorer track record is unavailable: {panelErrors.scorer} <button onClick={() => { void load(true); }} className="ml-2 rounded border border-loss/50 px-2 py-1 text-xs font-semibold">Retry</button></div>}
       {scorerAccuracy && <ScorerTrackRecord data={scorerAccuracy} />}
 
       {manifest && (

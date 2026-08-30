@@ -88,6 +88,50 @@ def test_quality_reserves_elite_scores_for_sustained_role_output():
     assert elite_quality >= 85
 
 
+def test_live_fpl_form_is_separate_from_durable_quality_and_shrinks_tiny_samples():
+    short_spell = _element(1, minutes=90, starts=1, goals=1, xg=0.2, xa=0.1)
+    sustained_spell = _element(2, minutes=720, starts=8, goals=8, xg=4.0, xa=2.0)
+    short_spell["form"] = "11.0"
+    sustained_spell["form"] = "11.0"
+
+    ratings = player_ratings.rate_bootstrap_elements([short_spell, sustained_spell], {3: "MID"})
+
+    assert ratings[1]["live_form_rating"] < ratings[2]["live_form_rating"]
+
+
+def test_live_fpl_form_changes_without_changing_durable_quality():
+    cool = _element(1, minutes=900, starts=10, goals=4, xg=3.0, xa=1.0)
+    hot = {**cool, "id": 2}
+    cool["form"] = "2.0"
+    hot["form"] = "10.0"
+
+    ratings = player_ratings.rate_bootstrap_elements([cool, hot], {3: "MID"})
+
+    assert ratings[1]["quality_rating"] == ratings[2]["quality_rating"]
+    assert ratings[1]["live_form_rating"] < ratings[2]["live_form_rating"]
+
+
+def test_exceptional_short_term_fpl_form_can_clear_quality_but_not_elite_ceiling():
+    breakout = _element(1, minutes=108, starts=1, goals=2, xg=0.35, xa=1.05)
+    breakout.update({"first_name": "Rayan", "second_name": "Cherki", "form": "11.0"})
+
+    rating = player_ratings.rate_bootstrap_elements(
+        [breakout], {3: "MID"}, historical_priors={"rayan cherki": {"quality_rating": 69.0}}
+    )[1]
+
+    assert rating["live_form_rating"] > rating["quality_rating"]
+    assert rating["live_form_rating"] < 90
+
+
+def test_two_game_form_does_not_cluster_at_an_80_rating():
+    two_games = _element(1, minutes=180, starts=2, goals=3, xg=1.2, xa=0.4)
+    two_games["form"] = "12.0"
+
+    rating = player_ratings.rate_bootstrap_elements([two_games], {3: "MID"})[1]
+
+    assert rating["live_form_rating"] < 80
+
+
 def test_role_model_report_uses_role_specific_targets_and_strict_selection():
     rows = []
     for season_index, season in enumerate(("2022-23", "2023-24", "2024-25")):
