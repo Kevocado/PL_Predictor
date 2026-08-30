@@ -120,8 +120,8 @@ def test_player_hub_exposes_form_table_stats_without_squad_health():
     saka = next(player for player in report["players"] if player["name"] == "Saka")
     assert saka["xgi"] == 1.2
     assert saka["status"] == "d"
-    assert {"quality_rating", "form_rating", "live_form_rating", "live_form_vs_quality", "overall_rating", "current_impact_rating"} <= saka.keys()
-    assert report["rating_model_source"] == "role_aware_evidence_baseline"
+    assert {"quality_rating", "form_rating", "live_form_rating", "live_form_vs_quality", "overall_rating", "current_impact_rating", "rating_status", "rating_evidence_minutes"} <= saka.keys()
+    assert report["rating_model_source"] == "data_led_multiseason_role_evidence"
     assert report["leaderboards"]["MID"][0]["overall_rating"] == saka["overall_rating"]
     assert report["leaderboards"]["GK"][0]["name"] == "Raya"
     assert next(player for player in report["players"] if player["name"] == "Raya")["position"] == "GK"
@@ -174,3 +174,42 @@ def test_player_hub_leaderboards_sort_by_live_form_not_overall(monkeypatch):
     assert [player["name"] for player in leaders] == ["Breakout", "Star"]
     assert leaders[0]["quality_rating"] == 55.0
     assert leaders[0]["live_form_rating"] == 90.0
+
+
+def test_player_hub_marks_provisional_players_without_giving_them_a_numeric_overall(monkeypatch):
+    """A regression to numerical fallback ratings would rank unknown players by Overall."""
+    monkeypatch.setattr(
+        hub_analytics.player_ratings,
+        "rate_bootstrap_elements",
+        lambda elements, positions, historical_priors=None: {
+            1: {
+                "quality_rating": None, "form_rating": 0.0, "live_form_rating": 45.0,
+                "live_form_vs_quality": None, "overall_rating": None, "current_impact_rating": 40.0,
+                "rating_status": "provisional", "rating_evidence_minutes": 0.0,
+            },
+            2: {
+                "quality_rating": 82.0, "form_rating": 2.0, "live_form_rating": 60.0,
+                "live_form_vs_quality": -22.0, "overall_rating": 84.0, "current_impact_rating": 80.0,
+                "rating_status": "established", "rating_evidence_minutes": 4_000.0,
+            },
+        },
+    )
+    bootstrap = {
+        "teams": [{"id": 1, "name": "Arsenal"}],
+        "element_types": [{"id": 3, "singular_name_short": "MID"}],
+        "elements": [
+            {"id": 1, "web_name": "Newcomer", "team": 1, "element_type": 3, "status": "a", "minutes": 90, "starts": 1, "appearances": 1, "goals_scored": 1, "assists": 0, "expected_goals": "0.2", "expected_assists": "0", "expected_goal_involvements": "0.2", "threat": "20", "creativity": "0", "ict_index": "3", "bps": 15, "bonus": 0, "news": ""},
+            {"id": 2, "web_name": "Established", "team": 1, "element_type": 3, "status": "a", "minutes": 900, "starts": 10, "appearances": 10, "goals_scored": 5, "assists": 3, "expected_goals": "4", "expected_assists": "2", "expected_goal_involvements": "6", "threat": "80", "creativity": "60", "ict_index": "20", "bps": 100, "bonus": 8, "news": ""},
+        ],
+    }
+
+    report = hub_analytics.build_player_hub(bootstrap)
+    newcomer = next(player for player in report["players"] if player["name"] == "Newcomer")
+
+    assert newcomer["rating_status"] == "provisional"
+    assert newcomer["overall_rating"] is None
+    assert newcomer["rating_evidence_minutes"] == 0.0
+    # The existing role cards are intentionally *Live Form* leaderboards, so
+    # known and provisional players can both appear when their current form
+    # is earned. They are not Overall rankings.
+    assert [player["name"] for player in report["leaderboards"]["MID"]] == ["Established", "Newcomer"]

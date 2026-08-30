@@ -412,14 +412,16 @@ export interface PlayerHubPlayer {
   bps: number;
   bonus: number;
   news: string;
-  quality_rating: number;
+  quality_rating: number | null;
   form_rating: number;
   live_form_rating: number;
-  live_form_vs_quality: number;
-  overall_rating: number;
+  live_form_vs_quality: number | null;
+  overall_rating: number | null;
   current_impact_rating: number;
   rating_driver: string;
   rating_expected_minutes: number;
+  rating_status: "established" | "provisional";
+  rating_evidence_minutes: number;
   rating_model_source: string;
 }
 

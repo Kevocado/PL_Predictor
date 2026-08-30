@@ -276,7 +276,17 @@ def build_player_hub(bootstrap: dict) -> dict:
                 **ratings.get(int(element["id"]), {}),
             }
         )
-    players.sort(key=lambda player: (player.get("overall_rating", 0), player["minutes"]), reverse=True)
+    # Provisional players have no rankable Overall. Keep them visible after
+    # established players instead of letting a null accidentally compare as
+    # a zero/elite numerical value.
+    players.sort(
+        key=lambda player: (
+            player.get("overall_rating") is not None,
+            player.get("overall_rating") if player.get("overall_rating") is not None else float("-inf"),
+            player["minutes"],
+        ),
+        reverse=True,
+    )
     # Sorted by Live Form, not Overall/Quality: Quality is a role-aware
     # prior blended with historical evidence, so early in a season (or for
     # a player with few minutes) it's still mostly last season's prior —
@@ -296,6 +306,6 @@ def build_player_hub(bootstrap: dict) -> dict:
     return {
         "players": players,
         "leaderboards": leaderboards,
-        "rating_model_source": "role_aware_evidence_baseline",
+        "rating_model_source": "data_led_multiseason_role_evidence",
         "data_freshness": "cached official FPL bootstrap",
     }
