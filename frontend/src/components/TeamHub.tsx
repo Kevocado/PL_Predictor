@@ -20,7 +20,7 @@ const FORM_TREND = {
   new: { arrow: "•", label: "Not enough current-season matches for a trend", className: "text-pl-text-faint" },
 } as const;
 
-const COMPARE_ROW_GRID = "grid-cols-[1.5rem_minmax(7rem,1fr)_repeat(5,minmax(4.5rem,auto))]";
+const COMPARE_ROW_GRID = "grid-cols-[1rem_1.5rem_minmax(7rem,1fr)_repeat(7,minmax(4rem,auto))]";
 
 function StatChip({ label, value: chipValue }: { label: string; value: string }) {
   return (
@@ -97,21 +97,29 @@ function TeamDetailPanel({ selected }: { selected: TeamHubTeam }) {
 export function TeamHub({ data }: { data: TeamHubResponse }) {
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const teams = useMemo(
-    () => [...data.teams].sort((left, right) => (right.form_points_per_match ?? -1) - (left.form_points_per_match ?? -1) || (right.points_per_match ?? 0) - (left.points_per_match ?? 0)),
+    () => {
+      const current = [...data.teams].sort((left, right) => right.points - left.points || (right.goals_for - right.goals_against) - (left.goals_for - left.goals_against) || right.goals_for - left.goals_for);
+      const form = [...data.teams].sort((left, right) => (right.form_points_per_match ?? -1) - (left.form_points_per_match ?? -1) || (right.points_per_match ?? 0) - (left.points_per_match ?? 0));
+      const formPosition = new Map(form.map((team, index) => [team.team, index + 1]));
+      return current.map((team, index) => ({ ...team, currentPosition: index + 1, formPosition: formPosition.get(team.team) ?? null }));
+    },
     [data.teams],
   );
-  const selected = teams.find((team) => team.team === selectedTeam) ?? teams[0];
+  const selected = teams.find((team) => team.team === selectedTeam);
 
-  if (!selected) return <p className="text-sm text-pl-text-faint">No current-season team data is available yet.</p>;
+  if (teams.length === 0) return <p className="text-sm text-pl-text-faint">No current-season team data is available yet.</p>;
 
   return (
     <div className="flex flex-col gap-5">
-      <p className="text-sm text-pl-text-dim">Season-to-date form, underlying chance quality, and style. Select a club for a deeper view.</p>
+      <p className="text-sm text-pl-text-dim">Ordered by current league position. Form rank shows where recent PPG suggests each club belongs; select a club for detail and select it again to collapse.</p>
 
       <div className="overflow-x-auto rounded-xl border border-pl-border bg-pl-850/50">
         <div className={`grid ${COMPARE_ROW_GRID} gap-2 border-b border-pl-border px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-pl-text-faint`}>
           <span />
+          <span />
           <span>Team</span>
+          <span className="text-center">Pos</span>
+          <span className="text-center">Form rank</span>
           <span className="text-center">Goals</span>
           <span className="text-center">Assists</span>
           <span className="text-center">Corners/m</span>
@@ -128,11 +136,12 @@ export function TeamHub({ data }: { data: TeamHubResponse }) {
           {teams.map((team, i) => (
             <div key={team.team}>
               <button
-                onClick={() => setSelectedTeam(team.team)}
+                onClick={() => setSelectedTeam((current) => current === team.team ? null : team.team)}
                 className={`grid w-full ${COMPARE_ROW_GRID} items-center gap-2 px-3 py-2 text-left transition ${
-                  team.team === selected.team ? "bg-pl-pink/10" : "hover:bg-pl-900/40"
-                } ${team.team === selected.team || i === teams.length - 1 ? "" : "border-b border-pl-border/60"}`}
+                  team.team === selectedTeam ? "bg-pl-pink/10" : "hover:bg-pl-900/40"
+                } ${team.team === selectedTeam || i === teams.length - 1 ? "" : "border-b border-pl-border/60"}`}
               >
+                <span aria-hidden className={`text-sm font-bold text-pl-text-faint transition-transform ${team.team === selectedTeam ? "rotate-90" : ""}`}>›</span>
                 <TeamBadge team={team.team} size="sm" />
                 <span className="min-w-0">
                   <span className="block truncate text-xs font-semibold text-pl-text">{team.team}</span>
@@ -143,13 +152,15 @@ export function TeamHub({ data }: { data: TeamHubResponse }) {
                     </span>
                   </span>
                 </span>
+                <StatChip label="Table" value={String(team.currentPosition)} />
+                <StatChip label="Recent" value={team.formPosition === null ? "—" : String(team.formPosition)} />
                 <StatChip label="For-Ag" value={`${team.goals_for}-${team.goals_against}`} />
                 <StatChip label="Total" value={String(team.assists)} />
                 <StatChip label="Per match" value={value(team.corners_per_match)} />
                 <StatChip label="Total" value={value(team.xg_for)} />
                 <StatChip label="Total" value={value(team.xa)} />
               </button>
-              {team.team === selected.team && (
+              {team.team === selectedTeam && selected && (
                 <div className={`border-b border-pl-border bg-pl-900/30 p-4 ${i === teams.length - 1 ? "border-0" : ""}`}>
                   <TeamDetailPanel selected={selected} />
                 </div>
