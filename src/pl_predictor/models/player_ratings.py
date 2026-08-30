@@ -317,7 +317,10 @@ def _calibrate_role_priors(player_seasons: pd.DataFrame, seasons: list[str]) -> 
     evidence["role_median"] = evidence["role_median"].fillna(evidence.groupby("position")["raw_role_evidence"].transform("median"))
     evidence["role_iqr"] = (evidence["role_q75"] - evidence["role_q25"]).fillna(0.0).clip(lower=0.20)
     evidence["season_quality"] = (
-        50.0 + 50.0 * (evidence["raw_role_evidence"] - evidence["role_median"]) / evidence["role_iqr"]
+        # A one-IQR edge over a normal qualifying Premier League season is
+        # strong (75), not automatically world class. The 25-point slope
+        # leaves 85+ for repeated far-above-distribution evidence.
+        50.0 + 25.0 * (evidence["raw_role_evidence"] - evidence["role_median"]) / evidence["role_iqr"]
     ).clip(lower=30.0, upper=95.0)
 
     season_weights = {season: weight for season, weight in zip(seasons, _HISTORICAL_RECENCY_WEIGHTS[-len(seasons):])}
@@ -370,28 +373,40 @@ def build_historical_priors(history: pd.DataFrame) -> dict[str, dict[str, float 
 def rate_bootstrap_elements(
     elements: list[dict], positions: dict[int, str], historical_priors: dict[str, dict[str, float]] | None = None
 ) -> dict[int, dict]:
-    """Return fixed-scale Quality, Form, Overall, and Impact per element."""
+    """Return data-led Quality, Form, Overall, and Impact per element."""
     result: dict[int, dict] = {}
     for element in elements:
         position = positions.get(int(element.get("element_type", 0)), "MID")
         prior = (historical_priors or {}).get(_element_name_key(element), {})
-        quality, driver = _quality_score(element, position, prior_quality=prior.get("quality_rating"))
+        # A legacy caller may pass only a numeric prior, which remains an
+        # established prior for backwards-compatible notebook use. Real
+        # cached records always include an explicit evidence status.
+        status = prior.get("rating_status", "established" if prior.get("quality_rating") is not None else "provisional")
+        _, current_driver = _quality_score(element, position, prior_quality=prior.get("quality_rating"))
+        # Quality is deliberately durable multi-season ability. Current
+        # season output earns the separate Form lift, rather than replacing
+        # a validated prior after one or two matches.
+        quality = float(prior["quality_rating"]) if status == "established" else None
+        driver = prior.get("rating_driver") or current_driver
         form = _form_score(element, position)
         live_form = _live_fpl_form_score(element, position)
-        overall = round(min(100.0, quality + form), 1)
+        overall = round(min(95.0, quality + form), 1) if quality is not None else None
         availability = _availability(element)
         expected_minutes = _expected_minutes(element, availability)
-        impact = round(overall * availability * expected_minutes / 90.0, 1)
+        impact_source = overall if overall is not None else live_form
+        impact = round(impact_source * availability * expected_minutes / 90.0, 1)
         result[int(element["id"])] = {
             "quality_rating": quality,
             "form_rating": form,
             "live_form_rating": live_form,
-            "live_form_vs_quality": round(live_form - quality, 1),
+            "live_form_vs_quality": round(live_form - quality, 1) if quality is not None else None,
             "overall_rating": overall,
             "current_impact_rating": impact,
             "rating_driver": driver,
             "rating_expected_minutes": round(expected_minutes, 1),
-            "rating_model_source": "role_aware_evidence_baseline",
+            "rating_status": status,
+            "rating_evidence_minutes": round(float(prior.get("evidence_minutes", 0.0)), 1),
+            "rating_model_source": "data_led_multiseason_role_evidence",
         }
     return result
 

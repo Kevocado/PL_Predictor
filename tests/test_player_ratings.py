@@ -38,6 +38,7 @@ def test_multi_season_prior_rewards_sustained_elite_role_evidence_not_fpl_points
                 _history_row("Elite Forward", "FWD", "Arsenal", season, goals_scored=28, assists=8, expected_goals=25.0, expected_assists=6.0, expected_goal_involvements=31.0, bps=720, total_points=100),
                 _history_row("Good Forward", "FWD", "Chelsea", season, goals_scored=12, assists=5, expected_goals=12.0, expected_assists=4.0, expected_goal_involvements=16.0, bps=360, total_points=260),
                 _history_row("Average Forward", "FWD", "Everton", season, goals_scored=7, assists=2, expected_goals=7.0, expected_assists=2.0, expected_goal_involvements=9.0, bps=250, total_points=180),
+                *[_history_row(f"Rotation {index}", "FWD", f"Club {index}", season, goals_scored=6, assists=2, expected_goals=6.0, expected_assists=2.0, expected_goal_involvements=8.0, bps=220, total_points=220) for index in range(4)],
             ]
         )
 
@@ -116,6 +117,34 @@ def test_historical_prior_adds_unique_first_last_alias_for_current_fpl_name():
     assert priors["bruno fernandes"]["quality_rating"] == priors["bruno borges fernandes"]["quality_rating"]
 
 
+def test_provisional_player_has_no_rankable_overall_but_keeps_live_form_and_impact():
+    """A missing prior must not silently turn a new signing into a 50-rated player."""
+    newcomer = _element(1, minutes=90, starts=1, goals=1, xg=0.4, xa=0.1)
+    newcomer["form"] = "7.0"
+
+    rating = player_ratings.rate_bootstrap_elements([newcomer], {3: "MID"}, historical_priors={})[1]
+
+    assert rating["rating_status"] == "provisional"
+    assert rating["quality_rating"] is None
+    assert rating["overall_rating"] is None
+    assert rating["live_form_rating"] is not None
+    assert rating["current_impact_rating"] > 0
+
+
+def test_availability_only_changes_impact_for_an_established_player():
+    """Changing injury status must not rewrite durable ability or Overall."""
+    available = _element(1, minutes=900, starts=10, goals=5, xg=4.0, xa=2.0)
+    doubtful = {**available, "id": 2, "status": "d", "chance_of_playing_next_round": 50}
+    priors = {"": {"quality_rating": 80.0, "rating_status": "established", "evidence_minutes": 3_000}}
+
+    ratings = player_ratings.rate_bootstrap_elements([available, doubtful], {3: "MID"}, historical_priors=priors)
+
+    assert ratings[1]["rating_status"] == "established"
+    assert ratings[1]["quality_rating"] == ratings[2]["quality_rating"]
+    assert ratings[1]["overall_rating"] == ratings[2]["overall_rating"]
+    assert ratings[2]["current_impact_rating"] < ratings[1]["current_impact_rating"]
+
+
 def test_role_component_ceilings_are_equalised_across_positions():
     """An equally maxed-out role must earn the same component total."""
     maxed_out = {
@@ -185,12 +214,13 @@ def _element(
     }
 
 
-def test_rating_scale_does_not_make_top_rank_elite():
+def test_missing_history_does_not_make_the_current_top_rank_elite():
     ratings = player_ratings.rate_bootstrap_elements(
         [_element(1, xg=2, xa=2), _element(2, xg=1, xa=1)], {3: "MID"}
     )
 
-    assert max(row["overall_rating"] for row in ratings.values()) < 90
+    assert {row["rating_status"] for row in ratings.values()} == {"provisional"}
+    assert {row["overall_rating"] for row in ratings.values()} == {None}
 
 
 def test_form_needs_minutes_underlying_and_actual_evidence():
@@ -212,17 +242,17 @@ def test_availability_changes_impact_only():
     assert ratings[2]["current_impact_rating"] < ratings[1]["current_impact_rating"]
 
 
-def test_quality_uses_cached_prior_season_evidence_early_in_current_season():
+def test_established_quality_stays_with_the_validated_multi_season_prior_early_in_season():
     current = _element(1, minutes=180, starts=2, xg=1.4, xa=0.1, goals=2)
     current.update({"first_name": "Erling", "second_name": "Haaland"})
 
     ratings = player_ratings.rate_bootstrap_elements(
-        [current], {3: "MID"}, historical_priors={"erling haaland": {"quality_rating": 90.0}}
+        [current], {3: "MID"}, historical_priors={"erling haaland": {"quality_rating": 90.0, "rating_status": "established", "evidence_minutes": 5_000}}
     )
 
-    # The carried-over signal still matters early, but is no longer treated
-    # as a fully earned current-season 90 after only two starts.
-    assert 70 < ratings[1]["quality_rating"] < 80
+    # Current matches earn the separate Form lift. They must not overwrite a
+    # multi-season Ability assessment after two starts.
+    assert ratings[1]["quality_rating"] == 90.0
 
 
 def test_quality_reserves_elite_scores_for_sustained_role_output():
