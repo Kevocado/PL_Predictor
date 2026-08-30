@@ -226,7 +226,9 @@ def build_player_hub(bootstrap: dict) -> dict:
     """Return current FPL form plus fixed-scale role-aware ratings."""
     team_names = {team["id"]: to_canonical(team["name"], source="fpl") for team in bootstrap.get("teams", [])}
     positions = {position["id"]: position["singular_name_short"] for position in bootstrap.get("element_types", [])}
-    ratings = player_ratings.rate_bootstrap_elements(bootstrap.get("elements", []), positions)
+    ratings = player_ratings.rate_bootstrap_elements(
+        bootstrap.get("elements", []), positions, historical_priors=player_ratings.cached_historical_priors()
+    )
     players = []
     for element in bootstrap.get("elements", []):
         team = team_names.get(element["team"], "Unknown")

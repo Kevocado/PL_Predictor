@@ -66,6 +66,28 @@ def test_availability_changes_impact_only():
     assert ratings[2]["current_impact_rating"] < ratings[1]["current_impact_rating"]
 
 
+def test_quality_uses_cached_prior_season_evidence_early_in_current_season():
+    current = _element(1, minutes=180, starts=2, xg=1.4, xa=0.1, goals=2)
+    current.update({"first_name": "Erling", "second_name": "Haaland"})
+
+    ratings = player_ratings.rate_bootstrap_elements(
+        [current], {3: "MID"}, historical_priors={"erling haaland": {"quality_rating": 90.0}}
+    )
+
+    assert ratings[1]["quality_rating"] > 80
+
+
+def test_quality_reserves_elite_scores_for_sustained_role_output():
+    half_season_forward = _element(1, position=4, minutes=1_065, starts=10, goals=6, xg=7.25, xa=1.58)
+    elite_forward = _element(2, position=4, minutes=2_953, starts=34, goals=27, xg=25.5, xa=2.67)
+
+    half_season_quality, _ = player_ratings._quality_score(half_season_forward, "FWD")
+    elite_quality, _ = player_ratings._quality_score(elite_forward, "FWD")
+
+    assert half_season_quality < 75
+    assert elite_quality >= 85
+
+
 def test_role_model_report_uses_role_specific_targets_and_strict_selection():
     rows = []
     for season_index, season in enumerate(("2022-23", "2023-24", "2024-25")):

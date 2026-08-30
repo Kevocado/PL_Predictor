@@ -9,7 +9,14 @@ only score affected by availability for the next gameweek.
 
 from __future__ import annotations
 
+from functools import lru_cache
+import re
+import unicodedata
+
 import pandas as pd
+
+from ..config import FPL_HISTORY_CACHE_DIR
+from ..data import fpl_history
 
 
 ROLE_PRIORS = {"GK": 50.0, "DEF": 50.0, "MID": 50.0, "FWD": 50.0}
@@ -55,39 +62,43 @@ def _role_components(element: dict, position: str) -> dict[str, float]:
     goals = _per90(element, "goals_scored")
     if position == "GK":
         return {
-            "saves": min(18.0, _per90(element, "saves") * 4.0),
-            "clean_sheets": min(17.0, _per90(element, "clean_sheets") * 17.0),
-            "bps": min(13.0, _per90(element, "bps") * 1.5),
+            "saves": min(14.0, _per90(element, "saves") * 3.0),
+            "clean_sheets": min(14.0, _per90(element, "clean_sheets") * 14.0),
+            "bps": min(10.0, _per90(element, "bps") * 1.1),
         }
     if position == "DEF":
         return {
-            "clean_sheets": min(18.0, _per90(element, "clean_sheets") * 18.0),
-            "defensive_contribution": min(12.0, _per90(element, "defensive_contribution") * 0.12),
-            "expected_goal_involvements": min(15.0, xgi * 25.0),
-            "bps": min(8.0, _per90(element, "bps") * 0.9),
+            "clean_sheets": min(12.0, _per90(element, "clean_sheets") * 12.0),
+            "defensive_contribution": min(8.0, _per90(element, "defensive_contribution") * 0.08),
+            "expected_goal_involvements": min(10.0, xgi * 16.0),
+            "bps": min(6.0, _per90(element, "bps") * 0.6),
         }
     if position == "FWD":
         return {
-            "expected_goals": min(28.0, xg * 38.0),
-            "expected_goal_involvements": min(18.0, xgi * 20.0),
-            "goals_scored": min(10.0, goals * 12.0),
+            "expected_goals": min(22.0, xg * 28.0),
+            "expected_goal_involvements": min(14.0, xgi * 13.0),
+            "goals_scored": min(7.0, goals * 7.0),
         }
     return {
-        "expected_goal_involvements": min(26.0, xgi * 25.0),
-        "expected_assists": min(12.0, xa * 15.0),
-        "threat": min(6.0, _per90(element, "threat") * 0.06),
-        "creativity": min(6.0, _per90(element, "creativity") * 0.06),
-        "goals_scored": min(8.0, goals * 9.0),
+        "expected_goal_involvements": min(18.0, xgi * 18.0),
+        "expected_assists": min(8.0, xa * 8.0),
+        "threat": min(4.0, _per90(element, "threat") * 0.03),
+        "creativity": min(4.0, _per90(element, "creativity") * 0.03),
+        "goals_scored": min(5.0, goals * 5.0),
     }
 
 
-def _quality_score(element: dict, position: str) -> tuple[float, str]:
+def _quality_score(element: dict, position: str, prior_quality: float | None = None) -> tuple[float, str]:
     components = _role_components(element, position)
     strongest = max(components, key=components.get, default="expected_goal_involvements")
     raw = min(92.0, ROLE_PRIORS.get(position, 50.0) + sum(components.values()))
     minutes, starts = _number(element.get("minutes")), _number(element.get("starts"))
-    confidence = min(1.0, (minutes / 900.0 + starts / 10.0) / 2.0)
-    quality = ROLE_PRIORS.get(position, 50.0) * (1.0 - confidence) + raw * confidence
+    # A role score needs roughly a full season's opportunity to become a
+    # durable Quality assessment.  This stops a good 10-match spell from
+    # inheriting an elite score while still recognising a full elite season.
+    confidence = min(1.0, (minutes / 1800.0 + starts / 20.0) / 2.0)
+    prior = prior_quality if prior_quality is not None else ROLE_PRIORS.get(position, 50.0)
+    quality = prior * (1.0 - confidence) + raw * confidence
     label = ROLE_LABELS.get(position, ROLE_LABELS["MID"]).get(strongest, strongest.replace("_", " ").title())
     return round(min(92.0, max(0.0, quality)), 1), label
 
@@ -115,12 +126,53 @@ def _form_score(element: dict, position: str) -> float:
     return round(min(15.0, 6.0 * underlying + 5.0 * actual + 4.0 * opportunity), 1)
 
 
-def rate_bootstrap_elements(elements: list[dict], positions: dict[int, str]) -> dict[int, dict]:
+def _normalise_name(value: str) -> str:
+    ascii_value = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii").lower()
+    return re.sub(r"[^a-z0-9]+", " ", ascii_value).strip()
+
+
+def _element_name_key(element: dict) -> str:
+    full_name = " ".join(str(element.get(part, "")).strip() for part in ("first_name", "second_name")).strip()
+    return _normalise_name(full_name or str(element.get("web_name", "")))
+
+
+@lru_cache(maxsize=1)
+def cached_historical_priors() -> dict[str, dict[str, float]]:
+    """Build one local-file prior index; never fetch player history on visit."""
+    frames = []
+    for season in fpl_history.default_completed_seasons(n=2):
+        path = FPL_HISTORY_CACHE_DIR / f"{season}.csv"
+        if path.exists():
+            frame = pd.read_csv(path)
+            frame["season"] = season
+            frames.append(frame)
+    if not frames:
+        return {}
+    history = pd.concat(frames, ignore_index=True)
+    latest = max(history["season"].dropna())
+    latest_history = history[history["season"] == latest]
+    priors: dict[str, dict[str, float]] = {}
+    numeric = ["minutes", "starts", "goals_scored", "expected_goals", "expected_assists", "expected_goal_involvements", "clean_sheets", "saves", "defensive_contribution", "bps", "threat", "creativity"]
+    for (name, position), group in latest_history.groupby(["name", "position"], dropna=False):
+        key = _normalise_name(str(name))
+        if not key or position not in ROLE_PRIORS:
+            continue
+        totals = {field: pd.to_numeric(group[field], errors="coerce").fillna(0).sum() if field in group else 0.0 for field in numeric}
+        totals["appearances"] = len(group[group.get("minutes", 0) > 0])
+        quality, _ = _quality_score(totals, str(position))
+        priors[key] = {"quality_rating": quality}
+    return priors
+
+
+def rate_bootstrap_elements(
+    elements: list[dict], positions: dict[int, str], historical_priors: dict[str, dict[str, float]] | None = None
+) -> dict[int, dict]:
     """Return fixed-scale Quality, Form, Overall, and Impact per element."""
     result: dict[int, dict] = {}
     for element in elements:
         position = positions.get(int(element.get("element_type", 0)), "MID")
-        quality, driver = _quality_score(element, position)
+        prior = (historical_priors or {}).get(_element_name_key(element), {})
+        quality, driver = _quality_score(element, position, prior_quality=prior.get("quality_rating"))
         form = _form_score(element, position)
         overall = round(min(100.0, quality + form), 1)
         availability = _availability(element)
