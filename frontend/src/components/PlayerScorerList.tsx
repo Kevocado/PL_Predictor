@@ -59,6 +59,9 @@ function PlayerRow({ player }: { player: PlayerPrediction }) {
 }
 
 function TeamPlayerPredictions({ team, players }: { team: string; players: PlayerPrediction[] }) {
+  const byContribution = [...players].sort(
+    (left, right) => right.anytime_goal_contribution_prob - left.anytime_goal_contribution_prob,
+  );
   const confirmed = players.some((player) => player.confirmed_starter);
   return (
     <div className="flex flex-col gap-3">
@@ -71,7 +74,7 @@ function TeamPlayerPredictions({ team, players }: { team: string; players: Playe
         />
       </div>
       <div className="flex flex-col gap-1.5">
-        {players.map((player) => <PlayerRow key={player.player_id} player={player} />)}
+        {byContribution.map((player) => <PlayerRow key={player.player_id} player={player} />)}
       </div>
     </div>
   );
