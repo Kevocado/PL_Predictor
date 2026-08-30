@@ -7,6 +7,7 @@ import pandas as pd
 from ..data import fpl_api, understat, understat_shots
 from ..data.team_names import to_canonical
 from ..features import streaks
+from ..models import player_ratings
 
 
 def _number(value) -> float | None:
@@ -222,9 +223,10 @@ def build_team_hub(matches: pd.DataFrame, season: str, bootstrap: dict | None = 
 
 
 def build_player_hub(bootstrap: dict) -> dict:
-    """Return the current FPL season's descriptive player-form table."""
+    """Return current FPL form plus fixed-scale role-aware ratings."""
     team_names = {team["id"]: to_canonical(team["name"], source="fpl") for team in bootstrap.get("teams", [])}
     positions = {position["id"]: position["singular_name_short"] for position in bootstrap.get("element_types", [])}
+    ratings = player_ratings.rate_bootstrap_elements(bootstrap.get("elements", []), positions)
     players = []
     for element in bootstrap.get("elements", []):
         team = team_names.get(element["team"], "Unknown")
@@ -250,7 +252,21 @@ def build_player_hub(bootstrap: dict) -> dict:
                 "bps": int(element.get("bps", 0)),
                 "bonus": int(element.get("bonus", 0)),
                 "news": element.get("news", ""),
+                **ratings.get(int(element["id"]), {}),
             }
         )
-    players.sort(key=lambda player: (player["xgi"] or 0, player["minutes"]), reverse=True)
-    return {"players": players}
+    players.sort(key=lambda player: (player.get("overall_rating", 0), player["minutes"]), reverse=True)
+    leaderboards = {
+        position: sorted(
+            (player for player in players if player["position"] == position),
+            key=lambda player: player.get("overall_rating", 0),
+            reverse=True,
+        )[:5]
+        for position in ("GK", "DEF", "MID", "FWD")
+    }
+    return {
+        "players": players,
+        "leaderboards": leaderboards,
+        "rating_model_source": "role_aware_evidence_baseline",
+        "data_freshness": "cached official FPL bootstrap",
+    }

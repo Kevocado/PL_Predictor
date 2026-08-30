@@ -74,7 +74,7 @@ def test_player_hub_exposes_form_table_stats_without_squad_health():
             "elements": [
                 {
                     "id": 7, "web_name": "Saka", "team": 1, "element_type": 3, "status": "d",
-                    "chance_of_playing_next_round": 50, "minutes": 90, "goals_scored": 1, "assists": 1,
+                    "chance_of_playing_next_round": 50, "minutes": 900, "starts": 10, "appearances": 10, "goals_scored": 1, "assists": 1,
                     "expected_goals": "0.8", "expected_assists": "0.4", "expected_goal_involvements": "1.2",
                     "threat": "44.0", "creativity": "32.0", "ict_index": "7.6", "bps": 25, "bonus": 3, "news": "Knock",
                 }
@@ -84,4 +84,7 @@ def test_player_hub_exposes_form_table_stats_without_squad_health():
 
     assert report["players"][0]["xgi"] == 1.2
     assert report["players"][0]["status"] == "d"
+    assert {"quality_rating", "form_rating", "overall_rating", "current_impact_rating"} <= report["players"][0].keys()
+    assert report["rating_model_source"] == "role_aware_evidence_baseline"
+    assert report["leaderboards"]["MID"][0]["overall_rating"] == report["players"][0]["overall_rating"]
     assert "squad_health" not in report
