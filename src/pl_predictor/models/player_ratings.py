@@ -172,7 +172,7 @@ def _element_name_key(element: dict) -> str:
 def cached_historical_priors() -> dict[str, dict[str, float]]:
     """Build one local-file prior index; never fetch player history on visit."""
     frames = []
-    for season in fpl_history.default_completed_seasons(n=2):
+    for season in fpl_history.default_completed_seasons(n=3):
         path = FPL_HISTORY_CACHE_DIR / f"{season}.csv"
         if path.exists():
             frame = pd.read_csv(path)
@@ -180,20 +180,191 @@ def cached_historical_priors() -> dict[str, dict[str, float]]:
             frames.append(frame)
     if not frames:
         return {}
-    history = pd.concat(frames, ignore_index=True)
-    latest = max(history["season"].dropna())
-    latest_history = history[history["season"] == latest]
-    priors: dict[str, dict[str, float]] = {}
-    numeric = ["minutes", "starts", "goals_scored", "expected_goals", "expected_assists", "expected_goal_involvements", "clean_sheets", "saves", "defensive_contribution", "bps", "threat", "creativity"]
-    for (name, position), group in latest_history.groupby(["name", "position"], dropna=False):
-        key = _normalise_name(str(name))
-        if not key or position not in ROLE_PRIORS:
-            continue
-        totals = {field: pd.to_numeric(group[field], errors="coerce").fillna(0).sum() if field in group else 0.0 for field in numeric}
-        totals["appearances"] = len(group[group.get("minutes", 0) > 0])
-        quality, _ = _quality_score(totals, str(position))
-        priors[key] = {"quality_rating": quality}
+    return build_historical_priors(pd.concat(frames, ignore_index=True))
+
+
+_HISTORICAL_PRIOR_COLUMNS = (
+    "minutes", "starts", "goals_scored", "assists", "expected_goals",
+    "expected_assists", "expected_goal_involvements", "clean_sheets",
+    "saves", "goals_conceded", "defensive_contribution", "bps",
+)
+_HISTORICAL_RECENCY_WEIGHTS = (0.15, 0.30, 0.55)
+_PROVISIONAL_MINUTES = 900.0
+_FULL_EVIDENCE_MINUTES = 1800.0
+
+
+def _latest_positioned_seasons(history: pd.DataFrame, limit: int = 3) -> list[str]:
+    if "season" not in history or "position" not in history:
+        return []
+    positioned = history[history["position"].isin(ROLE_PRIORS)]
+    return sorted(str(season) for season in positioned["season"].dropna().unique())[-limit:]
+
+
+def _history_numeric(frame: pd.DataFrame, column: str) -> pd.Series:
+    if column not in frame:
+        return pd.Series(0.0, index=frame.index)
+    return pd.to_numeric(frame[column], errors="coerce").fillna(0.0)
+
+
+def _historical_name_aliases(name_key: str) -> set[str]:
+    """Conservative aliases for FPL archive full names versus bootstrap names."""
+    parts = name_key.split()
+    aliases = {name_key}
+    if len(parts) >= 2:
+        aliases.add(f"{parts[0]} {parts[-1]}")
+        aliases.add(" ".join(parts[:2]))
+    return aliases
+
+
+def _aggregate_player_seasons(history: pd.DataFrame) -> pd.DataFrame:
+    """Aggregate only observed pre-existing player-season data.
+
+    Team defensive baselines are calculated from goalkeeper minutes before
+    collapsing player rows. That prevents raw saves or a team clean-sheet
+    record from being treated as an individual player's whole ability.
+    """
+    rows = history.copy()
+    rows["name_key"] = rows["name"].astype(str).map(_normalise_name)
+    rows = rows[(rows["name_key"] != "") & rows["position"].isin(ROLE_PRIORS)].copy()
+    for column in _HISTORICAL_PRIOR_COLUMNS:
+        rows[column] = _history_numeric(rows, column)
+    rows = rows[rows["minutes"] > 0].copy()
+    if rows.empty:
+        return rows
+
+    gk = rows[rows["position"] == "GK"]
+    team_baseline = gk.groupby(["season", "team"], as_index=False).agg(
+        team_gk_minutes=("minutes", "sum"), team_gk_goals_conceded=("goals_conceded", "sum"),
+    )
+    team_baseline["team_goals_conceded_per90"] = (
+        team_baseline["team_gk_goals_conceded"] * 90.0 / team_baseline["team_gk_minutes"].clip(lower=1.0)
+    )
+    rows = rows.merge(
+        team_baseline[["season", "team", "team_goals_conceded_per90"]],
+        on=["season", "team"], how="left",
+    )
+    rows["team_goals_conceded_per90"] = rows["team_goals_conceded_per90"].fillna(
+        rows["goals_conceded"] * 90.0 / rows["minutes"].clip(lower=1.0)
+    )
+    rows["prevention_above_team"] = (
+        rows["team_goals_conceded_per90"] * rows["minutes"] / 90.0 - rows["goals_conceded"]
+    )
+    grouped = rows.groupby(["name_key", "position", "season"], as_index=False).agg(
+        **{column: (column, "sum") for column in _HISTORICAL_PRIOR_COLUMNS},
+        prevention_above_team=("prevention_above_team", "sum"),
+    )
+    grouped["prevention_per90"] = grouped["prevention_above_team"] * 90.0 / grouped["minutes"].clip(lower=1.0)
+    return grouped
+
+
+def _historical_role_evidence(row: pd.Series) -> tuple[float, str]:
+    minutes = max(float(row["minutes"]), 1.0)
+
+    def per90(column: str) -> float:
+        return float(row.get(column, 0.0)) * 90.0 / minutes
+
+    xg, xa, xgi = per90("expected_goals"), per90("expected_assists"), per90("expected_goal_involvements")
+    output = per90("goals_scored") + per90("assists")
+    bps = per90("bps")
+    position = str(row["position"])
+    if position == "GK":
+        components = {
+            "clean_sheets": per90("clean_sheets") * 1.8,
+            "shot_prevention": max(-1.5, min(1.5, float(row["prevention_per90"]))) * 2.6,
+            "bonus_point_system": bps * 0.04,
+            "save_support": min(4.0, per90("saves")) * 0.05,
+        }
+    elif position == "DEF":
+        components = {
+            "team_adjusted_prevention": max(-1.5, min(1.5, float(row["prevention_per90"]))) * 1.8,
+            "clean_sheets": per90("clean_sheets") * 1.4,
+            "defensive_contribution": per90("defensive_contribution") * 0.025,
+            "expected_goal_involvements": xgi * 1.5,
+            "bonus_point_system": bps * 0.025,
+        }
+    elif position == "MID":
+        components = {
+            "expected_goal_involvements": xgi * 1.8,
+            "chance_creation": xa * 1.1,
+            "goal_contributions": output * 0.6,
+            "bonus_point_system": bps * 0.02,
+        }
+    else:
+        components = {
+            "expected_goals": xg * 1.8,
+            "expected_goal_involvements": xgi * 1.1,
+            "goal_contributions": output * 0.6,
+            "bonus_point_system": bps * 0.02,
+        }
+    driver = max(components, key=components.get)
+    return sum(components.values()), driver
+
+
+def _calibrate_role_priors(player_seasons: pd.DataFrame, seasons: list[str]) -> dict[str, dict[str, float | str]]:
+    if player_seasons.empty:
+        return {}
+    evidence = player_seasons.copy()
+    values = evidence.apply(_historical_role_evidence, axis=1)
+    evidence["raw_role_evidence"] = [value for value, _ in values]
+    evidence["rating_driver_key"] = [driver for _, driver in values]
+    qualifying = evidence[evidence["minutes"] >= _PROVISIONAL_MINUTES]
+    anchors = qualifying.groupby("position")["raw_role_evidence"].agg(
+        role_median="median",
+        role_q25=lambda series: series.quantile(0.25),
+        role_q75=lambda series: series.quantile(0.75),
+    )
+    evidence = evidence.join(anchors, on="position")
+    evidence["role_median"] = evidence["role_median"].fillna(evidence.groupby("position")["raw_role_evidence"].transform("median"))
+    evidence["role_iqr"] = (evidence["role_q75"] - evidence["role_q25"]).fillna(0.0).clip(lower=0.20)
+    evidence["season_quality"] = (
+        50.0 + 50.0 * (evidence["raw_role_evidence"] - evidence["role_median"]) / evidence["role_iqr"]
+    ).clip(lower=30.0, upper=95.0)
+
+    season_weights = {season: weight for season, weight in zip(seasons, _HISTORICAL_RECENCY_WEIGHTS[-len(seasons):])}
+    evidence["recency_weight"] = evidence["season"].map(season_weights).fillna(0.0)
+    evidence["weighted_minutes"] = evidence["minutes"].clip(upper=_FULL_EVIDENCE_MINUTES) * evidence["recency_weight"]
+    priors: dict[str, dict[str, float | str]] = {}
+    for name_key, group in evidence.groupby("name_key"):
+        evidence_minutes = float(group["minutes"].sum())
+        weighted_minutes = float(group["weighted_minutes"].sum())
+        if weighted_minutes:
+            weighted_quality = float((group["season_quality"] * group["weighted_minutes"]).sum() / weighted_minutes)
+        else:
+            weighted_quality = 50.0
+        confidence = min(1.0, evidence_minutes / _FULL_EVIDENCE_MINUTES)
+        quality = 50.0 + (weighted_quality - 50.0) * confidence
+        qualifying_seasons = int((group["minutes"] >= _PROVISIONAL_MINUTES).sum())
+        status = "established" if evidence_minutes >= _PROVISIONAL_MINUTES else "provisional"
+        # A single full season is enough to be useful, but not enough to
+        # represent a sustained world-class level. Current Form can still
+        # add a separate lift once the player has actually featured.
+        if qualifying_seasons < 2:
+            quality = min(76.0, quality)
+        latest = group.sort_values("season").iloc[-1]
+        priors[name_key] = {
+            "quality_rating": round(float(min(95.0, max(30.0, quality))), 1),
+            "evidence_minutes": round(evidence_minutes, 1),
+            "rating_status": status,
+            "rating_driver": ROLE_LABELS.get(str(latest["position"]), {}).get(
+                str(latest["rating_driver_key"]), str(latest["rating_driver_key"]).replace("_", " ").title()
+            ),
+        }
+    aliases: dict[str, set[str]] = {}
+    for name_key in priors:
+        for alias in _historical_name_aliases(name_key):
+            aliases.setdefault(alias, set()).add(name_key)
+    for alias, candidates in aliases.items():
+        if len(candidates) == 1:
+            priors.setdefault(alias, dict(priors[next(iter(candidates))]))
     return priors
+
+
+def build_historical_priors(history: pd.DataFrame) -> dict[str, dict[str, float | str]]:
+    """Return a stable, local-file-only historical ability index."""
+    seasons = _latest_positioned_seasons(history)
+    if not seasons:
+        return {}
+    return _calibrate_role_priors(_aggregate_player_seasons(history[history["season"].astype(str).isin(seasons)]), seasons)
 
 
 def rate_bootstrap_elements(

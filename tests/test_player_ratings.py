@@ -5,6 +5,117 @@ from pl_predictor.features.player_form import build_historical_player_form
 from pl_predictor.models import player_ratings
 
 
+def _history_row(name, position, team, season, **overrides):
+    row = {
+        "name": name,
+        "position": position,
+        "team": team,
+        "season": season,
+        "minutes": 1_900,
+        "starts": 22,
+        "goals_scored": 8,
+        "assists": 4,
+        "expected_goals": 9.0,
+        "expected_assists": 4.0,
+        "expected_goal_involvements": 13.0,
+        "clean_sheets": 5,
+        "saves": 60,
+        "goals_conceded": 30,
+        "defensive_contribution": 80,
+        "bps": 360,
+        "total_points": 120,
+    }
+    row.update(overrides)
+    return row
+
+
+def test_multi_season_prior_rewards_sustained_elite_role_evidence_not_fpl_points():
+    """Replacing observed role evidence with FPL points must not decide ability."""
+    rows = []
+    for season in ("2023-24", "2024-25", "2025-26"):
+        rows.extend(
+            [
+                _history_row("Elite Forward", "FWD", "Arsenal", season, goals_scored=28, assists=8, expected_goals=25.0, expected_assists=6.0, expected_goal_involvements=31.0, bps=720, total_points=100),
+                _history_row("Good Forward", "FWD", "Chelsea", season, goals_scored=12, assists=5, expected_goals=12.0, expected_assists=4.0, expected_goal_involvements=16.0, bps=360, total_points=260),
+                _history_row("Average Forward", "FWD", "Everton", season, goals_scored=7, assists=2, expected_goals=7.0, expected_assists=2.0, expected_goal_involvements=9.0, bps=250, total_points=180),
+            ]
+        )
+
+    priors = player_ratings.build_historical_priors(pd.DataFrame(rows))
+
+    assert priors["elite forward"]["quality_rating"] >= 85
+    assert priors["elite forward"]["quality_rating"] > priors["good forward"]["quality_rating"]
+    assert priors["elite forward"]["rating_status"] == "established"
+
+
+def test_goalkeeper_saves_without_prevention_advantage_cannot_become_elite():
+    """Raw saves should not make a busy keeper appear world class."""
+    rows = []
+    for season in ("2023-24", "2024-25", "2025-26"):
+        rows.extend(
+            [
+                _history_row("Busy Keeper", "GK", "Leeds", season, saves=500, clean_sheets=1, goals_conceded=62, bps=420),
+                _history_row("Leeds Reserve", "GK", "Leeds", season, minutes=100, saves=20, clean_sheets=0, goals_conceded=3, bps=20),
+                _history_row("Elite Keeper", "GK", "Arsenal", season, saves=80, clean_sheets=16, goals_conceded=20, bps=540),
+                _history_row("Arsenal Reserve", "GK", "Arsenal", season, minutes=100, saves=4, clean_sheets=1, goals_conceded=1, bps=20),
+                _history_row("Average Keeper", "GK", "Fulham", season, saves=95, clean_sheets=7, goals_conceded=33, bps=360),
+            ]
+        )
+
+    priors = player_ratings.build_historical_priors(pd.DataFrame(rows))
+
+    assert priors["busy keeper"]["quality_rating"] < 70
+    assert priors["elite keeper"]["quality_rating"] > priors["busy keeper"]["quality_rating"]
+
+
+def test_insufficient_recent_history_is_provisional():
+    """Removing the evidence threshold would silently rank a 300-minute player."""
+    history = pd.DataFrame([
+        _history_row("New Signing", "MID", "Chelsea", "2025-26", minutes=300, starts=3, goals_scored=4, expected_goals=4.0, expected_goal_involvements=5.0),
+        _history_row("Established Mid", "MID", "Arsenal", "2025-26"),
+        _history_row("Established Mid", "MID", "Arsenal", "2024-25"),
+        _history_row("Established Mid", "MID", "Arsenal", "2023-24"),
+    ])
+
+    priors = player_ratings.build_historical_priors(history)
+
+    assert priors["new signing"]["rating_status"] == "provisional"
+    assert priors["new signing"]["evidence_minutes"] == 300
+
+
+def test_one_strong_season_cannot_claim_a_sustained_elite_quality_rating():
+    """Removing the multi-season cap would recreate Darlow-like false elites."""
+    rows = []
+    for season in ("2023-24", "2024-25", "2025-26"):
+        rows.extend(
+            [
+                _history_row("Good Forward", "FWD", "Chelsea", season, goals_scored=12, assists=5, expected_goals=12.0, expected_assists=4.0, expected_goal_involvements=16.0),
+                _history_row("Average Forward", "FWD", "Everton", season, goals_scored=7, assists=2, expected_goals=7.0, expected_assists=2.0, expected_goal_involvements=9.0),
+            ]
+        )
+    rows.append(_history_row("Single Season Star", "FWD", "Leeds", "2025-26", goals_scored=30, assists=10, expected_goals=28.0, expected_assists=8.0, expected_goal_involvements=36.0))
+
+    prior = player_ratings.build_historical_priors(pd.DataFrame(rows))["single season star"]
+
+    assert prior["rating_status"] == "established"
+    assert prior["quality_rating"] <= 76
+
+
+def test_historical_prior_adds_unique_first_last_alias_for_current_fpl_name():
+    """Dropping aliases would make Bruno Borges Fernandes vanish from Bruno Fernandes's prior."""
+    history = pd.DataFrame([
+        _history_row("Bruno Borges Fernandes", "MID", "Man United", "2023-24"),
+        _history_row("Bruno Borges Fernandes", "MID", "Man United", "2024-25"),
+        _history_row("Bruno Borges Fernandes", "MID", "Man United", "2025-26"),
+        _history_row("Other Mid", "MID", "Arsenal", "2025-26"),
+    ])
+
+    priors = player_ratings.build_historical_priors(history)
+
+    assert priors["bruno fernandes"]["rating_status"] == "established"
+    assert priors["bruno fernandes"]["quality_rating"] == priors["bruno borges fernandes"]["quality_rating"]
+
+
 def test_role_component_ceilings_are_equalised_across_positions():
     """An equally maxed-out role must earn the same component total."""
     maxed_out = {
