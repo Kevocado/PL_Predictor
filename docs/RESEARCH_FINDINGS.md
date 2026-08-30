@@ -258,6 +258,20 @@ these three didn't.
   0.99526), although ECE improved (0.07054 → 0.06370). It therefore fails
   the first promotion gate; a full multi-fold run is still useful evidence,
   but cannot reverse this latest-fold regression on its own.
+- **Calibration re-check (2026-08-30): still not a main-model feature.** Two
+  genuine rating defects were fixed before repeating the test: unused players
+  no longer carry a prior-season rating at full value (a 90 prior becomes 76
+  before current minutes arrive), and each position now has the same maximum
+  component contribution instead of letting forwards/defenders reach higher
+  Quality ceilings simply because their hand-tuned cap totals were larger.
+  That made the single fixed holdout better (RPS `0.207756 → 0.206592`,
+  Brier `0.616104 → 0.613800`, log loss `1.024854 → 1.022431`), but the
+  five-season result went the wrong way on average: RPS `0.199654 →
+  0.200036`, Brier `0.580457 → 0.581152`, and log loss `0.975841 →
+  0.977100`. It also made RPS worse in four of the five seasons. ECE improved
+  (`0.037271 → 0.032654`), but that does not outweigh the probability-score
+  regression. So the Player Hub calibration fix is kept, while the aggregate
+  team-strength feature remains rejected rather than being fed to XGBoost.
 
 - **Cards features from EXP-2026-11's dominance study** won 3 of 5 folds
   outright but were inconclusive on the most-recent-season check — the

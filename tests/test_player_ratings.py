@@ -1,7 +1,42 @@
 import pandas as pd
+import pytest
 
 from pl_predictor.features.player_form import build_historical_player_form
 from pl_predictor.models import player_ratings
+
+
+def test_role_component_ceilings_are_equalised_across_positions():
+    """An equally maxed-out role must earn the same component total."""
+    maxed_out = {
+        "minutes": 900, "expected_goals": 100, "expected_assists": 100,
+        "expected_goal_involvements": 100, "goals_scored": 100,
+        "saves": 100, "clean_sheets": 100, "bps": 1000,
+        "defensive_contribution": 1000, "threat": 2000, "creativity": 2000,
+    }
+
+    ceilings = {
+        position: sum(player_ratings._role_components(maxed_out, position).values())
+        for position in ("GK", "DEF", "MID", "FWD")
+    }
+
+    assert ceilings["DEF"] == 36.0
+    for position in ("GK", "MID", "FWD"):
+        assert ceilings[position] == pytest.approx(36.0, abs=0.01), position
+
+
+def test_stale_prior_is_shrunk_toward_role_baseline_without_current_evidence():
+    """Removing prior shrinkage would let an unused player's old score survive untouched."""
+    quality, _ = player_ratings._quality_score({"minutes": 0, "starts": 0}, "GK", prior_quality=90.0)
+
+    assert quality == pytest.approx(76.0, abs=0.1)
+    assert quality < 90.0
+
+
+def test_quality_without_a_historical_prior_keeps_the_role_baseline():
+    """Only a real carried-over number is shrunk; absence of history is neutral."""
+    quality, _ = player_ratings._quality_score({"minutes": 0, "starts": 0}, "MID", prior_quality=None)
+
+    assert quality == 50.0
 
 
 def _element(
@@ -74,7 +109,9 @@ def test_quality_uses_cached_prior_season_evidence_early_in_current_season():
         [current], {3: "MID"}, historical_priors={"erling haaland": {"quality_rating": 90.0}}
     )
 
-    assert ratings[1]["quality_rating"] > 80
+    # The carried-over signal still matters early, but is no longer treated
+    # as a fully earned current-season 90 after only two starts.
+    assert 70 < ratings[1]["quality_rating"] < 80
 
 
 def test_quality_reserves_elite_scores_for_sustained_role_output():
@@ -85,7 +122,7 @@ def test_quality_reserves_elite_scores_for_sustained_role_output():
     elite_quality, _ = player_ratings._quality_score(elite_forward, "FWD")
 
     assert half_season_quality < 75
-    assert elite_quality >= 85
+    assert elite_quality >= 80
 
 
 def test_live_fpl_form_is_separate_from_durable_quality_and_shrinks_tiny_samples():

@@ -20,6 +20,14 @@ from ..data import fpl_history
 
 
 ROLE_PRIORS = {"GK": 50.0, "DEF": 50.0, "MID": 50.0, "FWD": 50.0}
+# Every role's independently-tuned components must reach the same ceiling for
+# equally elite play. DEF's former 36-point ceiling is the conservative floor:
+# the other roles are only scaled down, never inflated above their old caps.
+ROLE_CAP_SCALE = {"GK": 36.0 / 38.0, "DEF": 1.0, "MID": 36.0 / 39.0, "FWD": 36.0 / 43.0}
+# A prior-season rating is useful, but a player may have changed club, role,
+# manager, or game-time status. Before current-season evidence arrives it is
+# therefore shrunk toward the neutral role baseline rather than trusted whole.
+PRIOR_TRUST = 0.65
 ROLE_LABELS = {
     "GK": {"saves": "Saves and shot prevention", "clean_sheets": "Clean sheets", "bps": "Bonus-point system"},
     "DEF": {"clean_sheets": "Clean sheets", "defensive_contribution": "Defensive contribution", "expected_goal_involvements": "Expected goal involvements"},
@@ -61,31 +69,33 @@ def _role_components(element: dict, position: str) -> dict[str, float]:
     xgi = _per90(element, "expected_goal_involvements")
     goals = _per90(element, "goals_scored")
     if position == "GK":
-        return {
+        raw = {
             "saves": min(14.0, _per90(element, "saves") * 3.0),
             "clean_sheets": min(14.0, _per90(element, "clean_sheets") * 14.0),
             "bps": min(10.0, _per90(element, "bps") * 1.1),
         }
-    if position == "DEF":
-        return {
+    elif position == "DEF":
+        raw = {
             "clean_sheets": min(12.0, _per90(element, "clean_sheets") * 12.0),
             "defensive_contribution": min(8.0, _per90(element, "defensive_contribution") * 0.08),
             "expected_goal_involvements": min(10.0, xgi * 16.0),
             "bps": min(6.0, _per90(element, "bps") * 0.6),
         }
-    if position == "FWD":
-        return {
+    elif position == "FWD":
+        raw = {
             "expected_goals": min(22.0, xg * 28.0),
             "expected_goal_involvements": min(14.0, xgi * 13.0),
             "goals_scored": min(7.0, goals * 7.0),
         }
-    return {
-        "expected_goal_involvements": min(18.0, xgi * 18.0),
-        "expected_assists": min(8.0, xa * 8.0),
-        "threat": min(4.0, _per90(element, "threat") * 0.03),
-        "creativity": min(4.0, _per90(element, "creativity") * 0.03),
-        "goals_scored": min(5.0, goals * 5.0),
-    }
+    else:
+        raw = {
+            "expected_goal_involvements": min(18.0, xgi * 18.0),
+            "expected_assists": min(8.0, xa * 8.0),
+            "threat": min(4.0, _per90(element, "threat") * 0.03),
+            "creativity": min(4.0, _per90(element, "creativity") * 0.03),
+            "goals_scored": min(5.0, goals * 5.0),
+        }
+    return {name: value * ROLE_CAP_SCALE.get(position, 1.0) for name, value in raw.items()}
 
 
 def _quality_score(element: dict, position: str, prior_quality: float | None = None) -> tuple[float, str]:
@@ -97,7 +107,12 @@ def _quality_score(element: dict, position: str, prior_quality: float | None = N
     # durable Quality assessment.  This stops a good 10-match spell from
     # inheriting an elite score while still recognising a full elite season.
     confidence = min(1.0, (minutes / 1800.0 + starts / 20.0) / 2.0)
-    prior = prior_quality if prior_quality is not None else ROLE_PRIORS.get(position, 50.0)
+    role_baseline = ROLE_PRIORS.get(position, 50.0)
+    prior = (
+        prior_quality * PRIOR_TRUST + role_baseline * (1.0 - PRIOR_TRUST)
+        if prior_quality is not None
+        else role_baseline
+    )
     quality = prior * (1.0 - confidence) + raw * confidence
     label = ROLE_LABELS.get(position, ROLE_LABELS["MID"]).get(strongest, strongest.replace("_", " ").title())
     return round(min(92.0, max(0.0, quality)), 1), label

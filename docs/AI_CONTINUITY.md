@@ -1477,6 +1477,33 @@ experiment; negative evidence prevents repeated work.
 - **Status:** research-only, not deployed. `evaluate/goal_contribution_research.py` builds legal expected XIs exclusively from shifted starts and minutes, then aggregates shifted Quality plus capped Form into exactly eight fields: home/away GK, DEF, MID, and FWD unit strength.
 - **Promotion rule:** a manual reviewer must confirm lower mean RPS, no Brier/ECE/log-loss calibration regression, and a non-regressing newest fold. Coverage and feature-importance output are evidence only; no result may append these fields to the live scoreline model or manifest automatically.
 - **Leakage boundary:** realised current-fixture lineup, minutes, availability, and outputs are prohibited. Availability is only eligible for the separate prospective confirmed-XI track.
+- **Follow-up (2026-08-30): corrected cross-position Quality calibration and
+  re-ran the complete experiment.** The live Player Hub had been capable of
+  displaying a 0-minute player at the full strength of a prior-season score.
+  Carried priors are now shrunk 35% toward the neutral role baseline before
+  current-season evidence blends in (a 90 prior with 0 minutes is now 76,
+  not 90). Separately, live role-component ceilings are rescaled down to the
+  old DEF floor of 36 (GK 38, MID 39, FWD 43 before the fix), while the
+  independent shifted historical implementation is rescaled down to its old
+  MID floor of 46 (GK 48, DEF 53, FWD 56 before the fix). No form, live-form,
+  expected-XI legality, or no-lookahead logic changed.
+
+  | Check | Model | RPS | Brier | Log loss | ECE |
+  | --- | --- | ---: | ---: | ---: | ---: |
+  | Fixed holdout | production features | 0.207756 | 0.616104 | 1.024854 | 0.026097 |
+  | Fixed holdout | corrected player aggregates | **0.206592** | **0.613800** | **1.022431** | 0.029203 |
+  | 5-fold mean | production features | **0.199654** | **0.580457** | **0.975841** | 0.037271 |
+  | 5-fold mean | corrected role units | 0.200036 | 0.581152 | 0.977100 | **0.032654** |
+
+  The holdout improves RPS/Brier/log loss but worsens ECE. More importantly,
+  the corrected candidate worsens all three primary mean walk-forward metrics
+  (Δ RPS +0.000382, Brier +0.000695, log loss +0.001259) and worsens RPS in
+  four of five validation seasons. The newest 2025-26 fold improves RPS by
+  only 0.000024 while worsening Brier and log loss. **Decision: still
+  rejected for the live scoreline model.** The calibration fix remains live
+  for descriptive Player Hub ratings; the eight team-unit fields remain
+  research-only and must not be wired into `features/build.py` or the
+  manifest. Raw tables: `/tmp/exp-2026-21-recheck-report.md`.
 
 ### EXP-2026-20 — forecast-time coverage, confirmed-XI, and metric-specific gates
 

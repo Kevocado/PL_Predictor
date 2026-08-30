@@ -179,11 +179,16 @@ def _historical_role_quality(rows: pd.DataFrame) -> pd.Series:
     clean_sheets = _column(rows, "clean_sheets_per90_last10")
     bps = _column(rows, "bps_last10")
     defensive = _column(rows, "defensive_contribution_last10")
+    # This is intentionally separate from the live rating implementation:
+    # shifted historical fields have a different shape. Its independently
+    # tuned caps were GK 48, DEF 53, MID 46, FWD 56, so scale every role down
+    # to MID's smallest existing ceiling before it becomes a team unit.
+    role_cap_scale = {"GK": 46.0 / 48.0, "DEF": 46.0 / 53.0, "MID": 1.0, "FWD": 46.0 / 56.0}
     raw = pd.Series(50.0, index=rows.index)
-    raw += np.where(position == "GK", np.minimum(18, saves * 4) + np.minimum(17, clean_sheets * 17) + np.minimum(13, bps * 1.5), 0)
-    raw += np.where(position == "DEF", np.minimum(18, clean_sheets * 18) + np.minimum(12, defensive * .12) + np.minimum(15, xgi * 25) + np.minimum(8, bps * .9), 0)
-    raw += np.where(position == "MID", np.minimum(26, xgi * 25) + np.minimum(12, xa * 15) + np.minimum(8, goals * 9), 0)
-    raw += np.where(position == "FWD", np.minimum(28, xg * 38) + np.minimum(18, xgi * 20) + np.minimum(10, goals * 12), 0)
+    raw += np.where(position == "GK", (np.minimum(18, saves * 4) + np.minimum(17, clean_sheets * 17) + np.minimum(13, bps * 1.5)) * role_cap_scale["GK"], 0)
+    raw += np.where(position == "DEF", (np.minimum(18, clean_sheets * 18) + np.minimum(12, defensive * .12) + np.minimum(15, xgi * 25) + np.minimum(8, bps * .9)) * role_cap_scale["DEF"], 0)
+    raw += np.where(position == "MID", (np.minimum(26, xgi * 25) + np.minimum(12, xa * 15) + np.minimum(8, goals * 9)) * role_cap_scale["MID"], 0)
+    raw += np.where(position == "FWD", (np.minimum(28, xg * 38) + np.minimum(18, xgi * 20) + np.minimum(10, goals * 12)) * role_cap_scale["FWD"], 0)
     confidence = ((_column(rows, "starts_last10") * 10 / 10) + (_column(rows, "minutes_ema") / 90)) / 2
     return (50.0 + (raw.clip(upper=92.0) - 50.0) * confidence.clip(0, 1)).clip(0, 92)
 

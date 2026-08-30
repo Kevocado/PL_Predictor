@@ -1,10 +1,48 @@
 import pandas as pd
+import pytest
 
 from pl_predictor.evaluate.goal_contribution_research import (
+    _historical_role_quality,
     build_goal_contribution_frame,
     build_projected_team_player_features,
     summarise_team_unit_experiment,
 )
+
+
+def test_historical_role_quality_ceilings_are_equalised_across_positions():
+    """The no-lookahead research feature must not grant a role a higher ceiling."""
+    maxed_out = pd.DataFrame(
+        [
+            {
+                "position": "GK", "saves_per90_last10": 2.25,
+                "clean_sheets_per90_last10": 0.5, "bps_last10": 13 / 3,
+                "starts_last10": 10.0,
+                "minutes_ema": 90.0,
+            },
+            {
+                "position": "DEF", "clean_sheets_per90_last10": 0.5,
+                "defensive_contribution_last10": 50.0,
+                "expected_goal_involvements_per90_last10": 0.3,
+                "bps_last10": 40 / 9, "starts_last10": 10.0, "minutes_ema": 90.0,
+            },
+            {
+                "position": "MID", "expected_goal_involvements_per90_last10": 0.52,
+                "expected_assists_per90_last10": 0.4, "goals_per90_last10": 4 / 9,
+                "starts_last10": 10.0, "minutes_ema": 90.0,
+            },
+            {
+                "position": "FWD", "expected_goals_per90_last10": 14 / 38,
+                "expected_goal_involvements_per90_last10": 0.45,
+                "goals_per90_last10": 5 / 12, "starts_last10": 10.0, "minutes_ema": 90.0,
+            },
+        ]
+    )
+
+    result = _historical_role_quality(maxed_out)
+
+    # Each role contributes 50% of its former own ceiling. Rescaling makes
+    # that 23 points for every role, well below the global 92 cap.
+    assert result.tolist() == pytest.approx([73.0, 73.0, 73.0, 73.0], abs=0.1)
 
 
 def test_goal_contribution_frame_has_only_prior_form_features():
