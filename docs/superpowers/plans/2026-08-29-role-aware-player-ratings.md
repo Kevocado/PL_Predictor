@@ -94,7 +94,7 @@ Commit: `git add src/pl_predictor/models/player_ratings.py tests/test_player_rat
 - Consumes: Task 1 rating dictionary and current bootstrap.
 - Produces: `build_player_hub()` player records with all four scores; leaderboards sorted by Overall.
 
-- [ ] **Step 1: Write the failing response-shape test**
+- [x] **Step 1: Write the failing response-shape test**
 
 ```python
 report = hub_analytics.build_player_hub(bootstrap)
@@ -103,13 +103,13 @@ assert {"quality_rating", "form_rating", "overall_rating", "current_impact_ratin
 assert report["leaderboards"]["GK"][0]["overall_rating"] >= report["leaderboards"]["GK"][-1]["overall_rating"]
 ```
 
-- [ ] **Step 2: Confirm the response test fails**
+- [x] **Step 2: Confirm the response test fails**
 
 Run: `PYTHONPATH="$(pwd)/src" python -m pytest tests/test_hub_analytics.py tests/test_public_snapshot_routes.py -q`
 
 Expected: FAIL because Form/Overall are missing and leaderboards sort by Quality.
 
-- [ ] **Step 3: Implement Hub serialisation and ordering**
+- [x] **Step 3: Implement Hub serialisation and ordering**
 
 ```python
 players.sort(key=lambda player: (player.get("overall_rating", 0), player["minutes"]), reverse=True)
@@ -118,7 +118,7 @@ leaderboards = {position: sorted(role_players, key=lambda player: player.get("ov
 
 Return source `role_aware_evidence_baseline`, preserve cached-bootstrap freshness, and retain the existing 300-second route cache.
 
-- [ ] **Step 4: Verify and commit**
+- [x] **Step 4: Verify and commit**
 
 Run: `PYTHONPATH="$(pwd)/src" python -m pytest tests/test_hub_analytics.py tests/test_public_snapshot_routes.py -q`
 
@@ -136,7 +136,7 @@ Commit: `git add src/pl_predictor/api/hub_analytics.py tests/test_hub_analytics.
 - Consumes: `PlayerHubPlayer.overall_rating`, `quality_rating`, `form_rating`, `current_impact_rating`, driver, source, freshness.
 - Produces: an Overall-ranked sortable table and per-position top-five Overall leaderboards.
 
-- [ ] **Step 1: Add failing type references**
+- [x] **Step 1: Add failing type references**
 
 ```ts
 overall_rating: number;
@@ -147,13 +147,13 @@ current_impact_rating: number;
 
 Add `overall_rating` and `form_rating` to `SortKey`; put score columns Overall, Quality, Form, Impact.
 
-- [ ] **Step 2: Check that the old frontend fails to build**
+- [x] **Step 2: Check that the old frontend fails to build**
 
 Run: `cd frontend && npm run build`
 
 Expected: FAIL until response types/table cells agree.
 
-- [ ] **Step 3: Implement transparent display hierarchy**
+- [x] **Step 3: Implement transparent display hierarchy**
 
 ```tsx
 <p>Overall combines durable role-aware Quality with a capped current Form lift. Impact then accounts for availability and expected minutes.</p>
@@ -162,7 +162,7 @@ const [sortKey, setSortKey] = useState<SortKey>("overall_rating");
 
 Use `TOP {position} OVERALL` cards and show Overall prominently followed by distinct Quality, Form, Impact cells, retaining driver/source/freshness text.
 
-- [ ] **Step 4: Verify and commit**
+- [x] **Step 4: Verify and commit**
 
 Run: `cd frontend && npm run build`
 

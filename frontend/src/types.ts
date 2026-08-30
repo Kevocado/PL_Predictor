@@ -412,10 +412,20 @@ export interface PlayerHubPlayer {
   bps: number;
   bonus: number;
   news: string;
+  quality_rating: number;
+  form_rating: number;
+  overall_rating: number;
+  current_impact_rating: number;
+  rating_driver: string;
+  rating_expected_minutes: number;
+  rating_model_source: string;
 }
 
 export interface PlayerHubResponse {
   players: PlayerHubPlayer[];
+  leaderboards: Record<string, PlayerHubPlayer[]>;
+  rating_model_source: string;
+  data_freshness: string;
 }
 
 export interface ScorerAccuracyGroup {
@@ -597,6 +607,10 @@ export interface FPLTransferIdea {
   net_gain: number;
 }
 
+export interface FPLCurrentLineup extends FPLRecommendation {
+  squad: FPLPlayerProjection[];
+}
+
 export interface FPLTransfersResponse {
   gameweek: number;
   source_gameweek?: number;
@@ -604,5 +618,6 @@ export interface FPLTransfersResponse {
   entry_id?: number;
   free_transfers: number;
   bank: number;
+  current_lineup: FPLCurrentLineup;
   recommendations: FPLTransferIdea[];
 }
