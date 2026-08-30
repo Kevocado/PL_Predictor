@@ -211,6 +211,30 @@ profitability claim.
    commission/limits assumptions, all qualified signals, and confidence
    intervals. Never select thresholds after looking at the same test period.
 
+### Market-specific success metrics — decision record (2026-08-29)
+
+The research conclusion was **not** that one new metric replaces Brier. Each
+output needs a metric that penalises its own failure mode, with calibration
+metrics acting as promotion guardrails. These measures choose models and
+features; they are not fed back into a fixture prediction as inputs.
+
+| Output / decision | Primary selection metric | Required guardrails | What the research established |
+| --- | --- | --- | --- |
+| 1X2 probability grid | **RPS** for the ordered three-way outcome | Multiclass Brier, log/ignorance loss, classwise reliability/ECE, newest-fold check | XGBoost remains the live scoreline source. Platt scaling and generic blends worsened leakage-safe Brier/log loss, so no post-processing was promoted. |
+| Over/Under 2.5 and BTTS | **Binary Brier and log loss** for the displayed line | Calibration by line, RPS/full-grid diagnostic, newest-fold check | Covariate-Poisson remains the narrowly selected O/U-2.5 specialist. Its fitted low-score correlation (`rho`) failed: it did not improve O/U Brier in every fold and worsened RPS in 2021-22, so `rho=0` stays live. No separate BTTS override passed. |
+| Exact scoreline / full goal grid | **Observed-score log loss** plus full-grid probability checks | RPS, calibration and low-score slice checks | A probability model must not gain apparent accuracy by becoming overconfident in one scoreline. This is a gate for future experiments; no exact-scoreline specialist has cleared it. |
+| Goals, corners and cards counts | **MAE** for point forecasts | RMSE (large-error risk), count-distribution calibration, fold/latest-season agreement | The metric split produced one deployment: corners use a 12-season window (MAE `2.69 → 2.67`, RMSE `3.30`). The same wider history hurt scoreline and did not justify a cards change. |
+| Player goal, assist and G+A probabilities | **Binary Brier/log loss** for calls; chronological rate error for player models | Calibration and snapshot provenance; no final-lineup leakage | Direct G+A only supersedes the Poisson-union baseline when its calibrated estimate is higher. Rich role models for FPL points did not beat their baselines on both MAE and RMSE, so they were rejected. |
+| Value-bet decision | **Time-aligned expected value / yield** is a separate hypothesis | Closing-line movement, full selection accounting, bootstrap interval; probability calibration remains mandatory | Historical flat-stake yield is `-4.6%` with a 95% interval spanning zero. The app may show a model-vs-price value flag, but no metric supports a profitability claim or threshold optimisation. |
+
+**Key interpretation:** ECE or accuracy improving alone is insufficient. The
+expected-XI unit experiment improved ECE (`0.07054 → 0.06370`) but worsened
+RPS, Brier and log loss, so it remains research-only. Conversely, corners'
+MAE/RMSE result was specific enough to justify a corners-only training-window
+change. Future confirmed-XI and odds-time experiments must report the row
+above that matches their output, rather than claiming success from a single
+global Brier score.
+
 ## Review findings and priorities
 
 ### Strengths to preserve
@@ -1448,13 +1472,95 @@ experiment; negative evidence prevents repeated work.
   `WalkForwardBettingPanel`) — explicitly out of scope per the spec's own
   flagged scope question; revisit only if the user asks for it directly.
 
-## Change checklist for future agents
-
-### EXP-2026-08 — role-aware expected-XI unit strength
+### EXP-2026-21 — role-aware expected-XI unit strength
 
 - **Status:** research-only, not deployed. `evaluate/goal_contribution_research.py` builds legal expected XIs exclusively from shifted starts and minutes, then aggregates shifted Quality plus capped Form into exactly eight fields: home/away GK, DEF, MID, and FWD unit strength.
 - **Promotion rule:** a manual reviewer must confirm lower mean RPS, no Brier/ECE/log-loss calibration regression, and a non-regressing newest fold. Coverage and feature-importance output are evidence only; no result may append these fields to the live scoreline model or manifest automatically.
 - **Leakage boundary:** realised current-fixture lineup, minutes, availability, and outputs are prohibited. Availability is only eligible for the separate prospective confirmed-XI track.
+
+### EXP-2026-20 — forecast-time coverage, confirmed-XI, and metric-specific gates
+
+- **Status:** live-data integrity shipped; confirmed-XI adjustment remains
+  prospective research only. The official FPL fixtures feed now supplies a
+  result-only fallback for the current league table, independently of the
+  stat-complete current-season rows used for scoreline training. The manifest
+  therefore reports both live completed results and the count included by the
+  current model version. Never train scoreline features by filling a
+  result-only row's absent shots/cards/referee fields with zero.
+- **Confirmed-XI candidate:** preserve the frozen early 1X2/goal-grid
+  prediction, then at T−90 to T−30 minutes calculate actual-XI minus
+  expected-XI deltas for GK/DEF/MID/FWD Quality, Live Form, availability,
+  expected minutes, and formation. Fit a regularised late residual model only
+  on already-snapshotted fixture pairs; compare early and late forecasts on
+  exactly the same resolved fixtures. The existing early/confirmed baseline
+  snapshot ledger is the required starting point, not a historical
+  reconstruction.
+- **Promotion gate:** no adjustment may reach the live scoreline model until
+  paired bootstrap intervals support lower 1X2 Brier *and* log loss, no RPS or
+  classwise-calibration regression, and the newest prospective cohort agrees.
+  Sixty fixtures is enough to inspect collection quality, not enough for a
+  promotion decision. Keep a separately labelled same-time market benchmark;
+  it never controls independent value-bet decisions.
+- **Metric protocol:** tune each output to its own proper objective rather
+  than one global number. 1X2 uses Brier + log/ignorance as primary metrics,
+  with RPS, classwise calibration, calibration slope/intercept, sharpness and
+  confidence-intervals as diagnostics. O/U and BTTS use binary Brier + log
+  loss with calibration by line. Exact scorelines use observed-score log loss
+  and full-grid distribution checks. Goal/corners/cards counts use MAE/RMSE
+  and count-distribution calibration. Accuracy, favourite/draw/underdog
+  slices, and selective-confidence accuracy are descriptive diagnostics, not
+  promotion objectives.
+- **Known negative evidence:** generic final-probability Platt scaling and
+  scoreline blending already regressed in leakage-safe historical folds; do
+  not repeat them unchanged. The expected-XI role-unit experiment also
+  regressed RPS/Brier/log loss, so the confirmed-XI test must demonstrate new
+  information from the actual announced starters rather than reusing projected
+  player aggregates.
+
+### OPS-2026-05 — dashboard cold-start and live-table reconciliation
+
+- **Status:** shipped; operational/UI reliability only. No scoreline,
+  calibration, value-bet, or player-rating model parameters changed.
+- **Root cause:** Track Record's SQLite work was measured at about 20–80 ms;
+  it was not the slow operation. The browser client instead gave every read
+  two 60-second attempts, so a temporarily unavailable/reloading local API
+  surfaced as a roughly two-minute Track Record failure. On an uncached
+  process, the real expensive payloads were Calibration (~14.5 s) and the
+  projected table (~7.5 s); startup had warmed them only after lower-priority
+  fixtures/odds work.
+- **Cold-start treatment:** cache warming now primes matches, models, and
+  Calibration first. Once Fixtures has had 750 ms to paint, the browser starts
+  Data Hub/Calibration reads in the background and shares the resulting
+  in-flight/recent response with the page that later consumes it. Read timeout
+  is 20 seconds with the existing single safe retry (never applied to refresh
+  or retrain POSTs). Data Hub and Calibration now retain successful panels and
+  show a retry only on the panel that failed; Track Record can no longer mark
+  the whole dashboard unavailable. A successful retrain explicitly bypasses
+  the short browser cache for its follow-up manifest/calibration read, so its
+  freshness count cannot render the previous model version. Team Hub is the
+  first Data Hub tab and Track Record is last.
+- **Live-table reconciliation:** FPL publishes a scored result with
+  `finished_provisional=true` while its bonus-points reconciliation still
+  runs. The prior live-table fallback accepted only `finished=true`, which
+  reproduced the stale Brighton-first table immediately after Crystal Palace
+  1–4 Man City. Scored provisional results now count as completed for display
+  only; live standings/Team Hub refresh every 60 seconds and manual refresh
+  invalidates their caches. The Team Hub keeps rich-source xG/style metrics
+  separate but takes table position, W/D/L, goals, form, recent results, and
+  streak from the timely official FPL result feed. Verified against the local
+  live API: Man City served as 2 played, 6 points, 6–2 goals, +2 streak, and
+  current position 1.
+- **Player Hub presentation:** the table now exposes three boxed, sortable
+  ratings only: Overall (role-aware Quality plus capped validated model lift),
+  Live Form (minutes/starts-capped official FPL signal), and vs Quality (Live
+  Form minus Quality). Tooltips preserve the calculation definitions without
+  making internal components look like competing user-facing ratings.
+- **Regression coverage:**
+  `test_fpl_finished_results_exposes_the_same_completed_scores_as_the_fixture_feed`,
+  `test_team_hub_uses_official_live_results_for_the_current_table`, and
+  `test_warm_caches_prioritises_calibration_before_noncritical_payloads`.
+
+## Change checklist for future agents
 
 - Read this file, `README.md`, and relevant tests before editing.
 - Use `rg` to find every consumption point of a changed schema/feature.

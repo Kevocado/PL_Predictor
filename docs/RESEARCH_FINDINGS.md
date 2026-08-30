@@ -237,7 +237,7 @@ these three didn't.
 
 ## 6. Open threads worth revisiting
 
-### EXP-2026-08 — role-aware player ratings and team-unit strength
+### EXP-2026-21 — role-aware player ratings and team-unit strength
 
 - **Player Hub status:** descriptive baseline shipped; not a scoreline-model
   feature. The old within-position percentile rating was removed because it
