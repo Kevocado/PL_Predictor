@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-02T15:08:31.944222+00:00",
+  "generated_at": "2026-09-02T18:39:14.852646+00:00",
   "model_fingerprint": "8bf9405aa6eca28348496c7b99f7aa750acf47e2295bf9786c3537327880e347",
   "current_gameweek": 3,
   "min_gameweek": 1,
@@ -439,9 +439,7 @@
           "hit": null,
           "backfilled": false,
           "has_live_odds": true,
-          "value_bet_flags": [
-            "away_win"
-          ]
+          "value_bet_flags": []
         },
         {
           "event_id": "686358c484cc44fe8e617674c335d531",
@@ -458,10 +456,7 @@
           "hit": null,
           "backfilled": false,
           "has_live_odds": true,
-          "value_bet_flags": [
-            "away_win",
-            "under_2_5"
-          ]
+          "value_bet_flags": []
         },
         {
           "event_id": "a6f2622727548c33369cc15c88b2aabd",
@@ -478,10 +473,7 @@
           "hit": null,
           "backfilled": false,
           "has_live_odds": true,
-          "value_bet_flags": [
-            "home_win",
-            "over_2_5"
-          ]
+          "value_bet_flags": []
         },
         {
           "event_id": "3db5f919507eb8ab0c8c72bddaca8f08",
@@ -498,11 +490,7 @@
           "hit": null,
           "backfilled": false,
           "has_live_odds": true,
-          "value_bet_flags": [
-            "draw",
-            "away_win",
-            "under_2_5"
-          ]
+          "value_bet_flags": []
         },
         {
           "event_id": "3b81531990da7ea3e461c43e8827672b",
@@ -519,9 +507,7 @@
           "hit": null,
           "backfilled": false,
           "has_live_odds": true,
-          "value_bet_flags": [
-            "home_win"
-          ]
+          "value_bet_flags": []
         },
         {
           "event_id": "29f81160baf6a97d6391d7172fad2425",
@@ -538,9 +524,7 @@
           "hit": null,
           "backfilled": false,
           "has_live_odds": true,
-          "value_bet_flags": [
-            "away_win"
-          ]
+          "value_bet_flags": []
         },
         {
           "event_id": "8f68612bf47c3193e7fa2d8783e79373",
@@ -574,9 +558,7 @@
           "hit": null,
           "backfilled": false,
           "has_live_odds": true,
-          "value_bet_flags": [
-            "home_win"
-          ]
+          "value_bet_flags": []
         },
         {
           "event_id": "8ea6c863f1852654399073b518b0a1f8",
@@ -610,9 +592,7 @@
           "hit": null,
           "backfilled": false,
           "has_live_odds": true,
-          "value_bet_flags": [
-            "home_win"
-          ]
+          "value_bet_flags": []
         }
       ],
       "is_current": false,
@@ -637,9 +617,7 @@
           "hit": null,
           "backfilled": false,
           "has_live_odds": true,
-          "value_bet_flags": [
-            "over_2_5"
-          ]
+          "value_bet_flags": []
         },
         {
           "event_id": "63da4075a4ae406575fd3086b839fe49",
@@ -656,10 +634,7 @@
           "hit": null,
           "backfilled": false,
           "has_live_odds": true,
-          "value_bet_flags": [
-            "away_win",
-            "under_2_5"
-          ]
+          "value_bet_flags": []
         },
         {
           "event_id": "d09677edcf1fb82ad75a8df58bb26eab",
@@ -693,9 +668,7 @@
           "hit": null,
           "backfilled": false,
           "has_live_odds": true,
-          "value_bet_flags": [
-            "home_win"
-          ]
+          "value_bet_flags": []
         },
         {
           "event_id": "5163190733dcaaea80474e43cbe20a51",
@@ -712,11 +685,7 @@
           "hit": null,
           "backfilled": false,
           "has_live_odds": true,
-          "value_bet_flags": [
-            "draw",
-            "away_win",
-            "under_2_5"
-          ]
+          "value_bet_flags": []
         },
         {
           "event_id": "cbbc88759fe3e2f1677a0c6ee40955af",
@@ -733,10 +702,7 @@
           "hit": null,
           "backfilled": false,
           "has_live_odds": true,
-          "value_bet_flags": [
-            "away_win",
-            "over_2_5"
-          ]
+          "value_bet_flags": []
         },
         {
           "event_id": "082f74fe6a8bc5826555b76e9e114dab",
@@ -753,10 +719,7 @@
           "hit": null,
           "backfilled": false,
           "has_live_odds": true,
-          "value_bet_flags": [
-            "home_win",
-            "over_2_5"
-          ]
+          "value_bet_flags": []
         },
         {
           "event_id": "c97a93b915115f2b4659fb88262b71f8",
@@ -790,9 +753,7 @@
           "hit": null,
           "backfilled": false,
           "has_live_odds": true,
-          "value_bet_flags": [
-            "under_2_5"
-          ]
+          "value_bet_flags": []
         },
         {
           "event_id": "b7a2cad26d908a943a27340b4b607068",
@@ -6908,21 +6869,11 @@
       "predicted_margin": -0.7393993735313416,
       "home_2plus_prob": 0.25961910720070186,
       "away_2plus_prob": 0.5150412158467315,
-      "value_bet_flags": [
-        "home_win",
-        "over_2_5"
-      ],
+      "value_bet_flags": [],
       "has_live_odds": true,
       "odds_fetched_at": "2026-09-02T15:03:43.260492Z",
-      "odds_is_stale": false,
-      "recommended_bet": {
-        "market": "over_2_5",
-        "probability": 0.5984521983007417,
-        "implied_probability": 0.4831862126941528,
-        "edge": 0.1152659856065889,
-        "price": 1.95,
-        "bookmaker": "williamhill"
-      },
+      "odds_is_stale": true,
+      "recommended_bet": null,
       "score_grid": [
         [
           0.06899886005379173,
@@ -7054,34 +7005,7 @@
       },
       "post_match": null,
       "actual_stats": null,
-      "pre_match_value_bets": [
-        {
-          "market": "home_win",
-          "probability": 0.2150337621815052,
-          "implied_probability": 0.1330977466755536,
-          "edge": 0.08193601550595159,
-          "price": 7.0,
-          "bookmaker": "betfred_uk",
-          "snapshotted_at": "2026-09-02T15:03:55.770133Z",
-          "resolved": false,
-          "won": null,
-          "final_score": null,
-          "result_source": null
-        },
-        {
-          "market": "over_2_5",
-          "probability": 0.5984521983007417,
-          "implied_probability": 0.4831862126941528,
-          "edge": 0.1152659856065889,
-          "price": 1.95,
-          "bookmaker": "williamhill",
-          "snapshotted_at": "2026-09-02T15:03:55.770133Z",
-          "resolved": false,
-          "won": null,
-          "final_score": null,
-          "result_source": null
-        }
-      ]
+      "pre_match_value_bets": []
     },
     "100": {
       "event_id": "100",
@@ -16307,20 +16231,11 @@
       "predicted_margin": 0.5211480855941772,
       "home_2plus_prob": 0.4759299086152868,
       "away_2plus_prob": 0.29419868162660995,
-      "value_bet_flags": [
-        "over_2_5"
-      ],
+      "value_bet_flags": [],
       "has_live_odds": true,
       "odds_fetched_at": "2026-09-02T15:03:43.260492Z",
-      "odds_is_stale": false,
-      "recommended_bet": {
-        "market": "over_2_5",
-        "probability": 0.564924417815797,
-        "implied_probability": 0.48879708724242904,
-        "edge": 0.07612733057336801,
-        "price": 1.93,
-        "bookmaker": "casumo"
-      },
+      "odds_is_stale": true,
+      "recommended_bet": null,
       "score_grid": [
         [
           0.06430141264648423,
@@ -16452,21 +16367,7 @@
       },
       "post_match": null,
       "actual_stats": null,
-      "pre_match_value_bets": [
-        {
-          "market": "over_2_5",
-          "probability": 0.564924417815797,
-          "implied_probability": 0.48879708724242904,
-          "edge": 0.07612733057336801,
-          "price": 1.93,
-          "bookmaker": "casumo",
-          "snapshotted_at": "2026-09-02T15:03:55.770133Z",
-          "resolved": false,
-          "won": null,
-          "final_score": null,
-          "result_source": null
-        }
-      ]
+      "pre_match_value_bets": []
     },
     "150": {
       "event_id": "150",
@@ -29457,20 +29358,11 @@
       "predicted_margin": -0.16759002208709717,
       "home_2plus_prob": 0.34250655062520213,
       "away_2plus_prob": 0.4018716099246026,
-      "value_bet_flags": [
-        "home_win"
-      ],
+      "value_bet_flags": [],
       "has_live_odds": true,
       "odds_fetched_at": "2026-09-02T15:03:43.260492Z",
-      "odds_is_stale": false,
-      "recommended_bet": {
-        "market": "home_win",
-        "probability": 0.32923556159790146,
-        "implied_probability": 0.23098278513692239,
-        "edge": 0.09825277646097907,
-        "price": 4.3,
-        "bookmaker": "betfair_ex_uk"
-      },
+      "odds_is_stale": true,
+      "recommended_bet": null,
       "score_grid": [
         [
           0.07497899047180549,
@@ -29587,21 +29479,7 @@
       },
       "post_match": null,
       "actual_stats": null,
-      "pre_match_value_bets": [
-        {
-          "market": "home_win",
-          "probability": 0.32923556159790146,
-          "implied_probability": 0.23098278513692239,
-          "edge": 0.09825277646097907,
-          "price": 4.3,
-          "bookmaker": "betfair_ex_uk",
-          "snapshotted_at": "2026-09-02T15:03:55.770133Z",
-          "resolved": false,
-          "won": null,
-          "final_score": null,
-          "result_source": null
-        }
-      ]
+      "pre_match_value_bets": []
     },
     "220": {
       "event_id": "220",
@@ -44307,12 +44185,10 @@
       "predicted_margin": 0.7880191802978516,
       "home_2plus_prob": 0.5834914426108807,
       "away_2plus_prob": 0.3277953809619484,
-      "value_bet_flags": [
-        "away_win"
-      ],
+      "value_bet_flags": [],
       "has_live_odds": true,
       "odds_fetched_at": "2026-09-02T15:03:43.260492Z",
-      "odds_is_stale": false,
+      "odds_is_stale": true,
       "recommended_bet": null,
       "score_grid": [
         [
@@ -44445,21 +44321,7 @@
       },
       "post_match": null,
       "actual_stats": null,
-      "pre_match_value_bets": [
-        {
-          "market": "away_win",
-          "probability": 0.22488101707860603,
-          "implied_probability": 0.15803402039079065,
-          "edge": 0.06684699668781538,
-          "price": 6.2,
-          "bookmaker": "smarkets",
-          "snapshotted_at": "2026-09-02T15:03:55.770133Z",
-          "resolved": false,
-          "won": null,
-          "final_score": null,
-          "result_source": null
-        }
-      ]
+      "pre_match_value_bets": []
     },
     "300": {
       "event_id": "300",
@@ -59433,20 +59295,11 @@
       "predicted_margin": 1.0920050144195557,
       "home_2plus_prob": 0.6084937281637608,
       "away_2plus_prob": 0.2503816512573671,
-      "value_bet_flags": [
-        "home_win"
-      ],
+      "value_bet_flags": [],
       "has_live_odds": true,
       "odds_fetched_at": "2026-09-02T15:03:43.260492Z",
-      "odds_is_stale": false,
-      "recommended_bet": {
-        "market": "home_win",
-        "probability": 0.6260262269163369,
-        "implied_probability": 0.5066532744193917,
-        "edge": 0.11937295249694524,
-        "price": 1.96,
-        "bookmaker": "betfair_ex_uk"
-      },
+      "odds_is_stale": true,
+      "recommended_bet": null,
       "score_grid": [
         [
           0.05090896828181203,
@@ -59599,21 +59452,7 @@
       },
       "post_match": null,
       "actual_stats": null,
-      "pre_match_value_bets": [
-        {
-          "market": "home_win",
-          "probability": 0.6260262269163369,
-          "implied_probability": 0.5066532744193917,
-          "edge": 0.11937295249694524,
-          "price": 1.96,
-          "bookmaker": "betfair_ex_uk",
-          "snapshotted_at": "2026-09-02T15:03:55.770133Z",
-          "resolved": false,
-          "won": null,
-          "final_score": null,
-          "result_source": null
-        }
-      ]
+      "pre_match_value_bets": []
     },
     "3db5f919507eb8ab0c8c72bddaca8f08": {
       "event_id": "3db5f919507eb8ab0c8c72bddaca8f08",
@@ -59653,22 +59492,11 @@
       "predicted_margin": 1.308776319026947,
       "home_2plus_prob": 0.6400905109976428,
       "away_2plus_prob": 0.2163695808240729,
-      "value_bet_flags": [
-        "draw",
-        "away_win",
-        "under_2_5"
-      ],
+      "value_bet_flags": [],
       "has_live_odds": true,
       "odds_fetched_at": "2026-09-02T15:03:43.260492Z",
-      "odds_is_stale": false,
-      "recommended_bet": {
-        "market": "under_2_5",
-        "probability": 0.3660508508254975,
-        "implied_probability": 0.2779063042217711,
-        "edge": 0.08814454660372639,
-        "price": 3.25,
-        "bookmaker": "williamhill"
-      },
+      "odds_is_stale": true,
+      "recommended_bet": null,
       "score_grid": [
         [
           0.046895450573687006,
@@ -59785,34 +59613,7 @@
       },
       "post_match": null,
       "actual_stats": null,
-      "pre_match_value_bets": [
-        {
-          "market": "draw",
-          "probability": 0.1900371034353544,
-          "implied_probability": 0.10699074563183193,
-          "edge": 0.08304635780352247,
-          "price": 9.2,
-          "bookmaker": "smarkets",
-          "snapshotted_at": "2026-09-02T15:03:55.770133Z",
-          "resolved": false,
-          "won": null,
-          "final_score": null,
-          "result_source": null
-        },
-        {
-          "market": "under_2_5",
-          "probability": 0.3660508508254975,
-          "implied_probability": 0.2779063042217711,
-          "edge": 0.08814454660372639,
-          "price": 3.25,
-          "bookmaker": "williamhill",
-          "snapshotted_at": "2026-09-02T15:03:55.770133Z",
-          "resolved": false,
-          "won": null,
-          "final_score": null,
-          "result_source": null
-        }
-      ]
+      "pre_match_value_bets": []
     },
     "5163190733dcaaea80474e43cbe20a51": {
       "event_id": "5163190733dcaaea80474e43cbe20a51",
@@ -59852,22 +59653,11 @@
       "predicted_margin": 0.9467132687568665,
       "home_2plus_prob": 0.5396748934611292,
       "away_2plus_prob": 0.21355532491157245,
-      "value_bet_flags": [
-        "draw",
-        "away_win",
-        "under_2_5"
-      ],
+      "value_bet_flags": [],
       "has_live_odds": true,
       "odds_fetched_at": "2026-09-02T15:03:43.260492Z",
-      "odds_is_stale": false,
-      "recommended_bet": {
-        "market": "under_2_5",
-        "probability": 0.44355535288750425,
-        "implied_probability": 0.32467532467510724,
-        "edge": 0.11888002821239702,
-        "price": 2.75,
-        "bookmaker": "williamhill"
-      },
+      "odds_is_stale": true,
+      "recommended_bet": null,
       "score_grid": [
         [
           0.06942281774828904,
@@ -59984,34 +59774,7 @@
       },
       "post_match": null,
       "actual_stats": null,
-      "pre_match_value_bets": [
-        {
-          "market": "draw",
-          "probability": 0.22721582129912113,
-          "implied_probability": 0.14493822880140744,
-          "edge": 0.08227759249771369,
-          "price": 6.5,
-          "bookmaker": "unibet_uk",
-          "snapshotted_at": "2026-09-02T15:03:55.770133Z",
-          "resolved": false,
-          "won": null,
-          "final_score": null,
-          "result_source": null
-        },
-        {
-          "market": "under_2_5",
-          "probability": 0.44355535288750425,
-          "implied_probability": 0.32467532467510724,
-          "edge": 0.11888002821239702,
-          "price": 2.75,
-          "bookmaker": "williamhill",
-          "snapshotted_at": "2026-09-02T15:03:55.770133Z",
-          "resolved": false,
-          "won": null,
-          "final_score": null,
-          "result_source": null
-        }
-      ]
+      "pre_match_value_bets": []
     },
     "560582": {
       "event_id": "560582",
@@ -67475,20 +67238,11 @@
       "predicted_margin": -1.5027050375938416,
       "home_2plus_prob": 0.262729642481798,
       "away_2plus_prob": 0.7123967161737831,
-      "value_bet_flags": [
-        "away_win"
-      ],
+      "value_bet_flags": [],
       "has_live_odds": true,
       "odds_fetched_at": "2026-09-02T15:03:43.260492Z",
-      "odds_is_stale": false,
-      "recommended_bet": {
-        "market": "away_win",
-        "probability": 0.7010933358575973,
-        "implied_probability": 0.6314190253272748,
-        "edge": 0.06967431053032247,
-        "price": 1.58,
-        "bookmaker": "smarkets"
-      },
+      "odds_is_stale": true,
+      "recommended_bet": null,
       "score_grid": [
         [
           0.03132132516311996,
@@ -67620,21 +67374,7 @@
       },
       "post_match": null,
       "actual_stats": null,
-      "pre_match_value_bets": [
-        {
-          "market": "away_win",
-          "probability": 0.7010933358575973,
-          "implied_probability": 0.6314190253272748,
-          "edge": 0.06967431053032247,
-          "price": 1.58,
-          "bookmaker": "smarkets",
-          "snapshotted_at": "2026-09-02T15:03:55.770133Z",
-          "resolved": false,
-          "won": null,
-          "final_score": null,
-          "result_source": null
-        }
-      ]
+      "pre_match_value_bets": []
     },
     "63da4075a4ae406575fd3086b839fe49": {
       "event_id": "63da4075a4ae406575fd3086b839fe49",
@@ -67674,21 +67414,11 @@
       "predicted_margin": 0.8802973031997681,
       "home_2plus_prob": 0.5626882368205935,
       "away_2plus_prob": 0.266893547442055,
-      "value_bet_flags": [
-        "away_win",
-        "under_2_5"
-      ],
+      "value_bet_flags": [],
       "has_live_odds": true,
       "odds_fetched_at": "2026-09-02T15:03:43.260492Z",
-      "odds_is_stale": false,
-      "recommended_bet": {
-        "market": "under_2_5",
-        "probability": 0.4301328715812054,
-        "implied_probability": 0.3436174724340211,
-        "edge": 0.08651539914718431,
-        "price": 2.62,
-        "bookmaker": "williamhill"
-      },
+      "odds_is_stale": true,
+      "recommended_bet": null,
       "score_grid": [
         [
           0.05180620122717809,
@@ -67841,34 +67571,7 @@
       },
       "post_match": null,
       "actual_stats": null,
-      "pre_match_value_bets": [
-        {
-          "market": "away_win",
-          "probability": 0.19807270604755592,
-          "implied_probability": 0.1394278636641765,
-          "edge": 0.058644842383379414,
-          "price": 6.8,
-          "bookmaker": "betfair_ex_uk",
-          "snapshotted_at": "2026-09-02T15:03:55.770133Z",
-          "resolved": false,
-          "won": null,
-          "final_score": null,
-          "result_source": null
-        },
-        {
-          "market": "under_2_5",
-          "probability": 0.4301328715812054,
-          "implied_probability": 0.3436174724340211,
-          "edge": 0.08651539914718431,
-          "price": 2.62,
-          "bookmaker": "williamhill",
-          "snapshotted_at": "2026-09-02T15:03:55.770133Z",
-          "resolved": false,
-          "won": null,
-          "final_score": null,
-          "result_source": null
-        }
-      ]
+      "pre_match_value_bets": []
     },
     "686358c484cc44fe8e617674c335d531": {
       "event_id": "686358c484cc44fe8e617674c335d531",
@@ -67908,21 +67611,11 @@
       "predicted_margin": 0.12115442752838135,
       "home_2plus_prob": 0.45648731260143144,
       "away_2plus_prob": 0.41571199736857073,
-      "value_bet_flags": [
-        "away_win",
-        "under_2_5"
-      ],
+      "value_bet_flags": [],
       "has_live_odds": true,
       "odds_fetched_at": "2026-09-02T15:03:43.260492Z",
-      "odds_is_stale": false,
-      "recommended_bet": {
-        "market": "away_win",
-        "probability": 0.35115964345030487,
-        "implied_probability": 0.30004013634417526,
-        "edge": 0.051119507106129614,
-        "price": 3.3,
-        "bookmaker": "betfair_ex_uk"
-      },
+      "odds_is_stale": true,
+      "recommended_bet": null,
       "score_grid": [
         [
           0.051187194125736496,
@@ -68075,34 +67768,7 @@
       },
       "post_match": null,
       "actual_stats": null,
-      "pre_match_value_bets": [
-        {
-          "market": "away_win",
-          "probability": 0.35115964345030487,
-          "implied_probability": 0.30004013634417526,
-          "edge": 0.051119507106129614,
-          "price": 3.3,
-          "bookmaker": "betfair_ex_uk",
-          "snapshotted_at": "2026-09-02T15:03:55.770133Z",
-          "resolved": false,
-          "won": null,
-          "final_score": null,
-          "result_source": null
-        },
-        {
-          "market": "under_2_5",
-          "probability": 0.4493170336914774,
-          "implied_probability": 0.3985826001952644,
-          "edge": 0.05073443349621298,
-          "price": 2.48,
-          "bookmaker": "matchbook",
-          "snapshotted_at": "2026-09-02T15:03:55.770133Z",
-          "resolved": false,
-          "won": null,
-          "final_score": null,
-          "result_source": null
-        }
-      ]
+      "pre_match_value_bets": []
     },
     "78d4dfda8c2dc27bdc3ec26c2654f8fc": {
       "event_id": "78d4dfda8c2dc27bdc3ec26c2654f8fc",
@@ -68142,20 +67808,11 @@
       "predicted_margin": 1.3361455202102661,
       "home_2plus_prob": 0.6634916179572202,
       "away_2plus_prob": 0.24201345102306182,
-      "value_bet_flags": [
-        "home_win"
-      ],
+      "value_bet_flags": [],
       "has_live_odds": true,
       "odds_fetched_at": "2026-09-02T15:03:43.260492Z",
-      "odds_is_stale": false,
-      "recommended_bet": {
-        "market": "home_win",
-        "probability": 0.6745135255932939,
-        "implied_probability": 0.5688351320023024,
-        "edge": 0.10567839359099152,
-        "price": 1.75,
-        "bookmaker": "betfair_ex_uk"
-      },
+      "odds_is_stale": true,
+      "recommended_bet": null,
       "score_grid": [
         [
           0.0421980444251313,
@@ -68308,21 +67965,7 @@
       },
       "post_match": null,
       "actual_stats": null,
-      "pre_match_value_bets": [
-        {
-          "market": "home_win",
-          "probability": 0.6745135255932939,
-          "implied_probability": 0.5688351320023024,
-          "edge": 0.10567839359099152,
-          "price": 1.75,
-          "bookmaker": "betfair_ex_uk",
-          "snapshotted_at": "2026-09-02T15:03:55.770133Z",
-          "resolved": false,
-          "won": null,
-          "final_score": null,
-          "result_source": null
-        }
-      ]
+      "pre_match_value_bets": []
     },
     "81": {
       "event_id": "81",
@@ -70041,7 +69684,7 @@
       "value_bet_flags": [],
       "has_live_odds": true,
       "odds_fetched_at": "2026-09-02T15:03:43.260492Z",
-      "odds_is_stale": false,
+      "odds_is_stale": true,
       "recommended_bet": null,
       "score_grid": [
         [
@@ -70238,7 +69881,7 @@
       "value_bet_flags": [],
       "has_live_odds": true,
       "odds_fetched_at": "2026-09-02T15:03:43.260492Z",
-      "odds_is_stale": false,
+      "odds_is_stale": true,
       "recommended_bet": null,
       "score_grid": [
         [
@@ -72289,21 +71932,11 @@
       "predicted_margin": 0.4644169807434082,
       "home_2plus_prob": 0.4630984805703316,
       "away_2plus_prob": 0.3005238070084509,
-      "value_bet_flags": [
-        "home_win",
-        "over_2_5"
-      ],
+      "value_bet_flags": [],
       "has_live_odds": true,
       "odds_fetched_at": "2026-09-02T15:03:43.260492Z",
-      "odds_is_stale": false,
-      "recommended_bet": {
-        "market": "home_win",
-        "probability": 0.48063826391147024,
-        "implied_probability": 0.3884588096843246,
-        "edge": 0.09217945422714563,
-        "price": 2.56,
-        "bookmaker": "betfair_ex_uk"
-      },
+      "odds_is_stale": true,
+      "recommended_bet": null,
       "score_grid": [
         [
           0.06796879021473302,
@@ -72456,34 +72089,7 @@
       },
       "post_match": null,
       "actual_stats": null,
-      "pre_match_value_bets": [
-        {
-          "market": "home_win",
-          "probability": 0.48063826391147024,
-          "implied_probability": 0.3884588096843246,
-          "edge": 0.09217945422714563,
-          "price": 2.56,
-          "bookmaker": "betfair_ex_uk",
-          "snapshotted_at": "2026-09-02T15:03:55.770133Z",
-          "resolved": false,
-          "won": null,
-          "final_score": null,
-          "result_source": null
-        },
-        {
-          "market": "over_2_5",
-          "probability": 0.5602057185484106,
-          "implied_probability": 0.4961928934007688,
-          "edge": 0.06401282514764184,
-          "price": 2.0,
-          "bookmaker": "matchbook",
-          "snapshotted_at": "2026-09-02T15:03:55.770133Z",
-          "resolved": false,
-          "won": null,
-          "final_score": null,
-          "result_source": null
-        }
-      ]
+      "pre_match_value_bets": []
     },
     "b7a2cad26d908a943a27340b4b607068": {
       "event_id": "b7a2cad26d908a943a27340b4b607068",
@@ -72526,7 +72132,7 @@
       "value_bet_flags": [],
       "has_live_odds": true,
       "odds_fetched_at": "2026-09-02T15:03:43.260492Z",
-      "odds_is_stale": false,
+      "odds_is_stale": true,
       "recommended_bet": null,
       "score_grid": [
         [
@@ -78440,7 +78046,7 @@
       "value_bet_flags": [],
       "has_live_odds": true,
       "odds_fetched_at": "2026-09-02T15:03:43.260492Z",
-      "odds_is_stale": false,
+      "odds_is_stale": true,
       "recommended_bet": null,
       "score_grid": [
         [
@@ -78598,21 +78204,11 @@
       "predicted_margin": 0.10621941089630127,
       "home_2plus_prob": 0.44214213308594985,
       "away_2plus_prob": 0.40598483070625374,
-      "value_bet_flags": [
-        "away_win",
-        "over_2_5"
-      ],
+      "value_bet_flags": [],
       "has_live_odds": true,
       "odds_fetched_at": "2026-09-02T15:03:43.260492Z",
-      "odds_is_stale": false,
-      "recommended_bet": {
-        "market": "away_win",
-        "probability": 0.3524306881160762,
-        "implied_probability": 0.2577210289922023,
-        "edge": 0.09470965912387391,
-        "price": 3.75,
-        "bookmaker": "betfred_uk"
-      },
+      "odds_is_stale": true,
+      "recommended_bet": null,
       "score_grid": [
         [
           0.05470454527188983,
@@ -78765,34 +78361,7 @@
       },
       "post_match": null,
       "actual_stats": null,
-      "pre_match_value_bets": [
-        {
-          "market": "away_win",
-          "probability": 0.3524306881160762,
-          "implied_probability": 0.2577210289922023,
-          "edge": 0.09470965912387391,
-          "price": 3.75,
-          "bookmaker": "betfred_uk",
-          "snapshotted_at": "2026-09-02T15:03:55.770133Z",
-          "resolved": false,
-          "won": null,
-          "final_score": null,
-          "result_source": null
-        },
-        {
-          "market": "over_2_5",
-          "probability": 0.5513928543266858,
-          "implied_probability": 0.4958226579032799,
-          "edge": 0.05557019642340594,
-          "price": 1.91,
-          "bookmaker": "williamhill",
-          "snapshotted_at": "2026-09-02T15:03:55.770133Z",
-          "resolved": false,
-          "won": null,
-          "final_score": null,
-          "result_source": null
-        }
-      ]
+      "pre_match_value_bets": []
     },
     "d09677edcf1fb82ad75a8df58bb26eab": {
       "event_id": "d09677edcf1fb82ad75a8df58bb26eab",
@@ -78835,7 +78404,7 @@
       "value_bet_flags": [],
       "has_live_odds": true,
       "odds_fetched_at": "2026-09-02T15:03:43.260492Z",
-      "odds_is_stale": false,
+      "odds_is_stale": true,
       "recommended_bet": null,
       "score_grid": [
         [
@@ -79029,20 +78598,11 @@
       "predicted_margin": 0.6744440793991089,
       "home_2plus_prob": 0.5652603932684397,
       "away_2plus_prob": 0.34533827060090866,
-      "value_bet_flags": [
-        "home_win"
-      ],
+      "value_bet_flags": [],
       "has_live_odds": true,
       "odds_fetched_at": "2026-09-02T15:03:43.260492Z",
-      "odds_is_stale": false,
-      "recommended_bet": {
-        "market": "home_win",
-        "probability": 0.5313590819870552,
-        "implied_probability": 0.369496759241441,
-        "edge": 0.16186232274561418,
-        "price": 2.64,
-        "bookmaker": "betfair_ex_uk"
-      },
+      "odds_is_stale": true,
+      "recommended_bet": null,
       "score_grid": [
         [
           0.041865129207453354,
@@ -79195,21 +78755,7 @@
       },
       "post_match": null,
       "actual_stats": null,
-      "pre_match_value_bets": [
-        {
-          "market": "home_win",
-          "probability": 0.5313590819870552,
-          "implied_probability": 0.369496759241441,
-          "edge": 0.16186232274561418,
-          "price": 2.64,
-          "bookmaker": "betfair_ex_uk",
-          "snapshotted_at": "2026-09-02T15:03:55.770133Z",
-          "resolved": false,
-          "won": null,
-          "final_score": null,
-          "result_source": null
-        }
-      ]
+      "pre_match_value_bets": []
     },
     "e40d0fb44319f7bd0ebe1ffbc61fa661": {
       "event_id": "e40d0fb44319f7bd0ebe1ffbc61fa661",
@@ -79249,20 +78795,11 @@
       "predicted_margin": -0.18879902362823486,
       "home_2plus_prob": 0.42061936825205753,
       "away_2plus_prob": 0.48312515777895954,
-      "value_bet_flags": [
-        "under_2_5"
-      ],
+      "value_bet_flags": [],
       "has_live_odds": true,
       "odds_fetched_at": "2026-09-02T15:03:43.260492Z",
-      "odds_is_stale": false,
-      "recommended_bet": {
-        "market": "under_2_5",
-        "probability": 0.4420208518084033,
-        "implied_probability": 0.38153594771213656,
-        "edge": 0.06048490409626672,
-        "price": 2.4,
-        "bookmaker": "williamhill"
-      },
+      "odds_is_stale": true,
+      "recommended_bet": null,
       "score_grid": [
         [
           0.04667072781962698,
@@ -79415,21 +78952,7 @@
       },
       "post_match": null,
       "actual_stats": null,
-      "pre_match_value_bets": [
-        {
-          "market": "under_2_5",
-          "probability": 0.4420208518084033,
-          "implied_probability": 0.38153594771213656,
-          "edge": 0.06048490409626672,
-          "price": 2.4,
-          "bookmaker": "williamhill",
-          "snapshotted_at": "2026-09-02T15:03:55.770133Z",
-          "resolved": false,
-          "won": null,
-          "final_score": null,
-          "result_source": null
-        }
-      ]
+      "pre_match_value_bets": []
     }
   },
   "fixture_players_by_event_id": {
@@ -173837,8 +173360,8 @@
           "name": "Beto",
           "team": "Everton",
           "position": "FWD",
-          "status": "a",
-          "chance_of_playing": null,
+          "status": "u",
+          "chance_of_playing": 0,
           "minutes": 31,
           "starts": 0,
           "goals": 0,
@@ -173851,15 +173374,15 @@
           "ict": 0.8,
           "bps": 5,
           "bonus": 0,
-          "news": "",
+          "news": "Has joined Fiorentina permanently",
           "quality_rating": 53.3,
           "form_rating": 0.0,
           "live_form_rating": 23.0,
           "live_form_vs_quality": -30.3,
           "overall_rating": 53.3,
-          "current_impact_rating": 14.8,
+          "current_impact_rating": 0.0,
           "rating_driver": "Expected goals",
-          "rating_expected_minutes": 25.0,
+          "rating_expected_minutes": 0.0,
           "rating_status": "established",
           "rating_evidence_minutes": 4015.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -175213,8 +174736,8 @@
           "name": "P.M.Sarr",
           "team": "Tottenham",
           "position": "MID",
-          "status": "a",
-          "chance_of_playing": 100,
+          "status": "u",
+          "chance_of_playing": 0,
           "minutes": 0,
           "starts": 0,
           "goals": 0,
@@ -175227,15 +174750,15 @@
           "ict": 0.0,
           "bps": 0,
           "bonus": 0,
-          "news": "",
+          "news": "Has joined Juventus on loan for the rest of the season",
           "quality_rating": 45.3,
           "form_rating": 0.0,
           "live_form_rating": 14.0,
           "live_form_vs_quality": -31.3,
           "overall_rating": 45.3,
-          "current_impact_rating": 12.6,
+          "current_impact_rating": 0.0,
           "rating_driver": "Bonus Point System",
-          "rating_expected_minutes": 25.0,
+          "rating_expected_minutes": 0.0,
           "rating_status": "established",
           "rating_evidence_minutes": 5352.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -176013,8 +175536,8 @@
           "name": "Igor",
           "team": "Brighton",
           "position": "DEF",
-          "status": "a",
-          "chance_of_playing": null,
+          "status": "u",
+          "chance_of_playing": 0,
           "minutes": 0,
           "starts": 0,
           "goals": 0,
@@ -176027,15 +175550,15 @@
           "ict": 0.0,
           "bps": 0,
           "bonus": 0,
-          "news": "",
+          "news": "Has joined Burnley permanently",
           "quality_rating": 39.4,
           "form_rating": 0.0,
           "live_form_rating": 18.5,
           "live_form_vs_quality": -20.9,
           "overall_rating": 39.4,
-          "current_impact_rating": 10.9,
+          "current_impact_rating": 0.0,
           "rating_driver": "Defensive contribution",
-          "rating_expected_minutes": 25.0,
+          "rating_expected_minutes": 0.0,
           "rating_status": "established",
           "rating_evidence_minutes": 2693.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -180301,8 +179824,8 @@
           "name": "S\u00e1nchez",
           "team": "Chelsea",
           "position": "GK",
-          "status": "a",
-          "chance_of_playing": null,
+          "status": "u",
+          "chance_of_playing": 0,
           "minutes": 90,
           "starts": 1,
           "goals": 0,
@@ -180315,15 +179838,15 @@
           "ict": 2.1,
           "bps": 6,
           "bonus": 0,
-          "news": "",
+          "news": "Has joined Como on loan for the rest of the season",
           "quality_rating": null,
           "form_rating": 0.0,
           "live_form_rating": 27.5,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 20.9,
+          "current_impact_rating": 0.0,
           "rating_driver": "Saves and shot prevention",
-          "rating_expected_minutes": 68.3,
+          "rating_expected_minutes": 0.0,
           "rating_status": "provisional",
           "rating_evidence_minutes": 0.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -180973,8 +180496,8 @@
           "name": "Drameh",
           "team": "Hull",
           "position": "DEF",
-          "status": "a",
-          "chance_of_playing": 100,
+          "status": "u",
+          "chance_of_playing": 0,
           "minutes": 65,
           "starts": 0,
           "goals": 0,
@@ -180987,15 +180510,15 @@
           "ict": 0.8,
           "bps": 8,
           "bonus": 0,
-          "news": "",
+          "news": "Has joined Genoa permanently",
           "quality_rating": null,
           "form_rating": 0.0,
           "live_form_rating": 27.5,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 7.6,
+          "current_impact_rating": 0.0,
           "rating_driver": "Bps",
-          "rating_expected_minutes": 25.0,
+          "rating_expected_minutes": 0.0,
           "rating_status": "provisional",
           "rating_evidence_minutes": 0.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -181261,8 +180784,8 @@
           "name": "Millar",
           "team": "Hull",
           "position": "MID",
-          "status": "a",
-          "chance_of_playing": null,
+          "status": "u",
+          "chance_of_playing": 0,
           "minutes": 50,
           "starts": 0,
           "goals": 1,
@@ -181275,15 +180798,15 @@
           "ict": 5.2,
           "bps": 26,
           "bonus": 0,
-          "news": "",
+          "news": "Has joined Birmingham on loan for the rest of the season",
           "quality_rating": null,
           "form_rating": 0.0,
           "live_form_rating": 41.0,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 11.4,
+          "current_impact_rating": 0.0,
           "rating_driver": "Expected goal involvements",
-          "rating_expected_minutes": 25.0,
+          "rating_expected_minutes": 0.0,
           "rating_status": "provisional",
           "rating_evidence_minutes": 0.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -182381,8 +181904,8 @@
           "name": "Woltemade",
           "team": "Newcastle",
           "position": "FWD",
-          "status": "a",
-          "chance_of_playing": null,
+          "status": "u",
+          "chance_of_playing": 0,
           "minutes": 19,
           "starts": 0,
           "goals": 0,
@@ -182395,15 +181918,15 @@
           "ict": 4.0,
           "bps": 18,
           "bonus": 0,
-          "news": "",
+          "news": "Has joined Juventus on loan for the rest of the season",
           "quality_rating": null,
           "form_rating": 0.0,
           "live_form_rating": 32.0,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 8.9,
+          "current_impact_rating": 0.0,
           "rating_driver": "Expected goals",
-          "rating_expected_minutes": 25.0,
+          "rating_expected_minutes": 0.0,
           "rating_status": "limited",
           "rating_evidence_minutes": 1896.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -183597,8 +183120,8 @@
           "name": "Nwaneri",
           "team": "Arsenal",
           "position": "MID",
-          "status": "a",
-          "chance_of_playing": null,
+          "status": "u",
+          "chance_of_playing": 0,
           "minutes": 0,
           "starts": 0,
           "goals": 0,
@@ -183611,15 +183134,15 @@
           "ict": 0.0,
           "bps": 0,
           "bonus": 0,
-          "news": "",
+          "news": "Has joined Borussia Dortmund on loan for the rest of the season",
           "quality_rating": null,
           "form_rating": 0.0,
           "live_form_rating": 14.0,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 3.9,
+          "current_impact_rating": 0.0,
           "rating_driver": "Expected goal involvements",
-          "rating_expected_minutes": 25.0,
+          "rating_expected_minutes": 0.0,
           "rating_status": "limited",
           "rating_evidence_minutes": 1060.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -183629,8 +183152,8 @@
           "name": "F\u00e1bio Vieira",
           "team": "Arsenal",
           "position": "MID",
-          "status": "a",
-          "chance_of_playing": null,
+          "status": "u",
+          "chance_of_playing": 0,
           "minutes": 0,
           "starts": 0,
           "goals": 0,
@@ -183643,15 +183166,15 @@
           "ict": 0.0,
           "bps": 0,
           "bonus": 0,
-          "news": "",
+          "news": "Has joined Hamburger SV permanently",
           "quality_rating": null,
           "form_rating": 0.0,
           "live_form_rating": 14.0,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 3.9,
+          "current_impact_rating": 0.0,
           "rating_driver": "Expected goal involvements",
-          "rating_expected_minutes": 25.0,
+          "rating_expected_minutes": 0.0,
           "rating_status": "provisional",
           "rating_evidence_minutes": 290.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -183725,8 +183248,8 @@
           "name": "G.Jesus",
           "team": "Arsenal",
           "position": "FWD",
-          "status": "a",
-          "chance_of_playing": null,
+          "status": "u",
+          "chance_of_playing": 0,
           "minutes": 0,
           "starts": 0,
           "goals": 0,
@@ -183739,15 +183262,15 @@
           "ict": 0.0,
           "bps": 0,
           "bonus": 0,
-          "news": "",
+          "news": "Has joined FC Barcelona permanently",
           "quality_rating": null,
           "form_rating": 0.0,
           "live_form_rating": 14.0,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 3.9,
+          "current_impact_rating": 0.0,
           "rating_driver": "Expected goals",
-          "rating_expected_minutes": 25.0,
+          "rating_expected_minutes": 0.0,
           "rating_status": "limited",
           "rating_evidence_minutes": 2488.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -185069,8 +184592,8 @@
           "name": "Cozier-Duberry",
           "team": "Brighton",
           "position": "MID",
-          "status": "a",
-          "chance_of_playing": null,
+          "status": "u",
+          "chance_of_playing": 0,
           "minutes": 0,
           "starts": 0,
           "goals": 0,
@@ -185083,15 +184606,15 @@
           "ict": 0.0,
           "bps": 0,
           "bonus": 0,
-          "news": "",
+          "news": "Has joined Middlesbrough on loan for the rest of the season",
           "quality_rating": null,
           "form_rating": 0.0,
           "live_form_rating": 14.0,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 3.9,
+          "current_impact_rating": 0.0,
           "rating_driver": "Expected goal involvements",
-          "rating_expected_minutes": 25.0,
+          "rating_expected_minutes": 0.0,
           "rating_status": "provisional",
           "rating_evidence_minutes": 0.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -185325,8 +184848,8 @@
           "name": "D.Essugo",
           "team": "Chelsea",
           "position": "MID",
-          "status": "a",
-          "chance_of_playing": null,
+          "status": "u",
+          "chance_of_playing": 0,
           "minutes": 0,
           "starts": 0,
           "goals": 0,
@@ -185339,15 +184862,15 @@
           "ict": 0.0,
           "bps": 0,
           "bonus": 0,
-          "news": "",
+          "news": "Has joined RC Strasbourg on loan for the rest of the season",
           "quality_rating": null,
           "form_rating": 0.0,
           "live_form_rating": 14.0,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 3.9,
+          "current_impact_rating": 0.0,
           "rating_driver": "Bonus Point System",
-          "rating_expected_minutes": 25.0,
+          "rating_expected_minutes": 0.0,
           "rating_status": "provisional",
           "rating_evidence_minutes": 26.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -185517,8 +185040,8 @@
           "name": "Dovin",
           "team": "Coventry",
           "position": "GK",
-          "status": "a",
-          "chance_of_playing": null,
+          "status": "u",
+          "chance_of_playing": 0,
           "minutes": 0,
           "starts": 0,
           "goals": 0,
@@ -185531,15 +185054,15 @@
           "ict": 0.0,
           "bps": 0,
           "bonus": 0,
-          "news": "",
+          "news": "Has joined Leyton Orient on loan for the rest of the season",
           "quality_rating": null,
           "form_rating": 0.0,
           "live_form_rating": 18.5,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 5.1,
+          "current_impact_rating": 0.0,
           "rating_driver": "Saves and shot prevention",
-          "rating_expected_minutes": 25.0,
+          "rating_expected_minutes": 0.0,
           "rating_status": "provisional",
           "rating_evidence_minutes": 0.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -185581,8 +185104,8 @@
           "name": "Kitching",
           "team": "Coventry",
           "position": "DEF",
-          "status": "a",
-          "chance_of_playing": null,
+          "status": "u",
+          "chance_of_playing": 0,
           "minutes": 0,
           "starts": 0,
           "goals": 0,
@@ -185595,15 +185118,15 @@
           "ict": 0.0,
           "bps": 0,
           "bonus": 0,
-          "news": "",
+          "news": "Has joined Sheffield United on loan for the rest of the season",
           "quality_rating": null,
           "form_rating": 0.0,
           "live_form_rating": 18.5,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 5.1,
+          "current_impact_rating": 0.0,
           "rating_driver": "Clean sheets",
-          "rating_expected_minutes": 25.0,
+          "rating_expected_minutes": 0.0,
           "rating_status": "provisional",
           "rating_evidence_minutes": 0.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -185837,8 +185360,8 @@
           "name": "Borges Rodrigues",
           "team": "Coventry",
           "position": "MID",
-          "status": "a",
-          "chance_of_playing": null,
+          "status": "u",
+          "chance_of_playing": 0,
           "minutes": 0,
           "starts": 0,
           "goals": 0,
@@ -185851,15 +185374,15 @@
           "ict": 0.0,
           "bps": 0,
           "bonus": 0,
-          "news": "",
+          "news": "Has joined Burton Albion on loan for the rest of the season",
           "quality_rating": null,
           "form_rating": 0.0,
           "live_form_rating": 14.0,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 3.9,
+          "current_impact_rating": 0.0,
           "rating_driver": "Expected goal involvements",
-          "rating_expected_minutes": 25.0,
+          "rating_expected_minutes": 0.0,
           "rating_status": "provisional",
           "rating_evidence_minutes": 0.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -186093,8 +185616,8 @@
           "name": "Sosa",
           "team": "Crystal Palace",
           "position": "DEF",
-          "status": "a",
-          "chance_of_playing": null,
+          "status": "u",
+          "chance_of_playing": 0,
           "minutes": 0,
           "starts": 0,
           "goals": 0,
@@ -186107,15 +185630,15 @@
           "ict": 0.0,
           "bps": 0,
           "bonus": 0,
-          "news": "",
+          "news": "Has joined FC Cologne on loan for the rest of the season",
           "quality_rating": null,
           "form_rating": 0.0,
           "live_form_rating": 18.5,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 5.1,
+          "current_impact_rating": 0.0,
           "rating_driver": "Defensive contribution",
-          "rating_expected_minutes": 25.0,
+          "rating_expected_minutes": 0.0,
           "rating_status": "provisional",
           "rating_evidence_minutes": 99.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -186125,8 +185648,8 @@
           "name": "Devenny",
           "team": "Crystal Palace",
           "position": "MID",
-          "status": "a",
-          "chance_of_playing": null,
+          "status": "u",
+          "chance_of_playing": 0,
           "minutes": 0,
           "starts": 0,
           "goals": 0,
@@ -186139,15 +185662,15 @@
           "ict": 0.0,
           "bps": 0,
           "bonus": 0,
-          "news": "",
+          "news": "Has joined Stoke City permanently",
           "quality_rating": null,
           "form_rating": 0.0,
           "live_form_rating": 14.0,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 3.9,
+          "current_impact_rating": 0.0,
           "rating_driver": "Expected goal involvements",
-          "rating_expected_minutes": 25.0,
+          "rating_expected_minutes": 0.0,
           "rating_status": "limited",
           "rating_evidence_minutes": 1279.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -186157,8 +185680,8 @@
           "name": "Esse",
           "team": "Crystal Palace",
           "position": "MID",
-          "status": "a",
-          "chance_of_playing": null,
+          "status": "u",
+          "chance_of_playing": 0,
           "minutes": 0,
           "starts": 0,
           "goals": 0,
@@ -186171,15 +185694,15 @@
           "ict": 0.0,
           "bps": 0,
           "bonus": 0,
-          "news": "",
+          "news": "Has joined Millwall on loan for the rest of the season",
           "quality_rating": null,
           "form_rating": 0.0,
           "live_form_rating": 14.0,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 3.9,
+          "current_impact_rating": 0.0,
           "rating_driver": "Bonus Point System",
-          "rating_expected_minutes": 25.0,
+          "rating_expected_minutes": 0.0,
           "rating_status": "provisional",
           "rating_evidence_minutes": 178.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -186605,8 +186128,8 @@
           "name": "Patterson",
           "team": "Everton",
           "position": "DEF",
-          "status": "a",
-          "chance_of_playing": null,
+          "status": "u",
+          "chance_of_playing": 0,
           "minutes": 0,
           "starts": 0,
           "goals": 0,
@@ -186619,15 +186142,15 @@
           "ict": 0.0,
           "bps": 0,
           "bonus": 0,
-          "news": "",
+          "news": "Has joined Torino permanently",
           "quality_rating": null,
           "form_rating": 0.0,
           "live_form_rating": 18.5,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 5.1,
+          "current_impact_rating": 0.0,
           "rating_driver": "Clean sheets",
-          "rating_expected_minutes": 25.0,
+          "rating_expected_minutes": 0.0,
           "rating_status": "limited",
           "rating_evidence_minutes": 1580.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -187213,7 +186736,7 @@
           "name": "Jacob",
           "team": "Hull",
           "position": "DEF",
-          "status": "i",
+          "status": "u",
           "chance_of_playing": 0,
           "minutes": 0,
           "starts": 0,
@@ -187227,7 +186750,7 @@
           "ict": 0.0,
           "bps": 0,
           "bonus": 0,
-          "news": "Hip injury - Expected back 5 Sep",
+          "news": "Has joined Newport County on loan until January",
           "quality_rating": null,
           "form_rating": 0.0,
           "live_form_rating": 18.5,
@@ -188045,8 +187568,8 @@
           "name": "Ogbene",
           "team": "Ipswich",
           "position": "MID",
-          "status": "a",
-          "chance_of_playing": null,
+          "status": "u",
+          "chance_of_playing": 0,
           "minutes": 0,
           "starts": 0,
           "goals": 0,
@@ -188059,15 +187582,15 @@
           "ict": 0.0,
           "bps": 0,
           "bonus": 0,
-          "news": "",
+          "news": "Has joined Lincoln City on loan until January",
           "quality_rating": null,
           "form_rating": 0.0,
           "live_form_rating": 14.0,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 3.9,
+          "current_impact_rating": 0.0,
           "rating_driver": "Bonus Point System",
-          "rating_expected_minutes": 25.0,
+          "rating_expected_minutes": 0.0,
           "rating_status": "limited",
           "rating_evidence_minutes": 2224.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -188301,8 +187824,8 @@
           "name": "Humphreys",
           "team": "Ipswich",
           "position": "MID",
-          "status": "a",
-          "chance_of_playing": null,
+          "status": "u",
+          "chance_of_playing": 0,
           "minutes": 0,
           "starts": 0,
           "goals": 0,
@@ -188315,15 +187838,15 @@
           "ict": 0.0,
           "bps": 0,
           "bonus": 0,
-          "news": "",
+          "news": "Has joined Huddersfield Town on loan for the rest of the season",
           "quality_rating": null,
           "form_rating": 0.0,
           "live_form_rating": 14.0,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 3.9,
+          "current_impact_rating": 0.0,
           "rating_driver": "Expected goal involvements",
-          "rating_expected_minutes": 25.0,
+          "rating_expected_minutes": 0.0,
           "rating_status": "provisional",
           "rating_evidence_minutes": 0.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -188461,8 +187984,8 @@
           "name": "Gnonto",
           "team": "Leeds",
           "position": "MID",
-          "status": "a",
-          "chance_of_playing": 100,
+          "status": "u",
+          "chance_of_playing": 0,
           "minutes": 0,
           "starts": 0,
           "goals": 0,
@@ -188475,15 +187998,15 @@
           "ict": 0.0,
           "bps": 0,
           "bonus": 0,
-          "news": "",
+          "news": "Has joined ACF Fiorentina on loan for the rest of the season",
           "quality_rating": null,
           "form_rating": 0.0,
           "live_form_rating": 14.0,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 3.9,
+          "current_impact_rating": 0.0,
           "rating_driver": "Bonus Point System",
-          "rating_expected_minutes": 25.0,
+          "rating_expected_minutes": 0.0,
           "rating_status": "provisional",
           "rating_evidence_minutes": 521.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -189293,8 +188816,8 @@
           "name": "Elliott",
           "team": "Liverpool",
           "position": "MID",
-          "status": "a",
-          "chance_of_playing": null,
+          "status": "u",
+          "chance_of_playing": 0,
           "minutes": 0,
           "starts": 0,
           "goals": 0,
@@ -189307,15 +188830,15 @@
           "ict": 0.0,
           "bps": 0,
           "bonus": 0,
-          "news": "",
+          "news": "Has joined Valencia on loan for the rest of the season",
           "quality_rating": null,
           "form_rating": 0.0,
           "live_form_rating": 14.0,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 3.9,
+          "current_impact_rating": 0.0,
           "rating_driver": "Expected goal involvements",
-          "rating_expected_minutes": 25.0,
+          "rating_expected_minutes": 0.0,
           "rating_status": "limited",
           "rating_evidence_minutes": 1799.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -189581,8 +189104,8 @@
           "name": "Monga",
           "team": "Man City",
           "position": "MID",
-          "status": "a",
-          "chance_of_playing": null,
+          "status": "u",
+          "chance_of_playing": 0,
           "minutes": 0,
           "starts": 0,
           "goals": 0,
@@ -189595,15 +189118,15 @@
           "ict": 0.0,
           "bps": 0,
           "bonus": 0,
-          "news": "",
+          "news": "Has joined Swansea City on loan for the rest of the season",
           "quality_rating": null,
           "form_rating": 0.0,
           "live_form_rating": 14.0,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 3.9,
+          "current_impact_rating": 0.0,
           "rating_driver": "Bonus Point System",
-          "rating_expected_minutes": 25.0,
+          "rating_expected_minutes": 0.0,
           "rating_status": "provisional",
           "rating_evidence_minutes": 105.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -190317,8 +189840,8 @@
           "name": "Morato",
           "team": "Nott'm Forest",
           "position": "DEF",
-          "status": "a",
-          "chance_of_playing": null,
+          "status": "u",
+          "chance_of_playing": 0,
           "minutes": 0,
           "starts": 0,
           "goals": 0,
@@ -190331,15 +189854,15 @@
           "ict": 0.0,
           "bps": 0,
           "bonus": 0,
-          "news": "",
+          "news": "Has joined West Ham on loan for the rest of the season",
           "quality_rating": null,
           "form_rating": 0.0,
           "live_form_rating": 18.5,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 5.1,
+          "current_impact_rating": 0.0,
           "rating_driver": "Bonus Point System",
-          "rating_expected_minutes": 25.0,
+          "rating_expected_minutes": 0.0,
           "rating_status": "limited",
           "rating_evidence_minutes": 2231.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -190413,8 +189936,8 @@
           "name": "Abbott",
           "team": "Nott'm Forest",
           "position": "DEF",
-          "status": "a",
-          "chance_of_playing": null,
+          "status": "u",
+          "chance_of_playing": 0,
           "minutes": 0,
           "starts": 0,
           "goals": 0,
@@ -190427,15 +189950,15 @@
           "ict": 0.0,
           "bps": 0,
           "bonus": 0,
-          "news": "",
+          "news": "Has joined Southampton on loan for the rest of the season",
           "quality_rating": null,
           "form_rating": 0.0,
           "live_form_rating": 18.5,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 5.1,
+          "current_impact_rating": 0.0,
           "rating_driver": "Defensive contribution",
-          "rating_expected_minutes": 25.0,
+          "rating_expected_minutes": 0.0,
           "rating_status": "provisional",
           "rating_evidence_minutes": 165.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -190861,8 +190384,8 @@
           "name": "Scarlett",
           "team": "Tottenham",
           "position": "FWD",
-          "status": "a",
-          "chance_of_playing": null,
+          "status": "u",
+          "chance_of_playing": 0,
           "minutes": 0,
           "starts": 0,
           "goals": 0,
@@ -190875,15 +190398,15 @@
           "ict": 0.0,
           "bps": 0,
           "bonus": 0,
-          "news": "",
+          "news": "Has joined Leyton Orient permanently",
           "quality_rating": null,
           "form_rating": 0.0,
           "live_form_rating": 14.0,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 3.9,
+          "current_impact_rating": 0.0,
           "rating_driver": "Bonus Point System",
-          "rating_expected_minutes": 25.0,
+          "rating_expected_minutes": 0.0,
           "rating_status": "provisional",
           "rating_evidence_minutes": 57.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -191962,7 +191485,7 @@
   "fpl": {
     "projections": {
       "gameweek": 3,
-      "generated_at": "2026-09-02T15:08:31.893668+00:00",
+      "generated_at": "2026-09-02T18:39:14.801773+00:00",
       "model_source": "hybrid_match_context_baseline",
       "data_freshness": "live official FPL API + independent pre-match scoreline model",
       "players": [
@@ -198847,38 +198370,6 @@
           ]
         },
         {
-          "player_id": 140,
-          "name": "Robert Lynch S\u00e1nchez",
-          "web_name": "S\u00e1nchez",
-          "team": "Chelsea",
-          "team_id": 6,
-          "position": "GK",
-          "price": 4.9,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 68.3,
-          "projected_points": 2.69,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": false,
-              "difficulty": 5,
-              "expected_goals": 0.94,
-              "clean_sheet_probability": 0.103,
-              "expected_minutes": 68.3,
-              "opponent": "Arsenal",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "68 expected minutes",
-            "form 1.0",
-            "0.94 expected team goals"
-          ]
-        },
-        {
           "player_id": 144,
           "name": "Malo Gusto",
           "web_name": "Gusto",
@@ -200159,38 +199650,6 @@
           ]
         },
         {
-          "player_id": 287,
-          "name": "Liam Millar",
-          "web_name": "Millar",
-          "team": "Hull City",
-          "team_id": 11,
-          "position": "MID",
-          "price": 5.0,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 25.0,
-          "projected_points": 2.04,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 3,
-              "expected_goals": 1.21,
-              "clean_sheet_probability": 0.251,
-              "expected_minutes": 25.0,
-              "opponent": "Aston Villa",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "25 expected minutes",
-            "form 3.0",
-            "1.21 expected team goals"
-          ]
-        },
-        {
           "player_id": 243,
           "name": "Carlos Alcaraz Dur\u00e1n",
           "web_name": "Alcaraz",
@@ -200959,38 +200418,6 @@
           ]
         },
         {
-          "player_id": 118,
-          "name": "Igor Julio dos Santos de Paulo",
-          "web_name": "Igor",
-          "team": "Brighton",
-          "team_id": 5,
-          "position": "DEF",
-          "price": 4.5,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 25.0,
-          "projected_points": 1.59,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 2,
-              "expected_goals": 2.05,
-              "clean_sheet_probability": 0.382,
-              "expected_minutes": 25.0,
-              "opponent": "Leeds",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "25 expected minutes",
-            "form 0.0",
-            "2.05 expected team goals"
-          ]
-        },
-        {
           "player_id": 120,
           "name": "Michael Svoboda",
           "web_name": "Svoboda",
@@ -201439,38 +200866,6 @@
           ]
         },
         {
-          "player_id": 281,
-          "name": "Cody Drameh",
-          "web_name": "Drameh",
-          "team": "Hull City",
-          "team_id": 11,
-          "position": "DEF",
-          "price": 4.0,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 25.0,
-          "projected_points": 1.48,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 3,
-              "expected_goals": 1.21,
-              "clean_sheet_probability": 0.251,
-              "expected_minutes": 25.0,
-              "opponent": "Aston Villa",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "25 expected minutes",
-            "form 1.0",
-            "1.21 expected team goals"
-          ]
-        },
-        {
           "player_id": 468,
           "name": "John Victor Maciel Furtado",
           "web_name": "John",
@@ -201503,73 +200898,9 @@
           ]
         },
         {
-          "player_id": 470,
-          "name": "Felipe Rodrigues da Silva",
-          "web_name": "Morato",
-          "team": "Nott'm Forest",
-          "team_id": 18,
-          "position": "DEF",
-          "price": 5.0,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 25.0,
-          "projected_points": 1.48,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 3,
-              "expected_goals": 1.56,
-              "clean_sheet_probability": 0.333,
-              "expected_minutes": 25.0,
-              "opponent": "Spurs",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "25 expected minutes",
-            "form 0.0",
-            "1.56 expected team goals"
-          ]
-        },
-        {
           "player_id": 476,
           "name": "Omar Richards",
           "web_name": "O.Richards",
-          "team": "Nott'm Forest",
-          "team_id": 18,
-          "position": "DEF",
-          "price": 4.0,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 25.0,
-          "projected_points": 1.48,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 3,
-              "expected_goals": 1.56,
-              "clean_sheet_probability": 0.333,
-              "expected_minutes": 25.0,
-              "opponent": "Spurs",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "25 expected minutes",
-            "form 0.0",
-            "1.56 expected team goals"
-          ]
-        },
-        {
-          "player_id": 477,
-          "name": "Zach Abbott",
-          "web_name": "Abbott",
           "team": "Nott'm Forest",
           "team_id": 18,
           "position": "DEF",
@@ -203007,38 +202338,6 @@
           ]
         },
         {
-          "player_id": 205,
-          "name": "Borna Sosa",
-          "web_name": "Sosa",
-          "team": "Crystal Palace",
-          "team_id": 8,
-          "position": "DEF",
-          "price": 4.5,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 25.0,
-          "projected_points": 1.28,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": false,
-              "difficulty": 3,
-              "expected_goals": 1.21,
-              "clean_sheet_probability": 0.228,
-              "expected_minutes": 25.0,
-              "opponent": "Fulham",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "25 expected minutes",
-            "form 0.0",
-            "1.21 expected team goals"
-          ]
-        },
-        {
           "player_id": 555,
           "name": "Remi Matthews",
           "web_name": "Matthews",
@@ -203583,38 +202882,6 @@
           ]
         },
         {
-          "player_id": 463,
-          "name": "Nick Woltemade",
-          "web_name": "Woltemade",
-          "team": "Newcastle",
-          "team_id": 17,
-          "position": "FWD",
-          "price": 5.9,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 25.0,
-          "projected_points": 1.22,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 3,
-              "expected_goals": 1.54,
-              "clean_sheet_probability": 0.241,
-              "expected_minutes": 25.0,
-              "opponent": "Bournemouth",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "25 expected minutes",
-            "form 2.0",
-            "1.54 expected team goals"
-          ]
-        },
-        {
           "player_id": 227,
           "name": "Mark Travers",
           "web_name": "Travers",
@@ -203718,38 +202985,6 @@
           "team_id": 9,
           "position": "DEF",
           "price": 4.9,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 25.0,
-          "projected_points": 1.21,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 4,
-              "expected_goals": 1.25,
-              "clean_sheet_probability": 0.183,
-              "expected_minutes": 25.0,
-              "opponent": "Man Utd",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "25 expected minutes",
-            "form 0.0",
-            "1.25 expected team goals"
-          ]
-        },
-        {
-          "player_id": 234,
-          "name": "Nathan Patterson",
-          "web_name": "Patterson",
-          "team": "Everton",
-          "team_id": 9,
-          "position": "DEF",
-          "price": 4.5,
           "status": "a",
           "news": "",
           "availability": 1.0,
@@ -203900,38 +203135,6 @@
             "25 expected minutes",
             "form 1.0",
             "0.94 expected team goals"
-          ]
-        },
-        {
-          "player_id": 248,
-          "name": "Norberto Bercique Gomes Betuncal",
-          "web_name": "Beto",
-          "team": "Everton",
-          "team_id": 9,
-          "position": "FWD",
-          "price": 5.4,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 25.0,
-          "projected_points": 1.19,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 4,
-              "expected_goals": 1.25,
-              "clean_sheet_probability": 0.183,
-              "expected_minutes": 25.0,
-              "opponent": "Man Utd",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "25 expected minutes",
-            "form 1.0",
-            "1.25 expected team goals"
           ]
         },
         {
@@ -204511,38 +203714,6 @@
           ]
         },
         {
-          "player_id": 383,
-          "name": "Harvey Elliott",
-          "web_name": "Elliott",
-          "team": "Liverpool",
-          "team_id": 14,
-          "position": "MID",
-          "price": 5.4,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 25.0,
-          "projected_points": 1.12,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": false,
-              "difficulty": 2,
-              "expected_goals": 2.5,
-              "clean_sheet_probability": 0.369,
-              "expected_minutes": 25.0,
-              "opponent": "Ipswich Town",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "25 expected minutes",
-            "form 0.0",
-            "2.50 expected team goals"
-          ]
-        },
-        {
           "player_id": 627,
           "name": "Bradley Barcola",
           "web_name": "Barcola",
@@ -204614,38 +203785,6 @@
           "team_id": 15,
           "position": "MID",
           "price": 4.5,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 25.0,
-          "projected_points": 1.12,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 2,
-              "expected_goals": 2.18,
-              "clean_sheet_probability": 0.419,
-              "expected_minutes": 25.0,
-              "opponent": "Coventry City",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "25 expected minutes",
-            "form 0.0",
-            "2.18 expected team goals"
-          ]
-        },
-        {
-          "player_id": 410,
-          "name": "Jeremy Monga",
-          "web_name": "Monga",
-          "team": "Man City",
-          "team_id": 15,
-          "position": "MID",
-          "price": 4.9,
           "status": "a",
           "news": "",
           "availability": 1.0,
@@ -204831,70 +203970,6 @@
           ]
         },
         {
-          "player_id": 22,
-          "name": "Ethan Nwaneri",
-          "web_name": "Nwaneri",
-          "team": "Arsenal",
-          "team_id": 1,
-          "position": "MID",
-          "price": 5.4,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 25.0,
-          "projected_points": 1.11,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 4,
-              "expected_goals": 2.28,
-              "clean_sheet_probability": 0.391,
-              "expected_minutes": 25.0,
-              "opponent": "Chelsea",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "25 expected minutes",
-            "form 0.0",
-            "2.28 expected team goals"
-          ]
-        },
-        {
-          "player_id": 23,
-          "name": "F\u00e1bio Ferreira Vieira",
-          "web_name": "F\u00e1bio Vieira",
-          "team": "Arsenal",
-          "team_id": 1,
-          "position": "MID",
-          "price": 5.5,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 25.0,
-          "projected_points": 1.11,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 4,
-              "expected_goals": 2.28,
-              "clean_sheet_probability": 0.391,
-              "expected_minutes": 25.0,
-              "opponent": "Chelsea",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "25 expected minutes",
-            "form 0.0",
-            "2.28 expected team goals"
-          ]
-        },
-        {
           "player_id": 439,
           "name": "Benjamin Sesko",
           "web_name": "\u0160e\u0161ko",
@@ -204966,38 +204041,6 @@
           "team_id": 5,
           "position": "MID",
           "price": 4.5,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 25.0,
-          "projected_points": 1.1,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 2,
-              "expected_goals": 2.05,
-              "clean_sheet_probability": 0.382,
-              "expected_minutes": 25.0,
-              "opponent": "Leeds",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "25 expected minutes",
-            "form 0.0",
-            "2.05 expected team goals"
-          ]
-        },
-        {
-          "player_id": 624,
-          "name": "Amario Cozier-Duberry",
-          "web_name": "Cozier-Duberry",
-          "team": "Brighton",
-          "team_id": 5,
-          "position": "MID",
-          "price": 5.0,
           "status": "a",
           "news": "",
           "availability": 1.0,
@@ -205471,38 +204514,6 @@
           ]
         },
         {
-          "player_id": 171,
-          "name": "Oliver Dovin",
-          "web_name": "Dovin",
-          "team": "Coventry City",
-          "team_id": 7,
-          "position": "GK",
-          "price": 4.0,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 25.0,
-          "projected_points": 1.07,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": false,
-              "difficulty": 5,
-              "expected_goals": 0.87,
-              "clean_sheet_probability": 0.113,
-              "expected_minutes": 25.0,
-              "opponent": "Man City",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "25 expected minutes",
-            "form 0.0",
-            "0.87 expected team goals"
-          ]
-        },
-        {
           "player_id": 172,
           "name": "Ben Wilson",
           "web_name": "Wilson",
@@ -205510,38 +204521,6 @@
           "team_id": 7,
           "position": "GK",
           "price": 4.5,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 25.0,
-          "projected_points": 1.07,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": false,
-              "difficulty": 5,
-              "expected_goals": 0.87,
-              "clean_sheet_probability": 0.113,
-              "expected_minutes": 25.0,
-              "opponent": "Man City",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "25 expected minutes",
-            "form 0.0",
-            "0.87 expected team goals"
-          ]
-        },
-        {
-          "player_id": 174,
-          "name": "Liam Kitching",
-          "web_name": "Kitching",
-          "team": "Coventry City",
-          "team_id": 7,
-          "position": "DEF",
-          "price": 4.0,
           "status": "a",
           "news": "",
           "availability": 1.0,
@@ -207199,70 +206178,6 @@
           ]
         },
         {
-          "player_id": 215,
-          "name": "Justin Devenny",
-          "web_name": "Devenny",
-          "team": "Crystal Palace",
-          "team_id": 8,
-          "position": "MID",
-          "price": 5.0,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 25.0,
-          "projected_points": 0.99,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": false,
-              "difficulty": 3,
-              "expected_goals": 1.21,
-              "clean_sheet_probability": 0.228,
-              "expected_minutes": 25.0,
-              "opponent": "Fulham",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "25 expected minutes",
-            "form 0.0",
-            "1.21 expected team goals"
-          ]
-        },
-        {
-          "player_id": 216,
-          "name": "Romain Esse",
-          "web_name": "Esse",
-          "team": "Crystal Palace",
-          "team_id": 8,
-          "position": "MID",
-          "price": 5.0,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 25.0,
-          "projected_points": 0.99,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": false,
-              "difficulty": 3,
-              "expected_goals": 1.21,
-              "clean_sheet_probability": 0.228,
-              "expected_minutes": 25.0,
-              "opponent": "Fulham",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "25 expected minutes",
-            "form 0.0",
-            "1.21 expected team goals"
-          ]
-        },
-        {
           "player_id": 217,
           "name": "Matheus Fran\u00e7a de Oliveira",
           "web_name": "M.Fran\u00e7a",
@@ -207452,38 +206367,6 @@
             "25 expected minutes",
             "form 0.0",
             "1.21 expected team goals"
-          ]
-        },
-        {
-          "player_id": 518,
-          "name": "Pape Matar Sarr",
-          "web_name": "P.M.Sarr",
-          "team": "Spurs",
-          "team_id": 19,
-          "position": "MID",
-          "price": 4.9,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 25.0,
-          "projected_points": 0.98,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": false,
-              "difficulty": 3,
-              "expected_goals": 1.1,
-              "clean_sheet_probability": 0.209,
-              "expected_minutes": 25.0,
-              "opponent": "Nott'm Forest",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "25 expected minutes",
-            "form 0.0",
-            "1.10 expected team goals"
           ]
         },
         {
@@ -207839,38 +206722,6 @@
           ]
         },
         {
-          "player_id": 341,
-          "name": "Wilfried Gnonto",
-          "web_name": "Gnonto",
-          "team": "Leeds",
-          "team_id": 13,
-          "position": "MID",
-          "price": 5.0,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 25.0,
-          "projected_points": 0.94,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": false,
-              "difficulty": 3,
-              "expected_goals": 0.96,
-              "clean_sheet_probability": 0.128,
-              "expected_minutes": 25.0,
-              "opponent": "Brighton",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "25 expected minutes",
-            "form 0.0",
-            "0.96 expected team goals"
-          ]
-        },
-        {
           "player_id": 604,
           "name": "Alfie Cresswell",
           "web_name": "Cresswell",
@@ -207967,38 +206818,6 @@
           ]
         },
         {
-          "player_id": 27,
-          "name": "Gabriel Fernando de Jesus",
-          "web_name": "G.Jesus",
-          "team": "Arsenal",
-          "team_id": 1,
-          "position": "FWD",
-          "price": 5.9,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 25.0,
-          "projected_points": 0.93,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 4,
-              "expected_goals": 2.28,
-              "clean_sheet_probability": 0.391,
-              "expected_minutes": 25.0,
-              "opponent": "Chelsea",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "25 expected minutes",
-            "form 0.0",
-            "2.28 expected team goals"
-          ]
-        },
-        {
           "player_id": 187,
           "name": "Josh Eccles",
           "web_name": "Eccles",
@@ -208034,38 +206853,6 @@
           "player_id": 189,
           "name": "George Shepherd",
           "web_name": "Shepherd",
-          "team": "Coventry City",
-          "team_id": 7,
-          "position": "MID",
-          "price": 4.5,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 25.0,
-          "projected_points": 0.93,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": false,
-              "difficulty": 5,
-              "expected_goals": 0.87,
-              "clean_sheet_probability": 0.113,
-              "expected_minutes": 25.0,
-              "opponent": "Man City",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "25 expected minutes",
-            "form 0.0",
-            "0.87 expected team goals"
-          ]
-        },
-        {
-          "player_id": 191,
-          "name": "Raphael Borges Rodrigues",
-          "web_name": "Borges Rodrigues",
           "team": "Coventry City",
           "team_id": 7,
           "position": "MID",
@@ -208159,70 +206946,6 @@
           ]
         },
         {
-          "player_id": 163,
-          "name": "D\u00e1rio Lu\u00eds Essugo",
-          "web_name": "D.Essugo",
-          "team": "Chelsea",
-          "team_id": 6,
-          "position": "MID",
-          "price": 4.5,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 25.0,
-          "projected_points": 0.92,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": false,
-              "difficulty": 5,
-              "expected_goals": 0.94,
-              "clean_sheet_probability": 0.103,
-              "expected_minutes": 25.0,
-              "opponent": "Arsenal",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "25 expected minutes",
-            "form 0.0",
-            "0.94 expected team goals"
-          ]
-        },
-        {
-          "player_id": 314,
-          "name": "Chiedozie Ogbene",
-          "web_name": "Ogbene",
-          "team": "Ipswich Town",
-          "team_id": 12,
-          "position": "MID",
-          "price": 4.9,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 25.0,
-          "projected_points": 0.92,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 4,
-              "expected_goals": 1.0,
-              "clean_sheet_probability": 0.082,
-              "expected_minutes": 25.0,
-              "opponent": "Liverpool",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "25 expected minutes",
-            "form 0.0",
-            "1.00 expected team goals"
-          ]
-        },
-        {
           "player_id": 324,
           "name": "Anis Mehmeti",
           "web_name": "Mehmeti",
@@ -208230,38 +206953,6 @@
           "team_id": 12,
           "position": "MID",
           "price": 4.9,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 25.0,
-          "projected_points": 0.92,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 4,
-              "expected_goals": 1.0,
-              "clean_sheet_probability": 0.082,
-              "expected_minutes": 25.0,
-              "opponent": "Liverpool",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "25 expected minutes",
-            "form 0.0",
-            "1.00 expected team goals"
-          ]
-        },
-        {
-          "player_id": 602,
-          "name": "Cameron Humphreys",
-          "web_name": "Humphreys",
-          "team": "Ipswich Town",
-          "team_id": 12,
-          "position": "MID",
-          "price": 4.5,
           "status": "a",
           "news": "",
           "availability": 1.0,
@@ -208671,38 +207362,6 @@
           ]
         },
         {
-          "player_id": 528,
-          "name": "Dane Scarlett",
-          "web_name": "Scarlett",
-          "team": "Spurs",
-          "team_id": 19,
-          "position": "FWD",
-          "price": 4.5,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 25.0,
-          "projected_points": 0.88,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": false,
-              "difficulty": 3,
-              "expected_goals": 1.1,
-              "clean_sheet_probability": 0.209,
-              "expected_minutes": 25.0,
-              "opponent": "Nott'm Forest",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "25 expected minutes",
-            "form 0.0",
-            "1.10 expected team goals"
-          ]
-        },
-        {
           "player_id": 599,
           "name": "Sidiki Cherif",
           "web_name": "Cherif",
@@ -208959,6 +207618,70 @@
           ]
         },
         {
+          "player_id": 287,
+          "name": "Liam Millar",
+          "web_name": "Millar",
+          "team": "Hull City",
+          "team_id": 11,
+          "position": "MID",
+          "price": 5.0,
+          "status": "u",
+          "news": "Has joined Birmingham on loan for the rest of the season",
+          "availability": 0.0,
+          "expected_minutes": 0.0,
+          "projected_points": 0.38,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 3,
+              "expected_goals": 1.21,
+              "clean_sheet_probability": 0.251,
+              "expected_minutes": 0.0,
+              "opponent": "Aston Villa",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "0 expected minutes",
+            "form 3.0",
+            "1.21 expected team goals"
+          ]
+        },
+        {
+          "player_id": 463,
+          "name": "Nick Woltemade",
+          "web_name": "Woltemade",
+          "team": "Newcastle",
+          "team_id": 17,
+          "position": "FWD",
+          "price": 5.9,
+          "status": "u",
+          "news": "Has joined Juventus on loan for the rest of the season",
+          "availability": 0.0,
+          "expected_minutes": 0.0,
+          "projected_points": 0.25,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 3,
+              "expected_goals": 1.54,
+              "clean_sheet_probability": 0.241,
+              "expected_minutes": 0.0,
+              "opponent": "Bournemouth",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "0 expected minutes",
+            "form 2.0",
+            "1.54 expected team goals"
+          ]
+        },
+        {
           "player_id": 465,
           "name": "William Osula",
           "web_name": "Osula",
@@ -209023,6 +207746,38 @@
           ]
         },
         {
+          "player_id": 140,
+          "name": "Robert Lynch S\u00e1nchez",
+          "web_name": "S\u00e1nchez",
+          "team": "Chelsea",
+          "team_id": 6,
+          "position": "GK",
+          "price": 4.9,
+          "status": "u",
+          "news": "Has joined Como on loan for the rest of the season",
+          "availability": 0.0,
+          "expected_minutes": 0.0,
+          "projected_points": 0.12,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": false,
+              "difficulty": 5,
+              "expected_goals": 0.94,
+              "clean_sheet_probability": 0.103,
+              "expected_minutes": 0.0,
+              "opponent": "Arsenal",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "0 expected minutes",
+            "form 1.0",
+            "0.94 expected team goals"
+          ]
+        },
+        {
           "player_id": 223,
           "name": "Jean-Philippe Mateta",
           "web_name": "Mateta",
@@ -209044,6 +207799,70 @@
               "clean_sheet_probability": 0.228,
               "expected_minutes": 0.0,
               "opponent": "Fulham",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "0 expected minutes",
+            "form 1.0",
+            "1.21 expected team goals"
+          ]
+        },
+        {
+          "player_id": 248,
+          "name": "Norberto Bercique Gomes Betuncal",
+          "web_name": "Beto",
+          "team": "Everton",
+          "team_id": 9,
+          "position": "FWD",
+          "price": 5.4,
+          "status": "u",
+          "news": "Has joined Fiorentina permanently",
+          "availability": 0.0,
+          "expected_minutes": 0.0,
+          "projected_points": 0.12,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 4,
+              "expected_goals": 1.25,
+              "clean_sheet_probability": 0.183,
+              "expected_minutes": 0.0,
+              "opponent": "Man Utd",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "0 expected minutes",
+            "form 1.0",
+            "1.25 expected team goals"
+          ]
+        },
+        {
+          "player_id": 281,
+          "name": "Cody Drameh",
+          "web_name": "Drameh",
+          "team": "Hull City",
+          "team_id": 11,
+          "position": "DEF",
+          "price": 4.0,
+          "status": "u",
+          "news": "Has joined Genoa permanently",
+          "availability": 0.0,
+          "expected_minutes": 0.0,
+          "projected_points": 0.12,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 3,
+              "expected_goals": 1.21,
+              "clean_sheet_probability": 0.251,
+              "expected_minutes": 0.0,
+              "opponent": "Aston Villa",
               "model_source": "independent_scoreline"
             }
           ],
@@ -209183,6 +208002,70 @@
           ]
         },
         {
+          "player_id": 22,
+          "name": "Ethan Nwaneri",
+          "web_name": "Nwaneri",
+          "team": "Arsenal",
+          "team_id": 1,
+          "position": "MID",
+          "price": 5.4,
+          "status": "u",
+          "news": "Has joined Borussia Dortmund on loan for the rest of the season",
+          "availability": 0.0,
+          "expected_minutes": 0.0,
+          "projected_points": 0.0,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 4,
+              "expected_goals": 2.28,
+              "clean_sheet_probability": 0.391,
+              "expected_minutes": 0.0,
+              "opponent": "Chelsea",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "0 expected minutes",
+            "form 0.0",
+            "2.28 expected team goals"
+          ]
+        },
+        {
+          "player_id": 23,
+          "name": "F\u00e1bio Ferreira Vieira",
+          "web_name": "F\u00e1bio Vieira",
+          "team": "Arsenal",
+          "team_id": 1,
+          "position": "MID",
+          "price": 5.5,
+          "status": "u",
+          "news": "Has joined Hamburger SV permanently",
+          "availability": 0.0,
+          "expected_minutes": 0.0,
+          "projected_points": 0.0,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 4,
+              "expected_goals": 2.28,
+              "clean_sheet_probability": 0.391,
+              "expected_minutes": 0.0,
+              "opponent": "Chelsea",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "0 expected minutes",
+            "form 0.0",
+            "2.28 expected team goals"
+          ]
+        },
+        {
           "player_id": 24,
           "name": "Reiss Nelson",
           "web_name": "Nelson",
@@ -209192,6 +208075,38 @@
           "price": 5.5,
           "status": "u",
           "news": "has departed the club as a free agent.",
+          "availability": 0.0,
+          "expected_minutes": 0.0,
+          "projected_points": 0.0,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 4,
+              "expected_goals": 2.28,
+              "clean_sheet_probability": 0.391,
+              "expected_minutes": 0.0,
+              "opponent": "Chelsea",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "0 expected minutes",
+            "form 0.0",
+            "2.28 expected team goals"
+          ]
+        },
+        {
+          "player_id": 27,
+          "name": "Gabriel Fernando de Jesus",
+          "web_name": "G.Jesus",
+          "team": "Arsenal",
+          "team_id": 1,
+          "position": "FWD",
+          "price": 5.9,
+          "status": "u",
+          "news": "Has joined FC Barcelona permanently",
           "availability": 0.0,
           "expected_minutes": 0.0,
           "projected_points": 0.0,
@@ -209695,6 +208610,38 @@
           ]
         },
         {
+          "player_id": 118,
+          "name": "Igor Julio dos Santos de Paulo",
+          "web_name": "Igor",
+          "team": "Brighton",
+          "team_id": 5,
+          "position": "DEF",
+          "price": 4.5,
+          "status": "u",
+          "news": "Has joined Burnley permanently",
+          "availability": 0.0,
+          "expected_minutes": 0.0,
+          "projected_points": 0.0,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 2,
+              "expected_goals": 2.05,
+              "clean_sheet_probability": 0.382,
+              "expected_minutes": 0.0,
+              "opponent": "Leeds",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "0 expected minutes",
+            "form 0.0",
+            "2.05 expected team goals"
+          ]
+        },
+        {
           "player_id": 121,
           "name": "Mitoma Kaoru",
           "web_name": "Mitoma",
@@ -209919,6 +208866,38 @@
           ]
         },
         {
+          "player_id": 624,
+          "name": "Amario Cozier-Duberry",
+          "web_name": "Cozier-Duberry",
+          "team": "Brighton",
+          "team_id": 5,
+          "position": "MID",
+          "price": 5.0,
+          "status": "u",
+          "news": "Has joined Middlesbrough on loan for the rest of the season",
+          "availability": 0.0,
+          "expected_minutes": 0.0,
+          "projected_points": 0.0,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 2,
+              "expected_goals": 2.05,
+              "clean_sheet_probability": 0.382,
+              "expected_minutes": 0.0,
+              "opponent": "Leeds",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "0 expected minutes",
+            "form 0.0",
+            "2.05 expected team goals"
+          ]
+        },
+        {
           "player_id": 141,
           "name": "Filip J\u00f6rgensen",
           "web_name": "J\u00f6rgensen",
@@ -210047,6 +209026,38 @@
           ]
         },
         {
+          "player_id": 163,
+          "name": "D\u00e1rio Lu\u00eds Essugo",
+          "web_name": "D.Essugo",
+          "team": "Chelsea",
+          "team_id": 6,
+          "position": "MID",
+          "price": 4.5,
+          "status": "u",
+          "news": "Has joined RC Strasbourg on loan for the rest of the season",
+          "availability": 0.0,
+          "expected_minutes": 0.0,
+          "projected_points": 0.0,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": false,
+              "difficulty": 5,
+              "expected_goals": 0.94,
+              "clean_sheet_probability": 0.103,
+              "expected_minutes": 0.0,
+              "opponent": "Arsenal",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "0 expected minutes",
+            "form 0.0",
+            "0.94 expected team goals"
+          ]
+        },
+        {
           "player_id": 168,
           "name": "Marc Guiu Paz",
           "web_name": "Marc Guiu",
@@ -210076,6 +209087,70 @@
             "0 expected minutes",
             "form 0.0",
             "0.94 expected team goals"
+          ]
+        },
+        {
+          "player_id": 171,
+          "name": "Oliver Dovin",
+          "web_name": "Dovin",
+          "team": "Coventry City",
+          "team_id": 7,
+          "position": "GK",
+          "price": 4.0,
+          "status": "u",
+          "news": "Has joined Leyton Orient on loan for the rest of the season",
+          "availability": 0.0,
+          "expected_minutes": 0.0,
+          "projected_points": 0.0,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": false,
+              "difficulty": 5,
+              "expected_goals": 0.87,
+              "clean_sheet_probability": 0.113,
+              "expected_minutes": 0.0,
+              "opponent": "Man City",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "0 expected minutes",
+            "form 0.0",
+            "0.87 expected team goals"
+          ]
+        },
+        {
+          "player_id": 174,
+          "name": "Liam Kitching",
+          "web_name": "Kitching",
+          "team": "Coventry City",
+          "team_id": 7,
+          "position": "DEF",
+          "price": 4.0,
+          "status": "u",
+          "news": "Has joined Sheffield United on loan for the rest of the season",
+          "availability": 0.0,
+          "expected_minutes": 0.0,
+          "projected_points": 0.0,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": false,
+              "difficulty": 5,
+              "expected_goals": 0.87,
+              "clean_sheet_probability": 0.113,
+              "expected_minutes": 0.0,
+              "opponent": "Man City",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "0 expected minutes",
+            "form 0.0",
+            "0.87 expected team goals"
           ]
         },
         {
@@ -210152,6 +209227,38 @@
           "price": 4.0,
           "status": "u",
           "news": "Has joined Academico de Viseu on loan for the rest of the season",
+          "availability": 0.0,
+          "expected_minutes": 0.0,
+          "projected_points": 0.0,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": false,
+              "difficulty": 5,
+              "expected_goals": 0.87,
+              "clean_sheet_probability": 0.113,
+              "expected_minutes": 0.0,
+              "opponent": "Man City",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "0 expected minutes",
+            "form 0.0",
+            "0.87 expected team goals"
+          ]
+        },
+        {
+          "player_id": 191,
+          "name": "Raphael Borges Rodrigues",
+          "web_name": "Borges Rodrigues",
+          "team": "Coventry City",
+          "team_id": 7,
+          "position": "MID",
+          "price": 4.5,
+          "status": "u",
+          "news": "Has joined Burton Albion on loan for the rest of the season",
           "availability": 0.0,
           "expected_minutes": 0.0,
           "projected_points": 0.0,
@@ -210303,6 +209410,38 @@
           ]
         },
         {
+          "player_id": 205,
+          "name": "Borna Sosa",
+          "web_name": "Sosa",
+          "team": "Crystal Palace",
+          "team_id": 8,
+          "position": "DEF",
+          "price": 4.5,
+          "status": "u",
+          "news": "Has joined FC Cologne on loan for the rest of the season",
+          "availability": 0.0,
+          "expected_minutes": 0.0,
+          "projected_points": 0.0,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": false,
+              "difficulty": 3,
+              "expected_goals": 1.21,
+              "clean_sheet_probability": 0.228,
+              "expected_minutes": 0.0,
+              "opponent": "Fulham",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "0 expected minutes",
+            "form 0.0",
+            "1.21 expected team goals"
+          ]
+        },
+        {
           "player_id": 208,
           "name": "Isma\u00efla Sarr",
           "web_name": "Sarr",
@@ -210312,6 +209451,70 @@
           "price": 6.3,
           "status": "i",
           "news": "Groin injury - Unknown return date",
+          "availability": 0.0,
+          "expected_minutes": 0.0,
+          "projected_points": 0.0,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": false,
+              "difficulty": 3,
+              "expected_goals": 1.21,
+              "clean_sheet_probability": 0.228,
+              "expected_minutes": 0.0,
+              "opponent": "Fulham",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "0 expected minutes",
+            "form 0.0",
+            "1.21 expected team goals"
+          ]
+        },
+        {
+          "player_id": 215,
+          "name": "Justin Devenny",
+          "web_name": "Devenny",
+          "team": "Crystal Palace",
+          "team_id": 8,
+          "position": "MID",
+          "price": 5.0,
+          "status": "u",
+          "news": "Has joined Stoke City permanently",
+          "availability": 0.0,
+          "expected_minutes": 0.0,
+          "projected_points": 0.0,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": false,
+              "difficulty": 3,
+              "expected_goals": 1.21,
+              "clean_sheet_probability": 0.228,
+              "expected_minutes": 0.0,
+              "opponent": "Fulham",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "0 expected minutes",
+            "form 0.0",
+            "1.21 expected team goals"
+          ]
+        },
+        {
+          "player_id": 216,
+          "name": "Romain Esse",
+          "web_name": "Esse",
+          "team": "Crystal Palace",
+          "team_id": 8,
+          "position": "MID",
+          "price": 5.0,
+          "status": "u",
+          "news": "Has joined Millwall on loan for the rest of the season",
           "availability": 0.0,
           "expected_minutes": 0.0,
           "projected_points": 0.0,
@@ -210408,6 +209611,38 @@
           "price": 4.9,
           "status": "i",
           "news": "Groin injury - Unknown return date",
+          "availability": 0.0,
+          "expected_minutes": 0.0,
+          "projected_points": 0.0,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 4,
+              "expected_goals": 1.25,
+              "clean_sheet_probability": 0.183,
+              "expected_minutes": 0.0,
+              "opponent": "Man Utd",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "0 expected minutes",
+            "form 0.0",
+            "1.25 expected team goals"
+          ]
+        },
+        {
+          "player_id": 234,
+          "name": "Nathan Patterson",
+          "web_name": "Patterson",
+          "team": "Everton",
+          "team_id": 9,
+          "position": "DEF",
+          "price": 4.5,
+          "status": "u",
+          "news": "Has joined Torino permanently",
           "availability": 0.0,
           "expected_minutes": 0.0,
           "projected_points": 0.0,
@@ -210662,8 +209897,8 @@
           "team_id": 11,
           "position": "DEF",
           "price": 4.0,
-          "status": "i",
-          "news": "Hip injury - Expected back 5 Sep",
+          "status": "u",
+          "news": "Has joined Newport County on loan until January",
           "availability": 0.0,
           "expected_minutes": 0.0,
           "projected_points": 0.0,
@@ -211007,6 +210242,38 @@
           ]
         },
         {
+          "player_id": 314,
+          "name": "Chiedozie Ogbene",
+          "web_name": "Ogbene",
+          "team": "Ipswich Town",
+          "team_id": 12,
+          "position": "MID",
+          "price": 4.9,
+          "status": "u",
+          "news": "Has joined Lincoln City on loan until January",
+          "availability": 0.0,
+          "expected_minutes": 0.0,
+          "projected_points": 0.0,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 4,
+              "expected_goals": 1.0,
+              "clean_sheet_probability": 0.082,
+              "expected_minutes": 0.0,
+              "opponent": "Liverpool",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "0 expected minutes",
+            "form 0.0",
+            "1.00 expected team goals"
+          ]
+        },
+        {
           "player_id": 317,
           "name": "George Hirst",
           "web_name": "Hirst",
@@ -211167,6 +210434,38 @@
           ]
         },
         {
+          "player_id": 602,
+          "name": "Cameron Humphreys",
+          "web_name": "Humphreys",
+          "team": "Ipswich Town",
+          "team_id": 12,
+          "position": "MID",
+          "price": 4.5,
+          "status": "u",
+          "news": "Has joined Huddersfield Town on loan for the rest of the season",
+          "availability": 0.0,
+          "expected_minutes": 0.0,
+          "projected_points": 0.0,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 4,
+              "expected_goals": 1.0,
+              "clean_sheet_probability": 0.082,
+              "expected_minutes": 0.0,
+              "opponent": "Liverpool",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "0 expected minutes",
+            "form 0.0",
+            "1.00 expected team goals"
+          ]
+        },
+        {
           "player_id": 326,
           "name": "Lucas Estella Perri",
           "web_name": "Perri",
@@ -211208,6 +210507,38 @@
           "price": 4.5,
           "status": "u",
           "news": "Has joined Hamburg SV on loan for the rest of the season",
+          "availability": 0.0,
+          "expected_minutes": 0.0,
+          "projected_points": 0.0,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": false,
+              "difficulty": 3,
+              "expected_goals": 0.96,
+              "clean_sheet_probability": 0.128,
+              "expected_minutes": 0.0,
+              "opponent": "Brighton",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "0 expected minutes",
+            "form 0.0",
+            "0.96 expected team goals"
+          ]
+        },
+        {
+          "player_id": 341,
+          "name": "Wilfried Gnonto",
+          "web_name": "Gnonto",
+          "team": "Leeds",
+          "team_id": 13,
+          "position": "MID",
+          "price": 5.0,
+          "status": "u",
+          "news": "Has joined ACF Fiorentina on loan for the rest of the season",
           "availability": 0.0,
           "expected_minutes": 0.0,
           "projected_points": 0.0,
@@ -211679,6 +211010,38 @@
           ]
         },
         {
+          "player_id": 383,
+          "name": "Harvey Elliott",
+          "web_name": "Elliott",
+          "team": "Liverpool",
+          "team_id": 14,
+          "position": "MID",
+          "price": 5.4,
+          "status": "u",
+          "news": "Has joined Valencia on loan for the rest of the season",
+          "availability": 0.0,
+          "expected_minutes": 0.0,
+          "projected_points": 0.0,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": false,
+              "difficulty": 2,
+              "expected_goals": 2.5,
+              "clean_sheet_probability": 0.369,
+              "expected_minutes": 0.0,
+              "opponent": "Ipswich Town",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "0 expected minutes",
+            "form 0.0",
+            "2.50 expected team goals"
+          ]
+        },
+        {
           "player_id": 394,
           "name": "Max Alleyne",
           "web_name": "Alleyne",
@@ -211816,6 +211179,38 @@
           "price": 5.0,
           "status": "u",
           "news": "Has joined Sheffield United on loan for the rest of the season",
+          "availability": 0.0,
+          "expected_minutes": 0.0,
+          "projected_points": 0.0,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 2,
+              "expected_goals": 2.18,
+              "clean_sheet_probability": 0.419,
+              "expected_minutes": 0.0,
+              "opponent": "Coventry City",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "0 expected minutes",
+            "form 0.0",
+            "2.18 expected team goals"
+          ]
+        },
+        {
+          "player_id": 410,
+          "name": "Jeremy Monga",
+          "web_name": "Monga",
+          "team": "Man City",
+          "team_id": 15,
+          "position": "MID",
+          "price": 4.9,
+          "status": "u",
+          "news": "Has joined Swansea City on loan for the rest of the season",
           "availability": 0.0,
           "expected_minutes": 0.0,
           "projected_points": 0.0,
@@ -212223,6 +211618,38 @@
           ]
         },
         {
+          "player_id": 470,
+          "name": "Felipe Rodrigues da Silva",
+          "web_name": "Morato",
+          "team": "Nott'm Forest",
+          "team_id": 18,
+          "position": "DEF",
+          "price": 5.0,
+          "status": "u",
+          "news": "Has joined West Ham on loan for the rest of the season",
+          "availability": 0.0,
+          "expected_minutes": 0.0,
+          "projected_points": 0.0,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 3,
+              "expected_goals": 1.56,
+              "clean_sheet_probability": 0.333,
+              "expected_minutes": 0.0,
+              "opponent": "Spurs",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "0 expected minutes",
+            "form 0.0",
+            "1.56 expected team goals"
+          ]
+        },
+        {
           "player_id": 475,
           "name": "Nicol\u00f2 Savona",
           "web_name": "Savona",
@@ -212232,6 +211659,38 @@
           "price": 4.5,
           "status": "i",
           "news": "Knee injury - Unknown return date",
+          "availability": 0.0,
+          "expected_minutes": 0.0,
+          "projected_points": 0.0,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 3,
+              "expected_goals": 1.56,
+              "clean_sheet_probability": 0.333,
+              "expected_minutes": 0.0,
+              "opponent": "Spurs",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "0 expected minutes",
+            "form 0.0",
+            "1.56 expected team goals"
+          ]
+        },
+        {
+          "player_id": 477,
+          "name": "Zach Abbott",
+          "web_name": "Abbott",
+          "team": "Nott'm Forest",
+          "team_id": 18,
+          "position": "DEF",
+          "price": 4.0,
+          "status": "u",
+          "news": "Has joined Southampton on loan for the rest of the season",
           "availability": 0.0,
           "expected_minutes": 0.0,
           "projected_points": 0.0,
@@ -212575,6 +212034,38 @@
           ]
         },
         {
+          "player_id": 518,
+          "name": "Pape Matar Sarr",
+          "web_name": "P.M.Sarr",
+          "team": "Spurs",
+          "team_id": 19,
+          "position": "MID",
+          "price": 4.9,
+          "status": "u",
+          "news": "Has joined Juventus on loan for the rest of the season",
+          "availability": 0.0,
+          "expected_minutes": 0.0,
+          "projected_points": 0.0,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": false,
+              "difficulty": 3,
+              "expected_goals": 1.1,
+              "clean_sheet_probability": 0.209,
+              "expected_minutes": 0.0,
+              "opponent": "Nott'm Forest",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "0 expected minutes",
+            "form 0.0",
+            "1.10 expected team goals"
+          ]
+        },
+        {
           "player_id": 521,
           "name": "Dejan Kulusevski",
           "web_name": "Kulusevski",
@@ -212584,6 +212075,38 @@
           "price": 6.5,
           "status": "i",
           "news": "Knee injury - Unknown return date",
+          "availability": 0.0,
+          "expected_minutes": 0.0,
+          "projected_points": 0.0,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": false,
+              "difficulty": 3,
+              "expected_goals": 1.1,
+              "clean_sheet_probability": 0.209,
+              "expected_minutes": 0.0,
+              "opponent": "Nott'm Forest",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "0 expected minutes",
+            "form 0.0",
+            "1.10 expected team goals"
+          ]
+        },
+        {
+          "player_id": 528,
+          "name": "Dane Scarlett",
+          "web_name": "Scarlett",
+          "team": "Spurs",
+          "team_id": 19,
+          "position": "FWD",
+          "price": 4.5,
+          "status": "u",
+          "news": "Has joined Leyton Orient permanently",
           "availability": 0.0,
           "expected_minutes": 0.0,
           "projected_points": 0.0,
