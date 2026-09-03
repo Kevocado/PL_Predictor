@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-03T18:36:09.915692+00:00",
+  "generated_at": "2026-09-03T21:44:00.319141+00:00",
   "model_fingerprint": "8bf9405aa6eca28348496c7b99f7aa750acf47e2295bf9786c3537327880e347",
   "current_gameweek": 3,
   "min_gameweek": 1,
@@ -417,7 +417,7 @@
           "player_events_pending": true
         }
       ],
-      "is_current": true,
+      "is_current": false,
       "min_gameweek": 1,
       "max_gameweek": 38
     },
@@ -595,7 +595,7 @@
           "value_bet_flags": []
         }
       ],
-      "is_current": false,
+      "is_current": true,
       "min_gameweek": 1,
       "max_gameweek": 38
     },
@@ -176048,8 +176048,8 @@
           "name": "I.Sangar\u00e9",
           "team": "Nott'm Forest",
           "position": "MID",
-          "status": "i",
-          "chance_of_playing": 0,
+          "status": "a",
+          "chance_of_playing": 100,
           "minutes": 90,
           "starts": 1,
           "goals": 0,
@@ -176062,15 +176062,15 @@
           "ict": 3.4,
           "bps": 10,
           "bonus": 0,
-          "news": "Calf injury - Unknown return date",
+          "news": "",
           "quality_rating": 34.9,
           "form_rating": 0.0,
           "live_form_rating": 23.0,
           "live_form_vs_quality": -11.9,
           "overall_rating": 34.9,
-          "current_impact_rating": 0.0,
+          "current_impact_rating": 26.5,
           "rating_driver": "Bonus Point System",
-          "rating_expected_minutes": 0.0,
+          "rating_expected_minutes": 68.3,
           "rating_status": "established",
           "rating_evidence_minutes": 3688.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -187824,8 +187824,8 @@
           "name": "Florentino",
           "team": "Ipswich",
           "position": "MID",
-          "status": "d",
-          "chance_of_playing": 75,
+          "status": "a",
+          "chance_of_playing": 100,
           "minutes": 0,
           "starts": 0,
           "goals": 0,
@@ -187838,15 +187838,15 @@
           "ict": 0.0,
           "bps": 0,
           "bonus": 0,
-          "news": "Calf injury - 75% chance of playing",
+          "news": "",
           "quality_rating": null,
           "form_rating": 0.0,
           "live_form_rating": 14.0,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 2.2,
+          "current_impact_rating": 3.9,
           "rating_driver": "Bonus Point System",
-          "rating_expected_minutes": 18.8,
+          "rating_expected_minutes": 25.0,
           "rating_status": "limited",
           "rating_evidence_minutes": 2100.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -191517,7 +191517,7 @@
   "fpl": {
     "projections": {
       "gameweek": 3,
-      "generated_at": "2026-09-03T18:36:09.867498+00:00",
+      "generated_at": "2026-09-03T21:44:00.271410+00:00",
       "model_source": "hybrid_match_context_baseline",
       "data_freshness": "live official FPL API + independent pre-match scoreline model",
       "players": [
@@ -198463,6 +198463,38 @@
             "70 expected minutes",
             "form 2.5",
             "1.25 expected team goals"
+          ]
+        },
+        {
+          "player_id": 488,
+          "name": "Ibrahim Sangar\u00e9",
+          "web_name": "I.Sangar\u00e9",
+          "team": "Nott'm Forest",
+          "team_id": 18,
+          "position": "MID",
+          "price": 4.9,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 68.3,
+          "projected_points": 2.68,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 3,
+              "expected_goals": 1.56,
+              "clean_sheet_probability": 0.333,
+              "expected_minutes": 68.3,
+              "opponent": "Spurs",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "68 expected minutes",
+            "form 1.0",
+            "1.56 expected team goals"
           ]
         },
         {
@@ -206978,6 +207010,38 @@
           ]
         },
         {
+          "player_id": 571,
+          "name": "Florentino Ibrain Morris Lu\u00eds",
+          "web_name": "Florentino",
+          "team": "Ipswich Town",
+          "team_id": 12,
+          "position": "MID",
+          "price": 5.0,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 25.0,
+          "projected_points": 0.92,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 4,
+              "expected_goals": 1.0,
+              "clean_sheet_probability": 0.082,
+              "expected_minutes": 25.0,
+              "opponent": "Liverpool",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "25 expected minutes",
+            "form 0.0",
+            "1.00 expected team goals"
+          ]
+        },
+        {
           "player_id": 440,
           "name": "Joshua Zirkzee",
           "web_name": "Zirkzee",
@@ -207586,38 +207650,6 @@
           ]
         },
         {
-          "player_id": 571,
-          "name": "Florentino Ibrain Morris Lu\u00eds",
-          "web_name": "Florentino",
-          "team": "Ipswich Town",
-          "team_id": 12,
-          "position": "MID",
-          "price": 5.0,
-          "status": "d",
-          "news": "Calf injury - 75% chance of playing",
-          "availability": 0.75,
-          "expected_minutes": 18.8,
-          "projected_points": 0.69,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 4,
-              "expected_goals": 1.0,
-              "clean_sheet_probability": 0.082,
-              "expected_minutes": 18.8,
-              "opponent": "Liverpool",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "19 expected minutes",
-            "form 0.0",
-            "1.00 expected team goals"
-          ]
-        },
-        {
           "player_id": 329,
           "name": "Joe Rodon",
           "web_name": "Rodon",
@@ -207935,38 +207967,6 @@
             "0 expected minutes",
             "form 1.0",
             "1.21 expected team goals"
-          ]
-        },
-        {
-          "player_id": 488,
-          "name": "Ibrahim Sangar\u00e9",
-          "web_name": "I.Sangar\u00e9",
-          "team": "Nott'm Forest",
-          "team_id": 18,
-          "position": "MID",
-          "price": 4.9,
-          "status": "i",
-          "news": "Calf injury - Unknown return date",
-          "availability": 0.0,
-          "expected_minutes": 0.0,
-          "projected_points": 0.12,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 3,
-              "expected_goals": 1.56,
-              "clean_sheet_probability": 0.333,
-              "expected_minutes": 0.0,
-              "opponent": "Spurs",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "0 expected minutes",
-            "form 1.0",
-            "1.56 expected team goals"
           ]
         },
         {
