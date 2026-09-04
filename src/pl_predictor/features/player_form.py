@@ -259,7 +259,12 @@ def blended_current_form(
     # models; the older unsuffixed rates above remain the stable fallback.
     for window in windows:
         window_rows = played.tail(window)
-        minutes = window_rows["minutes"].sum()
+        # `played` can be a fully columnless empty frame (a player with no
+        # current-season history at all — history_df.empty at line 219 above
+        # falls through to history_df itself, which has no columns) — guard
+        # the same way the MEAN_STATS loop below already does, rather than
+        # indexing a column that may not exist.
+        minutes = window_rows["minutes"].sum() if "minutes" in window_rows.columns else 0
         for stat, col in [("goals_per90", "goals_scored"), ("assists_per90", "assists")]:
             if minutes > 0:
                 rates[f"{stat}_last{window}"] = float(window_rows[col].sum() / minutes * 90)
@@ -277,7 +282,7 @@ def blended_current_form(
             rates[key] = blended
         for window in windows:
             window_rows = played.tail(window)
-            minutes = window_rows["minutes"].sum()
+            minutes = window_rows["minutes"].sum() if "minutes" in window_rows.columns else 0
             if stat in window_rows.columns and minutes > 0:
                 rates[f"{key}_last{window}"] = float(window_rows[stat].sum() / minutes * 90)
 

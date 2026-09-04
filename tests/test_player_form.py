@@ -1,9 +1,10 @@
 """Leakage and sanity checks for the player-prediction feature layer."""
 
+import pandas as pd
 import pytest
 
 from pl_predictor.data.fpl_history import load_player_gw_history
-from pl_predictor.features.player_form import build_historical_player_form, position_rate_priors
+from pl_predictor.features.player_form import blended_current_form, build_historical_player_form, position_rate_priors
 
 
 @pytest.fixture(scope="module")
@@ -40,3 +41,18 @@ def test_position_rate_priors_cover_outfield_positions(player_gws):
         assert priors[position]["avg_minutes"] > 0
     # forwards should score more per-90 than defenders, on average
     assert priors["FWD"]["goals_per90"] > priors["DEF"]["goals_per90"]
+
+
+def test_blended_current_form_handles_player_with_no_current_season_history():
+    """A player with zero rows this season (e.g. a summer signing who
+    hasn't debuted yet) hits `fetch_player_summary`'s empty-history path —
+    `pd.DataFrame([])`, which has no columns at all, not just no rows.
+    `rank_team_players` loops every squad member with no per-player
+    try/except, so one such player used to take down predictions for the
+    player's *entire team* with `KeyError: 'minutes'` (confirmed live on
+    the public deployment: every fixture's Likely scorers & assists came
+    back empty)."""
+    empty_history = pd.DataFrame([])
+    rates, confidence = blended_current_form(empty_history, prior_season=None, position="FWD", position_priors={})
+    assert confidence == "none"
+    assert rates["avg_minutes"] == 60.0
