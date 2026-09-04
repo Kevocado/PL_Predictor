@@ -14,7 +14,9 @@ from threading import Lock, Thread
 import pandas as pd
 from fastapi import APIRouter, Body, Depends, HTTPException
 
-from ..config import PUBLIC_MODE, PUBLIC_SNAPSHOT_PATH
+import requests
+
+from ..config import PUBLIC_MODE, PUBLIC_SNAPSHOT_PATH, PUBLIC_SNAPSHOT_REFRESH_URL
 from ..data import fixtures as fixtures_mod
 from ..data import espn, fpl_api, fpl_history
 from ..data.team_names import to_canonical
@@ -63,21 +65,49 @@ def _admin_only() -> None:
 
 
 _public_snapshot_cache: dict | None = None
+_public_snapshot_etag: str | None = None
 
 
 def _public_snapshot() -> dict:
-    """The precomputed data public_snapshot.py generates — read once per
-    process (it only changes on a redeploy, which starts a fresh process
-    anyway) rather than re-reading the file on every request. Empty dict if
-    none has been generated yet (a public deploy before its first snapshot
-    exists), so every PUBLIC_MODE branch degrades to empty results instead
-    of a 500."""
+    """The precomputed data public_snapshot.py generates. Cold-start value
+    is whatever was baked into this image at build time; a running process
+    then keeps it current via `refresh_public_snapshot_from_remote` below,
+    polled on a timer (see api/main.py's lifespan) rather than by waiting
+    for the next redeploy. Empty dict if none has been generated yet (a
+    public deploy before its first snapshot exists), so every PUBLIC_MODE
+    branch degrades to empty results instead of a 500."""
     global _public_snapshot_cache
     if _public_snapshot_cache is None:
         _public_snapshot_cache = (
             json.loads(PUBLIC_SNAPSHOT_PATH.read_text()) if PUBLIC_SNAPSHOT_PATH.exists() else {}
         )
     return _public_snapshot_cache
+
+
+def refresh_public_snapshot_from_remote() -> bool:
+    """Re-fetch the precomputed public snapshot from its GitHub raw URL and
+    swap it in — lets a data-only commit (the GitHub Actions snapshot
+    refresh, several times a day) reach the running process without a
+    Docker rebuild+container swap, the same way the private/full app's own
+    background loops keep it current without a restart. `ETag`-conditional
+    so an unchanged snapshot costs one small request, not a re-download of
+    the whole multi-MB file. Any fetch/parse failure is swallowed and
+    leaves the previous snapshot serving — a transient network hiccup here
+    must never blank an already-working public site."""
+    global _public_snapshot_cache, _public_snapshot_etag
+    try:
+        headers = {"If-None-Match": _public_snapshot_etag} if _public_snapshot_etag else {}
+        resp = requests.get(PUBLIC_SNAPSHOT_REFRESH_URL, headers=headers, timeout=30)
+        if resp.status_code == 304:
+            return False
+        resp.raise_for_status()
+        snapshot = resp.json()
+    except Exception as exc:  # noqa: BLE001 - keep serving the last-known-good snapshot
+        print(f"[public_snapshot] remote refresh skipped: {exc}")
+        return False
+    _public_snapshot_cache = snapshot
+    _public_snapshot_etag = resp.headers.get("ETag")
+    return True
 
 
 _CACHE_TTL_SECONDS = 1800

@@ -15,10 +15,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from ..config import FRONTEND_DIST_DIR, PUBLIC_MODE
+from ..config import FRONTEND_DIST_DIR, PUBLIC_MODE, PUBLIC_SNAPSHOT_POLL_SECONDS
 from .routes import (
     background_tracking_tick,
     maybe_auto_retrain,
+    refresh_public_snapshot_from_remote,
     router,
     warm_caches,
 )
@@ -54,6 +55,12 @@ async def _initial_sync():
     # dashboard/FPL request after local startup.
 
 
+async def _public_snapshot_poll_loop():
+    while True:
+        await asyncio.to_thread(refresh_public_snapshot_from_remote)
+        await asyncio.sleep(PUBLIC_SNAPSHOT_POLL_SECONDS)
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     # The public deployment serves everything from public_snapshot.py's
@@ -64,7 +71,15 @@ async def lifespan(_app: FastAPI):
     # whole snapshot approach exists to avoid, which is what was OOM-
     # crashing the free-tier deployment in the first place.
     if PUBLIC_MODE:
+        # Still needs *a* way to see each new snapshot without that live
+        # computation — polling the raw file on GitHub (see routes.py::
+        # refresh_public_snapshot_from_remote) rather than waiting for
+        # Render's autoDeploy to rebuild the whole image on every data-only
+        # commit, which used to mean a full container restart several
+        # times a day on top of this host's own idle-sleep cycle.
+        poll_task = asyncio.create_task(_public_snapshot_poll_loop())
         yield
+        poll_task.cancel()
         return
 
     # Fire-and-forget in a background thread: warms every cache a real

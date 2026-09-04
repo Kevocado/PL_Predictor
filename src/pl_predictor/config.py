@@ -25,8 +25,27 @@ PUBLIC_MODE = os.getenv("PUBLIC_MODE", "false").lower() == "true"
 # confirmed live that doing the real computation on a free-tier host's
 # memory budget doesn't work. Generated locally (`python -m
 # pl_predictor.public_snapshot`) and committed/pushed like any other
-# tracked file; Render's next deploy picks it up automatically.
+# tracked file; the local copy on disk is only the cold-start fallback for
+# a freshly-built container — see PUBLIC_SNAPSHOT_REFRESH_URL below for how
+# a running process actually stays current.
 PUBLIC_SNAPSHOT_PATH = DATA_DIR / "public_snapshot.json"
+
+# A running public-deployment process polls this raw-file URL (see
+# api/routes.py::refresh_public_snapshot_from_remote) instead of relying on
+# a full redeploy to pick up each new snapshot — the GitHub Actions refresh
+# (.github/workflows/refresh-public-snapshot.yml) pushes a new
+# data/public_snapshot.json several times a day, and rebuilding the whole
+# Docker image (npm ci + pip install) for a pure data change was needless
+# churn on top of this host's own idle-sleep cycle. Render's auto-deploy
+# still fires on an actual code push; only THIS one data path is meant to
+# be excluded from that (Dashboard -> service -> Settings -> Build Filters
+# -> Ignored Paths -> `data/public_snapshot.json`, set once, by hand — no
+# Render API for it at the time this was written).
+PUBLIC_SNAPSHOT_REFRESH_URL = os.getenv(
+    "PUBLIC_SNAPSHOT_REFRESH_URL",
+    "https://raw.githubusercontent.com/Kevocado/PL_Predictor/main/data/public_snapshot.json",
+)
+PUBLIC_SNAPSHOT_POLL_SECONDS = int(os.getenv("PUBLIC_SNAPSHOT_POLL_SECONDS", "300"))
 
 FOOTBALL_DATA_CACHE_DIR = CACHE_DIR / "football_data"
 ODDS_CACHE_DIR = CACHE_DIR / "odds"
