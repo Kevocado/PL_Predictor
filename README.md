@@ -314,9 +314,15 @@ PYTHONPATH=src python -m pl_predictor.public_snapshot
 git add data/public_snapshot.json && git commit -m "Refresh public snapshot" && git push
 ```
 
-Run that whenever you want the public site to reflect new results/odds —
-Render's next auto-deploy picks up the new file. No live external API keys
-are needed on Render itself; the snapshot already has everything baked in.
+Run that whenever you want the public site to reflect new results/odds — a
+running process picks up the new file itself (`api/routes.py`'s
+`refresh_public_snapshot_from_remote`, polled every `PUBLIC_SNAPSHOT_POLL_
+SECONDS`, default 5 minutes, from `PUBLIC_SNAPSHOT_REFRESH_URL`'s raw
+GitHub URL) rather than needing Render to rebuild and restart the whole
+container for a pure data change — `.github/workflows/refresh-public-
+snapshot.yml` runs this on a schedule so it happens without you at the
+keyboard. No live external API keys are needed on Render itself; the
+snapshot already has everything baked in.
 
 Setup:
 
@@ -324,7 +330,12 @@ Setup:
 2. Create a free [Render](https://render.com) account → "New Web Service" →
    connect that repo. Render auto-detects the `Dockerfile`.
 3. In Render's dashboard, set `PUBLIC_MODE=true`.
-4. Deploy. Render gives you a free `https://<name>.onrender.com` link —
+4. Still in Render's dashboard, add `data/public_snapshot.json` to
+   Settings → Build & Deploy → Build Filters → Ignored Paths, so a
+   snapshot-only commit doesn't also trigger a full rebuild+redeploy on
+   top of the in-process refresh above (there's no Render API for this
+   setting at the time this was written — it's dashboard-only).
+5. Deploy. Render gives you a free `https://<name>.onrender.com` link —
    that's what you share. No password: it's read-only with no admin
    surface reachable at all, so there's nothing a login would protect.
 
