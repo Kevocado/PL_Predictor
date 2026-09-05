@@ -83,10 +83,22 @@ the same way a `New-team fallback` or `is_fallback_prediction` already
 does elsewhere in this codebase, not 501/crash the fixture-detail
 response.
 
-Stored as `models/understat_fpl_crosswalk.json` (git-tracked, alongside the
-other `models/*.json` artifacts) so a fresh deploy has one immediately, same
-reasoning as the existing trained models shipping in the repo rather than
-requiring a first-run train.
+**Storage — corrected from this spec's original draft**, which proposed a
+git-tracked `models/understat_fpl_crosswalk.json` rebuilt on `models/
+manifest.py`'s offline retrain cadence. Checked `manifest.py::train_all`
+directly: it doesn't touch player-prediction fitting at all —
+`fit_lineup_model`/`fit_position_rate_models`/`fit_reliability_
+coefficients`/`fit_goal_contribution_model` (the crosswalk's actual
+consumers) aren't git-tracked artifacts; they're runtime-cached in `api/
+routes.py` via `_cached(key, build_fn, ttl=24*3600)` (see `_get_position_
+priors`, `_get_lineup_model`). The crosswalk follows the same pattern —
+built lazily inside whichever `player_goals.py` fit function needs it
+(so no new `routes.py` wiring at all), cached with the same 24-hour TTL
+its siblings already use. No git-tracked artifact, no `manifest.py`
+involvement, no first-run-train concern: the public deployment's live
+pipeline never runs this code path anyway (`public_snapshot.py` builds it
+locally, full resources, same as everything else `PUBLIC_MODE` bakes in
+rather than computes on Render).
 
 ## 2. Per-player shot extraction
 
@@ -201,10 +213,11 @@ is generated, same as every other `PlayerPrediction` field.
   `KeyError: 'minutes'` bug was exactly a missing-column guard gap, and
   shots/shots_on_target are new columns subject to the identical failure
   mode if a guard is missed.
-- Crosswalk staleness: a test asserting every retrain rebuild fails loudly
-  (not silently serves a stale mapping) if the crosswalk's `fpl_element_id`
-  no longer resolves in the current `bootstrap.json` — a transferred/retired
-  player must fall out, not silently misattribute shots to whoever now
+- Crosswalk staleness: a test asserting every crosswalk rebuild (each
+  24-hour TTL expiry) drops an entry rather than silently serving a stale
+  mapping if its `fpl_element_id` no longer resolves in the current
+  `bootstrap.json` — a transferred/retired player must fall out, not
+  silently misattribute shots to whoever now
   holds that id.
 
 ## 7. Evaluation gate before shipping to the live app
@@ -221,10 +234,10 @@ Poisson-union baseline.
 
 ## Operational notes
 
-- Crosswalk rebuild cadence: every full retrain (`models/manifest.py`),
-  not hourly auto-retrain — name/team matching is stable within a season
-  and only needs updating when the squad changes (transfers), which a full
-  retrain already tracks via `models/manifest_history.jsonl`.
+- Crosswalk rebuild cadence: same 24-hour TTL as the sibling runtime-cached
+  player artifacts it's built alongside (`_get_position_priors` etc.) —
+  not tied to `models/manifest.py`'s retrain cadence at all, since that
+  offline pipeline never touches player-prediction fitting (see Section 1).
 - No new external API dependency: Understat is already scraped via
   `penaltyblog`; no new key, no new quota risk on Render.
 - No effect on the free-tier memory story: shots/SoT ride the same
