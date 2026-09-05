@@ -29,16 +29,59 @@ transferred-out players who no longer have an FPL element.
 
 A new cached artifact, `understat_element_id → fpl_element_id`, built once
 per model retrain (same cadence as `models/manifest.py`'s other artifacts,
-not per-request). Matching key: normalized name (reuse `player_goals.py`'s
-existing `_normalise_name` — unicode-fold, casefold, strip diacritics) plus
-the player's team at the time of the most recent shot in the training
-window, to disambiguate the rare same-name collision. A player who fails to
-match (nickname variant, mid-window transfer the normalizer can't bridge)
-is logged and excluded from the shots model for that retrain — they still
-get goal/assist predictions as before, just no shots line. Never a hard
-failure: a crosswalk miss must degrade the same way a `New-team fallback`
-or `is_fallback_prediction` already does elsewhere in this codebase, not
-501/crash the fixture-detail response.
+not per-request).
+
+**Matching, validated against real data before writing this** (tested
+directly against the live FPL bootstrap and the actual cached Understat
+shot files, not assumed): a single normalized-name match — even reusing
+`player_goals.py`'s existing `_normalise_name` — only clears ~66% of real
+players, for three distinct, confirmed reasons: HTML entities surviving in
+FPL's raw names (`O&#039;Nien`), letters NFKD genuinely cannot decompose
+(`Ødegaard` does not become `Odegaard` — this is a pre-existing gap in
+`_normalise_name` itself, not a new one), and — the dominant failure mode —
+FPL's `first_name` is the formal form (`Benjamin`) where Understat records
+the common one (`Ben`). Team-based disambiguation was tested and *rejected*:
+requiring team-match alongside name actively loses matches, since a
+transferred player's own historical shot rows carry his prior club, not his
+current one.
+
+Matching is therefore layered, applied in order, first hit wins:
+1. Exact match on the fully-normalized name (HTML-unescaped, then the
+   existing accent-stripping normalizer, plus a manual translit table for
+   the handful of letters NFKD can't decompose: `ø→o, đ→d, ł→l, ß→ss, æ→ae,
+   œ→oe, ð→d, þ→th`, both cases) against FPL's `first_name+" "+second_name`
+   or `web_name` — measured 299/449 (66.6%) on the live current-season pool.
+2. If the first name has a common-nickname expansion (a small built-in
+   table — `ben→benjamin, josh→joshua, matt→matthew, mike→michael,
+   tom→thomas, alex→alexander, dan(ny)→daniel, will→william, joe(y)→joseph,
+   jim(my)/jamie→james, rob/bob(by)→robert, dave→david, chris→christopher,
+   tony→anthony, andy→andrew, steve(vie)→stephen, pat(dy)→patrick,
+   ron(nie)→ronald, fred(die)→frederick, gerry/jerry→gerald,
+   greg→gregory, ken(ny)→kenneth, jack/johnny→john, jon(ny)→jonathan` — not
+   exhaustive, extend as real misses surface), retry step 1 with the
+   expanded first name — measured +2.
+3. Fall back to surname-only match (against FPL's `second_name` or
+   `web_name`) when it resolves to exactly one candidate — ambiguous
+   (more than one same-surname candidate) is treated as unmatched, never
+   guessed — measured +36.
+
+Combined measured match rate: 337/449 (75.1%) of Understat's current
+Understat-season player pool. The remaining ~25% is not purely a matching
+gap: spot-checking a sample (Kyle Walker, Kieran Trippier, Nathan Aké,
+James Ward-Prowse, Oleksandr Zinchenko) confirmed they are not present in
+the current FPL bootstrap *under any name* — Understat's per-season shot
+data spans players who have since left the league entirely, who correctly
+have no valid crosswalk target at all. A future contributor extending the
+nickname table or matching logic should re-measure against fresh data
+rather than assume the current ~75% is the ceiling — it almost certainly
+undercounts genuine coverage among *current* players specifically.
+
+A player who still fails to match is logged and excluded from the shots
+model for that retrain — they still get goal/assist predictions as before,
+just no shots line. Never a hard failure: a crosswalk miss must degrade
+the same way a `New-team fallback` or `is_fallback_prediction` already
+does elsewhere in this codebase, not 501/crash the fixture-detail
+response.
 
 Stored as `models/understat_fpl_crosswalk.json` (git-tracked, alongside the
 other `models/*.json` artifacts) so a fresh deploy has one immediately, same
