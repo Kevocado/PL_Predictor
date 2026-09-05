@@ -152,10 +152,11 @@ def build_value_bet_table(
             row[f"{side}_price"] = quote[side]["price"] if quote[side] is not None else None
             row[f"{side}_bookmaker"] = quote[side]["bookmaker"] if quote[side] is not None else None
 
+        required_edge = edge_threshold * scoreline.required_edge_multiplier(row["data_confidence"])
         row["value_bet_flags"] = [] if row["odds_is_stale"] else [
             side
             for side in ["home_win", "draw", "away_win", "over_2_5", "under_2_5"]
-            if row[f"{side}_edge"] is not None and row[f"{side}_edge"] > edge_threshold
+            if row[f"{side}_edge"] is not None and row[f"{side}_edge"] > required_edge
         ]
 
         # A recommendation is intentionally one independently priced market,
