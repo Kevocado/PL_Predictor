@@ -78,17 +78,48 @@ function.
 `predict_player`'s existing scaling — `team_goal_expectation /
 LEAGUE_AVERAGE_TEAM_GOALS` — is wrong for shots: a low-xG-per-shot team can
 still take a high shot volume, and the scoreline model has no shot-count
-output to anchor to. A new team-level `team_expected_shots` rolling feature
-(same rolling-average idiom as `rolling_form.py`'s rolling goals-for, fed
-from the per-match `home_shots`/`away_shots` `understat_shots.py`'s
-`_aggregate_match_dominance` already computes) becomes the scaling anchor
-for the shots targets specifically, alongside — not replacing —
-`team_goal_expectation`, which keeps scaling goals/assists exactly as
-today: `predict_player` computes a second `shots_scale` alongside its
-existing `scale` (same `minutes_fraction * availability` factors, different
-strength multiplier), and applies `shots_scale` only to the two new
-targets — the existing `scale` variable and its goals/assists callers are
-untouched. `fit_position_rate_models` extends its existing
+output to anchor to. **Revised from this spec's original draft** (which
+proposed building a new team-shot feature from Understat's match-dominance
+aggregate): `features/rolling_form.py`'s `BASE_STATS` already includes
+`shots_for`/`shots_against` — rolling team shot volume from
+football-data.co.uk's `hs`/`as` columns, computed by the exact same
+generic `shift(1).rolling(w).mean()` machinery goals-for already uses, and
+already exposed for every live fixture as `FixtureFeatureContext.form`
+(`self.form = rolling_form.latest_form(self.matches_df)`, `features/
+build.py`), just never read downstream today. No new feature, no new data
+source, no Understat/FPL player-id crosswalk needed at the *team* level —
+this is genuinely free: `context.form.loc[home, "home_last_10_shots_for"]`
+/ `context.form.loc[away, "away_last_10_shots_for"]` (home/away-split
+variant, matching how home advantage affects shot volume) becomes the
+scaling anchor for the shots targets specifically, alongside — not
+replacing — `team_goal_expectation`, which keeps scaling goals/assists
+exactly as today: `predict_player` computes a second `shots_scale`
+alongside its existing `scale` (same `minutes_fraction * availability`
+factors, different strength multiplier — `team_expected_shots /
+LEAGUE_AVERAGE_TEAM_SHOTS`). `LEAGUE_AVERAGE_TEAM_SHOTS = 13.1`, measured
+directly (`(df["hs"].sum() + df["as"].sum()) / (2 * len(df))` over
+`football_data.load_training_data`'s last 3 completed seasons — 13.13,
+rounded), the same "measured, not asserted" standard `FALLBACK_GOAL_
+EXPECTANCY` was held to.
+
+`context.form` only exists when the served model is the feature-driven ML
+model (`hasattr(model, "context")` — Dixon-Coles/Bivariate-Poisson have no
+per-fixture feature context at all, same condition `_data_confidence`
+already gates on). When absent, `shots_scale` falls back to `1.0`
+(`team_expected_shots` assumed at league average) rather than crashing or
+guessing — the same degrade-gracefully convention as every other
+confidence/fallback signal in this pipeline. `rank_team_players` currently
+has no way to reach `context` at all (its signature takes `bootstrap`,
+`current_event`, `position_priors`, etc., but not `models`/`context`) — it
+gains an optional `context` parameter, threaded from `_rank_fixture_
+players` in `api/routes.py` (which already holds `models = _get_models()`,
+so `models["scoreline"].context` — `getattr(models["scoreline"], "context",
+None)`, since Dixon-Coles/Bivariate-Poisson objects have no such
+attribute — is available to pass through with no new plumbing beyond the
+signature change itself).
+
+`shots_scale` applies only to the two new targets — the existing `scale`
+variable and its goals/assists callers are untouched. `fit_position_rate_models` extends its existing
 `(("goals", "goals_scored"), ("assists", "assists"))` target loop with
 `(("shots", "shots"), ("shots_on_target", "shots_on_target"))` — mechanically
 the same Ridge-per-position fit, new targets only.
