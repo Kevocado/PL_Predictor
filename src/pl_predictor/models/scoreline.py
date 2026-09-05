@@ -114,6 +114,29 @@ def _data_confidence(model, home: str, away: str) -> str | None:
     return "new"
 
 
+# A starting judgment call, not a measured fact — see the walk-forward
+# validation gate in evaluate/betting_validation.py before this reaches
+# the live app. Applied as a multiplier on the existing flat edge
+# threshold, not a replacement for it.
+CONFIDENCE_EDGE_MULTIPLIERS = {
+    "established": 1.0,
+    "limited": 1.5,
+    "new": 2.5,
+}
+
+
+def required_edge_multiplier(data_confidence: str | None) -> float:
+    """How much bigger a model-vs-market edge must be before it's trusted
+    enough to recommend, scaled by how much real data the prediction rests
+    on (see `_data_confidence`). `None` — a classical Dixon-Coles/
+    Bivariate-Poisson fit has no per-fixture confidence signal — and any
+    unrecognized tier both keep today's flat 1.0×, never a silent penalty
+    for a case this table doesn't know about."""
+    if data_confidence is None:
+        return 1.0
+    return CONFIDENCE_EDGE_MULTIPLIERS.get(data_confidence, 1.0)
+
+
 def multiclass_top_label_ece(probs: np.ndarray, outcomes: np.ndarray, bins: int = 10) -> float:
     """Standard top-label calibration error: bins predictions by the
     model's own confidence in its argmax class, compares bin-average

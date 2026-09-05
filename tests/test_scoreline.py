@@ -83,3 +83,17 @@ def test_predict_fixtures_batch_market_override_matches_per_fixture_result():
         assert batch_results[i]["btts_yes"] == pytest.approx(single["btts_yes"])
         assert batch_results[i]["home_win"] == pytest.approx(single["home_win"])
         assert batch_results[i]["market_model_overrides"] == ["btts"]
+
+
+def test_required_edge_multiplier_scales_by_confidence_tier():
+    assert scoreline.required_edge_multiplier("established") == pytest.approx(1.0)
+    assert scoreline.required_edge_multiplier("limited") == pytest.approx(1.5)
+    assert scoreline.required_edge_multiplier("new") == pytest.approx(2.5)
+
+
+def test_required_edge_multiplier_defaults_to_flat_when_confidence_unknown():
+    # None: a classical Dixon-Coles/Bivariate-Poisson fit has no per-fixture
+    # confidence signal at all — must not silently require a bigger edge.
+    assert scoreline.required_edge_multiplier(None) == pytest.approx(1.0)
+    # An unrecognized string must not crash or over/under-penalize silently.
+    assert scoreline.required_edge_multiplier("some-future-tier") == pytest.approx(1.0)
