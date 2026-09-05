@@ -18,7 +18,7 @@ import requests
 
 from ..config import PUBLIC_MODE, PUBLIC_SNAPSHOT_PATH, PUBLIC_SNAPSHOT_REFRESH_URL
 from ..data import fixtures as fixtures_mod
-from ..data import espn, fpl_api, fpl_history
+from ..data import espn, fpl_api, fpl_history, understat_shots
 from ..data.team_names import to_canonical
 from ..data import football_data
 from ..data import football_data_org
@@ -284,6 +284,14 @@ def _get_position_priors() -> dict:
         return player_form.position_rate_priors(df)
 
     return _cached("position_priors", build, ttl=24 * 3600)
+
+
+def _get_understat_fpl_crosswalk() -> dict:
+    def build():
+        shot_players = understat_shots.load_current_season_player_shot_rows()
+        return understat_shots.build_understat_fpl_crosswalk(shot_players, _get_bootstrap())
+
+    return _cached("understat_fpl_crosswalk", build, ttl=24 * 3600)
 
 
 def _get_player_reliability_coeffs() -> dict:
@@ -664,7 +672,11 @@ def current_gameweek_fixtures(gameweek: int | None = None):
     fallback_remaining = pd.DataFrame()
     if fd_org_matches.empty:
         try:
-            fallback_remaining = _get_remaining_fixtures_df()
+            # The gameweek view must retain live matches.  Unlike projected
+            # table calculations, it is not a future-only schedule: FPL's
+            # per-fixture ``finished`` flag is the authoritative boundary
+            # while a current gameweek is in progress.
+            fallback_remaining = fixtures_mod._fixtures_from_fpl_api()
         except Exception:  # noqa: BLE001 - retain completed tracking rows
             fallback_remaining = pd.DataFrame()
 
@@ -757,22 +769,20 @@ def current_gameweek_fixtures(gameweek: int | None = None):
 
     if not fd_org_matches.empty:
         upcoming_rows = fd_org_matches[(fd_org_matches["matchday"] == target_gameweek) & (~fd_org_matches["finished"])]
-        if not upcoming_rows.empty and completed_team_pairs:
-            # Our own tracking store can resolve a match as finished slightly
-            # before football-data.org's own `finished` flag catches up (or
-            # vice versa) — without this, that lag window shows both an
-            # "upcoming prediction" card and a "finished result" card for the
-            # same fixture. The finished result (from completed_group above)
-            # always wins.
-            upcoming_rows = upcoming_rows[
-                ~upcoming_rows.apply(lambda row: (row["team_home"], row["team_away"]) in completed_team_pairs, axis=1)
-            ]
     elif not fallback_remaining.empty:
         upcoming_rows = fallback_remaining[
             pd.to_numeric(fallback_remaining["gameweek"], errors="coerce") == target_gameweek
         ]
     else:
         upcoming_rows = pd.DataFrame()
+
+    if not upcoming_rows.empty and completed_team_pairs:
+        # Our own tracking store can resolve a match as finished slightly
+        # before an optional fixture feed catches up. Apply this to either
+        # source so a completed fixture never renders twice.
+        upcoming_rows = upcoming_rows[
+            ~upcoming_rows.apply(lambda row: (row["team_home"], row["team_away"]) in completed_team_pairs, axis=1)
+        ]
 
     if not upcoming_rows.empty:
             models = _get_models()
@@ -1005,6 +1015,19 @@ def fixture_detail(event_id: str, read_only: bool = False):
         )
         return _build_fixture_detail(_team_fixture_to_summary(fixture, pred), home, away, read_only=read_only)
 
+    # A live FPL fixture has started, so it is deliberately absent from the
+    # future-only schedule above, but still needs a detail view.
+    current_fpl_match = _current_fpl_fixture(event_id)
+    if current_fpl_match is not None:
+        home, away = current_fpl_match["team_home"], current_fpl_match["team_away"]
+        models = _get_models()
+        pred = scoreline.predict_fixture(
+            models["scoreline"], home, away, market_overrides=models.get("scoreline_market_overrides")
+        )
+        return _build_fixture_detail(
+            _team_fixture_to_summary(current_fpl_match, pred), home, away, read_only=read_only
+        )
+
     # Neither odds-windowed nor still-upcoming — likely a finished fixture
     # reached via the gameweek view. Pull its honestly pre-match-recorded
     # prediction from tracking_store instead of recomputing live (which for
@@ -1042,11 +1065,25 @@ def _resolve_fixture_teams(event_id: str) -> tuple[str, str] | None:
         fixture = remaining_match.iloc[0]
         return fixture["team_home"], fixture["team_away"]
 
+    current_fpl_match = _current_fpl_fixture(event_id)
+    if current_fpl_match is not None:
+        return current_fpl_match["team_home"], current_fpl_match["team_away"]
+
     recorded = tracking_store.get_fixture_prediction(event_id)
     if recorded is not None:
         return recorded["team_home"], recorded["team_away"]
 
     return None
+
+
+def _current_fpl_fixture(event_id: str) -> pd.Series | None:
+    """Return an uncompleted FPL fixture, including one already in progress."""
+    try:
+        fixtures = fixtures_mod._fixtures_from_fpl_api()
+    except Exception:  # noqa: BLE001 - retain the existing lookup fallbacks
+        return None
+    matches = fixtures[fixtures["event_id"].astype(str) == event_id] if not fixtures.empty else fixtures
+    return matches.iloc[0] if not matches.empty else None
 
 
 def _resolve_fixture_kickoff(event_id: str):
@@ -1058,6 +1095,9 @@ def _resolve_fixture_kickoff(event_id: str):
     matches = all_remaining[all_remaining["event_id"].astype(str) == event_id] if not all_remaining.empty else all_remaining
     if not matches.empty:
         return pd.to_datetime(matches.iloc[0]["commence_time"])
+    current_fpl_match = _current_fpl_fixture(event_id)
+    if current_fpl_match is not None:
+        return pd.to_datetime(current_fpl_match["commence_time"])
     recorded = tracking_store.get_fixture_prediction(event_id)
     return pd.to_datetime(recorded["commence_time"]) if recorded is not None else None
 

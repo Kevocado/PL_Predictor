@@ -87,3 +87,75 @@ def test_load_season_match_dominance_reuses_cached_raw_shot_files_no_network(mon
     assert df.iloc[0]["team_home"] == "Liverpool"
     assert df.iloc[0]["home_total_xg"] == pytest.approx(1.21)
     assert (tmp_path / "_aggregate_v2_2019.csv").exists()
+
+
+def _bootstrap(elements):
+    return {"elements": elements}
+
+
+def _element(id_, first, second, web):
+    return {"id": id_, "first_name": first, "second_name": second, "web_name": web}
+
+
+def test_crosswalk_matches_exact_normalized_name():
+    rows = pd.DataFrame([{"player": "Erling Haaland", "player_id": 100}])
+    bootstrap = _bootstrap([_element(1, "Erling", "Haaland", "Haaland")])
+    result = understat_shots.build_understat_fpl_crosswalk(rows, bootstrap)
+    assert result == {100: 1}
+
+
+def test_crosswalk_decodes_html_entities():
+    rows = pd.DataFrame([{"player": "Luke O'Nien", "player_id": 101}])
+    bootstrap = _bootstrap([_element(2, "Luke", "O&#039;Nien", "O'Nien")])
+    result = understat_shots.build_understat_fpl_crosswalk(rows, bootstrap)
+    assert result == {101: 2}
+
+
+def test_crosswalk_transliterates_non_decomposable_letters():
+    # NFKD alone cannot turn 'Ø' into 'O' -- confirmed against real FPL data
+    # (Martin Ødegaard) during this plan's design.
+    rows = pd.DataFrame([{"player": "Martin Odegaard", "player_id": 102}])
+    bootstrap = _bootstrap([_element(3, "Martin", "Ødegaard", "Ødegaard")])
+    result = understat_shots.build_understat_fpl_crosswalk(rows, bootstrap)
+    assert result == {102: 3}
+
+
+def test_crosswalk_expands_common_nicknames():
+    rows = pd.DataFrame([{"player": "Ben White", "player_id": 103}])
+    bootstrap = _bootstrap([_element(4, "Benjamin", "White", "White")])
+    result = understat_shots.build_understat_fpl_crosswalk(rows, bootstrap)
+    assert result == {103: 4}
+
+
+def test_crosswalk_falls_back_to_unique_surname_match():
+    # web_name is plain "Smith" (not "J.Smith", which would accidentally
+    # exact-match at stage 1 via web_norm and never reach stage 3) --
+    # "J Smith" matches neither the full name nor the web name, so this
+    # only resolves through the surname-only fallback.
+    rows = pd.DataFrame([{"player": "J Smith", "player_id": 104}])
+    bootstrap = _bootstrap([_element(5, "Jordan", "Smith", "Smith")])
+    result = understat_shots.build_understat_fpl_crosswalk(rows, bootstrap)
+    assert result == {104: 5}
+
+
+def test_crosswalk_never_guesses_on_ambiguous_surname():
+    # Deliberately avoids an accidental exact web_name match at stage 1
+    # (e.g. "A Murphy" vs a web_name of "A.Murphy" would exact-match and
+    # never reach the ambiguous case this test means to exercise) --
+    # "Alexander Murphy" matches neither candidate's full name (el7's
+    # first_name is the nickname "Alex", not "Alexander") nor either
+    # web_name, so it falls through to surname-only, where it hits both.
+    rows = pd.DataFrame([{"player": "Alexander Murphy", "player_id": 105}])
+    bootstrap = _bootstrap([
+        _element(6, "Adam", "Murphy", "A.Murphy"),
+        _element(7, "Alex", "Murphy", "Alex Murphy"),
+    ])
+    result = understat_shots.build_understat_fpl_crosswalk(rows, bootstrap)
+    assert 105 not in result
+
+
+def test_crosswalk_excludes_unmatchable_player_without_crashing():
+    rows = pd.DataFrame([{"player": "Nobody Real", "player_id": 106}])
+    bootstrap = _bootstrap([_element(8, "Someone", "Else", "Else")])
+    result = understat_shots.build_understat_fpl_crosswalk(rows, bootstrap)
+    assert result == {}

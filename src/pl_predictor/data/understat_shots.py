@@ -37,6 +37,96 @@ from .understat import UNDERSTAT_TIMEOUT_SECONDS, COMPETITION
 # directly against live data (the full category set is exactly these five).
 SET_PIECE_SITUATIONS = {"FromCorner", "SetPiece", "DirectFreekick", "Penalty"}
 
+import html as _html
+import unicodedata
+
+# Letters NFKD cannot decompose into their ASCII base form (confirmed
+# directly against live FPL data: "Ødegaard" survives NFKD+casefold as
+# "ødegaard", not "odegaard") -- both cases, since casefold happens after.
+_EXTRA_TRANSLIT = str.maketrans({
+    "ø": "o", "Ø": "O", "đ": "d", "Đ": "D", "ł": "l", "Ł": "L", "ß": "ss",
+    "æ": "ae", "Æ": "AE", "œ": "oe", "Œ": "OE", "ð": "d", "Ð": "D",
+    "þ": "th", "Þ": "Th",
+})
+
+# Common vs. formal first-name pairs -- confirmed the dominant real-world
+# mismatch during this plan's design (FPL's first_name is the formal form,
+# Understat records the common one, e.g. "Benjamin White" vs "Ben White").
+# Not exhaustive; extend as real misses surface in production logs.
+_NICKNAME_TO_FORMAL = {
+    "ben": "benjamin", "josh": "joshua", "matt": "matthew", "mike": "michael",
+    "tom": "thomas", "alex": "alexander", "nick": "nicholas", "dan": "daniel",
+    "danny": "daniel", "sam": "samuel", "will": "william", "billy": "william",
+    "joe": "joseph", "joey": "joseph", "jim": "james", "jimmy": "james",
+    "jamie": "james", "rob": "robert", "bobby": "robert", "bob": "robert",
+    "dave": "david", "davy": "david", "chris": "christopher",
+    "harry": "harold", "charlie": "charles", "ed": "edward",
+    "eddie": "edward", "ted": "edward", "tony": "anthony", "andy": "andrew",
+    "steve": "stephen", "stevie": "stephen", "pat": "patrick",
+    "paddy": "patrick", "ron": "ronald", "ronnie": "ronald",
+    "fred": "frederick", "freddie": "frederick", "gerry": "gerald",
+    "jerry": "gerald", "greg": "gregory", "ken": "kenneth",
+    "kenny": "kenneth", "larry": "lawrence", "jack": "john",
+    "johnny": "john", "jonny": "jonathan", "jon": "jonathan",
+    "abdul": "abdullah",
+}
+
+
+def _normalise_crosswalk_name(value: str) -> str:
+    """Same casefold+NFKD+alnum-only idiom as `models/player_goals.py::
+    _normalise_name`, extended with HTML-entity decoding (FPL's raw
+    `second_name` field can contain literal entities like `O&#039;Nien`)
+    and `_EXTRA_TRANSLIT` for letters NFKD alone cannot decompose."""
+    value = _html.unescape(str(value)).translate(_EXTRA_TRANSLIT)
+    decomposed = unicodedata.normalize("NFKD", value)
+    return "".join(char for char in decomposed.casefold() if char.isalnum())
+
+
+def build_understat_fpl_crosswalk(shot_player_rows: pd.DataFrame, bootstrap: dict) -> dict[int, int]:
+    """Map Understat `player_id` -> FPL `element_id`. `shot_player_rows` has
+    one row per unique Understat player (`player`, `player_id` columns).
+    Layered matching, first hit wins -- see this plan's Global Constraints
+    for why each stage exists (measured against real data, not assumed).
+    A player who matches nothing is simply absent from the returned dict,
+    never a crash or a guess."""
+    fpl_rows = []
+    for element in bootstrap["elements"]:
+        full_name = f"{element['first_name']} {element['second_name']}"
+        fpl_rows.append((element["id"], element["first_name"], full_name, element["web_name"]))
+    fpl_df = pd.DataFrame(fpl_rows, columns=["element_id", "first_name", "full_name", "web_name"])
+    fpl_df["full_norm"] = fpl_df["full_name"].apply(_normalise_crosswalk_name)
+    fpl_df["web_norm"] = fpl_df["web_name"].apply(_normalise_crosswalk_name)
+    fpl_df["surname_norm"] = fpl_df["full_name"].apply(lambda n: _normalise_crosswalk_name(n.split()[-1]))
+
+    crosswalk: dict[int, int] = {}
+    for _, row in shot_player_rows.iterrows():
+        parts = str(row["player"]).split()
+        if not parts:
+            continue
+        first, surname = parts[0], parts[-1]
+        full_norm = _normalise_crosswalk_name(row["player"])
+
+        hit = fpl_df[(fpl_df["full_norm"] == full_norm) | (fpl_df["web_norm"] == full_norm)]
+        if len(hit) == 1:
+            crosswalk[int(row["player_id"])] = int(hit.iloc[0]["element_id"])
+            continue
+
+        expanded_first = _NICKNAME_TO_FORMAL.get(_normalise_crosswalk_name(first))
+        if expanded_first:
+            alt_norm = _normalise_crosswalk_name(f"{expanded_first} {surname}")
+            hit = fpl_df[fpl_df["full_norm"] == alt_norm]
+            if len(hit) == 1:
+                crosswalk[int(row["player_id"])] = int(hit.iloc[0]["element_id"])
+                continue
+
+        surname_norm = _normalise_crosswalk_name(surname)
+        hit = fpl_df[(fpl_df["surname_norm"] == surname_norm) | (fpl_df["web_norm"] == surname_norm)]
+        if len(hit) == 1:
+            crosswalk[int(row["player_id"])] = int(hit.iloc[0]["element_id"])
+        # len(hit) == 0 or > 1: unmatched or ambiguous, excluded either way
+
+    return crosswalk
+
 
 def _fetch_with_retry(fn, *args, attempts: int = 3, backoff: float = 2.0):
     """Same unbounded-timeout risk as `understat.py::_fetch_with_retry`
