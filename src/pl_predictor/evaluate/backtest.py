@@ -79,6 +79,8 @@ def _precompute_predictions(model, df: pd.DataFrame, market_overrides: dict | No
             }
             for idx, g in zip(df.index, grids)
         }
+        for idx, row in df.iterrows():
+            results[idx]["data_confidence"] = scoreline._data_confidence(model, row["team_home"], row["team_away"])
     else:
         results = {
             idx: scoreline.predict_fixture(model, row["team_home"], row["team_away"], feature_row=row)
@@ -172,7 +174,8 @@ def build_value_bet_backtest(
             if max_odds is not None and odds > max_odds:
                 continue
             edge = pred[side] - implied[side]
-            if edge > edge_threshold and (best is None or edge > best["edge"]):
+            required_edge = edge_threshold * scoreline.required_edge_multiplier(pred.get("data_confidence"))
+            if edge > required_edge and (best is None or edge > best["edge"]):
                 best = {"side": side, "odds": float(odds), "edge": float(edge), "prob": float(pred[side]), "implied": float(implied[side])}
 
         if best is None:
