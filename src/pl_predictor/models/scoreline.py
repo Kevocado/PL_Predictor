@@ -100,9 +100,9 @@ def _data_confidence(model, home: str, away: str) -> str | None:
     measure this from). 'new' means both Elo/Pi/rolling-form are at or near
     their league-average defaults for at least one side (e.g. a newly
     promoted team's first few matches); 'limited' means a partial cold-start
-    blend; 'established' means a full rolling window of real matches. Purely
-    informational — never changes what's predicted, just how much to trust
-    it."""
+    blend; 'established' means a full rolling window of real matches. This
+    value also now scales the bet-recommendation edge threshold (see
+    `required_edge_multiplier`) — no longer purely informational."""
     if not hasattr(model, "context"):
         return None
     games_played = model.context.games_played

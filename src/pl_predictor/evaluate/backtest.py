@@ -168,13 +168,13 @@ def build_value_bet_backtest(
         if implied is None:
             return
 
+        required_edge = edge_threshold * scoreline.required_edge_multiplier(pred.get("data_confidence"))
         best = None
         for side, odds_col in ODDS_COLS.items():
             odds = fixture[odds_col]
             if max_odds is not None and odds > max_odds:
                 continue
             edge = pred[side] - implied[side]
-            required_edge = edge_threshold * scoreline.required_edge_multiplier(pred.get("data_confidence"))
             if edge > required_edge and (best is None or edge > best["edge"]):
                 best = {"side": side, "odds": float(odds), "edge": float(edge), "prob": float(pred[side]), "implied": float(implied[side])}
 

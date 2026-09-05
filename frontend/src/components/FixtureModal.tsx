@@ -43,13 +43,13 @@ function highlightFor(
   return undefined;
 }
 
-function OverUnderRow({ label, lam, line, over, postMatchHit }: { label: string; lam: number; line: number; over: number; postMatchHit?: boolean }) {
+function OverUnderRow({ label, lam, line, over, postMatchHit, modelCall }: { label: string; lam: number; line: number; over: number; postMatchHit?: boolean; modelCall?: boolean }) {
   const rowClass =
     postMatchHit === true
       ? "bg-win/10 ring-1 ring-win/30"
       : postMatchHit === false
         ? "bg-loss/10"
-        : isModelCall(over)
+        : modelCall
           ? "bg-pl-cyan/10 ring-1 ring-pl-cyan/40"
           : "bg-pl-850/60";
   return (
@@ -438,7 +438,7 @@ export function FixtureModal({ eventId, onClose }: Props) {
                           : detail.odds_is_stale
                             ? `Live odds were last fetched ${detail.odds_fetched_at ? new Date(detail.odds_fetched_at).toLocaleString() : "too long ago"}. Refresh odds before treating an edge as actionable.`
                           : detail.has_live_odds
-                            ? "No value bet clears the current 5-point edge and price filters."
+                            ? "No value bet clears the current edge and price filters."
                             : "Live match-result and goals odds have not loaded yet, so a value bet cannot be calculated."}
                       </p>
                     )}
@@ -450,8 +450,8 @@ export function FixtureModal({ eventId, onClose }: Props) {
                       <InfoTooltip text={GLOSSARY.noLiveMarket} align="right" />
                     </h3>
                     <div className="flex flex-col gap-1.5">
-                      <OverUnderRow label="Total corners" lam={detail.corners.lambda_} line={detail.corners.line} over={detail.corners.over} postMatchHit={postMatchVerdict(`Corners O/U ${detail.corners.line}`)?.hit} />
-                      <OverUnderRow label="Total cards" lam={detail.cards.lambda_} line={detail.cards.line} over={detail.cards.over} postMatchHit={postMatchVerdict(`Cards O/U ${detail.cards.line}`)?.hit} />
+                      <OverUnderRow label="Total corners" lam={detail.corners.lambda_} line={detail.corners.line} over={detail.corners.over} postMatchHit={postMatchVerdict(`Corners O/U ${detail.corners.line}`)?.hit} modelCall={isModelCall(detail.corners.over)} />
+                      <OverUnderRow label="Total cards" lam={detail.cards.lambda_} line={detail.cards.line} over={detail.cards.over} postMatchHit={postMatchVerdict(`Cards O/U ${detail.cards.line}`)?.hit} modelCall={isModelCall(detail.cards.over)} />
                     </div>
                     <p className="mt-2 text-[11px] text-pl-text-faint">Use these as match-context signals (for example, a high Over chance suggests a busier game), not as verified betting edges.</p>
                   </section>

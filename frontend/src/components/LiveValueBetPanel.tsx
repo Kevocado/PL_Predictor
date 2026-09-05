@@ -88,7 +88,7 @@ export function LiveValueBetPanel() {
       {data && data.n_flagged === 0 && (
         <p className="text-xs text-pl-text-faint">
           No fixtures have been flagged as a value bet yet — this builds up automatically as live odds come in and
-          the model finds edges above the 5% threshold.
+          the model finds edges above its confidence-adjusted threshold.
         </p>
       )}
 

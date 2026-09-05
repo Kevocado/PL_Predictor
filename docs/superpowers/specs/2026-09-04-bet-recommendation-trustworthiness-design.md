@@ -112,3 +112,16 @@ threshold change is invisible to a user until they'd have seen a
 newly-suppressed (or newly-required-stronger) flag either way. No new data
 source, no new external dependency, no effect on the free-tier memory
 story (same fields, no new computation shape).
+
+## Validation gate outcome (recorded after shipping)
+
+The required walk-forward gate (Section 1's "Gate:" paragraph, above) came
+back neutral, not a confirmed improvement: win rate moved from 38.17% to
+38.01% (a 0.16-point difference, well inside the harness's own ~±7-8pp
+bootstrap confidence interval — noise, not signal). The 105 bets the new
+threshold suppressed had themselves won at 40.0%, slightly above the
+38.17% baseline population — again well within noise at this sample size,
+but the opposite direction from the change's premise. The multiplier table
+therefore ships on the original judgment-call reasoning from Section 1,
+not on validated evidence, and should be revisited once live post-launch
+data accumulates rather than treated as backtested-and-confirmed.
