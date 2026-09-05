@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-05T21:12:49.551847+00:00",
+  "generated_at": "2026-09-05T22:55:02.402013+00:00",
   "model_fingerprint": "8bf9405aa6eca28348496c7b99f7aa750acf47e2295bf9786c3537327880e347",
   "current_gameweek": 3,
   "min_gameweek": 1,
@@ -183224,7 +183224,7 @@
           "goals_for": 5,
           "goals_against": 2,
           "assists": 5,
-          "xa": 3.56,
+          "xa": 3.63,
           "points_per_match": 1.67,
           "form_points_per_match": 1.67,
           "form_trend": "down",
@@ -184052,7 +184052,7 @@
           "goals_for": 3,
           "goals_against": 3,
           "assists": 3,
-          "xa": 2.48,
+          "xa": 2.38,
           "points_per_match": 1.33,
           "form_points_per_match": 1.33,
           "form_trend": "up",
@@ -185932,8 +185932,8 @@
           "goals": 1,
           "assists": 0,
           "xg": 0.77,
-          "xa": 0.12,
-          "xgi": 0.89,
+          "xa": 0.2,
+          "xgi": 0.97,
           "threat": 93.0,
           "creativity": 22.9,
           "ict": 17.6,
@@ -186188,18 +186188,18 @@
           "goals": 0,
           "assists": 1,
           "xg": 0.03,
-          "xa": 0.46,
-          "xgi": 0.49,
+          "xa": 0.45,
+          "xgi": 0.48,
           "threat": 25.0,
           "creativity": 58.7,
           "ict": 10.8,
           "bps": 56,
-          "bonus": 2,
+          "bonus": 3,
           "news": "",
           "quality_rating": 60.8,
           "form_rating": 0.0,
-          "live_form_rating": 47.3,
-          "live_form_vs_quality": -13.5,
+          "live_form_rating": 50.0,
+          "live_form_vs_quality": -10.8,
           "overall_rating": 60.8,
           "current_impact_rating": 48.4,
           "rating_driver": "Expected goal involvements",
@@ -187019,9 +187019,9 @@
           "starts": 3,
           "goals": 1,
           "assists": 1,
-          "xg": 1.09,
+          "xg": 1.03,
           "xa": 0.65,
-          "xgi": 1.74,
+          "xgi": 1.68,
           "threat": 21.0,
           "creativity": 47.5,
           "ict": 15.4,
@@ -189163,19 +189163,19 @@
           "starts": 3,
           "goals": 2,
           "assists": 0,
-          "xg": 0.49,
+          "xg": 0.5,
           "xa": 0.32,
-          "xgi": 0.81,
+          "xgi": 0.82,
           "threat": 28.0,
           "creativity": 74.2,
           "ict": 17.2,
-          "bps": 78,
+          "bps": 76,
           "bonus": 3,
           "news": "",
           "quality_rating": 43.0,
           "form_rating": 0.0,
-          "live_form_rating": 70.7,
-          "live_form_vs_quality": 27.7,
+          "live_form_rating": 77.0,
+          "live_form_vs_quality": 34.0,
           "overall_rating": 43.0,
           "current_impact_rating": 32.6,
           "rating_driver": "Bonus Point System",
@@ -189809,7 +189809,7 @@
           "threat": 37.0,
           "creativity": 21.9,
           "ict": 11.7,
-          "bps": 42,
+          "bps": 44,
           "bonus": 0,
           "news": "",
           "quality_rating": 38.7,
@@ -191723,13 +191723,13 @@
           "starts": 3,
           "goals": 0,
           "assists": 1,
-          "xg": 0.05,
-          "xa": 0.6,
-          "xgi": 0.65,
+          "xg": 0.06,
+          "xa": 0.57,
+          "xgi": 0.63,
           "threat": 0.0,
           "creativity": 89.3,
           "ict": 12.8,
-          "bps": 75,
+          "bps": 72,
           "bonus": 5,
           "news": "",
           "quality_rating": null,
@@ -191947,9 +191947,9 @@
           "starts": 3,
           "goals": 1,
           "assists": 0,
-          "xg": 1.23,
-          "xa": 0.25,
-          "xgi": 1.48,
+          "xg": 1.21,
+          "xa": 0.23,
+          "xgi": 1.44,
           "threat": 30.0,
           "creativity": 31.1,
           "ict": 7.0,
@@ -192075,9 +192075,9 @@
           "starts": 3,
           "goals": 0,
           "assists": 0,
-          "xg": 0.47,
+          "xg": 0.36,
           "xa": 0.23,
-          "xgi": 0.7,
+          "xgi": 0.59,
           "threat": 31.0,
           "creativity": 39.9,
           "ict": 10.4,
@@ -192235,9 +192235,9 @@
           "starts": 3,
           "goals": 0,
           "assists": 0,
-          "xg": 0.24,
+          "xg": 0.21,
           "xa": 0.13,
-          "xgi": 0.37,
+          "xgi": 0.34,
           "threat": 20.0,
           "creativity": 25.3,
           "ict": 8.2,
@@ -192555,9 +192555,9 @@
           "starts": 3,
           "goals": 0,
           "assists": 2,
-          "xg": 0.4,
+          "xg": 0.41,
           "xa": 0.37,
-          "xgi": 0.77,
+          "xgi": 0.78,
           "threat": 32.0,
           "creativity": 47.1,
           "ict": 13.5,
@@ -192881,7 +192881,7 @@
           "threat": 16.0,
           "creativity": 20.0,
           "ict": 7.6,
-          "bps": 48,
+          "bps": 47,
           "bonus": 0,
           "news": "",
           "quality_rating": null,
@@ -193137,7 +193137,7 @@
           "threat": 2.0,
           "creativity": 8.0,
           "ict": 5.3,
-          "bps": 43,
+          "bps": 44,
           "bonus": 1,
           "news": "",
           "quality_rating": null,
@@ -194027,9 +194027,9 @@
           "starts": 1,
           "goals": 0,
           "assists": 0,
-          "xg": 0.17,
+          "xg": 0.19,
           "xa": 0.42,
-          "xgi": 0.59,
+          "xgi": 0.61,
           "threat": 16.0,
           "creativity": 60.8,
           "ict": 9.1,
@@ -194668,12 +194668,12 @@
           "goals": 0,
           "assists": 0,
           "xg": 0.0,
-          "xa": 0.07,
-          "xgi": 0.07,
+          "xa": 0.08,
+          "xgi": 0.08,
           "threat": 0.0,
           "creativity": 0.0,
           "ict": 0.0,
-          "bps": 11,
+          "bps": 9,
           "bonus": 0,
           "news": "",
           "quality_rating": null,
@@ -194923,9 +194923,9 @@
           "starts": 0,
           "goals": 1,
           "assists": 1,
-          "xg": 1.48,
+          "xg": 1.49,
           "xa": 0.01,
-          "xgi": 1.49,
+          "xgi": 1.5,
           "threat": 25.0,
           "creativity": 0.3,
           "ict": 5.4,
@@ -194955,21 +194955,21 @@
           "starts": 0,
           "goals": 0,
           "assists": 0,
-          "xg": 0.12,
+          "xg": 0.1,
           "xa": 0.01,
-          "xgi": 0.13,
+          "xgi": 0.11,
           "threat": 0.0,
           "creativity": 0.0,
           "ict": 0.0,
-          "bps": 12,
+          "bps": 11,
           "bonus": 0,
           "news": "",
           "quality_rating": null,
           "form_rating": 0.0,
-          "live_form_rating": 24.8,
+          "live_form_rating": 30.2,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 6.9,
+          "current_impact_rating": 8.4,
           "rating_driver": "Bps",
           "rating_expected_minutes": 25.0,
           "rating_status": "provisional",
@@ -196844,12 +196844,12 @@
           "goals": 0,
           "assists": 0,
           "xg": 0.0,
-          "xa": 0.06,
-          "xgi": 0.06,
+          "xa": 0.0,
+          "xgi": 0.0,
           "threat": 0.0,
           "creativity": 0.0,
           "ict": 0.0,
-          "bps": 4,
+          "bps": 3,
           "bonus": 0,
           "news": "",
           "quality_rating": null,
@@ -205480,6 +205480,38 @@
             "rating_model_source": "data_led_multiseason_role_evidence"
           },
           {
+            "id": 98,
+            "name": "Janelt",
+            "team": "Brentford",
+            "position": "MID",
+            "status": "a",
+            "chance_of_playing": null,
+            "minutes": 270,
+            "starts": 3,
+            "goals": 2,
+            "assists": 0,
+            "xg": 0.5,
+            "xa": 0.32,
+            "xgi": 0.82,
+            "threat": 28.0,
+            "creativity": 74.2,
+            "ict": 17.2,
+            "bps": 76,
+            "bonus": 3,
+            "news": "",
+            "quality_rating": 43.0,
+            "form_rating": 0.0,
+            "live_form_rating": 77.0,
+            "live_form_vs_quality": 34.0,
+            "overall_rating": 43.0,
+            "current_impact_rating": 32.6,
+            "rating_driver": "Bonus Point System",
+            "rating_expected_minutes": 68.3,
+            "rating_status": "established",
+            "rating_evidence_minutes": 6739.0,
+            "rating_model_source": "data_led_multiseason_role_evidence"
+          },
+          {
             "id": 426,
             "name": "B.Fernandes",
             "team": "Man United",
@@ -205509,38 +205541,6 @@
             "rating_expected_minutes": 68.3,
             "rating_status": "established",
             "rating_evidence_minutes": 9200.0,
-            "rating_model_source": "data_led_multiseason_role_evidence"
-          },
-          {
-            "id": 399,
-            "name": "Cherki",
-            "team": "Man City",
-            "position": "MID",
-            "status": "a",
-            "chance_of_playing": null,
-            "minutes": 173,
-            "starts": 2,
-            "goals": 2,
-            "assists": 2,
-            "xg": 0.56,
-            "xa": 1.35,
-            "xgi": 1.91,
-            "threat": 53.0,
-            "creativity": 96.6,
-            "ict": 26.4,
-            "bps": 111,
-            "bonus": 4,
-            "news": "",
-            "quality_rating": null,
-            "form_rating": 0.0,
-            "live_form_rating": 75.9,
-            "live_form_vs_quality": null,
-            "overall_rating": null,
-            "current_impact_rating": 59.1,
-            "rating_driver": "Expected goal involvements",
-            "rating_expected_minutes": 70.1,
-            "rating_status": "limited",
-            "rating_evidence_minutes": 1772.0,
             "rating_model_source": "data_led_multiseason_role_evidence"
           }
         ],
@@ -205684,9 +205684,9 @@
             "starts": 0,
             "goals": 1,
             "assists": 1,
-            "xg": 1.48,
+            "xg": 1.49,
             "xa": 0.01,
-            "xgi": 1.49,
+            "xgi": 1.5,
             "threat": 25.0,
             "creativity": 0.3,
             "ict": 5.4,
@@ -205714,7 +205714,7 @@
   "fpl": {
     "projections": {
       "gameweek": 4,
-      "generated_at": "2026-09-05T21:12:49.483255+00:00",
+      "generated_at": "2026-09-05T22:55:02.332513+00:00",
       "model_source": "hybrid_match_context_baseline",
       "data_freshness": "live official FPL API + independent pre-match scoreline model",
       "players": [
@@ -206935,38 +206935,6 @@
           ]
         },
         {
-          "player_id": 86,
-          "name": "Keane Lewis-Potter",
-          "web_name": "Lewis-Potter",
-          "team": "Brentford",
-          "team_id": 4,
-          "position": "MID",
-          "price": 5.5,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 68.8,
-          "projected_points": 4.28,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": false,
-              "difficulty": 3,
-              "expected_goals": 1.16,
-              "clean_sheet_probability": 0.139,
-              "expected_minutes": 68.8,
-              "opponent": "Bournemouth",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "69 expected minutes",
-            "form 6.0",
-            "1.16 expected team goals"
-          ]
-        },
-        {
           "player_id": 200,
           "name": "Maxence Lacroix",
           "web_name": "Lacroix",
@@ -207092,6 +207060,38 @@
             "68 expected minutes",
             "form 4.0",
             "1.72 expected team goals"
+          ]
+        },
+        {
+          "player_id": 86,
+          "name": "Keane Lewis-Potter",
+          "web_name": "Lewis-Potter",
+          "team": "Brentford",
+          "team_id": 4,
+          "position": "MID",
+          "price": 5.5,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 68.8,
+          "projected_points": 4.23,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": false,
+              "difficulty": 3,
+              "expected_goals": 1.16,
+              "clean_sheet_probability": 0.139,
+              "expected_minutes": 68.8,
+              "opponent": "Bournemouth",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "69 expected minutes",
+            "form 6.0",
+            "1.16 expected team goals"
           ]
         },
         {
@@ -208759,38 +208759,6 @@
           ]
         },
         {
-          "player_id": 542,
-          "name": "Enzo Le F\u00e9e",
-          "web_name": "E.Le F\u00e9e",
-          "team": "Sunderland",
-          "team_id": 20,
-          "position": "MID",
-          "price": 5.9,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 70.3,
-          "projected_points": 3.84,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 4,
-              "expected_goals": 0.99,
-              "clean_sheet_probability": 0.178,
-              "expected_minutes": 70.3,
-              "opponent": "Arsenal",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "70 expected minutes",
-            "form 4.3",
-            "0.99 expected team goals"
-          ]
-        },
-        {
           "player_id": 11,
           "name": "Cristhian Mosquera",
           "web_name": "Mosquera",
@@ -208983,6 +208951,38 @@
           ]
         },
         {
+          "player_id": 542,
+          "name": "Enzo Le F\u00e9e",
+          "web_name": "E.Le F\u00e9e",
+          "team": "Sunderland",
+          "team_id": 20,
+          "position": "MID",
+          "price": 5.9,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 70.3,
+          "projected_points": 3.81,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 4,
+              "expected_goals": 0.99,
+              "clean_sheet_probability": 0.178,
+              "expected_minutes": 70.3,
+              "opponent": "Arsenal",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "70 expected minutes",
+            "form 4.3",
+            "0.99 expected team goals"
+          ]
+        },
+        {
           "player_id": 79,
           "name": "Francisco Evanilson de Lima Barbosa",
           "web_name": "Evanilson",
@@ -209012,6 +209012,38 @@
             "73 expected minutes",
             "form 3.7",
             "1.97 expected team goals"
+          ]
+        },
+        {
+          "player_id": 565,
+          "name": "Mamadou Sangar\u00e9",
+          "web_name": "M.Sangar\u00e9",
+          "team": "Brentford",
+          "team_id": 4,
+          "position": "MID",
+          "price": 5.7,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 80.7,
+          "projected_points": 3.79,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": false,
+              "difficulty": 3,
+              "expected_goals": 1.16,
+              "clean_sheet_probability": 0.139,
+              "expected_minutes": 80.7,
+              "opponent": "Bournemouth",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "81 expected minutes",
+            "form 6.0",
+            "1.16 expected team goals"
           ]
         },
         {
@@ -209172,38 +209204,6 @@
             "90 expected minutes",
             "form 2.0",
             "1.72 expected team goals"
-          ]
-        },
-        {
-          "player_id": 565,
-          "name": "Mamadou Sangar\u00e9",
-          "web_name": "M.Sangar\u00e9",
-          "team": "Brentford",
-          "team_id": 4,
-          "position": "MID",
-          "price": 5.7,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 80.7,
-          "projected_points": 3.78,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": false,
-              "difficulty": 3,
-              "expected_goals": 1.16,
-              "clean_sheet_probability": 0.139,
-              "expected_minutes": 80.7,
-              "opponent": "Bournemouth",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "81 expected minutes",
-            "form 6.0",
-            "1.16 expected team goals"
           ]
         },
         {
@@ -209623,6 +209623,38 @@
           ]
         },
         {
+          "player_id": 98,
+          "name": "Vitaly Janelt",
+          "web_name": "Janelt",
+          "team": "Brentford",
+          "team_id": 4,
+          "position": "MID",
+          "price": 5.0,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 68.3,
+          "projected_points": 3.66,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": false,
+              "difficulty": 3,
+              "expected_goals": 1.16,
+              "clean_sheet_probability": 0.139,
+              "expected_minutes": 68.3,
+              "opponent": "Bournemouth",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "68 expected minutes",
+            "form 7.0",
+            "1.16 expected team goals"
+          ]
+        },
+        {
           "player_id": 201,
           "name": "Daniel Mu\u00f1oz Mej\u00eda",
           "web_name": "Mu\u00f1oz",
@@ -210007,6 +210039,38 @@
           ]
         },
         {
+          "player_id": 94,
+          "name": "Kevin Schade",
+          "web_name": "Schade",
+          "team": "Brentford",
+          "team_id": 4,
+          "position": "MID",
+          "price": 6.0,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 68.8,
+          "projected_points": 3.58,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": false,
+              "difficulty": 3,
+              "expected_goals": 1.16,
+              "clean_sheet_probability": 0.139,
+              "expected_minutes": 68.8,
+              "opponent": "Bournemouth",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "69 expected minutes",
+            "form 5.0",
+            "1.16 expected team goals"
+          ]
+        },
+        {
           "player_id": 492,
           "name": "Taiwo Awoniyi",
           "web_name": "Awoniyi",
@@ -210036,38 +210100,6 @@
             "68 expected minutes",
             "form 1.7",
             "1.18 expected team goals"
-          ]
-        },
-        {
-          "player_id": 98,
-          "name": "Vitaly Janelt",
-          "web_name": "Janelt",
-          "team": "Brentford",
-          "team_id": 4,
-          "position": "MID",
-          "price": 5.0,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 68.3,
-          "projected_points": 3.56,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": false,
-              "difficulty": 3,
-              "expected_goals": 1.16,
-              "clean_sheet_probability": 0.139,
-              "expected_minutes": 68.3,
-              "opponent": "Bournemouth",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "68 expected minutes",
-            "form 6.3",
-            "1.16 expected team goals"
           ]
         },
         {
@@ -210164,38 +210196,6 @@
             "76 expected minutes",
             "form 2.0",
             "1.18 expected team goals"
-          ]
-        },
-        {
-          "player_id": 94,
-          "name": "Kevin Schade",
-          "web_name": "Schade",
-          "team": "Brentford",
-          "team_id": 4,
-          "position": "MID",
-          "price": 6.0,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 68.8,
-          "projected_points": 3.52,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": false,
-              "difficulty": 3,
-              "expected_goals": 1.16,
-              "clean_sheet_probability": 0.139,
-              "expected_minutes": 68.8,
-              "opponent": "Bournemouth",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "69 expected minutes",
-            "form 5.0",
-            "1.16 expected team goals"
           ]
         },
         {
@@ -210551,38 +210551,6 @@
           ]
         },
         {
-          "player_id": 541,
-          "name": "Thomas Meunier",
-          "web_name": "Meunier",
-          "team": "Sunderland",
-          "team_id": 20,
-          "position": "DEF",
-          "price": 4.5,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 73.1,
-          "projected_points": 3.43,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 4,
-              "expected_goals": 0.99,
-              "clean_sheet_probability": 0.178,
-              "expected_minutes": 73.1,
-              "opponent": "Arsenal",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "73 expected minutes",
-            "form 3.0",
-            "0.99 expected team goals"
-          ]
-        },
-        {
           "player_id": 643,
           "name": "Ben Chilwell",
           "web_name": "Chilwell",
@@ -210807,6 +210775,38 @@
           ]
         },
         {
+          "player_id": 541,
+          "name": "Thomas Meunier",
+          "web_name": "Meunier",
+          "team": "Sunderland",
+          "team_id": 20,
+          "position": "DEF",
+          "price": 4.5,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 73.1,
+          "projected_points": 3.39,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 4,
+              "expected_goals": 0.99,
+              "clean_sheet_probability": 0.178,
+              "expected_minutes": 73.1,
+              "opponent": "Arsenal",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "73 expected minutes",
+            "form 3.0",
+            "0.99 expected team goals"
+          ]
+        },
+        {
           "player_id": 67,
           "name": "Rayan Vitor Simpl\u00edcio Rocha",
           "web_name": "Rayan",
@@ -210935,38 +210935,6 @@
           ]
         },
         {
-          "player_id": 544,
-          "name": "Granit Xhaka",
-          "web_name": "Xhaka",
-          "team": "Sunderland",
-          "team_id": 20,
-          "position": "MID",
-          "price": 5.5,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 68.3,
-          "projected_points": 3.36,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 4,
-              "expected_goals": 0.99,
-              "clean_sheet_probability": 0.178,
-              "expected_minutes": 68.3,
-              "opponent": "Arsenal",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "68 expected minutes",
-            "form 6.0",
-            "0.99 expected team goals"
-          ]
-        },
-        {
           "player_id": 331,
           "name": "Gabriel Gudmundsson",
           "web_name": "Gudmundsson",
@@ -211028,6 +210996,38 @@
             "68 expected minutes",
             "form 2.3",
             "1.07 expected team goals"
+          ]
+        },
+        {
+          "player_id": 544,
+          "name": "Granit Xhaka",
+          "web_name": "Xhaka",
+          "team": "Sunderland",
+          "team_id": 20,
+          "position": "MID",
+          "price": 5.5,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 68.3,
+          "projected_points": 3.34,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 4,
+              "expected_goals": 0.99,
+              "clean_sheet_probability": 0.178,
+              "expected_minutes": 68.3,
+              "opponent": "Arsenal",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "68 expected minutes",
+            "form 6.0",
+            "0.99 expected team goals"
           ]
         },
         {
@@ -211447,6 +211447,38 @@
           ]
         },
         {
+          "player_id": 96,
+          "name": "Mikkel Damsgaard",
+          "web_name": "Damsgaard",
+          "team": "Brentford",
+          "team_id": 4,
+          "position": "MID",
+          "price": 5.5,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 71.7,
+          "projected_points": 3.25,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": false,
+              "difficulty": 3,
+              "expected_goals": 1.16,
+              "clean_sheet_probability": 0.139,
+              "expected_minutes": 71.7,
+              "opponent": "Bournemouth",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "72 expected minutes",
+            "form 4.0",
+            "1.16 expected team goals"
+          ]
+        },
+        {
           "player_id": 529,
           "name": "Robin Roefs",
           "web_name": "Roefs",
@@ -211540,38 +211572,6 @@
             "68 expected minutes",
             "form 2.0",
             "1.07 expected team goals"
-          ]
-        },
-        {
-          "player_id": 96,
-          "name": "Mikkel Damsgaard",
-          "web_name": "Damsgaard",
-          "team": "Brentford",
-          "team_id": 4,
-          "position": "MID",
-          "price": 5.5,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 71.7,
-          "projected_points": 3.23,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": false,
-              "difficulty": 3,
-              "expected_goals": 1.16,
-              "clean_sheet_probability": 0.139,
-              "expected_minutes": 71.7,
-              "opponent": "Bournemouth",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "72 expected minutes",
-            "form 3.7",
-            "1.16 expected team goals"
           ]
         },
         {
@@ -212130,7 +212130,7 @@
           "news": "",
           "availability": 1.0,
           "expected_minutes": 68.3,
-          "projected_points": 3.03,
+          "projected_points": 3.05,
           "fixture_count": 1,
           "fixtures": [
             {
@@ -212372,38 +212372,6 @@
             "71 expected minutes",
             "form 2.3",
             "1.09 expected team goals"
-          ]
-        },
-        {
-          "player_id": 545,
-          "name": "Noah Sadiki",
-          "web_name": "Sadiki",
-          "team": "Sunderland",
-          "team_id": 20,
-          "position": "MID",
-          "price": 5.0,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 71.2,
-          "projected_points": 2.96,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 4,
-              "expected_goals": 0.99,
-              "clean_sheet_probability": 0.178,
-              "expected_minutes": 71.2,
-              "opponent": "Arsenal",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "71 expected minutes",
-            "form 2.0",
-            "0.99 expected team goals"
           ]
         },
         {
@@ -212727,6 +212695,38 @@
           ]
         },
         {
+          "player_id": 105,
+          "name": "Jaidon Anthony",
+          "web_name": "Anthony",
+          "team": "Brentford",
+          "team_id": 4,
+          "position": "MID",
+          "price": 6.0,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 55.5,
+          "projected_points": 2.89,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": false,
+              "difficulty": 3,
+              "expected_goals": 1.16,
+              "clean_sheet_probability": 0.139,
+              "expected_minutes": 55.5,
+              "opponent": "Bournemouth",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "56 expected minutes",
+            "form 1.3",
+            "1.16 expected team goals"
+          ]
+        },
+        {
           "player_id": 47,
           "name": "Boubacar Kamara",
           "web_name": "Kamara",
@@ -212759,6 +212759,38 @@
           ]
         },
         {
+          "player_id": 545,
+          "name": "Noah Sadiki",
+          "web_name": "Sadiki",
+          "team": "Sunderland",
+          "team_id": 20,
+          "position": "MID",
+          "price": 5.0,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 71.2,
+          "projected_points": 2.87,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 4,
+              "expected_goals": 0.99,
+              "clean_sheet_probability": 0.178,
+              "expected_minutes": 71.2,
+              "opponent": "Arsenal",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "71 expected minutes",
+            "form 2.0",
+            "0.99 expected team goals"
+          ]
+        },
+        {
           "player_id": 26,
           "name": "Kai Havertz",
           "web_name": "Havertz",
@@ -212788,38 +212820,6 @@
             "68 expected minutes",
             "form 2.7",
             "1.72 expected team goals"
-          ]
-        },
-        {
-          "player_id": 105,
-          "name": "Jaidon Anthony",
-          "web_name": "Anthony",
-          "team": "Brentford",
-          "team_id": 4,
-          "position": "MID",
-          "price": 6.0,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 55.5,
-          "projected_points": 2.86,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": false,
-              "difficulty": 3,
-              "expected_goals": 1.16,
-              "clean_sheet_probability": 0.139,
-              "expected_minutes": 55.5,
-              "opponent": "Bournemouth",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "56 expected minutes",
-            "form 1.3",
-            "1.16 expected team goals"
           ]
         },
         {
@@ -215991,6 +215991,38 @@
           ]
         },
         {
+          "player_id": 93,
+          "name": "Jannik Schuster",
+          "web_name": "Schuster",
+          "team": "Brentford",
+          "team_id": 4,
+          "position": "DEF",
+          "price": 4.5,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 25.0,
+          "projected_points": 1.39,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": false,
+              "difficulty": 3,
+              "expected_goals": 1.16,
+              "clean_sheet_probability": 0.139,
+              "expected_minutes": 25.0,
+              "opponent": "Bournemouth",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "25 expected minutes",
+            "form 1.3",
+            "1.16 expected team goals"
+          ]
+        },
+        {
           "player_id": 622,
           "name": "Kaden Braithwaite",
           "web_name": "Braithwaite",
@@ -216244,38 +216276,6 @@
             "25 expected minutes",
             "form 0.0",
             "1.65 expected team goals"
-          ]
-        },
-        {
-          "player_id": 93,
-          "name": "Jannik Schuster",
-          "web_name": "Schuster",
-          "team": "Brentford",
-          "team_id": 4,
-          "position": "DEF",
-          "price": 4.5,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 25.0,
-          "projected_points": 1.34,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": false,
-              "difficulty": 3,
-              "expected_goals": 1.16,
-              "clean_sheet_probability": 0.139,
-              "expected_minutes": 25.0,
-              "opponent": "Bournemouth",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "25 expected minutes",
-            "form 0.7",
-            "1.16 expected team goals"
           ]
         },
         {
@@ -217076,38 +217076,6 @@
             "25 expected minutes",
             "form 0.3",
             "1.38 expected team goals"
-          ]
-        },
-        {
-          "player_id": 646,
-          "name": "Malick Fofana",
-          "web_name": "Fofana",
-          "team": "Sunderland",
-          "team_id": 20,
-          "position": "MID",
-          "price": 5.5,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 25.0,
-          "projected_points": 1.27,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 4,
-              "expected_goals": 0.99,
-              "clean_sheet_probability": 0.178,
-              "expected_minutes": 25.0,
-              "opponent": "Arsenal",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "25 expected minutes",
-            "form 1.0",
-            "0.99 expected team goals"
           ]
         },
         {
@@ -219092,6 +219060,38 @@
             "25 expected minutes",
             "form 0.0",
             "1.89 expected team goals"
+          ]
+        },
+        {
+          "player_id": 646,
+          "name": "Malick Fofana",
+          "web_name": "Fofana",
+          "team": "Sunderland",
+          "team_id": 20,
+          "position": "MID",
+          "price": 5.5,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 25.0,
+          "projected_points": 1.08,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 4,
+              "expected_goals": 0.99,
+              "clean_sheet_probability": 0.178,
+              "expected_minutes": 25.0,
+              "opponent": "Arsenal",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "25 expected minutes",
+            "form 1.0",
+            "0.99 expected team goals"
           ]
         },
         {
