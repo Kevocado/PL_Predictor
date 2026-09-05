@@ -1,3 +1,4 @@
+import pandas as pd
 import pytest
 
 from pl_predictor.evaluate import betting_validation
@@ -31,3 +32,20 @@ def test_market_and_odds_breakdowns_label_live_markets():
     assert betting_validation._odds_band({"price": 1.9}) == "Under +100"
     assert betting_validation._odds_band({"price": 2.5}) == "+100 to +199"
     assert betting_validation._odds_band({"price": 3.0}) == "+200 or longer"
+
+
+def test_fold_model_computes_games_played_from_its_own_train_df():
+    train_df = pd.DataFrame(
+        [
+            {"team_home": "Arsenal", "team_away": "Chelsea"},
+            {"team_home": "Chelsea", "team_away": "Arsenal"},
+            {"team_home": "Arsenal", "team_away": "Fulham"},
+        ]
+    )
+    model = betting_validation._FoldScorelineModel(
+        home_model=object(), away_model=object(), feature_cols=[], train_df=train_df
+    )
+    # Arsenal appears in all 3 rows, Chelsea in 2, Fulham (a newly-promoted
+    # side in this toy fold) in only 1 -- exactly the signal
+    # scoreline._data_confidence needs to tell them apart.
+    assert model.context.games_played == {"Arsenal": 3, "Chelsea": 2, "Fulham": 1}

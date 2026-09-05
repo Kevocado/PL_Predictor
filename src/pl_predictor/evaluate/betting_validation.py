@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import numpy as np
 import pandas as pd
 
@@ -9,13 +11,30 @@ from . import backtest, walk_forward
 from ..models import ml_scoreline
 
 
+def _games_played_from_train_df(train_df: pd.DataFrame) -> dict[str, int]:
+    """Per-fold analogue of the live `FixtureFeatureContext.games_played`
+    `scoreline._data_confidence` reads — how many matches this fold's own
+    training window has seen for each team, so a newly-promoted side (few
+    or zero rows) scores as low-confidence in validation exactly like it
+    would in live serving, instead of `data_confidence` silently being
+    `None` for every fold fixture."""
+    counts: dict[str, int] = {}
+    for column in ("team_home", "team_away"):
+        for team, n in train_df[column].value_counts().items():
+            counts[team] = counts.get(team, 0) + int(n)
+    return counts
+
+
 class _FoldScorelineModel:
     """Small adapter so the existing backtest can batch-score a fold."""
 
-    def __init__(self, home_model, away_model, feature_cols: list[str]):
+    def __init__(self, home_model, away_model, feature_cols: list[str], train_df: pd.DataFrame):
         self.home_model = home_model
         self.away_model = away_model
         self.feature_cols = feature_cols
+        # `scoreline._data_confidence` only needs `.context.games_played` —
+        # a plain namespace is enough, no live FixtureFeatureContext needed.
+        self.context = SimpleNamespace(games_played=_games_played_from_train_df(train_df))
 
     def predict_many_from_rows(self, frame: pd.DataFrame):
         features = frame[self.feature_cols].fillna(0)
@@ -81,7 +100,7 @@ def run_walk_forward_value_bet_validation(min_train_seasons: int = 3) -> dict:
         home_model, away_model = ml_scoreline.train_goal_regressors(
             fold["X_train"], train_df["goals_home"], train_df["goals_away"]
         )
-        model = _FoldScorelineModel(home_model, away_model, list(fold["X_train"].columns))
+        model = _FoldScorelineModel(home_model, away_model, list(fold["X_train"].columns), train_df)
         selections: list[dict] = []
         start_date = str(val_df["date"].min().date())
         end_date = str(val_df["date"].max().date())
