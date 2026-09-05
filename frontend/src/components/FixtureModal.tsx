@@ -8,6 +8,7 @@ import { InfoTooltip } from "./InfoTooltip";
 import { MarketBar } from "./MarketBar";
 import { PlayerHighlights, PlayerScorerList } from "./PlayerScorerList";
 import { GLOSSARY } from "../lib/glossary";
+import { isModelCall } from "../lib/modelCall";
 
 interface Props {
   eventId: string;
@@ -30,16 +31,29 @@ function marketType(market: string) {
   return ["home_win", "draw", "away_win"].includes(market) ? "Match result" : "Goals total";
 }
 
-function highlightFor(flagged: boolean, postMatchHit?: boolean): "flagged" | "hit" | "miss" | undefined {
+function highlightFor(
+  flagged: boolean,
+  postMatchHit?: boolean,
+  modelCall?: boolean
+): "flagged" | "hit" | "miss" | "modelCall" | undefined {
   if (postMatchHit === true) return "hit";
   if (postMatchHit === false) return "miss";
   if (flagged) return "flagged";
+  if (modelCall) return "modelCall";
   return undefined;
 }
 
 function OverUnderRow({ label, lam, line, over, postMatchHit }: { label: string; lam: number; line: number; over: number; postMatchHit?: boolean }) {
+  const rowClass =
+    postMatchHit === true
+      ? "bg-win/10 ring-1 ring-win/30"
+      : postMatchHit === false
+        ? "bg-loss/10"
+        : isModelCall(over)
+          ? "bg-pl-cyan/10 ring-1 ring-pl-cyan/40"
+          : "bg-pl-850/60";
   return (
-    <div className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm ${postMatchHit === true ? "bg-win/10 ring-1 ring-win/30" : postMatchHit === false ? "bg-loss/10" : "bg-pl-850/60"}`}>
+    <div className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm ${rowClass}`}>
       <span className="text-pl-text-dim">{label}</span>
       <div className="flex items-center gap-3">
         <span className="text-xs text-pl-text-faint">exp. {lam.toFixed(1)}</span>
@@ -371,7 +385,8 @@ export function FixtureModal({ eventId, onClose }: Props) {
                         prob={detail.btts_yes_prob}
                         highlight={highlightFor(
                           false,
-                          postMatchVerdict("BTTS")?.prediction === "yes" ? postMatchVerdict("BTTS")?.hit : undefined
+                          postMatchVerdict("BTTS")?.prediction === "yes" ? postMatchVerdict("BTTS")?.hit : undefined,
+                          isModelCall(detail.btts_yes_prob)
                         )}
                       />
                       {detail.home_2plus_prob !== null && (

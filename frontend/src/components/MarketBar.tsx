@@ -4,7 +4,7 @@ interface MarketBarProps {
   label: ReactNode;
   prob: number;
   marketProb?: number | null;
-  highlight?: "flagged" | "hit" | "miss";
+  highlight?: "flagged" | "hit" | "miss" | "modelCall";
   // Distinct from `highlight` on purpose: `highlight="flagged"` is also
   // reused by the scoreline list for "most likely" (a different meaning,
   // same ring styling) — the literal "Value" badge must only ever appear
@@ -21,6 +21,10 @@ const HIGHLIGHT_CLASSES: Record<string, string> = {
   // value bet" callout too easy to miss in a list of 5-7 rows — this is
   // deliberately louder, closer to the standalone box's visual weight.
   flagged: "bg-pl-pink/15 ring-2 ring-pl-pink/70",
+  // Deliberately not the pink `flagged` treatment -- that specifically
+  // means "there is a live market and the model beats it." This means
+  // "the model has a decisive view, no market to compare against."
+  modelCall: "bg-pl-cyan/10 ring-1 ring-pl-cyan/40",
 };
 
 export function MarketBar({ label, prob, marketProb, highlight, valueBet, detail }: MarketBarProps) {
