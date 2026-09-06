@@ -309,6 +309,19 @@ def predict_player(
     if is_set_piece_taker:
         lam_assists += 0.10 * minutes_fraction * availability
 
+    # "saves" is one of RATE_STATS (features/player_form.py), so
+    # blended_current_form already computes saves_per90 straight from FPL's
+    # own history (a native column, unlike shots -- no Understat crosswalk
+    # needed) -- this was simply never read out of `rates` before. Scaled
+    # by minutes/availability only, not team_goal_expectation/strength_
+    # multiplier: those describe the *scoring* team's attack, not the
+    # opponent's, and this function isn't given the opponent's own
+    # attacking strength to scale against -- a real simplification (a
+    # keeper facing a stronger attack should expect more saves), flagged
+    # here rather than silently assumed away.
+    saves_estimate = rates.get("saves_per90", 0.0) or 0.0
+    lam_saves = saves_estimate * minutes_fraction * availability
+
     return {
         "expected_goals": lam_goals,
         "expected_assists": lam_assists,
@@ -318,6 +331,7 @@ def predict_player(
         "expected_shots": lam_shots,
         "expected_shots_on_target": lam_shots_on_target,
         "anytime_shot_on_target_prob": anytime_probability(lam_shots_on_target),
+        "expected_saves": lam_saves,
     }
 
 

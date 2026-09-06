@@ -217,6 +217,8 @@ export interface PlayerPrediction {
   expected_shots: number | null;
   expected_shots_on_target: number | null;
   anytime_shot_on_target_prob: number | null;
+  // Native FPL stat, always a real number -- 0 for an outfield player, never null.
+  expected_saves: number;
 }
 
 export interface FixturePlayers {

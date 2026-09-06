@@ -97,6 +97,9 @@ class PlayerPrediction(BaseModel):
     expected_shots: float | None = None
     expected_shots_on_target: float | None = None
     anytime_shot_on_target_prob: float | None = None
+    # Native FPL stat (no crosswalk needed), always a real computed number --
+    # 0.0 for an outfield player, never None.
+    expected_saves: float = 0.0
 
 
 class FixtureTeamContext(BaseModel):

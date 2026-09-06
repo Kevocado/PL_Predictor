@@ -107,6 +107,18 @@ def _bootstrap_with_one_striker():
     }
 
 
+def test_predict_player_computes_expected_saves_from_saves_per90():
+    rates = {"goals_per90": 0.0, "assists_per90": 0.0, "avg_minutes": 90, "saves_per90": 3.0}
+    pred = player_goals.predict_player(rates, team_goal_expectation=1.5, availability=1.0)
+    assert pred["expected_saves"] == 3.0 * 1.0 * 1.0  # minutes_fraction=1.0, availability=1.0
+
+
+def test_predict_player_defaults_expected_saves_to_zero_when_absent():
+    rates = {"goals_per90": 0.0, "assists_per90": 0.0, "avg_minutes": 90}
+    pred = player_goals.predict_player(rates, team_goal_expectation=1.5, availability=1.0)
+    assert pred["expected_saves"] == 0.0
+
+
 def test_rank_team_players_merges_live_shots_into_rates(monkeypatch):
     """rank_team_players's own per-request fetch_player_summary() call
     (live current-season history) has no shots/shots_on_target columns at
@@ -169,3 +181,18 @@ def test_player_prediction_schema_carries_shots_fields():
         confirmed_starter=False, expected_minutes=90.0, is_penalty_taker=False,
         is_set_piece_taker=False,
     )
+
+
+def test_player_prediction_schema_carries_expected_saves():
+    from pl_predictor.api.schemas import PlayerPrediction
+
+    assert "expected_saves" in PlayerPrediction.model_fields
+    # Defaults to 0.0, not None -- always a real number, no crosswalk miss to guard.
+    pred = PlayerPrediction(
+        player_id=1, name="Test GK", position="GK", anytime_goal_prob=0.0,
+        anytime_assist_prob=0.0, anytime_goal_contribution_prob=0.0,
+        status="a", news="", confidence="current", predicted_starter=True,
+        confirmed_starter=False, expected_minutes=90.0, is_penalty_taker=False,
+        is_set_piece_taker=False,
+    )
+    assert pred.expected_saves == 0.0

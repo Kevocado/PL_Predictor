@@ -18,7 +18,11 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 function PlayerRow({ player }: { player: PlayerPrediction }) {
-  const dimmed = player.anytime_goal_prob < 0.01 && player.anytime_assist_prob < 0.01;
+  const isGoalkeeper = player.position === "GK";
+  // Goal/assist probability is essentially always ~0 for a goalkeeper --
+  // dimming on that basis would fade out every keeper regardless of how
+  // likely they are to start, which isn't a useful signal for this position.
+  const dimmed = !isGoalkeeper && player.anytime_goal_prob < 0.01 && player.anytime_assist_prob < 0.01;
   const strongestProbability = Math.max(
     player.anytime_goal_contribution_prob,
     player.anytime_goal_prob,
@@ -44,23 +48,31 @@ function PlayerRow({ player }: { player: PlayerPrediction }) {
         {!player.is_penalty_taker && player.is_set_piece_taker && <span className="rounded bg-pl-700 px-1.5 py-0.5 text-[10px] font-semibold text-pl-text">SP</span>}
       </div>
       <div className="flex shrink-0 items-center gap-2 text-[11px] sm:gap-3 sm:text-xs">
-        <span className="text-pl-text-faint">
-          G+A <span className={probabilityClass(player.anytime_goal_contribution_prob)}>{(player.anytime_goal_contribution_prob * 100).toFixed(0)}%</span>
-        </span>
-        <span className="text-pl-text-faint">
-          Goal <span className={probabilityClass(player.anytime_goal_prob)}>{(player.anytime_goal_prob * 100).toFixed(0)}%</span>
-        </span>
-        <span className="text-pl-text-faint">
-          Assist <span className={probabilityClass(player.anytime_assist_prob)}>{(player.anytime_assist_prob * 100).toFixed(0)}%</span>
-        </span>
-        {player.expected_shots != null && (
-          <span
-            className="text-pl-text-faint"
-            title={`Chance of at least one shot on target: ${player.anytime_shot_on_target_prob != null ? (player.anytime_shot_on_target_prob * 100).toFixed(0) + "%" : "—"}`}
-          >
-            Shots <span className="font-semibold text-pl-text">{player.expected_shots.toFixed(1)}</span>
-            <span className="ml-1">SoT {player.expected_shots_on_target?.toFixed(1) ?? "—"}</span>
+        {isGoalkeeper ? (
+          <span className="text-pl-text-faint">
+            Saves <span className="font-semibold text-pl-text">{player.expected_saves.toFixed(1)}</span>
           </span>
+        ) : (
+          <>
+            <span className="text-pl-text-faint">
+              G+A <span className={probabilityClass(player.anytime_goal_contribution_prob)}>{(player.anytime_goal_contribution_prob * 100).toFixed(0)}%</span>
+            </span>
+            <span className="text-pl-text-faint">
+              Goal <span className={probabilityClass(player.anytime_goal_prob)}>{(player.anytime_goal_prob * 100).toFixed(0)}%</span>
+            </span>
+            <span className="text-pl-text-faint">
+              Assist <span className={probabilityClass(player.anytime_assist_prob)}>{(player.anytime_assist_prob * 100).toFixed(0)}%</span>
+            </span>
+            {player.expected_shots != null && (
+              <span
+                className="text-pl-text-faint"
+                title={`Chance of at least one shot on target: ${player.anytime_shot_on_target_prob != null ? (player.anytime_shot_on_target_prob * 100).toFixed(0) + "%" : "—"}`}
+              >
+                Shots <span className="font-semibold text-pl-text">{player.expected_shots.toFixed(1)}</span>
+                <span className="ml-1">SoT {player.expected_shots_on_target?.toFixed(1) ?? "—"}</span>
+              </span>
+            )}
+          </>
         )}
       </div>
     </div>
