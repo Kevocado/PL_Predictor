@@ -437,6 +437,54 @@ def reconcile_predictions(matches_df: pd.DataFrame, lookback_days: int = 3) -> i
         return resolved_count
 
 
+def backfill_missing_gameweeks(matches_df: pd.DataFrame, lookback_days: int = 3) -> int:
+    """Fill in `gameweek` for already-resolved rows that were left NULL
+    because they resolved via the football-data.co.uk fallback (no
+    `matchday` column) before football-data.org's own reconciliation got a
+    chance to run first -- see `reconcile_predictions`'s docstring: once a
+    row is `resolved`, that function's `WHERE resolved = 0` filter never
+    revisits it, so a fixture that raced its way to a NULL gameweek stays
+    NULL forever without this. Requires a `matchday`-carrying source
+    (football-data.org); a no-op otherwise. Returns how many rows were
+    backfilled."""
+    if "matchday" not in matches_df.columns:
+        return 0
+
+    with _connect() as conn:
+        missing = pd.read_sql(
+            "SELECT * FROM predictions WHERE resolved = 1 AND gameweek IS NULL",
+            conn,
+            parse_dates=["commence_time"],
+        )
+        if missing.empty:
+            return 0
+
+        matches = matches_df
+        if isinstance(matches["date"].dtype, pd.DatetimeTZDtype):
+            matches = matches.copy()
+            matches["date"] = matches["date"].dt.tz_localize(None)
+
+        backfilled_count = 0
+        for _, pred in missing.iterrows():
+            window_start = pred["commence_time"] - pd.Timedelta(days=lookback_days)
+            window_end = pred["commence_time"] + pd.Timedelta(days=lookback_days)
+            candidates = matches[
+                (matches["team_home"] == pred["team_home"])
+                & (matches["team_away"] == pred["team_away"])
+                & (matches["date"] >= window_start)
+                & (matches["date"] <= window_end)
+                & matches["matchday"].notna()
+            ]
+            if candidates.empty:
+                continue
+
+            gameweek = int(candidates.iloc[0]["matchday"])
+            conn.execute("UPDATE predictions SET gameweek = ? WHERE id = ?", (gameweek, int(pred["id"])))
+            backfilled_count += 1
+
+        return backfilled_count
+
+
 def _finished_matches_lookup(finished_matches: pd.DataFrame) -> set[tuple]:
     return {(r["team_home"], r["team_away"], _naive(r["date"]).date()) for _, r in finished_matches.iterrows()}
 

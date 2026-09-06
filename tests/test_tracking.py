@@ -336,3 +336,106 @@ def test_backfill_missing_predictions(clean_db):
     record = store.get_track_record()
     assert record["current_gameweek"] is None
     assert record["pct_correct_overall"] == pytest.approx(1.0)
+
+
+def test_backfill_missing_gameweeks_repairs_null_gameweek_rows(clean_db):
+    """Reproduces the exact race reconcile_predictions's docstring warns
+    about: football-data.co.uk (no matchday column) resolves a fixture
+    before football-data.org gets the chance to, permanently leaving
+    gameweek NULL since reconcile_predictions only ever revisits unresolved
+    rows. backfill_missing_gameweeks is the self-heal for that once the
+    matchday-carrying source becomes available."""
+    table = pd.DataFrame(
+        [
+            {
+                "event_id": "e1",
+                "team_home": "Arsenal",
+                "team_away": "Chelsea",
+                "commence_time": pd.Timestamp("2020-01-01T15:00:00Z"),
+                "home_win_prob": 0.6,
+                "draw_prob": 0.25,
+                "away_win_prob": 0.15,
+                "over_2_5_prob": 0.7,
+                "under_2_5_prob": 0.3,
+                "btts_yes_prob": 0.55,
+                "top_scoreline": "2-1",
+            }
+        ]
+    )
+    store.record_predictions(table)
+
+    # football-data.co.uk-style source: no matchday column at all.
+    co_uk_matches = pd.DataFrame(
+        [
+            {
+                "team_home": "Arsenal",
+                "team_away": "Chelsea",
+                "date": pd.Timestamp("2020-01-01"),
+                "goals_home": 2,
+                "goals_away": 1,
+                "ftr": "H",
+            }
+        ]
+    )
+    store.reconcile_predictions(co_uk_matches)
+    assert store.get_results_by_gameweek()[0]["gameweek"] is None
+
+    # football-data.org becomes available later (e.g. an API key added
+    # after the fact) -- reconcile_predictions itself won't touch this row
+    # again since it's already resolved, but the backfill should.
+    fd_org_matches = pd.DataFrame(
+        [
+            {
+                "team_home": "Arsenal",
+                "team_away": "Chelsea",
+                "date": pd.Timestamp("2020-01-01"),
+                "goals_home": 2,
+                "goals_away": 1,
+                "ftr": "H",
+                "matchday": 21,
+            }
+        ]
+    )
+    # 6 rows per fixture (one per market — same shape reconcile_predictions
+    # itself resolves in one call, see test_reconcile_resolves_against_actual_result).
+    assert store.backfill_missing_gameweeks(fd_org_matches) == 6
+    assert store.get_results_by_gameweek()[0]["gameweek"] == 21
+
+    # Idempotent: nothing left to backfill on a second call.
+    assert store.backfill_missing_gameweeks(fd_org_matches) == 0
+
+
+def test_backfill_missing_gameweeks_noop_without_matchday_column(clean_db):
+    table = pd.DataFrame(
+        [
+            {
+                "event_id": "e1",
+                "team_home": "Arsenal",
+                "team_away": "Chelsea",
+                "commence_time": pd.Timestamp("2020-01-01T15:00:00Z"),
+                "home_win_prob": 0.6,
+                "draw_prob": 0.25,
+                "away_win_prob": 0.15,
+                "over_2_5_prob": 0.7,
+                "under_2_5_prob": 0.3,
+                "btts_yes_prob": 0.55,
+                "top_scoreline": "2-1",
+            }
+        ]
+    )
+    store.record_predictions(table)
+    co_uk_matches = pd.DataFrame(
+        [
+            {
+                "team_home": "Arsenal",
+                "team_away": "Chelsea",
+                "date": pd.Timestamp("2020-01-01"),
+                "goals_home": 2,
+                "goals_away": 1,
+                "ftr": "H",
+            }
+        ]
+    )
+    store.reconcile_predictions(co_uk_matches)
+
+    assert store.backfill_missing_gameweeks(co_uk_matches) == 0

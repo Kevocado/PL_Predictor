@@ -543,6 +543,12 @@ def _run_tracking_bookkeeping(table: pd.DataFrame) -> None:
         if not fd_org_finished.empty:
             tracking_store.reconcile_predictions(fd_org_finished)
             value_bet_ledger.reconcile_value_bets(fd_org_finished, result_source="football-data.org")
+            # Repairs rows stuck with gameweek=NULL from a past run where
+            # football-data.org wasn't available yet (see
+            # backfill_missing_gameweeks's docstring) -- self-heals once
+            # this source is available again, rather than staying NULL
+            # forever.
+            tracking_store.backfill_missing_gameweeks(fd_org_finished)
         # Fallback/mop-up: anything football-data.org didn't have yet (e.g.
         # its own scrape running behind) still gets resolved here, just
         # without a gameweek number.
