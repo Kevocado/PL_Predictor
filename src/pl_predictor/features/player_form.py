@@ -39,7 +39,7 @@ START_WINDOWS = (3, 5, 10)
 
 # "Counting" stats — accumulate with playing time, so per-90 normalization
 # makes sense the same way it does for goals/assists.
-RATE_STATS = ["expected_goals", "expected_assists", "expected_goal_involvements", "clean_sheets", "saves"]
+RATE_STATS = ["expected_goals", "expected_assists", "expected_goal_involvements", "clean_sheets", "saves", "shots", "shots_on_target"]
 # FPL's own per-match *scores*, not counts — a rolling mean, not a per-90 rate.
 MEAN_STATS = ["ict_index", "influence", "creativity", "threat", "bps", "bonus", "defensive_contribution"]
 

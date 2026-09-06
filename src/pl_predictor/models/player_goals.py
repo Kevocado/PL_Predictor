@@ -59,6 +59,8 @@ _RELIABILITY_SPEC = {
     "assists": ("assists_per90", "creativity"),
 }
 
+LEAGUE_AVERAGE_TEAM_SHOTS = 13.1  # measured over last 3 completed seasons
+
 LINEUP_FEATURES = [
     "starts_last3", "starts_last5", "starts_last10", "sub_rate_last3", "sub_rate_last5",
     "minutes_last3", "minutes_last5", "minutes_last10", "minutes_ema", "start_streak",
@@ -263,6 +265,7 @@ def predict_player(
     position_rate_models: dict | None = None,
     is_penalty_taker: bool = False,
     is_set_piece_taker: bool = False,
+    context: object | None = None,
 ) -> dict:
     """`rates` is `features.player_form.blended_current_form`'s output.
     `reliability_coeffs` (from `fit_reliability_coefficients`) is optional —
@@ -285,8 +288,22 @@ def predict_player(
         if assist_model is not None:
             assists_estimate = max(float(assist_model.predict(vector)[0]), 0.0)
 
+    shots_scale = 1.0
+    if context is not None:
+        form = getattr(context, "form", None)
+        if form is not None:
+            shots_scale = (
+                (form.loc["home", "home_last_10_shots_for"] if is_home else form.loc["away", "away_last_10_shots_for"])
+                / LEAGUE_AVERAGE_TEAM_SHOTS
+            )
+    shots_scale = max(float(shots_scale or 1.0), 0.0)
+
     lam_goals = goals_estimate * scale
     lam_assists = assists_estimate * scale
+    shots_estimate = rates.get("shots_per90", 0.0) or 0.0
+    shots_on_target_estimate = rates.get("shots_on_target_per90", 0.0) or 0.0
+    lam_shots = shots_estimate * scale * shots_scale
+    lam_shots_on_target = shots_on_target_estimate * scale * shots_scale
     if is_penalty_taker:
         lam_goals += 0.15 * minutes_fraction * availability
     if is_set_piece_taker:
@@ -298,6 +315,9 @@ def predict_player(
         "anytime_goal_prob": anytime_probability(lam_goals),
         "anytime_assist_prob": anytime_probability(lam_assists),
         "anytime_goal_contribution_prob": anytime_probability(lam_goals + lam_assists),
+        "expected_shots": lam_shots,
+        "expected_shots_on_target": lam_shots_on_target,
+        "anytime_shot_on_target_prob": anytime_probability(lam_shots_on_target),
     }
 
 
