@@ -1,5 +1,6 @@
 import pandas as pd
 
+from pl_predictor.api import routes
 from pl_predictor.api.routes import _resolve_current_gameweek
 
 
@@ -54,3 +55,65 @@ def test_does_not_advance_past_a_gameweek_with_no_matches_yet():
 def test_passes_through_none_and_empty_frame_unchanged():
     assert _resolve_current_gameweek(None, pd.DataFrame()) is None
     assert _resolve_current_gameweek(3, pd.DataFrame()) == 3
+
+
+def test_gameweek_fallback_keeps_a_started_fpl_fixture_visible(monkeypatch):
+    """A future-only fallback must not erase a current gameweek's live match."""
+    live_fixture = pd.DataFrame(
+        [
+            {
+                "event_id": 11,
+                "gameweek": 2,
+                "commence_time": pd.Timestamp("2026-08-28T19:00:00Z"),
+                "team_home": "Crystal Palace",
+                "team_away": "Man City",
+                "has_odds": False,
+            },
+            {
+                "event_id": 16,
+                "gameweek": 2,
+                "commence_time": pd.Timestamp("2026-08-30T13:00:00Z"),
+                "team_home": "Chelsea",
+                "team_away": "Brighton",
+                "has_odds": False,
+            },
+        ]
+    )
+    monkeypatch.setattr(routes, "_value_bet_table", lambda: pd.DataFrame())
+    monkeypatch.setattr(routes, "_run_tracking_bookkeeping", lambda _table: None)
+    monkeypatch.setattr(routes, "_get_fd_org_matches", lambda: pd.DataFrame())
+    monkeypatch.setattr(routes, "_get_remaining_fixtures_df", lambda: pd.DataFrame())
+    monkeypatch.setattr(routes.fixtures_mod, "_fixtures_from_fpl_api", lambda: live_fixture)
+    monkeypatch.setattr(routes.tracking_store, "get_track_record", lambda: {"current_gameweek": 2})
+    monkeypatch.setattr(
+        routes.tracking_store,
+        "get_results_by_gameweek",
+        lambda: [{
+            "gameweek": 2,
+            "fixtures": [{
+                "event_id": "tracked-11", "team_home": "Crystal Palace", "team_away": "Man City",
+                "commence_time": "2026-08-28T19:00:00Z", "actual_goals_home": 1, "actual_goals_away": 4,
+                "predicted_home_win": 0.2, "predicted_draw": 0.2, "predicted_away_win": 0.6,
+                "predicted_scoreline": "0-2", "hit": True, "backfilled": False,
+            }],
+        }],
+    )
+    monkeypatch.setattr(routes.tracking_store, "has_fixture_player_outcomes", lambda _event_id: True)
+    monkeypatch.setattr(routes.tracking_store, "get_fixture_player_events", lambda _event_id, _bootstrap: {"home": [], "away": []})
+    monkeypatch.setattr(routes, "_get_bootstrap", lambda: {"elements": []})
+    monkeypatch.setattr(routes, "_get_models", lambda: {"scoreline": object()})
+    monkeypatch.setattr(
+        routes.scoreline,
+        "predict_fixtures_batch",
+        lambda _model, rows, market_overrides=None: [
+            {"home_win": 0.5, "draw": 0.25, "away_win": 0.25, "top_scorelines": [{"home": 1, "away": 0}]}
+            for _ in range(len(rows))
+        ],
+    )
+
+    result = routes.current_gameweek_fixtures()
+
+    assert [(fixture["team_home"], fixture["team_away"]) for fixture in result["fixtures"]] == [
+        ("Crystal Palace", "Man City"),
+        ("Chelsea", "Brighton"),
+    ]
