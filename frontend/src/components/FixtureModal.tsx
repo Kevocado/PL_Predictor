@@ -198,7 +198,7 @@ export function FixtureModal({ eventId, onClose }: Props) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="animate-modal-in relative flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-pl-border bg-pl-900 shadow-2xl">
+      <div className="animate-modal-in relative flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-pl-border bg-pl-900 shadow-2xl">
         <div className="flex items-center justify-between border-b border-pl-border px-6 py-4">
           <span className="text-sm font-semibold text-pl-text-dim">Fixture detail</span>
           <button
