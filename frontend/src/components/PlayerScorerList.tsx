@@ -53,6 +53,14 @@ function PlayerRow({ player }: { player: PlayerPrediction }) {
         <span className="text-pl-text-faint">
           Assist <span className={probabilityClass(player.anytime_assist_prob)}>{(player.anytime_assist_prob * 100).toFixed(0)}%</span>
         </span>
+        {player.anytime_shot_on_target_prob != null && (
+          <span
+            className="text-pl-text-faint"
+            title={`Expected shots: ${player.expected_shots?.toFixed(2) ?? "—"} · Expected shots on target: ${player.expected_shots_on_target?.toFixed(2) ?? "—"}`}
+          >
+            SoT <span className="font-semibold text-pl-text">{(player.anytime_shot_on_target_prob * 100).toFixed(0)}%</span>
+          </span>
+        )}
       </div>
     </div>
   );

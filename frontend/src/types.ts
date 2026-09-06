@@ -212,6 +212,11 @@ export interface PlayerPrediction {
   expected_minutes: number;
   is_penalty_taker: boolean;
   is_set_piece_taker: boolean;
+  // null when the Understat crosswalk has no match for this player (or no
+  // shots data exists yet) -- never a fabricated number.
+  expected_shots: number | null;
+  expected_shots_on_target: number | null;
+  anytime_shot_on_target_prob: number | null;
 }
 
 export interface FixturePlayers {
