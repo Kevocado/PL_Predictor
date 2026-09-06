@@ -19,6 +19,7 @@ from ..config import FRONTEND_DIST_DIR, PUBLIC_MODE, PUBLIC_SNAPSHOT_POLL_SECOND
 from .routes import (
     background_tracking_tick,
     maybe_auto_retrain,
+    refresh_lineups_near_kickoff,
     refresh_public_snapshot_from_remote,
     router,
     warm_caches,
@@ -45,6 +46,16 @@ async def _tracking_loop():
     while True:
         await asyncio.sleep(_TRACKING_INTERVAL_SECONDS)
         await asyncio.to_thread(background_tracking_tick)
+
+
+async def _lineup_refresh_loop():
+    # Same cadence as tracking -- frequent enough to catch a lineup-release
+    # checkpoint (90/30 minutes before kickoff, see routes.py's own
+    # docstring) within one interval of it becoming due, without adding a
+    # second polling schedule to reason about.
+    while True:
+        await asyncio.sleep(_TRACKING_INTERVAL_SECONDS)
+        await asyncio.to_thread(refresh_lineups_near_kickoff)
 
 
 async def _initial_sync():
@@ -90,9 +101,11 @@ async def lifespan(_app: FastAPI):
     asyncio.create_task(_initial_sync())
     retrain_task = asyncio.create_task(_auto_retrain_loop())
     tracking_task = asyncio.create_task(_tracking_loop())
+    lineup_task = asyncio.create_task(_lineup_refresh_loop())
     yield
     retrain_task.cancel()
     tracking_task.cancel()
+    lineup_task.cancel()
 
 
 app = FastAPI(title="PL Predictor API", lifespan=lifespan)

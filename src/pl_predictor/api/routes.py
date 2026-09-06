@@ -1194,6 +1194,67 @@ def _get_cached_fixture_players(event_id: str, home: str, away: str) -> FixtureP
     )
 
 
+# Confirmed lineups are typically posted ~60 minutes before kickoff --
+# checking at both 90 and 30 minutes out means whichever side of that a
+# given match's news drops on, the next check after it happens catches it.
+_LINEUP_CHECK_OFFSETS_MINUTES = (90, 30)
+_lineup_checks_done: set[tuple[str, int]] = set()
+
+
+def _lineup_refresh_checkpoint(
+    minutes_to_kickoff: float, event_id: str, offsets: tuple[int, ...], already_checked: set[tuple[str, int]]
+) -> int | None:
+    """Returns the offset (minutes-before-kickoff) that should trigger a
+    lineup-aware refresh right now, or None if none applies. Fires on
+    *crossing* a threshold (minutes_to_kickoff <= offset), not on landing
+    exactly on it -- robust to this loop's own polling cadence/jitter,
+    unlike a narrow exact-window match would be. Each (event_id, offset)
+    pair fires at most once: this function both decides AND records the
+    firing in `already_checked` (mutated in place), so a caller can't
+    double-fire by forgetting to update it separately."""
+    for offset in sorted(offsets, reverse=True):
+        key = (event_id, offset)
+        if key in already_checked:
+            continue
+        if minutes_to_kickoff <= offset:
+            already_checked.add(key)
+            return offset
+    return None
+
+
+def refresh_lineups_near_kickoff() -> None:
+    """Proactively rebuilds the player-predictions cache for any fixture
+    crossing a lineup-release checkpoint, so a fixture modal opened right
+    after lineups drop shows the confirmed-XI-boosted predictions
+    immediately -- rather than waiting for fixture_players's own 5-minute
+    TTL to lapse AND a fresh request to happen to arrive after it does
+    (confirmed: with nobody re-opening a given fixture, a stale cache
+    entry could otherwise sit unchanged all the way to kickoff). Call
+    periodically from a background loop (see main.py)."""
+    view = current_gameweek_fixtures()
+    now = pd.Timestamp.now(tz="UTC")
+    for fixture in view.get("fixtures", []):
+        event_id = fixture.get("event_id")
+        commence = fixture.get("commence_time")
+        if fixture.get("finished") or not event_id or not commence:
+            continue
+        minutes_to_kickoff = (pd.to_datetime(commence, utc=True) - now).total_seconds() / 60
+        if minutes_to_kickoff < 0:
+            continue
+        checkpoint = _lineup_refresh_checkpoint(minutes_to_kickoff, event_id, _LINEUP_CHECK_OFFSETS_MINUTES, _lineup_checks_done)
+        if checkpoint is None:
+            continue
+        try:
+            _cached(
+                f"fixture_players:{event_id}",
+                lambda eid=event_id, h=fixture["team_home"], a=fixture["team_away"]: _rank_fixture_players(eid, h, a),
+                ttl=_LIVE_CACHE_TTL_SECONDS,
+                force=True,
+            )
+        except Exception as exc:  # noqa: BLE001 - one fixture's refresh must not block the rest
+            print(f"[lineup_refresh] {event_id} ({checkpoint}min checkpoint) skipped: {exc}")
+
+
 def prewarm_current_gameweek_player_details() -> None:
     """Build current completed-fixture player payloads outside modal requests."""
     current_gameweek = tracking_store.get_track_record().get("current_gameweek")
