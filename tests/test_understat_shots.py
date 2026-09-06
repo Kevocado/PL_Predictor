@@ -159,3 +159,45 @@ def test_crosswalk_excludes_unmatchable_player_without_crashing():
     bootstrap = _bootstrap([_element(8, "Someone", "Else", "Else")])
     result = understat_shots.build_understat_fpl_crosswalk(rows, bootstrap)
     assert result == {}
+
+
+def _shot_row(player, player_id, h_a, result, situation="OpenPlay", x_g="0.1"):
+    return {
+        "player": player, "player_id": player_id, "h_a": h_a, "result": result,
+        "situation": situation, "x_g": x_g,
+    }
+
+
+def test_player_shot_extraction_counts_shots_and_shots_on_target(monkeypatch, tmp_path):
+    monkeypatch.setattr(understat_shots, "UNDERSTAT_SHOTS_CACHE_DIR", tmp_path)
+    fixtures = pd.DataFrame([{"understat_id": "111", "date": "2025-08-16", "team_home": "Arsenal", "team_away": "Chelsea"}])
+    monkeypatch.setattr(understat_shots, "_fetch_season_fixtures_with_id", lambda *a, **k: fixtures)
+
+    shots = pd.DataFrame([
+        _shot_row("Bukayo Saka", 501, "h", "Goal"),
+        _shot_row("Bukayo Saka", 501, "h", "MissedShots"),
+        _shot_row("Bukayo Saka", 501, "h", "SavedShot"),
+        _shot_row("Bukayo Saka", 501, "h", "BlockedShot"),
+    ])
+    scraper = object()
+    monkeypatch.setattr(understat_shots, "fetch_match_shots", lambda _scraper, _id, force_refresh=False: shots)
+    monkeypatch.setattr(understat_shots.pb.scrapers, "Understat", lambda *a, **k: scraper)
+
+    df = understat_shots.load_player_shot_history(seasons=["2025-26"])
+    row = df[df["player_id"] == 501].iloc[0]
+    assert row["shots"] == 4
+    assert row["shots_on_target"] == 2  # Goal + SavedShot only
+    assert row["date"] == pd.Timestamp("2025-08-16")
+
+
+def test_current_season_player_shot_rows_deduplicates_by_player_id(monkeypatch, tmp_path):
+    monkeypatch.setattr(understat_shots, "UNDERSTAT_SHOTS_CACHE_DIR", tmp_path)
+    history = pd.DataFrame([
+        {"player": "Bukayo Saka", "player_id": 501, "date": pd.Timestamp("2025-08-16"), "shots": 4, "shots_on_target": 2, "goals": 1, "x_g": 0.4},
+        {"player": "Bukayo Saka", "player_id": 501, "date": pd.Timestamp("2025-08-23"), "shots": 2, "shots_on_target": 1, "goals": 0, "x_g": 0.2},
+    ])
+    monkeypatch.setattr(understat_shots, "load_player_shot_history", lambda seasons=None, force_refresh=False: history)
+
+    rows = understat_shots.load_current_season_player_shot_rows(season="2025-26")
+    assert len(rows) == 1
+    assert rows.iloc[0]["player_id"] == 501

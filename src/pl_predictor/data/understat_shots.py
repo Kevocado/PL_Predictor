@@ -381,6 +381,103 @@ def load_match_dominance_data(
     return df.sort_values("date").reset_index(drop=True)
 
 
+_PLAYER_SHOT_COLS = ["player", "player_id", "date", "shots", "shots_on_target", "goals", "x_g"]
+
+
+def _aggregate_player_shots(shots: pd.DataFrame, match_date) -> list[dict]:
+    """One row per player who took at least one shot in this match."""
+    shots = shots.copy()
+    shots["x_g"] = shots["x_g"].astype(float)
+    shots["is_on_target"] = shots["result"].isin({"Goal", "SavedShot"})
+    shots["is_goal"] = shots["result"] == "Goal"
+
+    rows = []
+    for (player, player_id), group in shots.groupby(["player", "player_id"]):
+        rows.append({
+            "player": player,
+            "player_id": int(player_id),
+            "date": match_date,
+            "shots": int(len(group)),
+            "shots_on_target": int(group["is_on_target"].sum()),
+            "goals": int(group["is_goal"].sum()),
+            "x_g": float(group["x_g"].sum()),
+        })
+    return rows
+
+
+def _load_season_player_shots(season: str, force_refresh: bool, request_delay: float) -> pd.DataFrame:
+    """One row per (player, match) for a single season -- same one-
+    aggregate-file-per-season cache layer as `_load_season_shot_situation`/
+    `_load_season_match_dominance`, reusing the same per-match raw shot
+    files (`{understat_id}.csv`) those already populate."""
+    agg_cache_path = UNDERSTAT_SHOTS_CACHE_DIR / f"_player_shots_{season}.csv"
+    if agg_cache_path.exists() and not force_refresh:
+        return pd.read_csv(agg_cache_path, parse_dates=["date"])
+
+    fixtures = _fetch_season_fixtures_with_id(season, force_refresh=force_refresh)
+    scraper = pb.scrapers.Understat(COMPETITION, season)
+    rows = []
+    for _, fx in fixtures.iterrows():
+        understat_id = str(fx["understat_id"])
+        cache_path = UNDERSTAT_SHOTS_CACHE_DIR / f"{understat_id}.csv"
+        was_cached = cache_path.exists()
+        try:
+            shots = fetch_match_shots(scraper, understat_id, force_refresh=force_refresh)
+        except RuntimeError as exc:
+            print(f"  ! Skipping player shots for match {understat_id}: {exc}")
+            continue
+        if not was_cached and request_delay:
+            time.sleep(request_delay)
+        if shots.empty:
+            continue
+        rows.extend(_aggregate_player_shots(shots, fx["date"]))
+
+    df = pd.DataFrame(rows, columns=_PLAYER_SHOT_COLS)
+    df.to_csv(agg_cache_path, index=False)
+    return df
+
+
+def load_player_shot_history(
+    seasons: list[str] | None = None, force_refresh: bool = False, request_delay: float = 0.3
+) -> pd.DataFrame:
+    """One row per (player, match) across the given seasons (default: same
+    completed-seasons window every other historical loader in this project
+    uses). `player_id` is Understat's own id -- callers join onto FPL
+    `element_id` via `build_understat_fpl_crosswalk` themselves; this
+    function has no FPL dependency, matching `load_shot_situation_data`'s
+    own separation of concerns."""
+    from . import understat as understat_mod
+
+    seasons = seasons or understat_mod.default_completed_seasons()
+    frames = []
+    for season in seasons:
+        try:
+            frames.append(_load_season_player_shots(season, force_refresh, request_delay))
+        except RuntimeError as exc:
+            print(f"  ! Skipping player shots {season}: {exc}")
+
+    if not frames:
+        return pd.DataFrame(columns=_PLAYER_SHOT_COLS)
+
+    df = pd.concat(frames, ignore_index=True)
+    df["date"] = pd.to_datetime(df["date"])
+    return df.sort_values("date").reset_index(drop=True)
+
+
+def load_current_season_player_shot_rows(season: str | None = None) -> pd.DataFrame:
+    """One row per unique player seen in the given (default: current)
+    season's shot data -- exactly what `build_understat_fpl_crosswalk`
+    needs, deduplicated so the crosswalk builder never sees the same
+    player twice."""
+    from . import understat as understat_mod
+
+    season = season or understat_mod.default_completed_seasons(n=1)[-1]
+    history = load_player_shot_history(seasons=[season])
+    if history.empty:
+        return pd.DataFrame(columns=["player", "player_id"])
+    return history.drop_duplicates(subset=["player_id"])[["player", "player_id"]].reset_index(drop=True)
+
+
 def load_shot_situation_data(
     seasons: list[str] | None = None, force_refresh: bool = False, request_delay: float = 0.3
 ) -> pd.DataFrame:
