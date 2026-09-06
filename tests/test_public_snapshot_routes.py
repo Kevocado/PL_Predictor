@@ -161,3 +161,43 @@ def test_private_mode_unaffected(monkeypatch):
             raise
         except Exception:
             pass
+
+
+def test_list_fixtures_degrades_to_empty_in_public_mode(monkeypatch):
+    """/api/fixtures has no snapshot equivalent and nothing in the frontend
+    calls it anymore -- it must never run the live value-bet pipeline
+    Render's free tier OOMs on (confirmed live: this 500'd in production)."""
+    monkeypatch.setattr(routes, "PUBLIC_MODE", True)
+    monkeypatch.setattr(routes, "_value_bet_table", _explode)
+    monkeypatch.setattr(routes, "_run_tracking_bookkeeping", _explode)
+
+    assert routes.list_fixtures() == []
+
+
+def test_value_bet_track_record_skips_bookkeeping_in_public_mode(monkeypatch):
+    """Background tracking is skipped entirely in PUBLIC_MODE, so this write
+    path has nothing to reconcile there -- only the read from the ledger
+    should happen (confirmed live: this 500'd in production because
+    _value_bet_table() ran the full live pipeline regardless of PUBLIC_MODE)."""
+    monkeypatch.setattr(routes, "PUBLIC_MODE", True)
+    monkeypatch.setattr(routes, "_value_bet_table", _explode)
+    monkeypatch.setattr(routes, "_run_tracking_bookkeeping", _explode)
+    monkeypatch.setattr(routes.value_bet_ledger, "get_value_bet_track_record", lambda staking: {"fake": staking})
+
+    assert routes.get_value_bet_track_record(staking="kelly") == {"fake": "kelly"}
+
+
+def test_walk_forward_validation_disabled_in_public_mode(monkeypatch):
+    """Retrains ml_scoreline per walk-forward fold -- as memory-heavy as
+    /backtest, which is already admin-only for the same reason. Must degrade
+    with an honest 503 instead of attempting the retrain and OOMing (confirmed
+    live: this 500'd in production)."""
+    import pytest
+    from fastapi import HTTPException
+
+    monkeypatch.setattr(routes, "PUBLIC_MODE", True)
+    monkeypatch.setattr(routes.betting_validation, "run_walk_forward_value_bet_validation", _explode)
+
+    with pytest.raises(HTTPException) as exc_info:
+        routes.get_walk_forward_value_bet_validation()
+    assert exc_info.value.status_code == 503

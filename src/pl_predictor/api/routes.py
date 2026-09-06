@@ -590,6 +590,14 @@ def _run_tracking_bookkeeping(table: pd.DataFrame) -> None:
 
 @router.get("/fixtures", response_model=list[FixtureSummary])
 def list_fixtures():
+    if PUBLIC_MODE:
+        # No snapshot equivalent for this flat list exists (public_snapshot.py
+        # only precomputes fixtures_by_gameweek -- see its own scoping
+        # comment) and nothing in the frontend calls this endpoint anymore
+        # (superseded by /fixtures/gameweek, see _run_tracking_bookkeeping's
+        # docstring). Degrade to empty rather than run the full live
+        # value-bet pipeline Render's free tier OOMs on.
+        return []
     table = _value_bet_table()
     _run_tracking_bookkeeping(table)
     return [_row_to_summary(row) for _, row in table.iterrows()]
@@ -1542,6 +1550,17 @@ def run_backtest(edge_threshold: float = 0.05, staking: str = "kelly"):
 @router.get("/value-bets/walk-forward")
 def get_walk_forward_value_bet_validation():
     """Periodic multi-season validation for the live single-bet rule."""
+    if PUBLIC_MODE:
+        # Retrains ml_scoreline per walk-forward fold (see
+        # evaluate/betting_validation.py::run_walk_forward_value_bet_validation)
+        # -- as memory-heavy as /backtest, which is already admin-only for
+        # the same reason. Unlike /backtest this is a real user-facing
+        # button (WalkForwardBettingPanel), so degrade with an honest
+        # "disabled here" message instead of a 404 or an OOM crash.
+        raise HTTPException(
+            status_code=503,
+            detail="Walk-forward validation is disabled on this public deployment (too memory-intensive for this host).",
+        )
     return _cached(
         "value_bet_walk_forward",
         betting_validation.run_walk_forward_value_bet_validation,
@@ -1558,7 +1577,12 @@ def get_value_bet_track_record(staking: str = "kelly"):
     match finishes. Answers "have the value-bet recommendations actually
     shown to the user been worth following," not "is this a good strategy
     in principle." """
-    _run_tracking_bookkeeping(_value_bet_table())
+    if not PUBLIC_MODE:
+        # Background tracking is skipped entirely in PUBLIC_MODE (see
+        # fixture_player_review's PUBLIC_MODE branch above), so this write
+        # path has nothing to reconcile there -- and _value_bet_table()
+        # alone is the full live pipeline Render's free tier OOMs on.
+        _run_tracking_bookkeeping(_value_bet_table())
     return value_bet_ledger.get_value_bet_track_record(staking=staking)
 
 
