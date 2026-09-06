@@ -93,3 +93,19 @@ def test_fit_reliability_coefficients_against_real_history():
         # broke, not just a marginal-value finding.
         assert coeffs[key]["coef_rate"] > 0
         assert coeffs[key]["coef_extra"] > 0
+
+
+def test_player_prediction_schema_carries_shots_fields():
+    from pl_predictor.api.schemas import PlayerPrediction
+
+    assert "expected_shots" in PlayerPrediction.model_fields
+    assert "expected_shots_on_target" in PlayerPrediction.model_fields
+    assert "anytime_shot_on_target_prob" in PlayerPrediction.model_fields
+    # All three optional -- a crosswalk-miss player must validate with None.
+    PlayerPrediction(
+        player_id=1, name="Test", position="FWD", anytime_goal_prob=0.1,
+        anytime_assist_prob=0.05, anytime_goal_contribution_prob=0.14,
+        status="a", news="", confidence="current", predicted_starter=True,
+        confirmed_starter=False, expected_minutes=90.0, is_penalty_taker=False,
+        is_set_piece_taker=False,
+    )

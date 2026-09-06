@@ -91,6 +91,12 @@ class PlayerPrediction(BaseModel):
     expected_minutes: float
     is_penalty_taker: bool
     is_set_piece_taker: bool
+    # None when the Understat crosswalk has no match for this player (or no
+    # shots data exists yet) -- never a fabricated number. See
+    # docs/superpowers/specs/2026-09-04-player-shots-market-design.md.
+    expected_shots: float | None = None
+    expected_shots_on_target: float | None = None
+    anytime_shot_on_target_prob: float | None = None
 
 
 class FixtureTeamContext(BaseModel):
