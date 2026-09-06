@@ -3,7 +3,7 @@ import math
 import pandas as pd
 import pytest
 
-from pl_predictor.data import understat_shots
+from pl_predictor.data import understat, understat_shots
 
 
 def _shots():
@@ -201,3 +201,18 @@ def test_current_season_player_shot_rows_deduplicates_by_player_id(monkeypatch, 
     rows = understat_shots.load_current_season_player_shot_rows(season="2025-26")
     assert len(rows) == 1
     assert rows.iloc[0]["player_id"] == 501
+
+
+def test_current_season_player_shot_rows_defaults_to_in_progress_season_not_last_completed(monkeypatch):
+    """Regression guard: this defaulted to
+    understat.default_completed_seasons(n=1)[-1] -- last season, the most
+    recently *finished* one -- instead of the current, in-progress season.
+    Confirmed live: this silently built the crosswalk (and every live
+    fixture's player shots data) from last season's players."""
+    captured = {}
+    monkeypatch.setattr(
+        understat_shots, "load_player_shot_history",
+        lambda seasons=None, force_refresh=False: captured.setdefault("seasons", seasons) and pd.DataFrame(),
+    )
+    understat_shots.load_current_season_player_shot_rows()
+    assert captured["seasons"] == [str(understat.CURRENT_SEASON_START_YEAR)]

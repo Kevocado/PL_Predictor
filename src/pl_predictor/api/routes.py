@@ -18,7 +18,7 @@ import requests
 
 from ..config import PUBLIC_MODE, PUBLIC_SNAPSHOT_PATH, PUBLIC_SNAPSHOT_REFRESH_URL
 from ..data import fixtures as fixtures_mod
-from ..data import espn, fpl_api, fpl_history, understat_shots
+from ..data import espn, fpl_api, fpl_history, understat, understat_shots
 from ..data.team_names import to_canonical
 from ..data import football_data
 from ..data import football_data_org
@@ -292,6 +292,35 @@ def _get_understat_fpl_crosswalk() -> dict:
         return understat_shots.build_understat_fpl_crosswalk(shot_players, _get_bootstrap())
 
     return _cached("understat_fpl_crosswalk", build, ttl=24 * 3600)
+
+
+def _get_player_shots_by_element() -> dict[int, pd.DataFrame]:
+    """FPL element id -> that player's own {date, shots, shots_on_target}
+    rows, for `player_goals.rank_team_players`'s live-serving merge (see
+    its own docstring) -- `fetch_player_summary`'s per-player live history
+    has no shots columns at all, so without this every player's shots
+    fields silently stay 0.0 rather than a real computed value."""
+    def build():
+        # The *current, in-progress* season, not the last *completed* one --
+        # default_completed_seasons(n=1)[-1] would return the wrong season
+        # (confirmed live: this returned last season's shots instead of the
+        # live one being predicted, so player_shots_by_element ended up
+        # empty for every current fixture despite real current-season shot
+        # data existing).
+        shots = understat_shots.load_player_shot_history(seasons=[str(understat.CURRENT_SEASON_START_YEAR)])
+        if shots.empty:
+            return {}
+        crosswalk = _get_understat_fpl_crosswalk()
+        shots = shots.copy()
+        shots["element"] = shots["player_id"].map(crosswalk)
+        shots = shots.dropna(subset=["element"])
+        shots["element"] = shots["element"].astype(int)
+        return {
+            element: group[["date", "shots", "shots_on_target"]]
+            for element, group in shots.groupby("element")
+        }
+
+    return _cached("player_shots_by_element", build, ttl=_LIVE_CACHE_TTL_SECONDS)
 
 
 def _get_player_reliability_coeffs() -> dict:
@@ -1137,6 +1166,7 @@ def _rank_fixture_players(
     lineup_model = _get_lineup_model()
     position_rate_models = _get_position_rate_models()
     contribution_model = _get_ready_goal_contribution_model()
+    player_shots_by_element = _get_player_shots_by_element()
 
     def rank(team: str, team_goal_expectation: float, is_home: bool) -> list[PlayerPrediction]:
         ranked = player_goals.rank_team_players(
@@ -1145,6 +1175,7 @@ def _rank_fixture_players(
             position_rate_models=position_rate_models, contribution_model=contribution_model,
             is_home=is_home, confirmed_starters=confirmed_lineups.get(team),
             confirmed_starter_ids=confirmed_starter_ids,
+            player_shots_by_element=player_shots_by_element,
         )
         return [PlayerPrediction(**{k: p[k] for k in PlayerPrediction.model_fields}) for p in ranked]
 

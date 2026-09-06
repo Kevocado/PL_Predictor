@@ -8,6 +8,8 @@ elsewhere, this only checks predict_player's math given known inputs)."""
 
 import math
 
+import pandas as pd
+
 from pl_predictor.models import player_goals
 
 
@@ -93,6 +95,64 @@ def test_fit_reliability_coefficients_against_real_history():
         # broke, not just a marginal-value finding.
         assert coeffs[key]["coef_rate"] > 0
         assert coeffs[key]["coef_extra"] > 0
+
+
+def _bootstrap_with_one_striker():
+    return {
+        "teams": [{"id": 1, "name": "Arsenal"}],
+        "elements": [{
+            "id": 10, "team": 1, "element_type": 4, "web_name": "Striker",
+            "status": "a", "first_name": "Test", "second_name": "Striker",
+        }],
+    }
+
+
+def test_rank_team_players_merges_live_shots_into_rates(monkeypatch):
+    """rank_team_players's own per-request fetch_player_summary() call
+    (live current-season history) has no shots/shots_on_target columns at
+    all -- FPL's API doesn't provide them. player_shots_by_element is the
+    live-serving counterpart to _load_history_with_shots's training-frame
+    merge: same crosswalk-and-date join, scoped to one player's live
+    history instead of the bulk historical frame. Without this wired in,
+    predict_player's rates.get("shots_per90", 0.0) silently returns 0.0 for
+    every player, indistinguishable from "genuinely no shots" (confirmed
+    live: this was happening for every player in every fixture)."""
+    history = pd.DataFrame([
+        {"GW": 1, "minutes": 90, "goals_scored": 1, "assists": 0, "kickoff_time": "2025-08-16T14:00:00Z"},
+        {"GW": 2, "minutes": 90, "goals_scored": 0, "assists": 1, "kickoff_time": "2025-08-23T14:00:00Z"},
+        {"GW": 3, "minutes": 90, "goals_scored": 0, "assists": 0, "kickoff_time": "2025-08-30T14:00:00Z"},
+    ])
+    monkeypatch.setattr(player_goals.fpl_api, "fetch_player_summary", lambda *a, **k: (history, None))
+    monkeypatch.setattr(player_goals, "predict_lineup", lambda *a, **k: {"predicted_starter": True, "expected_minutes": 90.0})
+
+    shots_df = pd.DataFrame([
+        {"date": pd.Timestamp("2025-08-16"), "shots": 4, "shots_on_target": 2},
+        {"date": pd.Timestamp("2025-08-23"), "shots": 2, "shots_on_target": 1},
+    ])
+
+    results = player_goals.rank_team_players(
+        "Arsenal", team_goal_expectation=1.8, bootstrap=_bootstrap_with_one_striker(), current_event=4,
+        position_priors={}, is_home=True, player_shots_by_element={10: shots_df},
+    )
+    assert results[0]["expected_shots"] > 0
+    assert results[0]["expected_shots_on_target"] > 0
+
+
+def test_rank_team_players_without_shots_data_still_works(monkeypatch):
+    """No player_shots_by_element entry (crosswalk miss, or the dict simply
+    isn't passed) must degrade to today's existing behavior, not crash."""
+    history = pd.DataFrame([
+        {"GW": 1, "minutes": 90, "goals_scored": 1, "assists": 0, "kickoff_time": "2025-08-16T14:00:00Z"},
+    ])
+    monkeypatch.setattr(player_goals.fpl_api, "fetch_player_summary", lambda *a, **k: (history, None))
+    monkeypatch.setattr(player_goals, "predict_lineup", lambda *a, **k: {"predicted_starter": True, "expected_minutes": 90.0})
+
+    results = player_goals.rank_team_players(
+        "Arsenal", team_goal_expectation=1.8, bootstrap=_bootstrap_with_one_striker(), current_event=2,
+        position_priors={}, is_home=True,
+    )
+    assert results[0]["expected_shots"] == 0.0
+    assert results[0]["expected_shots_on_target"] == 0.0
 
 
 def test_player_prediction_schema_carries_shots_fields():

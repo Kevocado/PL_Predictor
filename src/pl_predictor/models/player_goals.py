@@ -321,6 +321,26 @@ def predict_player(
     }
 
 
+def _merge_shots_into_history(history: pd.DataFrame, shots: pd.DataFrame) -> pd.DataFrame:
+    """One player's live current-season history (from `fetch_player_summary`,
+    no shots columns) plus that same player's own Understat `{date, shots,
+    shots_on_target}` rows -- joined on match date, same idea as
+    `_load_history_with_shots`'s bulk training-frame merge, just scoped to
+    a single player's live per-request history. Left join: an unmatched
+    date (their Understat data hasn't been merged in yet, or this specific
+    match has none) leaves NaN, never a fabricated number -- the same
+    convention `player_form.py`'s existing per-RATE_STATS-column presence
+    checks already rely on."""
+    if history.empty or shots.empty or "kickoff_time" not in history.columns:
+        return history
+    history = history.copy()
+    history["_match_date"] = pd.to_datetime(history["kickoff_time"]).dt.date
+    shots = shots.copy()
+    shots["date"] = pd.to_datetime(shots["date"]).dt.date
+    merged = history.merge(shots, left_on="_match_date", right_on="date", how="left").drop(columns=["_match_date", "date"], errors="ignore")
+    return merged
+
+
 def rank_team_players(
     team: str,
     team_goal_expectation: float,
@@ -335,11 +355,22 @@ def rank_team_players(
     is_home: bool = False,
     confirmed_starters: list[str] | None = None,
     confirmed_starter_ids: set[int] | None = None,
+    player_shots_by_element: dict[int, pd.DataFrame] | None = None,
 ) -> list[dict]:
     """Ranked (by anytime-goal probability) list of a team's players for one
     fixture, given that fixture's team expected goals from the scoreline
     model. `reliability_coeffs` (from `fit_reliability_coefficients`) is
-    optional — pass it for the reliability-adjusted goals/assists estimate."""
+    optional — pass it for the reliability-adjusted goals/assists estimate.
+
+    `player_shots_by_element` (FPL element id -> that player's own
+    Understat-sourced {date, shots, shots_on_target} rows) is the live-
+    serving counterpart to `_load_history_with_shots`'s training-frame
+    merge: `fetch_player_summary`'s live per-player history has no shots
+    columns at all (FPL's API doesn't provide them), so without this,
+    `blended_current_form` never sees a `shots`/`shots_on_target` column to
+    compute a rate from -- `predict_player`'s `rates.get("shots_per90",
+    0.0)` then silently returns 0.0, indistinguishable from "genuinely no
+    shots" (confirmed live: every player in every fixture)."""
     teams_by_id = {t["id"]: t["name"] for t in bootstrap["teams"]}
     team_id = next(
         (tid for tid, name in teams_by_id.items() if to_canonical(name, source="fpl") == team),
@@ -370,6 +401,8 @@ def rank_team_players(
     for el in elements:
         position = POSITION_MAP.get(el["element_type"], "Unknown")
         history, prior_season = fpl_api.fetch_player_summary(el["id"], current_event)
+        if player_shots_by_element and el["id"] in player_shots_by_element:
+            history = _merge_shots_into_history(history, player_shots_by_element[el["id"]])
         rates, confidence = player_form.blended_current_form(history, prior_season, position, position_priors)
         start_features = player_form.current_start_features(history, fallback_minutes=rates["avg_minutes"])
         lineup = (

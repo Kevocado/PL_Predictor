@@ -468,10 +468,17 @@ def load_current_season_player_shot_rows(season: str | None = None) -> pd.DataFr
     """One row per unique player seen in the given (default: current)
     season's shot data -- exactly what `build_understat_fpl_crosswalk`
     needs, deduplicated so the crosswalk builder never sees the same
-    player twice."""
+    player twice.
+
+    Defaults to the current, in-progress season (`CURRENT_SEASON_START_YEAR`)
+    -- NOT `default_completed_seasons(n=1)[-1]`, which is last season, the
+    most recently *finished* one. Confirmed live: that off-by-one silently
+    built the crosswalk (and, via routes.py's live-shots lookup, every
+    player's shots data) from last season's players instead of this
+    season's."""
     from . import understat as understat_mod
 
-    season = season or understat_mod.default_completed_seasons(n=1)[-1]
+    season = season or str(understat_mod.CURRENT_SEASON_START_YEAR)
     history = load_player_shot_history(seasons=[season])
     if history.empty:
         return pd.DataFrame(columns=["player", "player_id"])
