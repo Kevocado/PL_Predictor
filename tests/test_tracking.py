@@ -439,3 +439,60 @@ def test_backfill_missing_gameweeks_noop_without_matchday_column(clean_db):
     store.reconcile_predictions(co_uk_matches)
 
     assert store.backfill_missing_gameweeks(co_uk_matches) == 0
+
+
+def test_post_match_credits_a_draw_call_via_top_scoreline_even_without_exact_score(clean_db):
+    """Draws are structurally suppressed in the marginal 1X2 probabilities
+    (summed over many more non-draw scorelines in the grid than draw ones),
+    so draw almost never wins the argmax even when the single most likely
+    individual scoreline genuinely is a draw. Predicting "1-1" and getting
+    a 2-2 both say "draw" -- that's a real correct call the old argmax-only
+    verdict couldn't see, not the same as guessing wrong."""
+    table = pd.DataFrame(
+        [{
+            "event_id": "e1", "team_home": "Arsenal", "team_away": "Chelsea",
+            "commence_time": pd.Timestamp("2020-01-01T15:00:00Z"), "home_win_prob": 0.40,
+            "draw_prob": 0.30, "away_win_prob": 0.30, "over_2_5_prob": 0.4,
+            "under_2_5_prob": 0.6, "btts_yes_prob": 0.5, "top_scoreline": "1-1",
+        }]
+    )
+    store.record_predictions(table)
+    matches = pd.DataFrame([{
+        "team_home": "Arsenal", "team_away": "Chelsea", "date": pd.Timestamp("2020-01-01"),
+        "goals_home": 2, "goals_away": 2, "ftr": "D",
+    }])
+    store.reconcile_predictions(matches)
+
+    review = store.get_fixture_post_match("e1")
+    match_result = next(row for row in review["verdicts"] if row["label"] == "Match result")
+    assert match_result["hit"] is True
+    assert match_result["actual"] == "draw"
+    assert "1-1" in match_result["prediction"]
+
+
+def test_post_match_does_not_credit_a_draw_call_when_actual_result_is_not_a_draw(clean_db):
+    """The top-scoreline draw credit is specifically for "predicted a draw,
+    got a draw" -- it must not turn a genuinely wrong match-result call
+    into a hit just because the top scoreline happened to be 1-1."""
+    table = pd.DataFrame(
+        [{
+            "event_id": "e1", "team_home": "Arsenal", "team_away": "Chelsea",
+            "commence_time": pd.Timestamp("2020-01-01T15:00:00Z"), "home_win_prob": 0.40,
+            "draw_prob": 0.30, "away_win_prob": 0.30, "over_2_5_prob": 0.4,
+            "under_2_5_prob": 0.6, "btts_yes_prob": 0.5, "top_scoreline": "1-1",
+        }]
+    )
+    store.record_predictions(table)
+    matches = pd.DataFrame([{
+        "team_home": "Arsenal", "team_away": "Chelsea", "date": pd.Timestamp("2020-01-01"),
+        "goals_home": 1, "goals_away": 3, "ftr": "A",
+    }])
+    store.reconcile_predictions(matches)
+
+    review = store.get_fixture_post_match("e1")
+    match_result = next(row for row in review["verdicts"] if row["label"] == "Match result")
+    # Marginal argmax picked home_win (wrong -- actual was away_win), and
+    # the top scoreline (1-1, implying draw) doesn't match the actual
+    # result either -- genuinely a miss, not eligible for the draw credit.
+    assert match_result["hit"] is False
+    assert match_result["prediction"] == "home_win"

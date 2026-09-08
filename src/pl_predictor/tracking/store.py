@@ -1018,6 +1018,18 @@ def reconcile_player_prediction_snapshots(event_id: str, outcomes: dict[int, dic
         return updated
 
 
+def _scoreline_outcome(scoreline: str | None) -> str | None:
+    """"2-1" -> "home_win", "1-1" -> "draw", "0-2" -> "away_win". None for
+    anything unparseable (no fabricated guess)."""
+    if not scoreline or "-" not in scoreline:
+        return None
+    try:
+        home, away = (int(part) for part in scoreline.split("-", 1))
+    except ValueError:
+        return None
+    return "home_win" if home > away else "away_win" if away > home else "draw"
+
+
 def get_fixture_post_match(event_id: str) -> dict | None:
     """Return a compact, presentation-ready review for a completed fixture."""
     core = get_fixture_prediction(event_id)
@@ -1036,9 +1048,30 @@ def get_fixture_post_match(event_id: str) -> dict | None:
     result_probs = {row["outcome_name"]: float(row["predicted_prob"]) for _, row in core_rows[core_rows["market"] == "1x2"].iterrows()}
     goals_probs = {row["outcome_name"]: float(row["predicted_prob"]) for _, row in core_rows[core_rows["market"] == "totals_2_5"].iterrows()}
     btts_prob = float(core_rows[(core_rows["market"] == "btts") & (core_rows["outcome_name"] == "yes")].iloc[0]["predicted_prob"])
+
+    # Draws are structurally suppressed in the marginal 1X2 probabilities --
+    # summed over the whole scoreline grid, there are always far more
+    # non-draw cells than draw ones, so draw's marginal probability rarely
+    # tops the argmax even when the single most likely individual scoreline
+    # genuinely is a draw (e.g. "1-1" at 11% can still beat every other
+    # single cell while marginal draw sits under 30%, below both
+    # marginal home_win and away_win). A predicted "1-1" and an actual 2-2
+    # are both draws -- a real correct call the argmax alone can't see.
+    # Scoped tightly: only ever adds a hit (never removes a genuine one),
+    # and only for an actual draw specifically -- it must not turn a wrong
+    # home/away call into a hit just because the top scoreline was "1-1".
+    marginal_pick = max(result_probs, key=result_probs.get)
+    scoreline_outcome = _scoreline_outcome(core["predicted_scoreline"])
+    if marginal_pick == outcome:
+        match_result_hit, match_result_prediction = True, marginal_pick
+    elif outcome == "draw" and scoreline_outcome == "draw":
+        match_result_hit, match_result_prediction = True, f"draw (top scoreline {core['predicted_scoreline']})"
+    else:
+        match_result_hit, match_result_prediction = False, marginal_pick
+
     verdicts = [
         {"label": "Exact score", "prediction": core["predicted_scoreline"], "actual": f"{home_goals}-{away_goals}", "hit": core["predicted_scoreline"] == f"{home_goals}-{away_goals}"},
-        {"label": "Match result", "prediction": max(result_probs, key=result_probs.get), "actual": outcome, "hit": max(result_probs, key=result_probs.get) == outcome},
+        {"label": "Match result", "prediction": match_result_prediction, "actual": outcome, "hit": match_result_hit},
         {"label": "Goals O/U 2.5", "prediction": "over" if goals_probs.get("over", 0) >= goals_probs.get("under", 0) else "under", "actual": "over" if total_goals > 2.5 else "under", "hit": (goals_probs.get("over", 0) >= goals_probs.get("under", 0)) == (total_goals > 2.5)},
         {"label": "BTTS", "prediction": "yes" if btts_prob >= 0.5 else "no", "actual": "yes" if home_goals and away_goals else "no", "hit": (btts_prob >= 0.5) == bool(home_goals and away_goals)},
     ]
