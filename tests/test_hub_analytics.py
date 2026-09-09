@@ -99,6 +99,38 @@ def test_team_hub_recent_matches_include_xg_when_live_results_supersede_the_tabl
     assert city["recent_matches"][0]["xg_against"] == 0.7
 
 
+def test_team_hub_merges_xg_when_live_results_dates_are_timezone_aware(monkeypatch):
+    """The FPL API feed (`live_results`, as opposed to `season_matches`)
+    carries tz-aware UTC timestamps; a bare `.dt.normalize()` leaves that
+    tz info in place, and pandas refuses to merge a tz-aware column
+    against Understat's tz-naive one at all -- confirmed live: this broke
+    the public snapshot build outright with a ValueError, not just a null
+    field."""
+    matches = pd.DataFrame(
+        [
+            {
+                "season": "2026-2027", "date": pd.Timestamp("2026-08-15 15:00:00"), "team_home": "Man City", "team_away": "Bournemouth",
+                "goals_home": 2, "goals_away": 1, "hs": 12, "as": 8, "hst": 5, "ast": 3,
+                "hc": 6, "ac": 4, "hf": 9, "af": 11, "hy": 2, "ay": 3, "hr": 0, "ar": 0,
+            }
+        ]
+    )
+    live_results = pd.DataFrame(
+        [{"date": pd.Timestamp("2026-08-15 15:00:00", tz="UTC"), "team_home": "Man City", "team_away": "Bournemouth", "goals_home": 2, "goals_away": 1}]
+    )
+    xg = pd.DataFrame(
+        [{"date": pd.Timestamp("2026-08-15"), "team_home": "Man City", "team_away": "Bournemouth", "xg_home": 2.4, "xg_away": 0.7, "goals_home": 2, "goals_away": 1}]
+    )
+    monkeypatch.setattr(hub_analytics.understat, "load_xg_data", lambda **_: xg)
+    monkeypatch.setattr(hub_analytics.understat_shots, "load_shot_situation_data", lambda **_: pd.DataFrame())
+
+    report = hub_analytics.build_team_hub(matches, "2026-2027", live_results=live_results)
+
+    city = next(team for team in report["teams"] if team["team"] == "Man City")
+    assert city["xg_for"] == 2.4
+    assert city["recent_matches"][0]["xg_for"] == 2.4
+
+
 def test_team_hub_sums_assists_and_xa_from_fpl_bootstrap():
     matches = pd.DataFrame(
         [

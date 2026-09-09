@@ -10,6 +10,20 @@ from ..features import streaks
 from ..models import player_ratings
 
 
+def _normalized_date(series: pd.Series) -> pd.Series:
+    """Date-only, always timezone-naive -- the merge key `_understat_team_
+    rows`/`_set_piece_rows` use. `live_results` (the FPL API feed) carries
+    tz-aware UTC timestamps; `season_matches` carries tz-naive ones; both
+    must collapse to the same dtype or pandas' merge refuses the join
+    outright rather than silently misbehaving (confirmed live: this exact
+    ValueError broke the public snapshot build the first time this was
+    deployed)."""
+    parsed = pd.to_datetime(series)
+    if getattr(parsed.dt, "tz", None) is not None:
+        parsed = parsed.dt.tz_convert(None)
+    return parsed.dt.normalize()
+
+
 def _number(value) -> float | None:
     if value is None or pd.isna(value):
         return None
@@ -183,7 +197,7 @@ def build_team_hub(
         # exact-match merge key for the current season, whose kickoff-time
         # rows previously never matched Understat's midnight-only rows --
         # confirmed live: every current-season team showed a null xG.
-        rows["date"] = pd.to_datetime(rows["date"]).dt.normalize()
+        rows["date"] = _normalized_date(rows["date"])
         keys = ["date", "team", "opponent", "venue"]
         rows = rows.merge(_understat_team_rows(season_start), on=keys, how="left")
         rows = rows.merge(_set_piece_rows(season_start), on=keys, how="left")
@@ -199,7 +213,7 @@ def build_team_hub(
         # reasoning as above; matched separately so `current_rows["date"]`
         # keeps its real kickoff time for display.
         keys = ["date", "team", "opponent", "venue"]
-        lookup_keys = current_rows.assign(date=pd.to_datetime(current_rows["date"]).dt.normalize())[keys]
+        lookup_keys = current_rows.assign(date=_normalized_date(current_rows["date"]))[keys]
         xg_lookup = lookup_keys.merge(_understat_team_rows(season_start), on=keys, how="left")
         current_rows["xg_for"] = xg_lookup["xg_for"].values
         current_rows["xg_against"] = xg_lookup["xg_against"].values
