@@ -346,6 +346,14 @@ export function FixtureModal({ eventId, onClose }: Props) {
                     <h3 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">
                       Match result &amp; goals
                       <InfoTooltip text={GLOSSARY.edge} align="right" />
+                      {detail.draw_signal && (
+                        <span
+                          className="rounded-full bg-pl-cyan/10 px-2 py-0.5 text-[10px] font-semibold normal-case tracking-normal text-pl-cyan"
+                          title="The scoreline model's top pick and the win/draw/loss percentages both lean draw. Informational only — not used to score accuracy."
+                        >
+                          Model leans draw
+                        </span>
+                      )}
                     </h3>
                     <div className="flex flex-col gap-1.5">
                       {(["home_win", "draw", "away_win", "over_2_5", "under_2_5"] as const).map((k) => (

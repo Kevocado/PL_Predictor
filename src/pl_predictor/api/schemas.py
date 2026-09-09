@@ -9,7 +9,9 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
+
+from ..outcomes import predicted_result
 
 
 class MarketEdge(BaseModel):
@@ -39,6 +41,18 @@ class FixtureSummary(BaseModel):
     under_2_5: MarketEdge
     btts_yes_prob: float
     top_scoreline: str
+    # Both computed from top_scoreline + the three MarketEdge probs above
+    # (see outcomes.py) rather than set by callers -- predicted_result is
+    # the marginal argmax promoted to "draw" when the scoreline model and
+    # the percentage model agree one is likely; draw_signal is just
+    # predicted_result == "draw", broken out as its own bool so the
+    # frontend can badge a draw call ("model leans draw") without string
+    # comparison. Informational only -- NOT used for accuracy/hit
+    # determination (tracking/store.py uses plain marginal argmax there;
+    # a walk-forward backtest showed this promotion is net-negative for
+    # raw accuracy, see store.py::get_fixture_post_match).
+    predicted_result: str = ""
+    draw_signal: bool = False
     is_fallback_prediction: bool
     data_confidence: str | None = None
     # Derived from the scoreline model's own home/away goal expectations
@@ -59,6 +73,12 @@ class FixtureSummary(BaseModel):
     odds_fetched_at: datetime | None = None
     odds_is_stale: bool = False
     recommended_bet: SingleBetRecommendation | None = None
+
+    @model_validator(mode="after")
+    def _fill_predicted_result(self) -> "FixtureSummary":
+        self.predicted_result = predicted_result(self.top_scoreline, self.home_win.prob, self.draw.prob, self.away_win.prob)
+        self.draw_signal = self.predicted_result == "draw"
+        return self
 
 
 class OverUnderPrediction(BaseModel):
