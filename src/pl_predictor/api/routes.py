@@ -16,7 +16,14 @@ from fastapi import APIRouter, Body, Depends, HTTPException
 
 import requests
 
-from ..config import PUBLIC_MODE, PUBLIC_SNAPSHOT_PATH, PUBLIC_SNAPSHOT_REFRESH_URL
+from ..config import (
+    GITHUB_ACTIONS_REPO,
+    GITHUB_ACTIONS_TOKEN,
+    PUBLIC_MODE,
+    PUBLIC_REFRESH_COOLDOWN_SECONDS,
+    PUBLIC_SNAPSHOT_PATH,
+    PUBLIC_SNAPSHOT_REFRESH_URL,
+)
 from ..data import fixtures as fixtures_mod
 from ..data import espn, fpl_api, fpl_history, understat, understat_shots
 from ..data.team_names import to_canonical
@@ -1696,6 +1703,61 @@ def refresh_odds():
     _get_odds_df(force=True)
     _clear_cache("fixtures_df", "value_bet_table")
     return {"status": "ok"}
+
+
+_last_public_refresh_trigger = 0.0
+_public_refresh_lock = Lock()
+
+
+@router.post("/refresh-odds/public")
+def refresh_odds_public():
+    """Any visitor's "Refresh odds" button -- deliberately NOT behind
+    `_admin_only`. On the public deployment this must never run the real
+    odds-fetch/value-bet pipeline itself (see PUBLIC_SNAPSHOT_PATH's
+    comment: that's the exact compute the free-tier host OOMs on) -- it
+    only asks GitHub Actions to run refresh-public-snapshot.yml sooner
+    than its next scheduled slot. The already-running background poll
+    (refresh_public_snapshot_from_remote, api/main.py's lifespan loop)
+    picks the new snapshot up once that workflow finishes and pushes,
+    same as any of its scheduled runs -- this endpoint only requests an
+    earlier run, it never serves fresher data itself.
+
+    Off the public deployment (local/private use) there's no OOM risk, so
+    this runs the real refresh directly, identical to the admin endpoint
+    above -- just without needing to be logged in as -- admin, since
+    there's no login gate there either."""
+    global _last_public_refresh_trigger
+    with _public_refresh_lock:
+        elapsed = time.time() - _last_public_refresh_trigger
+        if elapsed < PUBLIC_REFRESH_COOLDOWN_SECONDS:
+            wait = int(PUBLIC_REFRESH_COOLDOWN_SECONDS - elapsed)
+            raise HTTPException(status_code=429, detail=f"Already refreshing -- try again in {wait}s")
+        _last_public_refresh_trigger = time.time()
+
+    if not PUBLIC_MODE:
+        _get_odds_df(force=True)
+        _clear_cache("fixtures_df", "value_bet_table")
+        return {"status": "ok"}
+
+    if not GITHUB_ACTIONS_TOKEN:
+        raise HTTPException(
+            status_code=503,
+            detail="Odds refresh isn't configured on this deployment yet -- GITHUB_ACTIONS_TOKEN is unset.",
+        )
+    try:
+        resp = requests.post(
+            f"https://api.github.com/repos/{GITHUB_ACTIONS_REPO}/actions/workflows/refresh-public-snapshot.yml/dispatches",
+            headers={
+                "Authorization": f"Bearer {GITHUB_ACTIONS_TOKEN}",
+                "Accept": "application/vnd.github+json",
+            },
+            json={"ref": "main"},
+            timeout=15,
+        )
+        resp.raise_for_status()
+    except requests.RequestException as exc:
+        raise HTTPException(status_code=502, detail=f"Couldn't reach GitHub Actions: {exc}") from exc
+    return {"status": "requested", "note": "Refreshing odds and value bets -- this can take a few minutes to appear."}
 
 
 @router.post("/refresh-fixtures", dependencies=[Depends(_admin_only)])

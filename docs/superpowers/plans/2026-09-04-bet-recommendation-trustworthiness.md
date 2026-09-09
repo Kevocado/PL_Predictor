@@ -463,6 +463,19 @@ git commit -m "feat: give the walk-forward fold model real per-fold confidence c
 
 Per the spec's mandatory gate: confirm the confidence-weighted threshold reduces the flagged-bet error rate without collapsing recommendation frequency to near-zero, before this reaches the live app.
 
+**Outcome (run 2026-09-09, after Tasks 1-4/6 had already shipped without this
+gate ever having been recorded):** baseline (flat 1.0x multiplier, all
+seasons) — `bets=1302, wins=497, win_rate=38.17%, yield=-3.85%`. After
+(current `CONFIDENCE_EDGE_MULTIPLIERS`) — `bets=1197, wins=455,
+win_rate=38.01%, yield=-4.62%`. `win_rate` is flat within noise (both
+yield_ci_95 ranges overlap almost completely: baseline [-11.12, 3.63] vs
+after [-11.82, 3.22]) and `bets` dropped ~8%, not a collapse — meets the
+plan's "ship" bar (flat win_rate, no collapse), even though yield is
+marginally worse and not itself improved. Per Step 3's own instruction,
+this is not a one-time gate: worth re-checking after a few weeks of live
+data via `/api/value-bets/walk-forward`. No multiplier retune applied —
+current table stays as shipped.
+
 - [ ] **Step 1: Capture the baseline (pre-change behavior)**
 
 ```bash

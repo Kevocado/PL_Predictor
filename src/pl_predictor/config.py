@@ -47,6 +47,19 @@ PUBLIC_SNAPSHOT_REFRESH_URL = os.getenv(
 )
 PUBLIC_SNAPSHOT_POLL_SECONDS = int(os.getenv("PUBLIC_SNAPSHOT_POLL_SECONDS", "300"))
 
+# Lets the public "Refresh odds" button (routes.py::refresh_public_odds)
+# kick off refresh-public-snapshot.yml on demand instead of waiting for its
+# next scheduled run, without giving the public container the odds-fetch/
+# value-bet compute itself (that stays GitHub-Actions-only -- see
+# PUBLIC_SNAPSHOT_PATH's comment on why this host's memory budget can't run
+# it). Needs a token with `actions:write` (a fine-grained PAT scoped to
+# just this repo's Actions is enough -- not a full-access classic PAT).
+# Unset in every environment until deliberately provisioned; the endpoint
+# degrades to a clear 503 rather than failing silently.
+GITHUB_ACTIONS_TOKEN = os.getenv("GITHUB_ACTIONS_TOKEN")
+GITHUB_ACTIONS_REPO = os.getenv("GITHUB_ACTIONS_REPO", "Kevocado/PL_Predictor")
+PUBLIC_REFRESH_COOLDOWN_SECONDS = int(os.getenv("PUBLIC_REFRESH_COOLDOWN_SECONDS", "300"))
+
 FOOTBALL_DATA_CACHE_DIR = CACHE_DIR / "football_data"
 ODDS_CACHE_DIR = CACHE_DIR / "odds"
 FPL_HISTORY_CACHE_DIR = CACHE_DIR / "fpl_history"

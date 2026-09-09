@@ -1,3 +1,4 @@
+import { PUBLIC_MODE } from "../lib/publicMode";
 import type {
   BacktestResponse,
   CalibrationResponse,
@@ -114,6 +115,15 @@ export const api = {
   refreshOdds: async () => {
     const result = await post<{ status: string }>("/refresh-odds");
     clearReadCache();
+    return result;
+  },
+  refreshOddsPublic: async () => {
+    // Public deployment: this only requests an earlier GitHub Actions run
+    // (see routes.py::refresh_odds_public) -- it does not itself return
+    // fresher data, so no clearReadCache() here; the background snapshot
+    // poll picks the new data up once the workflow finishes.
+    const result = await post<{ status: string; note?: string }>("/refresh-odds/public");
+    if (!PUBLIC_MODE) clearReadCache();
     return result;
   },
   refreshFixtures: async () => {

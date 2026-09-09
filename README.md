@@ -348,6 +348,27 @@ Leaving `PUBLIC_MODE` unset (the default everywhere else, including
 locally) reproduces every current behavior exactly — every admin
 button/endpoint active, live computation as always.
 
+> **Note:** this section (and the `refresh-public-snapshot.yml` comments)
+> still describe the original Render setup. The live public deployment now
+> runs on Azure Container Apps (`.github/workflows/deploy-azure.yml`,
+> auto-deploys on every push to `main`, `paths-ignore:
+> data/public_snapshot.json` so a snapshot-only commit never triggers a
+> rebuild). The steps above (`PUBLIC_MODE=true`, no live API keys needed,
+> the snapshot-poll mechanism) all still apply — just set via Azure
+> Container App env vars/secrets instead of Render's dashboard.
+
+**Public "Refresh odds" button:** any visitor can trigger an odds/value-bet
+refresh from the Fixtures page — it never runs the live pipeline on the
+public host itself (same OOM concern as above); it asks GitHub Actions to
+run `refresh-public-snapshot.yml` right away instead of waiting for its
+next scheduled slot, then the existing snapshot-poll picks it up once that
+workflow finishes and pushes (typically a few minutes). It's rate-limited
+to one trigger per `PUBLIC_REFRESH_COOLDOWN_SECONDS` (default 300s) across
+all visitors. Requires a `GITHUB_ACTIONS_TOKEN` secret with `actions:write`
+on this repo — a fine-grained PAT scoped to just this repo's Actions is
+enough, no need for a classic all-repos token. Without it, the button
+returns a clear "not configured yet" error instead of failing silently.
+
 ## Notebooks
 
 Numbered `notebooks/01`–`07` walk through data exploration → feature

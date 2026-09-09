@@ -22,6 +22,68 @@
 
 ---
 
+**Shipped-scope reconciliation (audit run 2026-09-08):** what actually reached
+`main` diverges from this plan's task list. Confirmed via `git log` (commits
+`9f65aef`, `b2ea44a`, `8193409`, `a7e06c0`, `0d33e60`) and direct code
+inspection:
+
+- Task 1 (crosswalk), Task 2 (per-player shot extraction), Task 7 (API
+  schema fields) — shipped as specified.
+- Task 3 — only Step 3 shipped (`RATE_STATS` extended with `shots`/
+  `shots_on_target`). The `_load_history_with_shots` training-frame merge
+  function this plan specifies was **never built** — no function of that
+  name (or equivalent) exists anywhere in the codebase; it survives only as
+  a phrase in two docstrings and one test comment. Tasks 3 and 5's
+  interface contract was never wired.
+- Task 4 — `predict_player`'s `context`/`shots_scale` team-volume-scaling
+  parameter exists in code but is dead: `rank_team_players` never passes
+  `context=`, so `shots_scale` is always `1.0` in production. Harmless
+  no-op, not a bug, but not doing what Task 4 describes.
+- Task 5 — `fit_position_rate_models` was never extended with shots
+  targets; it still only fits `("goals", "assists")`. There is no trained
+  rate model for shots. Live predictions for `expected_shots` /
+  `expected_shots_on_target` come entirely from raw per-90 rate scaling
+  (`blended_current_form`, fed by real per-player Understat data via
+  `player_shots_by_element`/`_merge_shots_into_history` — Task 6's actual
+  shipped design), not from any fitted model.
+- Task 6 — shipped, but via a different (simpler) mechanism than specified:
+  live per-player Understat shot history is merged directly into each
+  player's serving-time form via `player_shots_by_element` +
+  `_merge_shots_into_history` (real measured data at serving time), rather
+  than a fitted position-rate model plus a team-level `team_expected_shots`
+  scaling parameter. `rank_team_players` has no `team_expected_shots`
+  parameter at all.
+- Task 8 — the regression-guard test was missing; added in this audit
+  (`test_blended_current_form_handles_player_with_no_shots_data`, passes
+  immediately against existing code, confirming the existing
+  `RATE_STATS`-presence guards already handle this class of bug).
+- Task 9 (evaluation gate) — **never built**. Its `_prepare` function as
+  specified depends on `player_goals._load_history_with_shots`, which does
+  not exist (see Task 3 above), so it cannot be transcribed as written.
+  More importantly, there is no fitted shots model to gate (see Task 5) —
+  the shipped design uses real per-player data directly rather than a
+  model whose accuracy needs a walk-forward check against a naive
+  baseline. **Ruling:** do not build Task 9 as specified. The shipped
+  live-injection design is arguably safer than the planned fitted-model
+  approach (it never extrapolates beyond a player's own measured shot
+  rate), so there's no held-out accuracy claim that needs gating. If a
+  fitted shots rate model is added later, Task 9's gate should be revisited
+  then, against real code at that time.
+- The plan's own Self-Review Notes (bottom of this file) claiming Task 3 →
+  Task 5 → Task 9 share a consistent `_load_history_with_shots` interface
+  is **incorrect** against shipped code — that self-review was written
+  against the plan, not verified against an implementation, since no
+  implementation matching it was ever committed.
+
+Net: the shipped feature (player shots/SoT predictions, live per-player
+Understat data, no live odds) matches this plan's stated *Goal* and
+*Global Constraints* even though the *Architecture* (fitted Ridge model +
+team-level scaling + walk-forward gate) was substantially simplified in
+practice. No further implementation work is planned against this file
+unless the user asks for the fitted-model path specifically.
+
+---
+
 ### Task 1: Understat → FPL crosswalk
 
 **Files:**

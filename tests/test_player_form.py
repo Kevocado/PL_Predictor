@@ -56,3 +56,18 @@ def test_blended_current_form_handles_player_with_no_current_season_history():
     rates, confidence = blended_current_form(empty_history, prior_season=None, position="FWD", position_priors={})
     assert confidence == "none"
     assert rates["avg_minutes"] == 60.0
+
+
+def test_blended_current_form_handles_player_with_no_shots_data():
+    """A player matched by the crosswalk but with a real (non-empty)
+    current-season history that simply has no shots/shots_on_target
+    columns at all (e.g. their Understat data hasn't been merged in yet)
+    must not crash -- same empty-column-guard class of bug the
+    `KeyError: 'minutes'` incident above was."""
+    history = pd.DataFrame([
+        {"GW": 1, "minutes": 90, "goals_scored": 1, "assists": 0},
+        {"GW": 2, "minutes": 90, "goals_scored": 0, "assists": 1},
+    ])
+    rates, confidence = blended_current_form(history, prior_season=None, position="FWD", position_priors={})
+    assert "shots_per90" not in rates  # no source column -- absent, not fabricated
+    assert confidence in ("current", "prior_season", "position_avg", "none")
