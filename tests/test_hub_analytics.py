@@ -37,6 +37,68 @@ def test_team_hub_combines_form_xg_and_style(monkeypatch):
     assert arsenal["xa"] is None
 
 
+def test_team_hub_matches_xg_even_when_match_dates_carry_a_kickoff_time(monkeypatch):
+    """`football_data.fetch_current_season_partial()` (the live/current-season
+    source) carries real kickoff timestamps; Understat's date column is
+    always midnight-only. An exact-match merge on `date` silently drops
+    every row when the two sides disagree on time-of-day, with no error --
+    confirmed live: the Data Hub showed `xG for: —` for every current-season
+    team despite Understat coverage existing."""
+    matches = pd.DataFrame(
+        [
+            {
+                "season": "2026-2027", "date": pd.Timestamp("2026-08-15 15:00:00"), "team_home": "Arsenal", "team_away": "Chelsea",
+                "goals_home": 2, "goals_away": 1, "hs": 12, "as": 8, "hst": 5, "ast": 3,
+                "hc": 6, "ac": 4, "hf": 9, "af": 11, "hy": 2, "ay": 3, "hr": 0, "ar": 0,
+            }
+        ]
+    )
+    xg = pd.DataFrame(
+        [{"date": pd.Timestamp("2026-08-15"), "team_home": "Arsenal", "team_away": "Chelsea", "xg_home": 1.6, "xg_away": 0.9, "goals_home": 2, "goals_away": 1}]
+    )
+    situations = pd.DataFrame(
+        [{"date": pd.Timestamp("2026-08-15"), "team_home": "Arsenal", "team_away": "Chelsea", "home_set_piece_xg_share": 0.25, "away_set_piece_xg_share": 0.1}]
+    )
+    monkeypatch.setattr(hub_analytics.understat, "load_xg_data", lambda **_: xg)
+    monkeypatch.setattr(hub_analytics.understat_shots, "load_shot_situation_data", lambda **_: situations)
+
+    report = hub_analytics.build_team_hub(matches, "2026-2027")
+    arsenal = next(team for team in report["teams"] if team["team"] == "Arsenal")
+
+    assert arsenal["xg_for"] == 1.6
+    assert arsenal["set_piece_xg_share"] == 0.25
+
+
+def test_team_hub_recent_matches_include_xg_when_live_results_supersede_the_table(monkeypatch):
+    """`recent_matches` is built from `current_rows` (live_results, when
+    present) not `rows` (season_matches) -- only `rows` used to get the
+    Understat xG merge, so every recent-match card showed `xG for: —`
+    even once the top-level team xG populated correctly."""
+    matches = pd.DataFrame(
+        [
+            {
+                "season": "2026-2027", "date": pd.Timestamp("2026-08-15 15:00:00"), "team_home": "Man City", "team_away": "Bournemouth",
+                "goals_home": 2, "goals_away": 1, "hs": 12, "as": 8, "hst": 5, "ast": 3,
+                "hc": 6, "ac": 4, "hf": 9, "af": 11, "hy": 2, "ay": 3, "hr": 0, "ar": 0,
+            }
+        ]
+    )
+    live_results = pd.DataFrame(
+        [{"date": pd.Timestamp("2026-08-15 15:00:00"), "team_home": "Man City", "team_away": "Bournemouth", "goals_home": 2, "goals_away": 1}]
+    )
+    xg = pd.DataFrame(
+        [{"date": pd.Timestamp("2026-08-15"), "team_home": "Man City", "team_away": "Bournemouth", "xg_home": 2.4, "xg_away": 0.7, "goals_home": 2, "goals_away": 1}]
+    )
+    monkeypatch.setattr(hub_analytics.understat, "load_xg_data", lambda **_: xg)
+    monkeypatch.setattr(hub_analytics.understat_shots, "load_shot_situation_data", lambda **_: pd.DataFrame())
+
+    report = hub_analytics.build_team_hub(matches, "2026-2027", live_results=live_results)
+
+    city = next(team for team in report["teams"] if team["team"] == "Man City")
+    assert city["recent_matches"][0]["xg_for"] == 2.4
+    assert city["recent_matches"][0]["xg_against"] == 0.7
+
+
 def test_team_hub_sums_assists_and_xa_from_fpl_bootstrap():
     matches = pd.DataFrame(
         [

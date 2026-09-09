@@ -173,6 +173,17 @@ def build_team_hub(
     season_start = int(season[:4])
     rows = _team_match_rows(season_matches) if not season_matches.empty else pd.DataFrame()
     if not rows.empty:
+        # `rows["date"]` carries a full kickoff timestamp for the
+        # in-progress season (football_data.fetch_current_season_partial's
+        # own format) but midnight-only for completed seasons
+        # (load_training_data's CSVs) -- Understat's `date` is always
+        # midnight-only. Normalizing both sides to date-only here, right
+        # before the merge, keeps every other caller of `_team_match_rows`
+        # (which wants the real kickoff time) unaffected while fixing the
+        # exact-match merge key for the current season, whose kickoff-time
+        # rows previously never matched Understat's midnight-only rows --
+        # confirmed live: every current-season team showed a null xG.
+        rows["date"] = pd.to_datetime(rows["date"]).dt.normalize()
         keys = ["date", "team", "opponent", "venue"]
         rows = rows.merge(_understat_team_rows(season_start), on=keys, how="left")
         rows = rows.merge(_set_piece_rows(season_start), on=keys, how="left")
@@ -180,6 +191,18 @@ def build_team_hub(
     if "season" not in current_source:
         current_source["season"] = season
     current_rows = _team_match_rows(current_source) if not current_source.empty else rows.copy()
+    if not current_rows.empty and "xg_for" not in current_rows.columns:
+        # `recent_matches` is built from `current_rows`, not `rows` (it needs
+        # the official live-results dates/scores) -- without this merge its
+        # xg_for/xg_against stayed null even after the fix above, since only
+        # `rows` ever got the Understat merge. Same date-normalization
+        # reasoning as above; matched separately so `current_rows["date"]`
+        # keeps its real kickoff time for display.
+        keys = ["date", "team", "opponent", "venue"]
+        lookup_keys = current_rows.assign(date=pd.to_datetime(current_rows["date"]).dt.normalize())[keys]
+        xg_lookup = lookup_keys.merge(_understat_team_rows(season_start), on=keys, how="left")
+        current_rows["xg_for"] = xg_lookup["xg_for"].values
+        current_rows["xg_against"] = xg_lookup["xg_against"].values
     current_streaks = streaks.latest_streaks(current_source)
     fpl_totals = _team_fpl_totals(bootstrap)
     teams = []

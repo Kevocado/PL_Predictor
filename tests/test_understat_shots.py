@@ -89,6 +89,49 @@ def test_load_season_match_dominance_reuses_cached_raw_shot_files_no_network(mon
     assert (tmp_path / "_aggregate_v2_2019.csv").exists()
 
 
+def test_load_season_shot_situation_rebuilds_stale_aggregate_for_current_season(monkeypatch, tmp_path):
+    """The per-season aggregate cache is otherwise write-once: for a
+    completed season that's correct (it never changes), but for the
+    in-progress season it silently froze the Data Hub's set-piece xG share
+    at whatever partial data existed when the cache file was first written
+    (confirmed live: only gameweek 1's match, all season). The
+    current-season aggregate must always be rebuilt from fixtures + the
+    already-cached per-match files, not read back from a stale aggregate."""
+    monkeypatch.setattr(understat_shots, "UNDERSTAT_SHOTS_CACHE_DIR", tmp_path)
+    current_season = str(understat.CURRENT_SEASON_START_YEAR)
+
+    fixtures = pd.DataFrame(
+        {
+            "understat_id": [111, 222],
+            "date": ["2019-08-09", "2019-08-16"],
+            "team_home": ["Liverpool", "Chelsea"],
+            "team_away": ["Norwich", "Liverpool"],
+        }
+    )
+    fixtures.to_csv(tmp_path / f"_fixtures_{current_season}.csv", index=False)
+    _shots().to_csv(tmp_path / "111.csv", index=False)
+    _shots().to_csv(tmp_path / "222.csv", index=False)
+
+    # A stale aggregate from an earlier, partial fetch -- only 1 of the
+    # 2 now-cached matches -- must not be trusted as-is for this season.
+    stale = pd.DataFrame(
+        [{"date": "2019-08-09", "team_home": "Liverpool", "team_away": "Norwich",
+          "home_set_piece_xg_share": 0.5, "away_set_piece_xg_share": 0.5}]
+    )
+    stale.to_csv(tmp_path / f"_aggregate_{current_season}.csv", index=False)
+
+    monkeypatch.setattr(understat_shots.pb.scrapers, "Understat", lambda *a, **k: object())
+
+    def _fail_if_called(*args, **kwargs):
+        raise AssertionError("should not hit the network when raw shots are already cached")
+
+    monkeypatch.setattr(understat_shots, "_fetch_with_retry", _fail_if_called)
+
+    df = understat_shots._load_season_shot_situation(current_season, force_refresh=False, request_delay=0)
+
+    assert len(df) == 2
+
+
 def _bootstrap(elements):
     return {"elements": elements}
 

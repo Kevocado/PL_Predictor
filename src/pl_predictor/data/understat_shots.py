@@ -214,11 +214,22 @@ def _load_season_shot_situation(season: str, force_refresh: bool, request_delay:
     caller (`FixtureFeatureContext`) started constructing this on every
     request. The per-match files (`{understat_id}.csv`) stay as the
     fetch-level cache; this is a second, coarser cache layer on top."""
+    from . import understat as understat_mod
+
+    # The in-progress season gains new matches every few days, so its
+    # aggregate must never be treated as "cached, therefore done" the way a
+    # completed season's is -- confirmed live: the Data Hub's set-piece
+    # xG share sat frozen at gameweek 1's aggregate all season. Recomputing
+    # still costs almost nothing extra for already-played matches --
+    # `fetch_match_shots` below has its own per-match file cache, so this
+    # only pays a real network cost for matches played since the last call.
+    is_current_season = season == str(understat_mod.CURRENT_SEASON_START_YEAR)
+
     agg_cache_path = UNDERSTAT_SHOTS_CACHE_DIR / f"_aggregate_{season}.csv"
-    if agg_cache_path.exists() and not force_refresh:
+    if agg_cache_path.exists() and not force_refresh and not is_current_season:
         return pd.read_csv(agg_cache_path, parse_dates=["date"])
 
-    fixtures = _fetch_season_fixtures_with_id(season, force_refresh=force_refresh)
+    fixtures = _fetch_season_fixtures_with_id(season, force_refresh=force_refresh and not is_current_season)
     scraper = pb.scrapers.Understat(COMPETITION, season)
     rows = []
     for _, fx in fixtures.iterrows():
@@ -226,7 +237,7 @@ def _load_season_shot_situation(season: str, force_refresh: bool, request_delay:
         cache_path = UNDERSTAT_SHOTS_CACHE_DIR / f"{understat_id}.csv"
         was_cached = cache_path.exists()
         try:
-            shots = fetch_match_shots(scraper, understat_id, force_refresh=force_refresh)
+            shots = fetch_match_shots(scraper, understat_id, force_refresh=force_refresh and not is_current_season)
         except RuntimeError as exc:
             print(f"  ! Skipping shots for match {understat_id}: {exc}")
             continue
@@ -247,6 +258,12 @@ def _load_season_shot_situation(season: str, force_refresh: bool, request_delay:
         )
 
     df = pd.DataFrame(rows, columns=_SHOT_SITUATION_COLS)
+    if is_current_season:
+        # Never persisted as the fast-path cache above -- an in-progress
+        # season must always be recomputed (from per-match files, cheap)
+        # rather than read back stale, same reasoning as skipping the
+        # read-path above.
+        return df
     df.to_csv(agg_cache_path, index=False)
     return df
 
