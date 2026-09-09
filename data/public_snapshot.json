@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-09T15:09:39.921325+00:00",
+  "generated_at": "2026-09-09T17:29:36.604433+00:00",
   "model_fingerprint": "42417e5fff1748a199b2bb64b531f80127d72b2848f1497c2c6e8ac532dfc507",
   "current_gameweek": 4,
   "min_gameweek": 1,
@@ -230138,7 +230138,7 @@
   "fpl": {
     "projections": {
       "gameweek": 4,
-      "generated_at": "2026-09-09T15:09:39.871303+00:00",
+      "generated_at": "2026-09-09T17:29:36.558008+00:00",
       "model_source": "hybrid_match_context_baseline",
       "data_freshness": "live official FPL API + independent pre-match scoreline model",
       "players": [
