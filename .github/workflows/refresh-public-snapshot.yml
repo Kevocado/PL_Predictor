@@ -17,7 +17,7 @@ on:
     # day it could happen, without needing a separate weekday/weekend split
     # or per-slot cron entries that would break the moment fixtures get
     # rearranged. Cron's hour/day fields are UTC, same as everything here.
-    - cron: "7 11-22 * * *"
+    - cron: "0 11 * * 0"  # Weekly refresh every Sunday at 11:00 UTC
   workflow_dispatch: {} # "Run workflow" button on this workflow's Actions page — a manual refresh-now.
 
 permissions:
