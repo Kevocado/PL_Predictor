@@ -601,6 +601,7 @@ def _run_tracking_bookkeeping(table: pd.DataFrame) -> None:
             model_trained_at=trained_at,
             model_manifest_hash=manifest_lib.manifest_fingerprint(),
         )
+        value_bet_ledger.update_closing_lines(table)
 
         # Catch up on any match that finished before this app was ever
         # polling for tracking to snapshot it live (e.g. the handful of
@@ -1627,7 +1628,7 @@ def get_squad_continuity():
 
 
 @router.post("/backtest", dependencies=[Depends(_admin_only)])
-def run_backtest(edge_threshold: float = 0.05, staking: str = "kelly"):
+def run_backtest(edge_threshold: float = 0.05, staking: str = "kelly", drawdown_trials: int = 0):
     models = _get_models()
     df, _ = build_training_frame()
     _, val_df = chronological_split(df)
@@ -1643,13 +1644,23 @@ def run_backtest(edge_threshold: float = 0.05, staking: str = "kelly"):
         selections=selections,
         market_overrides=models.get("scoreline_market_overrides"),
     )
-    return {
+    response = {
         "results": bt.results(),
         "bankroll_curve": bt.account.tracker,
         "staking": staking,
         "season": str(val_df["season"].iloc[0]) if not val_df.empty else None,
         "selections": selections,
     }
+    # Opt-in (0 = skip): the single `bankroll_curve` above is one realized
+    # path through which flagged bets happened to win or lose -- this reruns
+    # staking `drawdown_trials` times with each selection's outcome
+    # redrawn from the model's own probability, to put the realized
+    # drawdown/ROI in context instead of taking one path as "the" result.
+    if drawdown_trials > 0:
+        response["drawdown_distribution"] = backtest_lib.bootstrap_drawdown_distribution(
+            selections, staking=staking, n_trials=drawdown_trials
+        )
+    return response
 
 
 @router.get("/value-bets/walk-forward")

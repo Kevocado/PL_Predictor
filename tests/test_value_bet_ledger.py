@@ -147,6 +147,79 @@ def test_pending_bets_excluded_from_pl(clean_db):
     assert record["results"]["Total Bets"] == 0
 
 
+def test_update_closing_lines_captures_latest_pre_kickoff_price(clean_db):
+    table = _flagged_table(commence_time=pd.Timestamp.now(tz="UTC") + pd.Timedelta(hours=1))
+    value_bet_ledger.record_value_bets(table)
+
+    # First poll after the flag: price has moved from 2.2 to 2.0.
+    moved_table = _flagged_table(
+        commence_time=table.iloc[0]["commence_time"], home_win_price=2.0, home_win_implied=0.55
+    )
+    assert value_bet_ledger.update_closing_lines(moved_table) == 2
+
+    with value_bet_ledger._connect() as conn:
+        row = pd.read_sql(
+            "SELECT closing_price, closing_implied_prob FROM value_bets WHERE outcome_name = 'home_win'", conn
+        ).iloc[0]
+    assert row["closing_price"] == pytest.approx(2.0)
+    assert row["closing_implied_prob"] == pytest.approx(0.55)
+
+    # A second, later poll overwrites the closing snapshot again.
+    later_table = _flagged_table(
+        commence_time=table.iloc[0]["commence_time"], home_win_price=1.9, home_win_implied=0.58
+    )
+    value_bet_ledger.update_closing_lines(later_table)
+    with value_bet_ledger._connect() as conn:
+        row = pd.read_sql(
+            "SELECT closing_price FROM value_bets WHERE outcome_name = 'home_win'", conn
+        ).iloc[0]
+    assert row["closing_price"] == pytest.approx(1.9)
+
+
+def test_update_closing_lines_skips_fixtures_past_kickoff(clean_db):
+    table = _flagged_table(commence_time=pd.Timestamp.now(tz="UTC") - pd.Timedelta(hours=1))
+    value_bet_ledger.record_value_bets(table)
+
+    assert value_bet_ledger.update_closing_lines(table) == 0
+
+
+def test_clv_reported_when_closing_line_was_captured(clean_db):
+    # commence_time is in the past (matching the other reconcile tests) so
+    # reconcile_value_bets picks it up; the closing snapshot itself is set
+    # directly here since update_closing_lines only ever writes for a
+    # fixture whose kickoff is still ahead of it (covered separately by
+    # test_update_closing_lines_captures_latest_pre_kickoff_price).
+    table = _flagged_table(value_bet_flags=["home_win"], home_win_price=2.2)
+    value_bet_ledger.record_value_bets(table)
+    with value_bet_ledger._connect() as conn:
+        conn.execute("UPDATE value_bets SET closing_price = 2.0, closing_implied_prob = 0.55")
+
+    matches_df = pd.DataFrame(
+        [{"team_home": "Arsenal", "team_away": "Chelsea", "date": pd.Timestamp("2020-01-01"), "goals_home": 2, "goals_away": 1, "ftr": "H"}]
+    )
+    value_bet_ledger.reconcile_value_bets(matches_df)
+    record = value_bet_ledger.get_value_bet_track_record()
+
+    # Entry price 2.2 vs closing 2.0: beat the close by 10%.
+    assert record["confirmed_bets"][0]["clv_pct"] == pytest.approx(10.0)
+    assert record["average_clv_pct"] == pytest.approx(10.0)
+    assert record["n_with_closing_line"] == 1
+
+
+def test_clv_is_none_without_a_closing_snapshot(clean_db):
+    table = _flagged_table(value_bet_flags=["home_win"])
+    value_bet_ledger.record_value_bets(table)
+    matches_df = pd.DataFrame(
+        [{"team_home": "Arsenal", "team_away": "Chelsea", "date": pd.Timestamp("2020-01-01"), "goals_home": 2, "goals_away": 1, "ftr": "H"}]
+    )
+    value_bet_ledger.reconcile_value_bets(matches_df)
+    record = value_bet_ledger.get_value_bet_track_record()
+
+    assert record["confirmed_bets"][0]["clv_pct"] is None
+    assert record["average_clv_pct"] is None
+    assert record["n_with_closing_line"] == 0
+
+
 def test_confirmed_win_rate_includes_settled_prices_outside_staking_cap(clean_db):
     table = _flagged_table(value_bet_flags=["home_win"], home_win_price=7.0)
     value_bet_ledger.record_value_bets(table)

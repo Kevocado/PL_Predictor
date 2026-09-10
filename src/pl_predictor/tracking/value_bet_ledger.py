@@ -90,6 +90,9 @@ def _connect() -> sqlite3.Connection:
         "odds_source": "TEXT",
         "quote_snapshot": "TEXT",
         "model_manifest_hash": "TEXT",
+        "closing_price": "REAL",
+        "closing_implied_prob": "REAL",
+        "closing_captured_at": "TEXT",
     }.items():
         if column not in columns:
             conn.execute(f"ALTER TABLE value_bets ADD COLUMN {column} {definition}")
@@ -166,6 +169,60 @@ def record_value_bets(
             rows,
         )
         return cur.rowcount
+
+
+def update_closing_lines(table: pd.DataFrame) -> int:
+    """Refresh `closing_price`/`closing_implied_prob` for every already-flagged
+    bet whose kickoff hasn't happened yet, using whatever price/implied
+    probability `table` (the same live value-bet table each poll rebuilds)
+    currently has for that side — including a side that's no longer flagged,
+    since a bet already recorded needs its price tracked regardless of
+    whether the edge that triggered it is still there.
+
+    There's no single "closing line" fetch — odds are polled live on
+    whatever cadence the app is used at (`_LIVE_CACHE_TTL_SECONDS` in
+    `api/routes.py`). So this overwrites the closing snapshot on every call
+    before kickoff; once `commence_time` has passed, a row is left alone and
+    whatever was captured on the last pre-kickoff poll stands as the closing
+    line — an approximation bounded by that poll cadence, not the exact
+    market-close price."""
+    if table.empty:
+        return 0
+
+    now = _naive(pd.Timestamp.now(tz="UTC"))
+    price_by_event: dict[str, dict[str, tuple[float | None, float | None]]] = {}
+    for _, fixture in table.iterrows():
+        event_id = str(fixture["event_id"])
+        price_by_event[event_id] = {
+            side: (_json_value(fixture.get(f"{side}_price")), _json_value(fixture.get(f"{side}_implied")))
+            for side in _SIDE_TO_MARKET
+        }
+
+    updated = 0
+    with _connect() as conn:
+        unresolved = pd.read_sql(
+            "SELECT id, event_id, market, outcome_name, commence_time FROM value_bets WHERE resolved = 0",
+            conn,
+            parse_dates=["commence_time"],
+        )
+        for _, bet in unresolved.iterrows():
+            if bet["commence_time"] <= now:
+                continue
+            side = _MARKET_TO_SIDE.get((bet["market"], bet["outcome_name"]))
+            if side is None:
+                continue
+            sides = price_by_event.get(str(bet["event_id"]))
+            if sides is None:
+                continue
+            price, implied = sides.get(side, (None, None))
+            if price is None or implied is None:
+                continue
+            conn.execute(
+                "UPDATE value_bets SET closing_price = ?, closing_implied_prob = ?, closing_captured_at = ? WHERE id = ?",
+                (float(price), float(implied), datetime.now(timezone.utc).isoformat(), int(bet["id"])),
+            )
+            updated += 1
+    return updated
 
 
 def _json_value(value):
@@ -317,6 +374,8 @@ def get_value_bet_track_record(
             "results": None,
             "bankroll_curve": [],
             "staking": staking,
+            "average_clv_pct": None,
+            "n_with_closing_line": 0,
         }
 
     pending = df[df["resolved"] == 0]
@@ -333,6 +392,7 @@ def get_value_bet_track_record(
             "won": bool(bet["won"]),
             "result_source": bet["result_source"] or "match feed",
             "resolved_at": pd.Timestamp(bet["resolved_at"]).isoformat() if pd.notna(bet["resolved_at"]) else None,
+            "clv_pct": _clv_pct(bet),
         }
         for _, bet in resolved.sort_values("resolved_at", ascending=False).iterrows()
     ]
@@ -363,6 +423,8 @@ def get_value_bet_track_record(
         "ROI": (total_profit / account.bankroll * 100) if total_bets else 0.0,
     }
 
+    clv_values = [bet["clv_pct"] for bet in confirmed_bets if bet["clv_pct"] is not None]
+
     return {
         "n_flagged": int(len(df)),
         "n_resolved": int(len(resolved)),
@@ -374,4 +436,19 @@ def get_value_bet_track_record(
         "results": results,
         "bankroll_curve": account.tracker,
         "staking": staking,
+        "average_clv_pct": (sum(clv_values) / len(clv_values)) if clv_values else None,
+        "n_with_closing_line": len(clv_values),
     }
+
+
+def _clv_pct(bet: pd.Series) -> float | None:
+    """Closing-line value: how the entry price compares to the closing price
+    captured by `update_closing_lines` for the same bet. Positive means the
+    price shortened after the bet was flagged — i.e. the market moved toward
+    agreeing with the pick, independent of whether the bet actually won.
+    `None` when no closing snapshot was ever captured (e.g. the fixture's
+    kickoff arrived before the app was polled again after the flag)."""
+    closing_price = bet.get("closing_price")
+    if closing_price is None or pd.isna(closing_price):
+        return None
+    return (float(bet["price"]) / float(closing_price) - 1) * 100

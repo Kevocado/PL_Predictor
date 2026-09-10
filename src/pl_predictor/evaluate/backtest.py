@@ -30,6 +30,7 @@ Staking logic (default "kelly"):
 
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 import penaltyblog as pb
 
@@ -211,3 +212,78 @@ def build_value_bet_backtest(
 def run_value_bet_backtest(*args, **kwargs) -> dict:
     """Convenience wrapper: same as `build_value_bet_backtest(...).results()`."""
     return build_value_bet_backtest(*args, **kwargs).results()
+
+
+def bootstrap_drawdown_distribution(
+    selections: list[dict],
+    bankroll: float = 100.0,
+    kelly_fraction: float = 0.10,
+    max_stake_fraction: float = 0.05,
+    staking: str = "kelly",
+    flat_stake: float = 1.0,
+    n_trials: int = 1000,
+    seed: int = 0,
+) -> dict:
+    """`build_value_bet_backtest`'s `bankroll_curve` is a single realized
+    path — one draw of which of the model's "should win ~60% of the time"
+    bets actually won. That path's max drawdown (see this module's docstring
+    for the -27%/-54%/-20% figures already measured) says as much about
+    which particular bets happened to lose as it does about the strategy.
+
+    This redraws `won` for every selection independently from a Bernoulli
+    with the model's own `model_probability` (in the same chronological
+    order the bets were placed, so streak/sequencing effects are preserved
+    within a trial) `n_trials` times, replays the same staking rule as the
+    real backtest via `pb.backtest.Account`, and reports the distribution of
+    max drawdown and final ROI across trials — a calibration-conditional
+    "how bad could this plausibly have gone" range, not a single path.
+    Requires each `selections` row to have `price`, `model_probability`
+    (matching `build_value_bet_backtest`'s `selections=` output)."""
+    if not selections:
+        return {
+            "n_trials": 0,
+            "max_drawdown_pct": {"mean": None, "median": None, "p95": None, "worst": None},
+            "roi_pct": {"mean": None, "median": None, "p5": None},
+        }
+
+    rng = np.random.default_rng(seed)
+    probs = np.array([float(s["model_probability"]) for s in selections])
+    prices = np.array([float(s["price"]) for s in selections])
+
+    drawdowns = np.empty(n_trials)
+    rois = np.empty(n_trials)
+    for trial in range(n_trials):
+        draws = rng.random(len(selections)) < probs
+        account = pb.backtest.Account(bankroll)
+        for price, prob, won in zip(prices, probs, draws):
+            if staking == "kelly":
+                stake = _kelly_stake(float(prob), float(price), kelly_fraction, max_stake_fraction, account.current_bankroll)
+                if stake <= 0:
+                    continue
+            else:
+                stake = flat_stake
+            account.place_bet(float(price), stake, int(won))
+
+        # `Account.tracker` records post-bet bankroll only, with no entry for
+        # the starting bankroll -- prepend it so a drawdown from the very
+        # first bet is measured against the actual starting peak, not
+        # against whatever the first recorded balance happens to be.
+        curve = np.concatenate(([bankroll], account.tracker)) if account.tracker else np.array([bankroll])
+        running_peak = np.maximum.accumulate(curve)
+        drawdowns[trial] = float(((running_peak - curve) / running_peak).max() * 100) if running_peak.max() else 0.0
+        rois[trial] = (account.current_bankroll - bankroll) / bankroll * 100
+
+    return {
+        "n_trials": n_trials,
+        "max_drawdown_pct": {
+            "mean": float(drawdowns.mean()),
+            "median": float(np.median(drawdowns)),
+            "p95": float(np.percentile(drawdowns, 95)),
+            "worst": float(drawdowns.max()),
+        },
+        "roi_pct": {
+            "mean": float(rois.mean()),
+            "median": float(np.median(rois)),
+            "p5": float(np.percentile(rois, 5)),
+        },
+    }

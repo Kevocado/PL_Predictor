@@ -1,4 +1,5 @@
 import pandas as pd
+import pytest
 
 from pl_predictor.evaluate import backtest
 
@@ -60,6 +61,37 @@ def test_historical_replay_records_qualified_de_vigged_selection(monkeypatch):
         }
     ]
     assert selections[0]["edge"] > 0.05
+
+
+def test_bootstrap_drawdown_distribution_empty_selections_returns_none_stats():
+    result = backtest.bootstrap_drawdown_distribution([])
+    assert result["n_trials"] == 0
+    assert result["max_drawdown_pct"]["mean"] is None
+    assert result["roi_pct"]["mean"] is None
+
+
+def test_bootstrap_drawdown_distribution_is_deterministic_for_a_fixed_seed():
+    selections = [
+        {"price": 2.0, "model_probability": 0.6},
+        {"price": 3.0, "model_probability": 0.4},
+        {"price": 1.8, "model_probability": 0.7},
+    ]
+    first = backtest.bootstrap_drawdown_distribution(selections, staking="flat", flat_stake=5.0, n_trials=200, seed=42)
+    second = backtest.bootstrap_drawdown_distribution(selections, staking="flat", flat_stake=5.0, n_trials=200, seed=42)
+    assert first == second
+    assert first["n_trials"] == 200
+    assert 0.0 <= first["max_drawdown_pct"]["mean"] <= 100.0
+    # p95 drawdown is a worse (or equal) case than the median across the same trials.
+    assert first["max_drawdown_pct"]["p95"] >= first["max_drawdown_pct"]["median"]
+
+
+def test_bootstrap_drawdown_distribution_a_sure_loser_always_hits_full_stake_drawdown():
+    # model_probability=0 means every simulated draw loses -- deterministic
+    # worst case, useful as a sanity bound on the machinery itself.
+    selections = [{"price": 2.0, "model_probability": 0.0}] * 5
+    result = backtest.bootstrap_drawdown_distribution(selections, staking="flat", flat_stake=10.0, n_trials=50, seed=1)
+    assert result["max_drawdown_pct"]["worst"] == pytest.approx(50.0)
+    assert result["roi_pct"]["mean"] == pytest.approx(-50.0)
 
 
 def test_low_confidence_prediction_needs_a_bigger_edge_to_be_selected(monkeypatch):
