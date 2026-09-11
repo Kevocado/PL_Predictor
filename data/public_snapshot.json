@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-11T13:27:48.922094+00:00",
+  "generated_at": "2026-09-11T13:47:15.967924+00:00",
   "model_fingerprint": "39d209df70d5d73eb92b4a2e71ae0c6f4f3a6d5ff57fffcaf67dcc2b49c97f09",
   "current_gameweek": 4,
   "min_gameweek": 1,
@@ -212553,8 +212553,8 @@
           "name": "Collins",
           "team": "Brentford",
           "position": "DEF",
-          "status": "d",
-          "chance_of_playing": 25,
+          "status": "i",
+          "chance_of_playing": 0,
           "minutes": 196,
           "starts": 3,
           "goals": 0,
@@ -212567,15 +212567,15 @@
           "ict": 11.4,
           "bps": 39,
           "bonus": 0,
-          "news": "Calf injury - 25% chance of playing",
+          "news": "Calf injury - Unknown return date",
           "quality_rating": 53.9,
           "form_rating": 0.0,
           "live_form_rating": 48.2,
           "live_form_vs_quality": -5.7,
           "overall_rating": 53.9,
-          "current_impact_rating": 3.2,
+          "current_impact_rating": 0.0,
           "rating_driver": "Clean sheets",
-          "rating_expected_minutes": 21.2,
+          "rating_expected_minutes": 0.0,
           "rating_status": "established",
           "rating_evidence_minutes": 9040.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -215209,8 +215209,8 @@
           "name": "Caicedo",
           "team": "Chelsea",
           "position": "MID",
-          "status": "d",
-          "chance_of_playing": 75,
+          "status": "i",
+          "chance_of_playing": 0,
           "minutes": 13,
           "starts": 0,
           "goals": 0,
@@ -215223,15 +215223,15 @@
           "ict": 0.0,
           "bps": 3,
           "bonus": 0,
-          "news": "Calf injury - 75% chance of playing",
+          "news": "Calf injury - Expected back 18 Sep",
           "quality_rating": 35.5,
           "form_rating": 0.0,
           "live_form_rating": 16.7,
           "live_form_vs_quality": -18.8,
           "overall_rating": 35.5,
-          "current_impact_rating": 5.5,
+          "current_impact_rating": 0.0,
           "rating_driver": "Bonus Point System",
-          "rating_expected_minutes": 18.8,
+          "rating_expected_minutes": 0.0,
           "rating_status": "established",
           "rating_evidence_minutes": 9012.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -224489,8 +224489,8 @@
           "name": "Henderson",
           "team": "Chelsea",
           "position": "MID",
-          "status": "d",
-          "chance_of_playing": 75,
+          "status": "i",
+          "chance_of_playing": 0,
           "minutes": 0,
           "starts": 0,
           "goals": 0,
@@ -224503,15 +224503,15 @@
           "ict": 0.0,
           "bps": 0,
           "bonus": 0,
-          "news": "Wrist injury - 75% chance of playing",
+          "news": "Wrist injury - Unknown return date",
           "quality_rating": null,
           "form_rating": 0.0,
           "live_form_rating": 14.0,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 2.2,
+          "current_impact_rating": 0.0,
           "rating_driver": "Bonus Point System",
-          "rating_expected_minutes": 18.8,
+          "rating_expected_minutes": 0.0,
           "rating_status": "limited",
           "rating_evidence_minutes": 1911.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -230870,7 +230870,7 @@
   "fpl": {
     "projections": {
       "gameweek": 4,
-      "generated_at": "2026-09-11T13:27:48.873608+00:00",
+      "generated_at": "2026-09-11T13:47:15.919301+00:00",
       "model_source": "hybrid_match_context_baseline",
       "data_freshness": "live official FPL API + independent pre-match scoreline model",
       "players": [
@@ -240059,38 +240059,6 @@
           ]
         },
         {
-          "player_id": 84,
-          "name": "Nathan Collins",
-          "web_name": "Collins",
-          "team": "Brentford",
-          "team_id": 4,
-          "position": "DEF",
-          "price": 5.5,
-          "status": "d",
-          "news": "Calf injury - 25% chance of playing",
-          "availability": 0.25,
-          "expected_minutes": 21.2,
-          "projected_points": 1.56,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": false,
-              "difficulty": 3,
-              "expected_goals": 1.13,
-              "clean_sheet_probability": 0.149,
-              "expected_minutes": 21.2,
-              "opponent": "Bournemouth",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "21 expected minutes",
-            "form 3.3",
-            "1.13 expected team goals"
-          ]
-        },
-        {
           "player_id": 616,
           "name": "Ayyoub Bouaddi",
           "web_name": "Bouaddi",
@@ -246427,70 +246395,6 @@
           ]
         },
         {
-          "player_id": 159,
-          "name": "Mois\u00e9s Caicedo Corozo",
-          "web_name": "Caicedo",
-          "team": "Chelsea",
-          "team_id": 6,
-          "position": "MID",
-          "price": 5.4,
-          "status": "d",
-          "news": "Calf injury - 75% chance of playing",
-          "availability": 0.75,
-          "expected_minutes": 18.8,
-          "projected_points": 0.84,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 2,
-              "expected_goals": 1.66,
-              "clean_sheet_probability": 0.36,
-              "expected_minutes": 18.8,
-              "opponent": "Hull City",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "19 expected minutes",
-            "form 0.3",
-            "1.66 expected team goals"
-          ]
-        },
-        {
-          "player_id": 101,
-          "name": "Jordan Henderson",
-          "web_name": "Henderson",
-          "team": "Chelsea",
-          "team_id": 6,
-          "position": "MID",
-          "price": 4.9,
-          "status": "d",
-          "news": "Wrist injury - 75% chance of playing",
-          "availability": 0.75,
-          "expected_minutes": 18.8,
-          "projected_points": 0.8,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 2,
-              "expected_goals": 1.66,
-              "clean_sheet_probability": 0.36,
-              "expected_minutes": 18.8,
-              "opponent": "Hull City",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "19 expected minutes",
-            "form 0.0",
-            "1.66 expected team goals"
-          ]
-        },
-        {
           "player_id": 515,
           "name": "James Maddison",
           "web_name": "Maddison",
@@ -246616,6 +246520,38 @@
             "12 expected minutes",
             "form 0.0",
             "1.62 expected team goals"
+          ]
+        },
+        {
+          "player_id": 84,
+          "name": "Nathan Collins",
+          "web_name": "Collins",
+          "team": "Brentford",
+          "team_id": 4,
+          "position": "DEF",
+          "price": 5.5,
+          "status": "i",
+          "news": "Calf injury - Unknown return date",
+          "availability": 0.0,
+          "expected_minutes": 0.0,
+          "projected_points": 0.41,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": false,
+              "difficulty": 3,
+              "expected_goals": 1.13,
+              "clean_sheet_probability": 0.149,
+              "expected_minutes": 0.0,
+              "opponent": "Bournemouth",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "0 expected minutes",
+            "form 3.3",
+            "1.13 expected team goals"
           ]
         },
         {
@@ -247128,6 +247064,38 @@
             "0 expected minutes",
             "form 0.3",
             "1.62 expected team goals"
+          ]
+        },
+        {
+          "player_id": 159,
+          "name": "Mois\u00e9s Caicedo Corozo",
+          "web_name": "Caicedo",
+          "team": "Chelsea",
+          "team_id": 6,
+          "position": "MID",
+          "price": 5.4,
+          "status": "i",
+          "news": "Calf injury - Expected back 18 Sep",
+          "availability": 0.0,
+          "expected_minutes": 0.0,
+          "projected_points": 0.04,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 2,
+              "expected_goals": 1.66,
+              "clean_sheet_probability": 0.36,
+              "expected_minutes": 0.0,
+              "opponent": "Hull City",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "0 expected minutes",
+            "form 0.3",
+            "1.66 expected team goals"
           ]
         },
         {
@@ -248312,6 +248280,38 @@
             "0 expected minutes",
             "form 0.0",
             "1.62 expected team goals"
+          ]
+        },
+        {
+          "player_id": 101,
+          "name": "Jordan Henderson",
+          "web_name": "Henderson",
+          "team": "Chelsea",
+          "team_id": 6,
+          "position": "MID",
+          "price": 4.9,
+          "status": "i",
+          "news": "Wrist injury - Unknown return date",
+          "availability": 0.0,
+          "expected_minutes": 0.0,
+          "projected_points": 0.0,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 2,
+              "expected_goals": 1.66,
+              "clean_sheet_probability": 0.36,
+              "expected_minutes": 0.0,
+              "opponent": "Hull City",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "0 expected minutes",
+            "form 0.0",
+            "1.66 expected team goals"
           ]
         },
         {
