@@ -115,9 +115,11 @@ def to_canonical(name: str, source: str = "odds_api") -> str:
     if source == "football_data":
         return name
 
-    if source == "football_data_org":
-        # football-data.org's names are the same full names as The Odds
-        # API's, just with a "FC"/"AFC" club-suffix (or, for Bournemouth
+    if source in ("football_data_org", "sportsbook_api"):
+        # football-data.org's names -- and RapidAPI's Sportsbook API
+        # (confirmed live: "Arsenal FC" where every other source just says
+        # "Arsenal") -- are the same full names as The Odds API's, just with
+        # an occasional "FC"/"AFC" club-suffix (or, for Bournemouth
         # specifically, an "AFC " prefix) that the Odds-API alias table
         # doesn't carry — strip it and reuse that table rather than
         # duplicating all 20+ entries.

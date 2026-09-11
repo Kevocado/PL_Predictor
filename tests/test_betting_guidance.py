@@ -41,6 +41,7 @@ def test_recommendation_uses_one_best_qualified_quote(monkeypatch):
                 "draw": 0.16,
                 "away_win": 0.14,
                 "btts_yes": 0.5,
+                "btts_no": 0.5,
                 "over_2_5": 0.5,
                 "under_2_5": 0.5,
                 "top_scorelines": [{"home": 2, "away": 0}],
@@ -71,6 +72,7 @@ def test_recommendation_excludes_tail_prices_and_fallback(monkeypatch):
                 "draw": 0.16,
                 "away_win": 0.14,
                 "btts_yes": 0.5,
+                "btts_no": 0.5,
                 "over_2_5": 0.2,
                 "under_2_5": 0.8,
                 "top_scorelines": [{"home": 2, "away": 0}],
@@ -92,7 +94,8 @@ def test_stale_odds_do_not_create_a_value_recommendation(monkeypatch):
     monkeypatch.setattr(
         value_bets.scoreline,
         "predict_fixtures_batch",
-        lambda *_, **__: [{"home_win": 0.90, "draw": 0.06, "away_win": 0.04, "btts_yes": 0.5, "over_2_5": 0.5, "under_2_5": 0.5, "top_scorelines": [{"home": 2, "away": 0}], "fallback": False, "data_confidence": "established", "home_goal_expectation": 2.1, "away_goal_expectation": 0.7, "home_2plus_prob": 0.4, "away_2plus_prob": 0.05}],
+        lambda *_, **__: [{"home_win": 0.90, "draw": 0.06, "away_win": 0.04, "btts_yes": 0.5,
+                "btts_no": 0.5, "over_2_5": 0.5, "under_2_5": 0.5, "top_scorelines": [{"home": 2, "away": 0}], "fallback": False, "data_confidence": "established", "home_goal_expectation": 2.1, "away_goal_expectation": 0.7, "home_2plus_prob": 0.4, "away_2plus_prob": 0.05}],
     )
     odds = _odds_frame().assign(odds_fetched_at=pd.Timestamp.now(tz="UTC") - pd.Timedelta(hours=2))
 
@@ -116,6 +119,7 @@ def test_low_confidence_fixture_needs_a_bigger_edge_to_flag(monkeypatch):
                 "draw": 0.17,
                 "away_win": 0.15,
                 "btts_yes": 0.5,
+                "btts_no": 0.5,
                 "over_2_5": 0.5,
                 "under_2_5": 0.5,
                 "top_scorelines": [{"home": 2, "away": 0}],
@@ -146,6 +150,7 @@ def test_established_confidence_keeps_todays_flat_threshold(monkeypatch):
                 "draw": 0.17,
                 "away_win": 0.15,
                 "btts_yes": 0.5,
+                "btts_no": 0.5,
                 "over_2_5": 0.5,
                 "under_2_5": 0.5,
                 "top_scorelines": [{"home": 2, "away": 0}],

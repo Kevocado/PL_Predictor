@@ -23,6 +23,7 @@ from ..config import (
     PUBLIC_REFRESH_COOLDOWN_SECONDS,
     PUBLIC_SNAPSHOT_PATH,
     PUBLIC_SNAPSHOT_REFRESH_URL,
+    SPORTSBOOK_CACHE_TTL_SECONDS,
 )
 from ..data import fixtures as fixtures_mod
 from ..data import espn, fpl_api, fpl_history, understat, understat_shots
@@ -30,7 +31,7 @@ from ..data.team_names import to_canonical
 from ..data import football_data
 from ..data import football_data_org
 from ..data.football_data_org import FootballDataOrgKeyMissing
-from ..data.odds_api import OddsAPIKeyMissing, fetch_epl_odds
+from ..data.sportsbook_api import SportsbookAPIKeyMissing, fetch_epl_odds as fetch_sportsbook_odds
 from ..evaluate import backtest as backtest_lib
 from ..evaluate import betting_validation
 from ..evaluate import calibration as calibration_lib
@@ -374,20 +375,31 @@ def _get_bootstrap() -> dict:
 def _get_odds_df(force: bool = False) -> pd.DataFrame:
     def build():
         try:
-            return fetch_epl_odds(force_refresh=force)
-        except OddsAPIKeyMissing:
+            return fetch_sportsbook_odds(_get_fixtures_df(), force_refresh=force)
+        except SportsbookAPIKeyMissing:
             return pd.DataFrame()
         except requests.RequestException as exc:
-            # A missing key isn't the only way this fails: a real 429 rate
-            # limit, a used-up monthly credit quota (The Odds API returns
-            # 401 for that, not 429 -- see OUT_OF_USAGE_CREDITS), or a
-            # transient outage should degrade to "no live odds" the same
-            # way, not take down /fixtures, /refresh-odds, and the value-bet
-            # table with an unhandled 500.
-            print(f"[odds_api] fetch failed, serving without live odds: {exc}")
+            # A missing key isn't the only way this fails: a real rate limit
+            # (this provider caps at 150 requests/day -- see
+            # data/sportsbook_api.py's module docstring) or a transient
+            # outage should degrade to "no live odds" the same way, not
+            # take down /fixtures, /refresh-odds, and the value-bet table
+            # with an unhandled 500.
+            print(f"[sportsbook_api] fetch failed, serving without live odds: {exc}")
             return pd.DataFrame()
 
-    return _cached("odds_df", build, force=force)
+    return _cached("odds_df", build, ttl=SPORTSBOOK_CACHE_TTL_SECONDS, force=force)
+
+
+def refresh_sportsbook_odds_in_background() -> None:
+    """Proactively rebuilds the odds/value-bet caches on the Sportsbook API's
+    own cadence (see SPORTSBOOK_CACHE_TTL_SECONDS), so value bets stay
+    current without waiting for some request to happen to land after the
+    cache goes stale. Call periodically from a background loop (see
+    main.py's `_odds_refresh_loop`) -- mirrors `refresh_lineups_near_kickoff`'s
+    role for the player-predictions cache."""
+    _get_odds_df(force=True)
+    _clear_cache("fixtures_df", "value_bet_table")
 
 
 def warm_caches() -> None:
@@ -1720,8 +1732,7 @@ def retrain():
 
 @router.post("/refresh-odds", dependencies=[Depends(_admin_only)])
 def refresh_odds():
-    _get_odds_df(force=True)
-    _clear_cache("fixtures_df", "value_bet_table")
+    refresh_sportsbook_odds_in_background()
     return {"status": "ok"}
 
 
@@ -1755,8 +1766,7 @@ def refresh_odds_public():
         _last_public_refresh_trigger = time.time()
 
     if not PUBLIC_MODE:
-        _get_odds_df(force=True)
-        _clear_cache("fixtures_df", "value_bet_table")
+        refresh_sportsbook_odds_in_background()
         return {"status": "ok"}
 
     if not GITHUB_ACTIONS_TOKEN:

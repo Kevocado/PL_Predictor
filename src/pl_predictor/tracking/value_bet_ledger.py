@@ -44,6 +44,8 @@ _SIDE_TO_MARKET = {
     "away_win": ("1x2", "away_win"),
     "over_2_5": ("totals_2_5", "over"),
     "under_2_5": ("totals_2_5", "under"),
+    "btts_yes": ("btts", "yes"),
+    "btts_no": ("btts", "no"),
 }
 _MARKET_TO_SIDE = {market_outcome: side for side, market_outcome in _SIDE_TO_MARKET.items()}
 

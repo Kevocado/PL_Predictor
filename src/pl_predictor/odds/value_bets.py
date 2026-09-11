@@ -1,11 +1,10 @@
 """value_bets.py — join model predictions to live bookmaker odds and surface
 edges (model probability - de-vigged implied probability) above a threshold.
 
-Live edges are computed for h2h (1X2) and totals (over/under 2.5 goals) —
-the two "core" markets The Odds API's bulk endpoint serves. BTTS, corners,
-and cards predictions are still included in the output table, but with no
-live market to compare against (those need The Odds API's per-event
-"additional markets" endpoint, not implemented here) — labeled as such
+Live edges are computed for h2h (1X2), totals (over/under 2.5 goals), and
+BTTS — every market `data/sportsbook_api.py` prices live. Corners and cards
+predictions are still included in the output table, but with no live market
+to compare against (no provider used here prices them) — labeled as such
 rather than silently omitted.
 """
 
@@ -73,6 +72,20 @@ def _devig_totals(odds_df: pd.DataFrame, event_id, line: float = 2.5) -> dict | 
     return {k: implied.get_probability_by_name(k) for k in ["over_2_5", "under_2_5"]}
 
 
+def _devig_btts(odds_df: pd.DataFrame, event_id) -> dict | None:
+    yes_price = _best_price(odds_df, event_id, "btts", "Yes")
+    no_price = _best_price(odds_df, event_id, "btts", "No")
+    if None in (yes_price, no_price):
+        return None
+    try:
+        implied = pb.implied.calculate_implied(
+            [yes_price, no_price], method="shin", market_names=["btts_yes", "btts_no"]
+        )
+    except ValueError:
+        return None
+    return {k: implied.get_probability_by_name(k) for k in ["btts_yes", "btts_no"]}
+
+
 def build_value_bet_table(
     fixtures_df: pd.DataFrame,
     odds_df: pd.DataFrame,
@@ -99,6 +112,7 @@ def build_value_bet_table(
             "draw_prob": pred["draw"],
             "away_win_prob": pred["away_win"],
             "btts_yes_prob": pred["btts_yes"],
+            "btts_no_prob": pred["btts_no"],
             "over_2_5_prob": pred["over_2_5"],
             "under_2_5_prob": pred["under_2_5"],
             "top_scoreline": f"{pred['top_scorelines'][0]['home']}-{pred['top_scorelines'][0]['away']}",
@@ -129,7 +143,8 @@ def build_value_bet_table(
 
         implied_h2h = _devig_h2h(odds_df, event_id, home, away) if not odds_df.empty else None
         implied_totals = _devig_totals(odds_df, event_id) if not odds_df.empty else None
-        implied = {**(implied_h2h or {}), **(implied_totals or {})}
+        implied_btts = _devig_btts(odds_df, event_id) if not odds_df.empty else None
+        implied = {**(implied_h2h or {}), **(implied_totals or {}), **(implied_btts or {})}
 
         # Raw (non-devigged) best price per side — the implied probabilities
         # above have the bookmaker's margin stripped out, which is the right
@@ -143,9 +158,12 @@ def build_value_bet_table(
             "away_win": _best_quote(odds_df, event_id, "h2h", away) if not odds_df.empty else None,
             "over_2_5": _best_quote(odds_df, event_id, "totals", "Over", point=2.5) if not odds_df.empty else None,
             "under_2_5": _best_quote(odds_df, event_id, "totals", "Under", point=2.5) if not odds_df.empty else None,
+            "btts_yes": _best_quote(odds_df, event_id, "btts", "Yes") if not odds_df.empty else None,
+            "btts_no": _best_quote(odds_df, event_id, "btts", "No") if not odds_df.empty else None,
         }
 
-        for side in ["home_win", "draw", "away_win", "over_2_5", "under_2_5"]:
+        _SIDES = ["home_win", "draw", "away_win", "over_2_5", "under_2_5", "btts_yes", "btts_no"]
+        for side in _SIDES:
             side_implied = implied.get(side)
             row[f"{side}_implied"] = side_implied
             row[f"{side}_edge"] = (row[f"{side}_prob"] - side_implied) if side_implied is not None else None
@@ -155,7 +173,7 @@ def build_value_bet_table(
         required_edge = edge_threshold * scoreline.required_edge_multiplier(row["data_confidence"])
         row["value_bet_flags"] = [] if row["odds_is_stale"] else [
             side
-            for side in ["home_win", "draw", "away_win", "over_2_5", "under_2_5"]
+            for side in _SIDES
             if row[f"{side}_edge"] is not None and row[f"{side}_edge"] > required_edge
         ]
 

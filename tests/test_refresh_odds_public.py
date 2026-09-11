@@ -74,17 +74,20 @@ def test_private_mode_runs_real_refresh_directly(monkeypatch):
 def test_get_odds_df_falls_back_to_empty_on_any_request_failure(monkeypatch):
     """Real incident: The Odds API returns 401 once its monthly free-tier
     credit quota is exhausted (not 429) -- indistinguishable, from here, from
-    any other HTTP failure. Only OddsAPIKeyMissing was caught before this;
-    any other requests failure used to bubble up as an unhandled 500 from
-    every endpoint that touches odds (`/refresh-odds`, `/fixtures`, the
-    value-bet table) instead of degrading to "no live odds", the same way a
-    missing key already does."""
+    any other HTTP failure. The same guardrail applies to its replacement,
+    the Sportsbook API (see data/sportsbook_api.py): only
+    SportsbookAPIKeyMissing was caught before this; any other requests
+    failure used to bubble up as an unhandled 500 from every endpoint that
+    touches odds (`/refresh-odds`, `/fixtures`, the value-bet table) instead
+    of degrading to "no live odds", the same way a missing key already
+    does."""
     routes._clear_cache("odds_df")
+    monkeypatch.setattr(routes, "_get_fixtures_df", lambda: pd.DataFrame())
 
-    def _raise(force_refresh=False):
-        raise requests.HTTPError("401 quota exhausted")
+    def _raise(fixtures_df, force_refresh=False):
+        raise requests.HTTPError("rate limited")
 
-    monkeypatch.setattr(routes, "fetch_epl_odds", _raise)
+    monkeypatch.setattr(routes, "fetch_sportsbook_odds", _raise)
 
     result = routes._get_odds_df(force=True)
 

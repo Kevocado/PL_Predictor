@@ -15,12 +15,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from ..config import FRONTEND_DIST_DIR, PUBLIC_MODE, PUBLIC_SNAPSHOT_POLL_SECONDS
+from ..config import FRONTEND_DIST_DIR, PUBLIC_MODE, PUBLIC_SNAPSHOT_POLL_SECONDS, SPORTSBOOK_CACHE_TTL_SECONDS
 from .routes import (
     background_tracking_tick,
     maybe_auto_retrain,
     refresh_lineups_near_kickoff,
     refresh_public_snapshot_from_remote,
+    refresh_sportsbook_odds_in_background,
     router,
     warm_caches,
 )
@@ -56,6 +57,15 @@ async def _lineup_refresh_loop():
     while True:
         await asyncio.sleep(_TRACKING_INTERVAL_SECONDS)
         await asyncio.to_thread(refresh_lineups_near_kickoff)
+
+
+async def _odds_refresh_loop():
+    # Sportsbook API's own budget (150 requests/day, ~10 per full-gameweek
+    # refresh -- see data/sportsbook_api.py) sets this cadence, not an
+    # arbitrary "often enough" guess -- see config.py::SPORTSBOOK_CACHE_TTL_SECONDS.
+    while True:
+        await asyncio.sleep(SPORTSBOOK_CACHE_TTL_SECONDS)
+        await asyncio.to_thread(refresh_sportsbook_odds_in_background)
 
 
 async def _initial_sync():
@@ -102,10 +112,12 @@ async def lifespan(_app: FastAPI):
     retrain_task = asyncio.create_task(_auto_retrain_loop())
     tracking_task = asyncio.create_task(_tracking_loop())
     lineup_task = asyncio.create_task(_lineup_refresh_loop())
+    odds_task = asyncio.create_task(_odds_refresh_loop())
     yield
     retrain_task.cancel()
     tracking_task.cancel()
     lineup_task.cancel()
+    odds_task.cancel()
 
 
 app = FastAPI(title="PL Predictor API", lifespan=lifespan)

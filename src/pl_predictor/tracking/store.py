@@ -360,7 +360,8 @@ def _actual_outcome(market: str, outcome_name: str, match: pd.Series) -> int:
         is_over = total_goals > 2.5
         return int(is_over if outcome_name == "over" else not is_over)
     if market == "btts":
-        return int(match["goals_home"] > 0 and match["goals_away"] > 0)
+        both_scored = match["goals_home"] > 0 and match["goals_away"] > 0
+        return int(both_scored if outcome_name == "yes" else not both_scored)
     raise ValueError(f"Unknown market: {market}")
 
 

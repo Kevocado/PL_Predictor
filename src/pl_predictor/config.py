@@ -62,6 +62,7 @@ PUBLIC_REFRESH_COOLDOWN_SECONDS = int(os.getenv("PUBLIC_REFRESH_COOLDOWN_SECONDS
 
 FOOTBALL_DATA_CACHE_DIR = CACHE_DIR / "football_data"
 ODDS_CACHE_DIR = CACHE_DIR / "odds"
+SPORTSBOOK_CACHE_DIR = CACHE_DIR / "sportsbook"
 FPL_HISTORY_CACHE_DIR = CACHE_DIR / "fpl_history"
 FPL_PLAYER_CACHE_DIR = CACHE_DIR / "fpl_players"
 FPL_EVENT_CACHE_DIR = CACHE_DIR / "fpl_events"
@@ -80,6 +81,20 @@ COMPETITION = "ENG Premier League"
 ODDS_API_KEY = os.getenv("ODDS_API_KEY")
 ODDS_API_SPORT_KEY = "soccer_epl"
 ODDS_API_BASE_URL = "https://api.the-odds-api.com/v4/sports"
+
+# RapidAPI's Sportsbook API (data/sportsbook_api.py) -- the live-odds pipeline's
+# primary source since 2026-09. The Odds API above exhausts its monthly
+# credit quota too often to serve as the day-to-day source; this key comes
+# from a completely separate provider/quota (confirmed live: 150
+# requests/day on the `x-ratelimit-requests-limit` response header, one
+# request per event -- no bulk/batch odds endpoint exists).
+SPORTSBOOK_API_KEY = os.getenv("SPORTSBOOK_API_KEY")
+SPORTSBOOK_API_HOST = "sportsbook-api2.p.rapidapi.com"
+SPORTSBOOK_API_BASE_URL = f"https://{SPORTSBOOK_API_HOST}/v0"
+SPORTSBOOK_EPL_COMPETITION_KEY = "Xa0f-wjcs-tANp"  # english-premier-league, from GET /v0/competitions
+# 6-hourly refresh: a 10-fixture EPL gameweek costs ~10 requests per
+# refresh cycle (~40/day at this cadence), well inside the 150/day cap.
+SPORTSBOOK_CACHE_TTL_SECONDS = 6 * 3600
 
 FPL_API_BASE_URL = "https://fantasy.premierleague.com/api"
 FPL_HISTORY_BASE_URL = "https://raw.githubusercontent.com/vaastav/Fantasy-Premier-League/master/data"
@@ -141,6 +156,7 @@ for _d in (
     MODELS_DIR,
     FOOTBALL_DATA_CACHE_DIR,
     ODDS_CACHE_DIR,
+    SPORTSBOOK_CACHE_DIR,
     FPL_HISTORY_CACHE_DIR,
     FPL_PLAYER_CACHE_DIR,
     FPL_EVENT_CACHE_DIR,
