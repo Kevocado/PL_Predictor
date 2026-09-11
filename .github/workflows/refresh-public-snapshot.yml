@@ -23,6 +23,15 @@ on:
 permissions:
   contents: write
 
+# The build step below regularly takes 7-20+ minutes (see "Restore data
+# cache"'s docstring on cold-cache cost) -- long enough for an unrelated
+# push to land on main while this run is still building. Queue overlapping
+# runs of this workflow itself rather than racing each other on the same
+# push below.
+concurrency:
+  group: refresh-public-snapshot
+  cancel-in-progress: false
+
 jobs:
   refresh:
     runs-on: ubuntu-latest
@@ -74,4 +83,27 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data/public_snapshot.json
           git commit -m "Refresh public snapshot [automated]"
-          git push
+
+          # This build regularly takes long enough for an unrelated commit
+          # to land on main first (confirmed live: a plain `git push` here
+          # got rejected as non-fast-forward after a couple of unrelated
+          # pushes landed during a 7-minute build). `git rebase` (not
+          # `reset --soft` + recommit -- tried and rejected: it silently
+          # drops every file the concurrent commit(s) touched, since the
+          # index never picks up origin's tree, only HEAD moves) replays
+          # this one commit's actual diff on top of the new tip, so
+          # whatever landed on main in the meantime is preserved.
+          for attempt in 1 2 3 4 5; do
+            if git push; then
+              exit 0
+            fi
+            echo "Push rejected (attempt $attempt/5) -- main moved, rebasing this commit onto it and retrying."
+            git fetch origin main
+            if ! git rebase origin/main; then
+              git rebase --abort
+              echo "::error::Rebase conflict onto origin/main -- needs a human look, not blind retry."
+              exit 1
+            fi
+          done
+          echo "::error::Failed to push data/public_snapshot.json after 5 retries."
+          exit 1
