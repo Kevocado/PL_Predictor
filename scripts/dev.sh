@@ -11,7 +11,12 @@ if [ ! -d frontend/node_modules ]; then
 fi
 
 export PYTHONPATH="$(pwd)/src"
-.venv/bin/uvicorn pl_predictor.api.main:app --reload --reload-dir src --host 0.0.0.0 --port 8000 &
+# `python -m uvicorn`, not the `.venv/bin/uvicorn` script directly -- that
+# script's shebang hardcodes the venv's path at creation time, which breaks
+# (bad interpreter) if the repo folder is ever renamed/moved after the venv
+# was created. `python -m` re-resolves everything from the interpreter
+# actually invoked, so it can't go stale this way.
+.venv/bin/python -m uvicorn pl_predictor.api.main:app --reload --reload-dir src --host 0.0.0.0 --port 8000 &
 backend_pid=$!
 
 cleanup() {
