@@ -4,6 +4,8 @@ reachable in PUBLIC_MODE and must never run that pipeline itself -- it only
 asks GitHub Actions to run the snapshot refresh sooner (see the route's own
 docstring for why: the free-tier public host OOMs on the real compute)."""
 
+import pandas as pd
+import requests
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -67,6 +69,27 @@ def test_private_mode_runs_real_refresh_directly(monkeypatch):
     assert resp.status_code == 200
     assert resp.json()["status"] == "ok"
     assert called["force"] is True
+
+
+def test_get_odds_df_falls_back_to_empty_on_any_request_failure(monkeypatch):
+    """Real incident: The Odds API returns 401 once its monthly free-tier
+    credit quota is exhausted (not 429) -- indistinguishable, from here, from
+    any other HTTP failure. Only OddsAPIKeyMissing was caught before this;
+    any other requests failure used to bubble up as an unhandled 500 from
+    every endpoint that touches odds (`/refresh-odds`, `/fixtures`, the
+    value-bet table) instead of degrading to "no live odds", the same way a
+    missing key already does."""
+    routes._clear_cache("odds_df")
+
+    def _raise(force_refresh=False):
+        raise requests.HTTPError("401 quota exhausted")
+
+    monkeypatch.setattr(routes, "fetch_epl_odds", _raise)
+
+    result = routes._get_odds_df(force=True)
+
+    assert isinstance(result, pd.DataFrame)
+    assert result.empty
 
 
 def test_cooldown_blocks_rapid_repeat_requests(monkeypatch):

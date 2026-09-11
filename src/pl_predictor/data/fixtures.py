@@ -10,6 +10,7 @@ matches before the user sets up a key.
 from __future__ import annotations
 
 import pandas as pd
+import requests
 
 from .odds_api import OddsAPIKeyMissing, fetch_epl_odds_raw
 from . import fpl_api
@@ -92,6 +93,14 @@ def get_upcoming_fixtures(gameweek_key: str = "current", force_refresh: bool = F
     try:
         df = _fixtures_from_odds_api(gameweek_key=gameweek_key, force_refresh=force_refresh)
     except OddsAPIKeyMissing:
+        df = _fixtures_from_fpl_api()
+    except requests.RequestException as exc:
+        # Same fallback as a missing key: a real rate limit, a used-up
+        # monthly credit quota (The Odds API returns 401 for that, not
+        # 429), or a transient outage shouldn't take the Fixtures tab (or
+        # the public snapshot build) down entirely -- fall back to
+        # fixtures-with-no-odds, same as before a key was ever configured.
+        print(f"[fixtures] Odds API unavailable, falling back to FPL fixtures (no market odds): {exc}")
         df = _fixtures_from_fpl_api()
     return _future_only(df)
 

@@ -377,6 +377,15 @@ def _get_odds_df(force: bool = False) -> pd.DataFrame:
             return fetch_epl_odds(force_refresh=force)
         except OddsAPIKeyMissing:
             return pd.DataFrame()
+        except requests.RequestException as exc:
+            # A missing key isn't the only way this fails: a real 429 rate
+            # limit, a used-up monthly credit quota (The Odds API returns
+            # 401 for that, not 429 -- see OUT_OF_USAGE_CREDITS), or a
+            # transient outage should degrade to "no live odds" the same
+            # way, not take down /fixtures, /refresh-odds, and the value-bet
+            # table with an unhandled 500.
+            print(f"[odds_api] fetch failed, serving without live odds: {exc}")
+            return pd.DataFrame()
 
     return _cached("odds_df", build, force=force)
 
