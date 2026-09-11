@@ -31,6 +31,21 @@ def test_advances_to_next_gameweek_the_day_before_it_kicks_off():
     assert _resolve_current_gameweek(3, matches, now=now) == 4
 
 
+def test_advances_anytime_on_the_calendar_day_before_kickoff():
+    # Real incident: kickoff is 2026-09-12T14:00Z; checking early on
+    # 2026-09-11 (the calendar day before) is >24h away by a rolling
+    # window, which used to wrongly keep this on gameweek 3 for most of
+    # the day even though "the day before" had clearly arrived.
+    matches = _matches([
+        {"matchday": 3, "finished": True, "commence_time": "2026-09-05T15:00:00Z"},
+        {"matchday": 3, "finished": True, "commence_time": "2026-09-06T15:00:00Z"},
+        {"matchday": 4, "finished": False, "commence_time": "2026-09-12T14:00:00Z"},
+    ])
+    now = pd.Timestamp("2026-09-11T09:00:00Z")
+
+    assert _resolve_current_gameweek(3, matches, now=now) == 4
+
+
 def test_does_not_advance_while_more_than_a_day_before_next_kickoff():
     matches = _matches([
         {"matchday": 3, "finished": True, "commence_time": "2026-09-05T15:00:00Z"},

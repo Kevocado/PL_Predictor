@@ -209,7 +209,19 @@ resumes from where a previous run left off.
 
 ## Run the dashboard
 
-Two processes: the API (backend) and the web app (frontend). In one
+One command starts both the API and the web app (Ctrl+C stops both):
+
+```bash
+./scripts/dev.sh
+```
+
+Open the URL Vite prints (`http://localhost:5173`) — same as the manual
+two-terminal setup below, which `dev.sh` just automates.
+
+<details>
+<summary><strong>Or run the two processes manually</strong></summary>
+
+<br>Two processes: the API (backend) and the web app (frontend). In one
 terminal:
 
 ```bash
@@ -237,7 +249,9 @@ npm install
 npm run dev
 ```
 
-Open the URL Vite prints (`http://localhost:5173`). Three pages:
+</details>
+
+Three pages:
 
 - **Fixtures** — one gameweek at a time (completed and upcoming matches
   together), with prev/next controls to browse other gameweeks. Every

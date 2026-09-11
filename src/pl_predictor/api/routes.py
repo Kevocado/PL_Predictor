@@ -672,10 +672,15 @@ def _resolve_current_gameweek(current_gameweek: int | None, fd_org_matches: pd.D
     lowest-unfinished-matchday fallback) still points at a gameweek once
     every one of its matches is resolved, until the *next* gameweek produces
     its own first resolved match — which can be days later (e.g. a Sunday
-    finish, Friday restart). Advances to the next gameweek a day early
-    instead of waiting for kickoff, so the default view doesn't sit on a
-    fully-finished gameweek for days. `now` is injectable for tests; real
-    callers always use the default (actual current time)."""
+    finish, Friday restart). Advances to the next gameweek on the calendar
+    day before it kicks off, not the moment kickoff is within a rolling 24
+    hours — a rolling window can sit as much as several hours into "the day
+    before" still refusing to advance (confirmed live: a 14:00 UTC kickoff
+    tomorrow left this on the fully-finished gameweek all morning, since
+    "tomorrow 14:00" is >24h from "today 09:00"), which reads as stuck to
+    anyone checking earlier in the day than the previous kickoff's own time
+    of day. `now` is injectable for tests; real callers always use the
+    default (actual current time)."""
     if current_gameweek is None or fd_org_matches.empty:
         return current_gameweek
 
@@ -690,7 +695,7 @@ def _resolve_current_gameweek(current_gameweek: int | None, fd_org_matches: pd.D
 
     now = now if now is not None else pd.Timestamp.now(tz="UTC")
     next_kickoff = pd.to_datetime(next_gw_matches["commence_time"], utc=True).min()
-    if next_kickoff <= now + pd.Timedelta(days=1):
+    if next_kickoff.normalize() <= now.normalize() + pd.Timedelta(days=1):
         return current_gameweek + 1
     return current_gameweek
 
