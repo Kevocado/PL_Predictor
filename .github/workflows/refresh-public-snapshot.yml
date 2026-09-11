@@ -59,6 +59,7 @@ jobs:
       - name: Build snapshot
         env:
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          SPORTSBOOK_API_KEY: ${{ secrets.SPORTSBOOK_API_KEY }}
           FOOTBALL_DATA_KEY: ${{ secrets.FOOTBALL_DATA_KEY }}
           API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
         run: python -m pl_predictor.public_snapshot
