@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-11T13:47:15.967924+00:00",
+  "generated_at": "2026-09-11T14:15:32.461369+00:00",
   "model_fingerprint": "39d209df70d5d73eb92b4a2e71ae0c6f4f3a6d5ff57fffcaf67dcc2b49c97f09",
   "current_gameweek": 4,
   "min_gameweek": 1,
@@ -625,7 +625,7 @@
           "player_events_pending": true
         }
       ],
-      "is_current": true,
+      "is_current": false,
       "min_gameweek": 1,
       "max_gameweek": 38
     },
@@ -803,7 +803,7 @@
           "value_bet_flags": []
         }
       ],
-      "is_current": false,
+      "is_current": true,
       "min_gameweek": 1,
       "max_gameweek": 38
     },
@@ -209321,8 +209321,8 @@
           "name": "Maddison",
           "team": "Tottenham",
           "position": "MID",
-          "status": "d",
-          "chance_of_playing": 75,
+          "status": "a",
+          "chance_of_playing": 100,
           "minutes": 22,
           "starts": 0,
           "goals": 0,
@@ -209335,15 +209335,15 @@
           "ict": 2.1,
           "bps": 6,
           "bonus": 0,
-          "news": "Shoulder injury - 75% chance of playing",
+          "news": "",
           "quality_rating": 90.1,
           "form_rating": 0.0,
           "live_form_rating": 16.7,
           "live_form_vs_quality": -73.4,
           "overall_rating": 90.1,
-          "current_impact_rating": 14.1,
+          "current_impact_rating": 25.0,
           "rating_driver": "Expected goal involvements",
-          "rating_expected_minutes": 18.8,
+          "rating_expected_minutes": 25.0,
           "rating_status": "established",
           "rating_evidence_minutes": 3970.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -224777,8 +224777,8 @@
           "name": "Emegha",
           "team": "Chelsea",
           "position": "FWD",
-          "status": "d",
-          "chance_of_playing": 75,
+          "status": "i",
+          "chance_of_playing": 0,
           "minutes": 0,
           "starts": 0,
           "goals": 0,
@@ -224791,15 +224791,15 @@
           "ict": 0.0,
           "bps": 0,
           "bonus": 0,
-          "news": "Hamstring injury - 75% chance of playing",
+          "news": "Hamstring injury - Expected back 18 Sep",
           "quality_rating": null,
           "form_rating": 0.0,
           "live_form_rating": 14.0,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 2.2,
+          "current_impact_rating": 0.0,
           "rating_driver": "Expected goals",
-          "rating_expected_minutes": 18.8,
+          "rating_expected_minutes": 0.0,
           "rating_status": "provisional",
           "rating_evidence_minutes": 0.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -227113,8 +227113,8 @@
           "name": "Matusiwa",
           "team": "Ipswich",
           "position": "MID",
-          "status": "i",
-          "chance_of_playing": 0,
+          "status": "d",
+          "chance_of_playing": 75,
           "minutes": 0,
           "starts": 0,
           "goals": 0,
@@ -227127,15 +227127,15 @@
           "ict": 0.0,
           "bps": 0,
           "bonus": 0,
-          "news": "Muscular injury - Unknown return date",
+          "news": "Muscular injury - 75% chance of playing",
           "quality_rating": null,
           "form_rating": 0.0,
           "live_form_rating": 14.0,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 0.0,
+          "current_impact_rating": 2.2,
           "rating_driver": "Expected goal involvements",
-          "rating_expected_minutes": 0.0,
+          "rating_expected_minutes": 18.8,
           "rating_status": "provisional",
           "rating_evidence_minutes": 0.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -227273,8 +227273,8 @@
           "name": "Philogene",
           "team": "Ipswich",
           "position": "MID",
-          "status": "i",
-          "chance_of_playing": 0,
+          "status": "d",
+          "chance_of_playing": 75,
           "minutes": 0,
           "starts": 0,
           "goals": 0,
@@ -227287,15 +227287,15 @@
           "ict": 0.0,
           "bps": 0,
           "bonus": 0,
-          "news": "Ankle injury - Unknown return date",
+          "news": "Ankle injury - 75% chance of playing",
           "quality_rating": null,
           "form_rating": 0.0,
           "live_form_rating": 14.0,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 0.0,
+          "current_impact_rating": 2.2,
           "rating_driver": "Expected goal involvements",
-          "rating_expected_minutes": 0.0,
+          "rating_expected_minutes": 18.8,
           "rating_status": "provisional",
           "rating_evidence_minutes": 799.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -230870,7 +230870,7 @@
   "fpl": {
     "projections": {
       "gameweek": 4,
-      "generated_at": "2026-09-11T13:47:15.919301+00:00",
+      "generated_at": "2026-09-11T14:15:32.409481+00:00",
       "model_source": "hybrid_match_context_baseline",
       "data_freshness": "live official FPL API + independent pre-match scoreline model",
       "players": [
@@ -244411,6 +244411,38 @@
           ]
         },
         {
+          "player_id": 515,
+          "name": "James Maddison",
+          "web_name": "Maddison",
+          "team": "Spurs",
+          "team_id": 19,
+          "position": "MID",
+          "price": 6.3,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 25.0,
+          "projected_points": 1.05,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 3,
+              "expected_goals": 1.4,
+              "clean_sheet_probability": 0.219,
+              "expected_minutes": 25.0,
+              "opponent": "Everton",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "25 expected minutes",
+            "form 0.3",
+            "1.40 expected team goals"
+          ]
+        },
+        {
           "player_id": 548,
           "name": "Chris Rigg",
           "web_name": "Rigg",
@@ -246395,59 +246427,27 @@
           ]
         },
         {
-          "player_id": 515,
-          "name": "James Maddison",
-          "web_name": "Maddison",
-          "team": "Spurs",
-          "team_id": 19,
+          "player_id": 310,
+          "name": "Azor Matusiwa",
+          "web_name": "Matusiwa",
+          "team": "Ipswich Town",
+          "team_id": 12,
           "position": "MID",
-          "price": 6.3,
+          "price": 4.9,
           "status": "d",
-          "news": "Shoulder injury - 75% chance of playing",
+          "news": "Muscular injury - 75% chance of playing",
           "availability": 0.75,
           "expected_minutes": 18.8,
-          "projected_points": 0.8,
+          "projected_points": 0.72,
           "fixture_count": 1,
           "fixtures": [
             {
-              "was_home": true,
+              "was_home": false,
               "difficulty": 3,
-              "expected_goals": 1.4,
-              "clean_sheet_probability": 0.219,
+              "expected_goals": 1.06,
+              "clean_sheet_probability": 0.18,
               "expected_minutes": 18.8,
-              "opponent": "Everton",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "19 expected minutes",
-            "form 0.3",
-            "1.40 expected team goals"
-          ]
-        },
-        {
-          "player_id": 170,
-          "name": "Emmanuel Emegha",
-          "web_name": "Emegha",
-          "team": "Chelsea",
-          "team_id": 6,
-          "position": "FWD",
-          "price": 5.0,
-          "status": "d",
-          "news": "Hamstring injury - 75% chance of playing",
-          "availability": 0.75,
-          "expected_minutes": 18.8,
-          "projected_points": 0.68,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 2,
-              "expected_goals": 1.66,
-              "clean_sheet_probability": 0.36,
-              "expected_minutes": 18.8,
-              "opponent": "Hull City",
+              "opponent": "Crystal Palace",
               "model_source": "independent_scoreline"
             }
           ],
@@ -246455,7 +246455,39 @@
             "1 fixture",
             "19 expected minutes",
             "form 0.0",
-            "1.66 expected team goals"
+            "1.06 expected team goals"
+          ]
+        },
+        {
+          "player_id": 318,
+          "name": "Jaden Philogene",
+          "web_name": "Philogene",
+          "team": "Ipswich Town",
+          "team_id": 12,
+          "position": "MID",
+          "price": 5.4,
+          "status": "d",
+          "news": "Ankle injury - 75% chance of playing",
+          "availability": 0.75,
+          "expected_minutes": 18.8,
+          "projected_points": 0.72,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": false,
+              "difficulty": 3,
+              "expected_goals": 1.06,
+              "clean_sheet_probability": 0.18,
+              "expected_minutes": 18.8,
+              "opponent": "Crystal Palace",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "19 expected minutes",
+            "form 0.0",
+            "1.06 expected team goals"
           ]
         },
         {
@@ -248507,6 +248539,38 @@
           ]
         },
         {
+          "player_id": 170,
+          "name": "Emmanuel Emegha",
+          "web_name": "Emegha",
+          "team": "Chelsea",
+          "team_id": 6,
+          "position": "FWD",
+          "price": 5.0,
+          "status": "i",
+          "news": "Hamstring injury - Expected back 18 Sep",
+          "availability": 0.0,
+          "expected_minutes": 0.0,
+          "projected_points": 0.0,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 2,
+              "expected_goals": 1.66,
+              "clean_sheet_probability": 0.36,
+              "expected_minutes": 0.0,
+              "opponent": "Hull City",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "0 expected minutes",
+            "form 0.0",
+            "1.66 expected team goals"
+          ]
+        },
+        {
           "player_id": 171,
           "name": "Oliver Dovin",
           "web_name": "Dovin",
@@ -249627,38 +249691,6 @@
           ]
         },
         {
-          "player_id": 310,
-          "name": "Azor Matusiwa",
-          "web_name": "Matusiwa",
-          "team": "Ipswich Town",
-          "team_id": 12,
-          "position": "MID",
-          "price": 4.9,
-          "status": "i",
-          "news": "Muscular injury - Unknown return date",
-          "availability": 0.0,
-          "expected_minutes": 0.0,
-          "projected_points": 0.0,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": false,
-              "difficulty": 3,
-              "expected_goals": 1.06,
-              "clean_sheet_probability": 0.18,
-              "expected_minutes": 0.0,
-              "opponent": "Crystal Palace",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "0 expected minutes",
-            "form 0.0",
-            "1.06 expected team goals"
-          ]
-        },
-        {
           "player_id": 311,
           "name": "Wes Burns",
           "web_name": "Burns",
@@ -249764,38 +249796,6 @@
           "price": 5.0,
           "status": "u",
           "news": "Has joined Stoke City permanently",
-          "availability": 0.0,
-          "expected_minutes": 0.0,
-          "projected_points": 0.0,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": false,
-              "difficulty": 3,
-              "expected_goals": 1.06,
-              "clean_sheet_probability": 0.18,
-              "expected_minutes": 0.0,
-              "opponent": "Crystal Palace",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "0 expected minutes",
-            "form 0.0",
-            "1.06 expected team goals"
-          ]
-        },
-        {
-          "player_id": 318,
-          "name": "Jaden Philogene",
-          "web_name": "Philogene",
-          "team": "Ipswich Town",
-          "team_id": 12,
-          "position": "MID",
-          "price": 5.4,
-          "status": "i",
-          "news": "Ankle injury - Unknown return date",
           "availability": 0.0,
           "expected_minutes": 0.0,
           "projected_points": 0.0,
