@@ -224,4 +224,6 @@ def predict_market_models_for_fixture(models: dict, feature_row: pd.Series, line
         "cards": price_over_under(cards_lambda, line_cards, models.get("cards_dispersion")),
         "home_shots": float(models["home_shots"].predict(X)[0]),
         "away_shots": float(models["away_shots"].predict(X)[0]),
+        "home_shots_on_target": float(models["home_shots_on_target"].predict(X)[0]),
+        "away_shots_on_target": float(models["away_shots_on_target"].predict(X)[0]),
     }

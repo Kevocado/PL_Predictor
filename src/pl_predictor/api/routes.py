@@ -1010,6 +1010,8 @@ def _build_fixture_detail(summary: FixtureSummary, home: str, away: str, read_on
         ),
         home_shots=market_preds["home_shots"],
         away_shots=market_preds["away_shots"],
+        home_shots_on_target=market_preds["home_shots_on_target"],
+        away_shots_on_target=market_preds["away_shots_on_target"],
         cards=OverUnderPrediction(
             lambda_=market_preds["cards"]["lambda"],
             line=market_preds["cards"]["line"],

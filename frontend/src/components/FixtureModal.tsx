@@ -445,6 +445,12 @@ export function FixtureModal({ eventId, onClose }: Props) {
                           {detail.team_home} {detail.home_shots.toFixed(1)} · {detail.team_away} {detail.away_shots.toFixed(1)}
                         </span>
                       </div>
+                      <div className="flex items-center justify-between rounded-lg bg-pl-850/60 px-3 py-2 text-sm">
+                        <span className="text-pl-text-dim">Predicted shots on target</span>
+                        <span className="font-semibold text-pl-text">
+                          {detail.team_home} {detail.home_shots_on_target.toFixed(1)} · {detail.team_away} {detail.away_shots_on_target.toFixed(1)}
+                        </span>
+                      </div>
                     </div>
                     {!detail.has_live_odds && <p className="mt-2 text-xs text-pl-text-faint">{GLOSSARY.noLiveMarket}</p>}
                     {!detail.post_match && !detail.recommended_bet && (

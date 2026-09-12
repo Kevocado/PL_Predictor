@@ -32,6 +32,8 @@ CORNERS_MODEL_PATH = MODELS_DIR / "corners_xgb.json"
 CARDS_MODEL_PATH = MODELS_DIR / "cards_xgb.json"
 HOME_SHOTS_MODEL_PATH = MODELS_DIR / "home_shots_xgb.json"
 AWAY_SHOTS_MODEL_PATH = MODELS_DIR / "away_shots_xgb.json"
+HOME_SHOTS_ON_TARGET_MODEL_PATH = MODELS_DIR / "home_shots_on_target_xgb.json"
+AWAY_SHOTS_ON_TARGET_MODEL_PATH = MODELS_DIR / "away_shots_on_target_xgb.json"
 DIXON_COLES_PATH = MODELS_DIR / "dixon_coles.pkl"
 BIVARIATE_POISSON_PATH = MODELS_DIR / "bivariate_poisson.pkl"
 ML_HOME_MODEL_PATH = MODELS_DIR / "ml_scoreline_home.json"
@@ -339,6 +341,20 @@ def train_all(seasons: list[str] | None = None, include_current_season: bool = T
     market_models.save_regressor(home_shots_model, HOME_SHOTS_MODEL_PATH)
     market_models.save_regressor(away_shots_model, AWAY_SHOTS_MODEL_PATH)
 
+    home_sot_dispersion = market_models.check_overdispersion(train_df["home_shots_on_target"].to_numpy())
+    away_sot_dispersion = market_models.check_overdispersion(train_df["away_shots_on_target"].to_numpy())
+    home_sot_model = market_models.train_lambda_regressor(X_train, train_df["home_shots_on_target"])
+    away_sot_model = market_models.train_lambda_regressor(X_train, train_df["away_shots_on_target"])
+    home_sot_metrics = _evaluate_count_model(home_sot_model, X_val, val_df["home_shots_on_target"])
+    away_sot_metrics = _evaluate_count_model(away_sot_model, X_val, val_df["away_shots_on_target"])
+    print(f"  > Home SOT MAE={home_sot_metrics['mae']:.2f}  Away SOT MAE={away_sot_metrics['mae']:.2f}")
+
+    home_sot_importance = _feature_importance(home_sot_model, X_val, val_df["home_shots_on_target"], feature_cols)
+    away_sot_importance = _feature_importance(away_sot_model, X_val, val_df["away_shots_on_target"], feature_cols)
+
+    market_models.save_regressor(home_sot_model, HOME_SHOTS_ON_TARGET_MODEL_PATH)
+    market_models.save_regressor(away_sot_model, AWAY_SHOTS_ON_TARGET_MODEL_PATH)
+
     manifest = {
         "trained_at": datetime.now(timezone.utc).isoformat(),
         "seasons": sorted(df["season"].unique().tolist()),
@@ -387,6 +403,16 @@ def train_all(seasons: list[str] | None = None, include_current_season: bool = T
             "away_dispersion": away_shots_dispersion,
             "home_importance": home_shots_importance,
             "away_importance": away_shots_importance,
+        },
+        "shots_on_target": {
+            "home_path": HOME_SHOTS_ON_TARGET_MODEL_PATH.name,
+            "away_path": AWAY_SHOTS_ON_TARGET_MODEL_PATH.name,
+            "home_metrics": home_sot_metrics,
+            "away_metrics": away_sot_metrics,
+            "home_dispersion": home_sot_dispersion,
+            "away_dispersion": away_sot_dispersion,
+            "home_importance": home_sot_importance,
+            "away_importance": away_sot_importance,
         },
     }
     MANIFEST_PATH.write_text(json.dumps(manifest, indent=2))
@@ -528,6 +554,8 @@ def load_models(matches_df: pd.DataFrame | None = None) -> Dict:
         "cards": market_models.load_regressor(CARDS_MODEL_PATH),
         "home_shots": market_models.load_regressor(HOME_SHOTS_MODEL_PATH),
         "away_shots": market_models.load_regressor(AWAY_SHOTS_MODEL_PATH),
+        "home_shots_on_target": market_models.load_regressor(HOME_SHOTS_ON_TARGET_MODEL_PATH),
+        "away_shots_on_target": market_models.load_regressor(AWAY_SHOTS_ON_TARGET_MODEL_PATH),
         "feature_cols": manifest["features"],
         "corners_dispersion": manifest["corners"]["dispersion"],
         "cards_dispersion": manifest["cards"]["dispersion"],

@@ -29,7 +29,31 @@ import type {
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api";
 const READ_TIMEOUT_MS = 20_000;
 const READ_CACHE_TTL_MS = 45_000;
+// A cold backend's first real request can take ~50s (see api/routes.py's
+// warm_caches -- it pre-builds the same expensive value-bet table this
+// polls for, but a request landing before that background warm-up
+// finishes still has to wait for it). A blind instant retry after the
+// first 20s timeout was landing in the same still-warming window and
+// failing again -- polling /health first means the retry actually happens
+// once the backend reports ready, not just "some time later."
+const WARMUP_POLL_INTERVAL_MS = 3_000;
+const WARMUP_POLL_MAX_MS = 90_000;
 const readCache = new Map<string, { expiresAt: number; promise: Promise<unknown> }>();
+
+async function waitForBackendWarmup(): Promise<void> {
+  const deadline = Date.now() + WARMUP_POLL_MAX_MS;
+  while (Date.now() < deadline) {
+    try {
+      const res = await fetch(`${BASE_URL}/health`);
+      if (!res.ok) return;
+      const body = await res.json();
+      if (body?.cache_warmup?.state !== "warming") return;
+    } catch {
+      return; // health check itself unreachable -- let the real retry's own error handling take over
+    }
+    await new Promise((resolve) => window.setTimeout(resolve, WARMUP_POLL_INTERVAL_MS));
+  }
+}
 
 async function fetchRead<T>(path: string): Promise<T> {
   let lastError: unknown;
@@ -45,7 +69,12 @@ async function fetchRead<T>(path: string): Promise<T> {
       return res.json();
     } catch (error) {
       lastError = error;
-      if (attempt === 0 && !(error instanceof ApiError)) continue;
+      if (attempt === 0 && !(error instanceof ApiError)) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          await waitForBackendWarmup();
+        }
+        continue;
+      }
     } finally {
       window.clearTimeout(timeout);
     }

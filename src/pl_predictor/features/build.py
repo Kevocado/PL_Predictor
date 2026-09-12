@@ -30,7 +30,10 @@ from . import (
 
 # Targets / raw-outcome columns that must never appear in the feature list
 # (that would be leaking the match's own result into its own features).
-TARGET_COLS = ["goals_home", "goals_away", "ftr", "total_corners", "total_cards", "home_shots", "away_shots"]
+TARGET_COLS = [
+    "goals_home", "goals_away", "ftr", "total_corners", "total_cards",
+    "home_shots", "away_shots", "home_shots_on_target", "away_shots_on_target",
+]
 
 
 def _add_targets(matches_df: pd.DataFrame) -> pd.DataFrame:
@@ -48,6 +51,8 @@ def _add_targets(matches_df: pd.DataFrame) -> pd.DataFrame:
     # which are conventionally quoted as one combined match line.
     df["home_shots"] = df.get("hs", zeros).fillna(0)
     df["away_shots"] = df.get("as", zeros).fillna(0)
+    df["home_shots_on_target"] = df.get("hst", zeros).fillna(0)
+    df["away_shots_on_target"] = df.get("ast", zeros).fillna(0)
     return df
 
 

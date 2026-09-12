@@ -162,6 +162,8 @@ class FixtureDetail(FixtureSummary):
     # why shots doesn't get the corners/cards O/U treatment.
     home_shots: float
     away_shots: float
+    home_shots_on_target: float
+    away_shots_on_target: float
     head_to_head: list[H2HMeeting]
     home_recent_form: list[str]
     away_recent_form: list[str]
