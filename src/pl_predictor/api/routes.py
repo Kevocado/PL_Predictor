@@ -434,6 +434,15 @@ def warm_caches() -> None:
         ("remaining_fixtures_df", _get_remaining_fixtures_df),
         ("bootstrap", _get_bootstrap),
         ("odds_df", _get_odds_df),
+        # The actual page the frontend loads first (see FixturesPage.tsx) --
+        # not just its inputs above. Confirmed live: every input here was
+        # already warmed except the assembly itself (`_value_bet_table`,
+        # ~11s cold: it batch-predicts every remaining fixture's scoreline)
+        # plus `current_gameweek_fixtures`'s own tracking reconciliation
+        # pass -- so opening the Fixtures page shortly after startup still
+        # paid that full cost on the first real request and blew past the
+        # frontend's 20s timeout ("The API is still preparing data").
+        ("current_gameweek_fixtures", current_gameweek_fixtures),
         ("power_rankings", get_power_rankings),
         ("projected_table", get_projected_table),
     ]:

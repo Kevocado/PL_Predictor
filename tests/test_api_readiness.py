@@ -30,6 +30,7 @@ def test_warm_caches_prioritises_calibration_before_noncritical_payloads(monkeyp
     monkeypatch.setattr(routes, "_get_remaining_fixtures_df", cached("remaining"))
     monkeypatch.setattr(routes, "_get_bootstrap", cached("bootstrap"))
     monkeypatch.setattr(routes, "_get_odds_df", cached("odds"))
+    monkeypatch.setattr(routes, "current_gameweek_fixtures", cached("current_gameweek_fixtures"))
     monkeypatch.setattr(routes, "get_power_rankings", cached("rankings"))
     monkeypatch.setattr(routes, "get_projected_table", cached("table"))
 
