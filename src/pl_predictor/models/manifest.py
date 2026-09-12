@@ -30,6 +30,8 @@ MANIFEST_PATH = MODELS_DIR / "manifest.json"
 MANIFEST_HISTORY_PATH = MODELS_DIR / "manifest_history.jsonl"
 CORNERS_MODEL_PATH = MODELS_DIR / "corners_xgb.json"
 CARDS_MODEL_PATH = MODELS_DIR / "cards_xgb.json"
+HOME_SHOTS_MODEL_PATH = MODELS_DIR / "home_shots_xgb.json"
+AWAY_SHOTS_MODEL_PATH = MODELS_DIR / "away_shots_xgb.json"
 DIXON_COLES_PATH = MODELS_DIR / "dixon_coles.pkl"
 BIVARIATE_POISSON_PATH = MODELS_DIR / "bivariate_poisson.pkl"
 ML_HOME_MODEL_PATH = MODELS_DIR / "ml_scoreline_home.json"
@@ -318,6 +320,25 @@ def train_all(seasons: list[str] | None = None, include_current_season: bool = T
     market_models.save_regressor(corners_model, CORNERS_MODEL_PATH)
     market_models.save_regressor(cards_model, CARDS_MODEL_PATH)
 
+    # Team shots: same default window/feature set as cards (no dedicated
+    # MARKET_TRAINING_WINDOWS entry -- unlike corners, no research finding
+    # yet justifies a different window length here). Two regressors, not
+    # one match-total like corners/cards, since shot volume is naturally
+    # asymmetric between a match's two sides.
+    home_shots_dispersion = market_models.check_overdispersion(train_df["home_shots"].to_numpy())
+    away_shots_dispersion = market_models.check_overdispersion(train_df["away_shots"].to_numpy())
+    home_shots_model = market_models.train_lambda_regressor(X_train, train_df["home_shots"])
+    away_shots_model = market_models.train_lambda_regressor(X_train, train_df["away_shots"])
+    home_shots_metrics = _evaluate_count_model(home_shots_model, X_val, val_df["home_shots"])
+    away_shots_metrics = _evaluate_count_model(away_shots_model, X_val, val_df["away_shots"])
+    print(f"  > Home shots MAE={home_shots_metrics['mae']:.2f}  Away shots MAE={away_shots_metrics['mae']:.2f}")
+
+    home_shots_importance = _feature_importance(home_shots_model, X_val, val_df["home_shots"], feature_cols)
+    away_shots_importance = _feature_importance(away_shots_model, X_val, val_df["away_shots"], feature_cols)
+
+    market_models.save_regressor(home_shots_model, HOME_SHOTS_MODEL_PATH)
+    market_models.save_regressor(away_shots_model, AWAY_SHOTS_MODEL_PATH)
+
     manifest = {
         "trained_at": datetime.now(timezone.utc).isoformat(),
         "seasons": sorted(df["season"].unique().tolist()),
@@ -356,6 +377,16 @@ def train_all(seasons: list[str] | None = None, include_current_season: bool = T
             "metrics": cards_metrics,
             "dispersion": cards_dispersion,
             "importance": cards_importance,
+        },
+        "shots": {
+            "home_path": HOME_SHOTS_MODEL_PATH.name,
+            "away_path": AWAY_SHOTS_MODEL_PATH.name,
+            "home_metrics": home_shots_metrics,
+            "away_metrics": away_shots_metrics,
+            "home_dispersion": home_shots_dispersion,
+            "away_dispersion": away_shots_dispersion,
+            "home_importance": home_shots_importance,
+            "away_importance": away_shots_importance,
         },
     }
     MANIFEST_PATH.write_text(json.dumps(manifest, indent=2))
@@ -495,6 +526,8 @@ def load_models(matches_df: pd.DataFrame | None = None) -> Dict:
         "dixon_coles_for_rankings": dixon_coles_for_rankings,
         "corners": market_models.load_regressor(CORNERS_MODEL_PATH),
         "cards": market_models.load_regressor(CARDS_MODEL_PATH),
+        "home_shots": market_models.load_regressor(HOME_SHOTS_MODEL_PATH),
+        "away_shots": market_models.load_regressor(AWAY_SHOTS_MODEL_PATH),
         "feature_cols": manifest["features"],
         "corners_dispersion": manifest["corners"]["dispersion"],
         "cards_dispersion": manifest["cards"]["dispersion"],

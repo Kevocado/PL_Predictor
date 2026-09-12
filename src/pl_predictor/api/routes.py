@@ -576,8 +576,10 @@ def _capture_fixture_market_predictions(table: pd.DataFrame) -> None:
     )
     for (_, fixture), (_, feature_row) in zip(table.iterrows(), feature_rows.iterrows()):
         predictions = value_bets.predict_market_models_for_fixture(models, feature_row)
+        # Only the O/U-shaped markets -- see fixture_detail's identical note.
         tracking_store.record_fixture_market_predictions(
-            fixture["event_id"], fixture["team_home"], fixture["team_away"], fixture["commence_time"], predictions
+            fixture["event_id"], fixture["team_home"], fixture["team_away"], fixture["commence_time"],
+            {"corners": predictions["corners"], "cards": predictions["cards"]},
         )
 
 
@@ -976,8 +978,12 @@ def _build_fixture_detail(summary: FixtureSummary, home: str, away: str, read_on
         if fixture_time.tzinfo is not None:
             fixture_time = fixture_time.tz_localize(None)
         provenance = "snapshot" if fixture_time > pd.Timestamp.now(tz="UTC").tz_localize(None) else "reconstructed"
+        # Only the O/U-shaped markets -- record_fixture_market_predictions'
+        # table has NOT NULL line/over/under columns, which home_shots/
+        # away_shots (plain expected values, no O/U line) don't have.
         tracking_store.record_fixture_market_predictions(
-            summary.event_id, home, away, summary.commence_time, market_preds, provenance=provenance
+            summary.event_id, home, away, summary.commence_time,
+            {"corners": market_preds["corners"], "cards": market_preds["cards"]}, provenance=provenance,
         )
         _cached(
             "reconcile_fixture_market_predictions",
@@ -1002,6 +1008,8 @@ def _build_fixture_detail(summary: FixtureSummary, home: str, away: str, read_on
             over=market_preds["corners"]["over"],
             under=market_preds["corners"]["under"],
         ),
+        home_shots=market_preds["home_shots"],
+        away_shots=market_preds["away_shots"],
         cards=OverUnderPrediction(
             lambda_=market_preds["cards"]["lambda"],
             line=market_preds["cards"]["line"],

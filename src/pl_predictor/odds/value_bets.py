@@ -205,8 +205,14 @@ def build_value_bet_table(
 
 
 def predict_market_models_for_fixture(models: dict, feature_row: pd.Series, line_corners: float = 9.5, line_cards: float = 3.5) -> dict:
-    """Corners/cards O/U pricing for one fixture, given its feature row (from
-    `features.build`). No live market to compare against — model-only."""
+    """Corners/cards O/U pricing, plus each team's plain expected shots, for
+    one fixture, given its feature row (from `features.build`). No live
+    market to compare against — model-only. Shots are reported as a plain
+    expected value per team (like `home_goal_expectation`/
+    `away_goal_expectation`), not an O/U line — unlike corners/cards, shot
+    volume is naturally asymmetric between a match's two sides, and there's
+    no natural single threshold to quote per team the way 9.5/3.5 work for
+    a match total."""
     feature_cols = models["feature_cols"]
     X = feature_row.reindex(feature_cols).fillna(0).to_numpy().reshape(1, -1)
 
@@ -216,4 +222,6 @@ def predict_market_models_for_fixture(models: dict, feature_row: pd.Series, line
     return {
         "corners": price_over_under(corners_lambda, line_corners, models.get("corners_dispersion")),
         "cards": price_over_under(cards_lambda, line_cards, models.get("cards_dispersion")),
+        "home_shots": float(models["home_shots"].predict(X)[0]),
+        "away_shots": float(models["away_shots"].predict(X)[0]),
     }

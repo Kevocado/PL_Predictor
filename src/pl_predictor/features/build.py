@@ -30,7 +30,7 @@ from . import (
 
 # Targets / raw-outcome columns that must never appear in the feature list
 # (that would be leaking the match's own result into its own features).
-TARGET_COLS = ["goals_home", "goals_away", "ftr", "total_corners", "total_cards"]
+TARGET_COLS = ["goals_home", "goals_away", "ftr", "total_corners", "total_cards", "home_shots", "away_shots"]
 
 
 def _add_targets(matches_df: pd.DataFrame) -> pd.DataFrame:
@@ -43,6 +43,11 @@ def _add_targets(matches_df: pd.DataFrame) -> pd.DataFrame:
         + df.get("hr", zeros).fillna(0)
         + df.get("ar", zeros).fillna(0)
     )
+    # Per-team (not match-total, unlike corners/cards above) -- shots is
+    # naturally asymmetric between a match's two sides, unlike corners/cards
+    # which are conventionally quoted as one combined match line.
+    df["home_shots"] = df.get("hs", zeros).fillna(0)
+    df["away_shots"] = df.get("as", zeros).fillna(0)
     return df
 
 

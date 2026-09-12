@@ -157,6 +157,11 @@ class FixtureDetail(FixtureSummary):
     top_scorelines: list[dict]
     corners: OverUnderPrediction
     cards: OverUnderPrediction
+    # Plain expected value per team, not an O/U line -- see
+    # odds/value_bets.py::predict_market_models_for_fixture's docstring for
+    # why shots doesn't get the corners/cards O/U treatment.
+    home_shots: float
+    away_shots: float
     head_to_head: list[H2HMeeting]
     home_recent_form: list[str]
     away_recent_form: list[str]

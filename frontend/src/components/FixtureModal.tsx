@@ -439,6 +439,12 @@ export function FixtureModal({ eventId, onClose }: Props) {
                       )}
                       <OverUnderRow label="Total corners" lam={detail.corners.lambda_} line={detail.corners.line} over={detail.corners.over} postMatchHit={postMatchVerdict(`Corners O/U ${detail.corners.line}`)?.hit} modelCall={isModelCall(detail.corners.over)} />
                       <OverUnderRow label="Total cards" lam={detail.cards.lambda_} line={detail.cards.line} over={detail.cards.over} postMatchHit={postMatchVerdict(`Cards O/U ${detail.cards.line}`)?.hit} modelCall={isModelCall(detail.cards.over)} />
+                      <div className="flex items-center justify-between rounded-lg bg-pl-850/60 px-3 py-2 text-sm">
+                        <span className="text-pl-text-dim">Predicted shots</span>
+                        <span className="font-semibold text-pl-text">
+                          {detail.team_home} {detail.home_shots.toFixed(1)} · {detail.team_away} {detail.away_shots.toFixed(1)}
+                        </span>
+                      </div>
                     </div>
                     {!detail.has_live_odds && <p className="mt-2 text-xs text-pl-text-faint">{GLOSSARY.noLiveMarket}</p>}
                     {!detail.post_match && !detail.recommended_bet && (
@@ -452,7 +458,7 @@ export function FixtureModal({ eventId, onClose }: Props) {
                             : "Live match-result and goals odds have not loaded yet, so a value bet cannot be calculated."}
                       </p>
                     )}
-                    <p className="mt-2 text-[11px] text-pl-text-faint">Corners/cards are match-context signals (for example, a high Over chance suggests a busier game), not verified betting edges.</p>
+                    <p className="mt-2 text-[11px] text-pl-text-faint">Corners/cards/shots are match-context signals (for example, a high Over chance suggests a busier game), not verified betting edges.</p>
                   </section>
                 </div>
               </div>

@@ -110,6 +110,10 @@ export interface FixtureDetail extends FixtureSummary {
   top_scorelines: ScorelineEntry[];
   corners: OverUnderPrediction;
   cards: OverUnderPrediction;
+  // Plain expected value per team, not an O/U line -- shot volume is
+  // naturally asymmetric between a match's two sides.
+  home_shots: number;
+  away_shots: number;
   head_to_head: H2HMeeting[];
   home_recent_form: string[];
   away_recent_form: string[];
