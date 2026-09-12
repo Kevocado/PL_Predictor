@@ -13,3 +13,4 @@ data/tracking.db-wal
 build/
 dist/
 .pytest_cache/
+.worktrees/
