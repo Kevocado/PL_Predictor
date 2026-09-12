@@ -439,18 +439,22 @@ export function FixtureModal({ eventId, onClose }: Props) {
                       )}
                       <OverUnderRow label="Total corners" lam={detail.corners.lambda_} line={detail.corners.line} over={detail.corners.over} postMatchHit={postMatchVerdict(`Corners O/U ${detail.corners.line}`)?.hit} modelCall={isModelCall(detail.corners.over)} />
                       <OverUnderRow label="Total cards" lam={detail.cards.lambda_} line={detail.cards.line} over={detail.cards.over} postMatchHit={postMatchVerdict(`Cards O/U ${detail.cards.line}`)?.hit} modelCall={isModelCall(detail.cards.over)} />
-                      <div className="flex items-center justify-between rounded-lg bg-pl-850/60 px-3 py-2 text-sm">
-                        <span className="text-pl-text-dim">Predicted shots</span>
-                        <span className="font-semibold text-pl-text">
-                          {detail.team_home} {detail.home_shots.toFixed(1)} · {detail.team_away} {detail.away_shots.toFixed(1)}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between rounded-lg bg-pl-850/60 px-3 py-2 text-sm">
-                        <span className="text-pl-text-dim">Predicted shots on target</span>
-                        <span className="font-semibold text-pl-text">
-                          {detail.team_home} {detail.home_shots_on_target.toFixed(1)} · {detail.team_away} {detail.away_shots_on_target.toFixed(1)}
-                        </span>
-                      </div>
+                      {detail.home_shots !== null && detail.away_shots !== null && (
+                        <div className="flex items-center justify-between rounded-lg bg-pl-850/60 px-3 py-2 text-sm">
+                          <span className="text-pl-text-dim">Predicted shots</span>
+                          <span className="font-semibold text-pl-text">
+                            {detail.team_home} {detail.home_shots.toFixed(1)} · {detail.team_away} {detail.away_shots.toFixed(1)}
+                          </span>
+                        </div>
+                      )}
+                      {detail.home_shots_on_target !== null && detail.away_shots_on_target !== null && (
+                        <div className="flex items-center justify-between rounded-lg bg-pl-850/60 px-3 py-2 text-sm">
+                          <span className="text-pl-text-dim">Predicted shots on target</span>
+                          <span className="font-semibold text-pl-text">
+                            {detail.team_home} {detail.home_shots_on_target.toFixed(1)} · {detail.team_away} {detail.away_shots_on_target.toFixed(1)}
+                          </span>
+                        </div>
+                      )}
                     </div>
                     {!detail.has_live_odds && <p className="mt-2 text-xs text-pl-text-faint">{GLOSSARY.noLiveMarket}</p>}
                     {!detail.post_match && !detail.recommended_bet && (

@@ -159,11 +159,18 @@ class FixtureDetail(FixtureSummary):
     cards: OverUnderPrediction
     # Plain expected value per team, not an O/U line -- see
     # odds/value_bets.py::predict_market_models_for_fixture's docstring for
-    # why shots doesn't get the corners/cards O/U treatment.
-    home_shots: float
-    away_shots: float
-    home_shots_on_target: float
-    away_shots_on_target: float
+    # why shots doesn't get the corners/cards O/U treatment. Optional (like
+    # predicted_total_goals/margin above) for the same reason: the public
+    # deployment serves fixture detail straight out of a pre-built
+    # public_snapshot.json (see routes.py::fixture_detail's PUBLIC_MODE
+    # branch), and an entry built before these fields existed won't have
+    # them -- a required field here would fail response_model validation
+    # on every such fixture (confirmed live: a bare 500) until every single
+    # snapshot entry gets rebuilt, which doesn't happen automatically.
+    home_shots: float | None = None
+    away_shots: float | None = None
+    home_shots_on_target: float | None = None
+    away_shots_on_target: float | None = None
     head_to_head: list[H2HMeeting]
     home_recent_form: list[str]
     away_recent_form: list[str]

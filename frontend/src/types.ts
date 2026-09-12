@@ -111,11 +111,14 @@ export interface FixtureDetail extends FixtureSummary {
   corners: OverUnderPrediction;
   cards: OverUnderPrediction;
   // Plain expected value per team, not an O/U line -- shot volume is
-  // naturally asymmetric between a match's two sides.
-  home_shots: number;
-  away_shots: number;
-  home_shots_on_target: number;
-  away_shots_on_target: number;
+  // naturally asymmetric between a match's two sides. Nullable: a fixture
+  // detail served from an older public_snapshot.json entry (see
+  // routes.py::fixture_detail's PUBLIC_MODE branch) may predate these
+  // fields entirely.
+  home_shots: number | null;
+  away_shots: number | null;
+  home_shots_on_target: number | null;
+  away_shots_on_target: number | null;
   head_to_head: H2HMeeting[];
   home_recent_form: string[];
   away_recent_form: string[];
