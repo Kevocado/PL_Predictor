@@ -20,6 +20,7 @@ from .routes import (
     background_tracking_tick,
     maybe_auto_retrain,
     refresh_lineups_near_kickoff,
+    refresh_live_caches_in_background,
     refresh_public_snapshot_from_remote,
     refresh_sportsbook_odds_in_background,
     router,
@@ -57,6 +58,22 @@ async def _lineup_refresh_loop():
     while True:
         await asyncio.sleep(_TRACKING_INTERVAL_SECONDS)
         await asyncio.to_thread(refresh_lineups_near_kickoff)
+
+
+async def _live_cache_refresh_loop():
+    # Strictly under _LIVE_CACHE_TTL_SECONDS (5 minutes): warm_caches only
+    # ever covers the *first* request after startup -- every TTL window
+    # after that, the cache goes stale again and whichever real request
+    # lands first pays the same ~50-65s cold-build cost warm_caches exists
+    # to avoid (confirmed live: this is why "The API is still preparing
+    # data" kept recurring well after startup, not just once). Proactively
+    # rebuilding a little before each expiry means no real request ever
+    # observes a cold cache at all.
+    # routes.py::_LIVE_CACHE_TTL_SECONDS is 300s -- stay comfortably under it.
+    interval = 240
+    while True:
+        await asyncio.sleep(interval)
+        await asyncio.to_thread(refresh_live_caches_in_background)
 
 
 async def _odds_refresh_loop():
@@ -113,11 +130,13 @@ async def lifespan(_app: FastAPI):
     tracking_task = asyncio.create_task(_tracking_loop())
     lineup_task = asyncio.create_task(_lineup_refresh_loop())
     odds_task = asyncio.create_task(_odds_refresh_loop())
+    live_cache_task = asyncio.create_task(_live_cache_refresh_loop())
     yield
     retrain_task.cancel()
     tracking_task.cancel()
     lineup_task.cancel()
     odds_task.cancel()
+    live_cache_task.cancel()
 
 
 app = FastAPI(title="PL Predictor API", lifespan=lifespan)

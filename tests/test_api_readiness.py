@@ -39,6 +39,40 @@ def test_warm_caches_prioritises_calibration_before_noncritical_payloads(monkeyp
     assert calls[:3] == ["matches", "models", "calibration"]
 
 
+def test_refresh_live_caches_in_background_skips_bootstrap_and_odds_own_loop(monkeypatch):
+    """Real incident: warm_caches only ever protects the *first* request
+    after startup -- every 5-minute TTL window after that, a stale cache
+    made whichever real request landed first pay the same ~50-65s cold
+    rebuild cost all over again. refresh_live_caches_in_background (called
+    on a repeating timer, see api/main.py) re-warms the same short-TTL
+    caches, but must not touch `bootstrap` (its own much longer 1h TTL
+    doesn't need re-warming this often)."""
+    calls = []
+
+    def cached(name):
+        return lambda: calls.append(name)
+
+    monkeypatch.setattr(routes, "_get_matches_df", cached("matches"))
+    monkeypatch.setattr(routes, "_get_models", cached("models"))
+    monkeypatch.setattr(routes, "get_calibration", cached("calibration"))
+    monkeypatch.setattr(routes, "_get_fixtures_df", cached("fixtures"))
+    monkeypatch.setattr(routes, "_get_remaining_fixtures_df", cached("remaining"))
+    monkeypatch.setattr(routes, "_get_bootstrap", cached("bootstrap"))
+    monkeypatch.setattr(routes, "_get_odds_df", cached("odds"))
+    monkeypatch.setattr(routes, "current_gameweek_fixtures", cached("current_gameweek_fixtures"))
+    monkeypatch.setattr(routes, "get_power_rankings", cached("rankings"))
+    monkeypatch.setattr(routes, "get_projected_table", cached("table"))
+    monkeypatch.setattr(routes, "_warmup_status", {"state": "ready", "started_at": None, "completed_at": None, "failures": []})
+
+    routes.refresh_live_caches_in_background()
+
+    assert "bootstrap" not in calls
+    assert calls == ["matches", "models", "calibration", "fixtures", "remaining", "odds", "current_gameweek_fixtures", "rankings", "table"]
+    # Must not touch startup's warmup status -- this runs on every tick,
+    # long after "ready" should have been the last word on it.
+    assert routes._warmup_status["state"] == "ready"
+
+
 def test_manifest_reports_live_result_coverage_separately_from_training_coverage(monkeypatch):
     monkeypatch.setattr(routes.manifest_lib, "load_manifest", lambda: {"n_current_season_matches": 10})
     monkeypatch.setattr(

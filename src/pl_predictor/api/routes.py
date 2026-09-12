@@ -282,6 +282,15 @@ def _get_fd_org_matches() -> pd.DataFrame:
             return football_data_org.fetch_matches()
         except FootballDataOrgKeyMissing:
             return pd.DataFrame()
+        except requests.RequestException as exc:
+            # A missing key isn't the only way this fails -- confirmed live:
+            # a transient DNS/network blip took down the *entire* Fixtures
+            # endpoint with an unhandled 500 (this was the only fetch in
+            # current_gameweek_fixtures's call chain without the same
+            # graceful-degradation _get_odds_df already has). Degrade to
+            # "no football-data.org data this cycle" instead.
+            print(f"[football_data_org] fetch failed, serving without it: {exc}")
+            return pd.DataFrame()
 
     return _cached("fd_org_matches", build, ttl=_LIVE_CACHE_TTL_SECONDS)
 
@@ -402,37 +411,27 @@ def refresh_sportsbook_odds_in_background() -> None:
     _clear_cache("fixtures_df", "value_bet_table")
 
 
-def warm_caches() -> None:
-    """Pre-populates every cache that would otherwise be paid for by
-    whichever real request happens to be first — called once at server
-    startup (see api/main.py's lifespan handler) so opening the very first
-    fixture in the UI doesn't eat a multi-second bootstrap cost that every
-    later fixture skips. `_get_bootstrap()` (a live FPL API call) and
-    `_get_position_priors()` (loads/aggregates historical FPL gameweek
-    data) are the two long-TTL ones that make "first click slow, everything
-    after fast" — `_get_models()`/`_get_matches_df()` have the shorter
-    5-minute live TTL and would eventually need re-warming anyway, but
-    warming them too means a server that's just started is fast immediately
-    rather than on whatever request happens to land first."""
-    global _warmup_status
-    _warmup_status = {
-        "state": "warming",
-        "started_at": datetime.now(timezone.utc).isoformat(),
-        "completed_at": None,
-        "failures": [],
-    }
-    failures: list[str] = []
-    # The first interactive dashboard calls Calibration and the projected
-    # table.  Warm their shared dependencies and Calibration first, before
-    # lower-priority fixture/odds payloads, so a cold start cannot make the
-    # user wait behind work unrelated to the page they opened.
-    for name, fn in [
+# The short-TTL (`_LIVE_CACHE_TTL_SECONDS`, 5 minutes) live-serving caches --
+# shared between `warm_caches` (startup) and `refresh_live_caches_in_
+# background` (periodic, see api/main.py's `_live_cache_refresh_loop`). Split
+# in two, as functions rather than module-level constants (the referenced
+# route handlers are defined later in this file, so building these lists at
+# import time would hit a NameError), only so `warm_caches` can slot
+# `bootstrap` (1h TTL, no need to redo every 5 minutes) into the same
+# relative position it always had, ahead of odds/fixtures/rankings but
+# after the dashboard's own critical path.
+def _live_cache_warmers_before_bootstrap() -> list:
+    return [
         ("matches_df", _get_matches_df),
         ("models", _get_models),
         ("calibration", get_calibration),
         ("fixtures_df", _get_fixtures_df),
         ("remaining_fixtures_df", _get_remaining_fixtures_df),
-        ("bootstrap", _get_bootstrap),
+    ]
+
+
+def _live_cache_warmers_after_bootstrap() -> list:
+    return [
         ("odds_df", _get_odds_df),
         # The actual page the frontend loads first (see FixturesPage.tsx) --
         # not just its inputs above. Confirmed live: every input here was
@@ -445,18 +444,67 @@ def warm_caches() -> None:
         ("current_gameweek_fixtures", current_gameweek_fixtures),
         ("power_rankings", get_power_rankings),
         ("projected_table", get_projected_table),
-    ]:
+    ]
+
+
+def _run_warmers(warmers: list) -> list[str]:
+    failures: list[str] = []
+    for name, fn in warmers:
         try:
             fn()
         except Exception as exc:  # noqa: BLE001 - warming is best-effort, never fatal
             failures.append(name)
             print(f"[warm_caches] {name} skipped: {exc}")
+    return failures
+
+
+def warm_caches() -> None:
+    """Pre-populates every cache that would otherwise be paid for by
+    whichever real request happens to be first — called once at server
+    startup (see api/main.py's lifespan handler) so opening the very first
+    fixture in the UI doesn't eat a multi-second bootstrap cost that every
+    later fixture skips. `_get_bootstrap()` (a live FPL API call) is the
+    one long-TTL entry that makes "first click slow, everything after
+    fast" — everything else here has the shorter 5-minute live TTL and
+    would eventually need re-warming anyway (see
+    `refresh_live_caches_in_background` for that), but warming it here too
+    means a server that's just started is fast immediately rather than on
+    whatever request happens to land first."""
+    global _warmup_status
+    _warmup_status = {
+        "state": "warming",
+        "started_at": datetime.now(timezone.utc).isoformat(),
+        "completed_at": None,
+        "failures": [],
+    }
+    # The first interactive dashboard calls Calibration and the projected
+    # table.  Warm their shared dependencies and Calibration first, before
+    # lower-priority fixture/odds payloads, so a cold start cannot make the
+    # user wait behind work unrelated to the page they opened.
+    failures = _run_warmers([
+        *_live_cache_warmers_before_bootstrap(),
+        ("bootstrap", _get_bootstrap),
+        *_live_cache_warmers_after_bootstrap(),
+    ])
     _warmup_status = {
         "state": "ready" if not failures else "degraded",
         "started_at": _warmup_status["started_at"],
         "completed_at": datetime.now(timezone.utc).isoformat(),
         "failures": failures,
     }
+
+
+def refresh_live_caches_in_background() -> None:
+    """Re-warms the same short-TTL caches `warm_caches` does at startup, on
+    a repeating timer (see api/main.py's `_live_cache_refresh_loop`) --
+    without this, `warm_caches` only ever prevents the *first* request
+    after startup from paying the cold-build cost; every 5 minutes after
+    that (`_LIVE_CACHE_TTL_SECONDS`), the cache goes stale again and
+    whichever real request happens to land first pays the same ~50-65s
+    cost warm_caches was built to avoid (confirmed live: this is why "The
+    API is still preparing data" kept recurring well after startup, not
+    just on the very first request)."""
+    _run_warmers([*_live_cache_warmers_before_bootstrap(), *_live_cache_warmers_after_bootstrap()])
 
 
 def maybe_auto_retrain() -> None:
