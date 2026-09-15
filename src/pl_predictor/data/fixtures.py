@@ -1,10 +1,16 @@
 """fixtures.py — upcoming EPL fixtures.
 
-Primary source: the event list embedded in The Odds API's response (one call
-gives fixtures *and* odds together). Falls back to the official FPL API's
-`/fixtures/` + `/bootstrap-static/` endpoints (team names only, no market
-odds) when `ODDS_API_KEY` isn't configured, so the app still shows upcoming
-matches before the user sets up a key.
+Primary source: `sportsbook_api.fetch_epl_fixtures` (RapidAPI's Sportsbook
+API's own event list — no odds needed, just fixtures). Falls back to the
+official FPL API's `/fixtures/` + `/bootstrap-static/` endpoints (team names
+only, no market odds) when `SPORTSBOOK_API_KEY` isn't configured or that
+provider is unavailable, so the app still shows upcoming matches either way.
+
+`odds_api.py` (The Odds API, this project's original odds source) is no
+longer used here — see its module docstring: it exhausts its monthly credit
+quota too often for day-to-day use and is kept only in case it's ever worth
+reverting to or supplementing with, same as `odds/value_bets.py`'s pricing
+already stopped depending on it.
 """
 
 from __future__ import annotations
@@ -12,27 +18,9 @@ from __future__ import annotations
 import pandas as pd
 import requests
 
-from .odds_api import OddsAPIKeyMissing, fetch_epl_odds_raw
 from . import fpl_api
+from .sportsbook_api import SportsbookAPIKeyMissing, fetch_epl_fixtures
 from .team_names import to_canonical
-
-
-def _fixtures_from_odds_api(gameweek_key: str, force_refresh: bool) -> pd.DataFrame:
-    events = fetch_epl_odds_raw(gameweek_key=gameweek_key, force_refresh=force_refresh)
-    rows = [
-        {
-            "event_id": e["id"],
-            "commence_time": e["commence_time"],
-            "team_home": to_canonical(e["home_team"], source="odds_api"),
-            "team_away": to_canonical(e["away_team"], source="odds_api"),
-            "has_odds": bool(e.get("bookmakers")),
-        }
-        for e in events
-    ]
-    df = pd.DataFrame(rows)
-    if not df.empty:
-        df["commence_time"] = pd.to_datetime(df["commence_time"])
-    return df
 
 
 def _fixtures_from_fpl_api() -> pd.DataFrame:
@@ -74,11 +62,11 @@ def _fixtures_from_fpl_api() -> pd.DataFrame:
 
 def _future_only(df: pd.DataFrame) -> pd.DataFrame:
     """Defense-in-depth: never rely solely on the upstream API to have
-    already dropped a fixture that's kicked off — The Odds API pulls
+    already dropped a fixture that's kicked off — the Sportsbook API pulls
     pre-match lines at kickoff (usually), and FPL's `finished` flag can lag
     a live match by a while, but neither is guaranteed instantaneous.
-    `commence_time` mixes tz-aware (Odds API, UTC) and naive (FPL) values —
-    same normalization idiom as `tracking/store.py::_naive`."""
+    `commence_time` mixes tz-aware (Sportsbook API, UTC) and naive (FPL)
+    values — same normalization idiom as `tracking/store.py::_naive`."""
     if df.empty:
         return df
     now = pd.Timestamp.now(tz="UTC").tz_localize(None)
@@ -86,32 +74,32 @@ def _future_only(df: pd.DataFrame) -> pd.DataFrame:
     return df[naive_commence >= now].reset_index(drop=True)
 
 
-def get_upcoming_fixtures(gameweek_key: str = "current", force_refresh: bool = False) -> pd.DataFrame:
+def get_upcoming_fixtures(force_refresh: bool = False) -> pd.DataFrame:
     """Returns columns: event_id, commence_time, team_home, team_away,
-    has_odds. `has_odds` tells callers whether `odds_api.fetch_epl_odds()`
+    has_odds. `has_odds` tells callers whether `sportsbook_api.fetch_epl_odds()`
     will have market data for this fixture."""
     try:
-        df = _fixtures_from_odds_api(gameweek_key=gameweek_key, force_refresh=force_refresh)
-    except OddsAPIKeyMissing:
+        df = fetch_epl_fixtures(force_refresh=force_refresh)
+    except SportsbookAPIKeyMissing:
         df = _fixtures_from_fpl_api()
     except requests.RequestException as exc:
-        # Same fallback as a missing key: a real rate limit, a used-up
-        # monthly credit quota (The Odds API returns 401 for that, not
-        # 429), or a transient outage shouldn't take the Fixtures tab (or
-        # the public snapshot build) down entirely -- fall back to
-        # fixtures-with-no-odds, same as before a key was ever configured.
-        print(f"[fixtures] Odds API unavailable, falling back to FPL fixtures (no market odds): {exc}")
+        # Same fallback as a missing key: a rate limit (150 requests/day,
+        # see sportsbook_api.py's module docstring), or a transient outage
+        # shouldn't take the Fixtures tab (or the public snapshot build)
+        # down entirely -- fall back to fixtures-with-no-odds, same as
+        # before a key was ever configured.
+        print(f"[fixtures] Sportsbook API unavailable, falling back to FPL fixtures (no market odds): {exc}")
         df = _fixtures_from_fpl_api()
     return _future_only(df)
 
 
 def get_all_remaining_fixtures() -> pd.DataFrame:
     """Every unplayed fixture for the rest of the season, regardless of
-    whether live odds exist for it yet. The Odds API only lists matches
-    close enough to kickoff to have a posted line, which is fine for the
-    Fixtures tab but wrong for anything projecting the *whole* remaining
-    season (e.g. the projected table) — this always uses the FPL API's full
-    fixture list instead."""
+    whether live odds exist for it yet. The Sportsbook API only lists
+    matches close enough to kickoff to have a posted line, which is fine
+    for the Fixtures tab but wrong for anything projecting the *whole*
+    remaining season (e.g. the projected table) — this always uses the FPL
+    API's full fixture list instead."""
     return _future_only(_fixtures_from_fpl_api())
 
 

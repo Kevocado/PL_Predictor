@@ -1,10 +1,28 @@
+from __future__ import annotations
+
+import os, pickle
+_DISK_CACHE_DIR = os.path.expanduser("~/.cache/pl_predictor")
+os.makedirs(_DISK_CACHE_DIR, exist_ok=True)
+def _disk_cache(name):
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            p = os.path.join(_DISK_CACHE_DIR, f"{name}.pkl")
+            if os.path.exists(p):
+                with open(p, "rb") as f:
+                    return pickle.load(f)
+            res = func(*args, **kwargs)
+            with open(p, "wb") as f:
+                pickle.dump(res, f)
+            return res
+        return wrapper
+    return decorator
+
 """routes.py — thin JSON-serialization layer over the existing `pl_predictor`
 package. No business logic lives here; every endpoint just calls the same
 functions the notebooks/tests already use and reshapes the result for the
 frontend.
 """
 
-from __future__ import annotations
 
 import json
 import time
@@ -216,7 +234,15 @@ def _get_models() -> dict:
 
 
 def _get_fixtures_df(force: bool = False) -> pd.DataFrame:
-    return _cached("fixtures_df", fixtures_mod.get_upcoming_fixtures, ttl=_LIVE_CACHE_TTL_SECONDS, force=force)
+    # fixtures_mod.get_upcoming_fixtures already tries the Sportsbook API
+    # first and falls back to FPL fixtures (no odds) on any failure -- see
+    # its own docstring. This used to duplicate that fallback here a second
+    # time, on top of the old Odds-API-primary source; that whole path was
+    # actually dead code (the inner call already swallowed every failure
+    # before it could reach this wrapper) and, on top of that, mapped
+    # Sportsbook participant *keys* through `to_canonical` instead of their
+    # names, which would have produced garbage team names had it ever run.
+    return _cached("fixtures_df", lambda: fixtures_mod.get_upcoming_fixtures(force_refresh=force), ttl=_LIVE_CACHE_TTL_SECONDS, force=force)
 
 
 def _get_remaining_fixtures_df() -> pd.DataFrame:
@@ -232,6 +258,13 @@ def _get_remaining_fixtures_df() -> pd.DataFrame:
         try:
             matches = football_data_org.fetch_matches()
         except FootballDataOrgKeyMissing:
+            return fixtures_mod.get_all_remaining_fixtures()
+        except requests.RequestException as exc:
+            # Same DNS/network-blip resilience as _get_fd_org_matches below
+            # -- a missing key isn't the only way this fails, and this
+            # call site had no fallback to the FPL-based fixture list at
+            # all before this, unlike the sibling functions here.
+            print(f"[football_data_org] fetch failed, falling back to FPL fixtures: {exc}")
             return fixtures_mod.get_all_remaining_fixtures()
         if matches.empty:
             return matches
@@ -253,6 +286,14 @@ def _get_fd_org_standings() -> pd.DataFrame:
         try:
             return football_data_org.fetch_standings()
         except FootballDataOrgKeyMissing:
+            return pd.DataFrame()
+        except requests.RequestException as exc:
+            # Real incident: a DNS resolution failure here took down
+            # /api/projected-table with an unhandled ConnectionError --
+            # same fallback as a missing key, since callers
+            # (_get_live_current_standings) already handle an empty
+            # frame by falling back to the FPL-derived standings.
+            print(f"[football_data_org] standings fetch failed, falling back: {exc}")
             return pd.DataFrame()
 
     return _cached("fd_org_standings", build, ttl=_LIVE_RESULTS_CACHE_TTL_SECONDS)
@@ -305,40 +346,49 @@ def _get_position_priors() -> dict:
 
 def _get_understat_fpl_crosswalk() -> dict:
     def build():
-        shot_players = understat_shots.load_current_season_player_shot_rows()
-        return understat_shots.build_understat_fpl_crosswalk(shot_players, _get_bootstrap())
+        from pl_predictor.data import understat as understat_mod
+        current_year = int(understat_mod.CURRENT_SEASON_START_YEAR)
+        seasons = [str(current_year), str(current_year - 1)]
+
+        history = understat_shots.load_player_shot_history(seasons=seasons)
+        if history.empty:
+            shot_players = pd.DataFrame(columns=["player", "player_id"])
+        else:
+            shot_players = (
+                history.drop_duplicates(subset=["player_id"])[["player", "player_id"]]
+                .reset_index(drop=True)
+            )
+
+        return understat_shots.build_understat_fpl_crosswalk(
+            shot_players, _get_bootstrap()
+        )
 
     return _cached("understat_fpl_crosswalk", build, ttl=24 * 3600)
 
-
 def _get_player_shots_by_element() -> dict[int, pd.DataFrame]:
     """FPL element id -> that player's own {date, shots, shots_on_target}
-    rows, for `player_goals.rank_team_players`'s live-serving merge (see
-    its own docstring) -- `fetch_player_summary`'s per-player live history
-    has no shots columns at all, so without this every player's shots
-    fields silently stay 0.0 rather than a real computed value."""
+    rows, for 's live-serving merge."""
     def build():
-        # The *current, in-progress* season, not the last *completed* one --
-        # default_completed_seasons(n=1)[-1] would return the wrong season
-        # (confirmed live: this returned last season's shots instead of the
-        # live one being predicted, so player_shots_by_element ended up
-        # empty for every current fixture despite real current-season shot
-        # data existing).
-        shots = understat_shots.load_player_shot_history(seasons=[str(understat.CURRENT_SEASON_START_YEAR)])
+        from pl_predictor.data import understat as understat_mod
+        current_year = int(understat_mod.CURRENT_SEASON_START_YEAR)
+        seasons_to_load = [str(current_year), str(current_year - 1)]
+
+        shots = understat_shots.load_player_shot_history(seasons=seasons_to_load)
         if shots.empty:
             return {}
+
         crosswalk = _get_understat_fpl_crosswalk()
         shots = shots.copy()
         shots["element"] = shots["player_id"].map(crosswalk)
         shots = shots.dropna(subset=["element"])
         shots["element"] = shots["element"].astype(int)
+
         return {
             element: group[["date", "shots", "shots_on_target"]]
             for element, group in shots.groupby("element")
         }
 
-    return _cached("player_shots_by_element", build, ttl=_LIVE_CACHE_TTL_SECONDS)
-
+    return _cached("player_shots_by_element", build, ttl=24 * 3600)
 
 def _get_player_reliability_coeffs() -> dict:
     """Small linear-regression coefficients (goals ~ [rate, threat],
@@ -352,10 +402,12 @@ def _get_player_reliability_coeffs() -> dict:
     return _cached("player_reliability_coeffs", player_goals.fit_reliability_coefficients, ttl=24 * 3600)
 
 
+@_disk_cache("lineup_model")
 def _get_lineup_model():
     return _cached("lineup_model", player_goals.fit_lineup_model, ttl=24 * 3600)
 
 
+@_disk_cache("pos_rates")
 def _get_position_rate_models() -> dict:
     return _cached("position_rate_models", player_goals.fit_position_rate_models, ttl=24 * 3600)
 
@@ -364,6 +416,7 @@ def _get_goal_contribution_model() -> dict:
     return _cached("goal_contribution_model", player_goals.fit_goal_contribution_model, ttl=24 * 3600)
 
 
+@_disk_cache("contrib_model")
 def _get_ready_goal_contribution_model() -> dict | None:
     """Return the direct G+A model only after startup warming has finished.
 

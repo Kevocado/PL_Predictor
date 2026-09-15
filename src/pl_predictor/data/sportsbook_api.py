@@ -244,6 +244,44 @@ def event_to_rows(
     return rows
 
 
+def fetch_epl_fixtures(force_refresh: bool = False) -> pd.DataFrame:
+    """Upcoming EPL fixtures sourced directly from this provider's own event
+    list — no odds needed, just `fetch_epl_events_raw`'s cached event list.
+    Same row shape `data/fixtures.py`'s other sources use (event_id,
+    commence_time, team_home, team_away, has_odds), keyed by *this*
+    provider's own event `key` so a later `fetch_epl_odds` call can look
+    prices back up for the same fixture without a fuzzy match.
+
+    Participant names come from each event's own `participants` list
+    (`{key: name}`), the same lookup `match_project_event_ids` already uses
+    — the home *key* alone (`homeParticipantKey`) isn't a team name and
+    must never be passed to `to_canonical` directly. There's no separate
+    `awayParticipantKey` field (confirmed live, same as
+    `match_project_event_ids`): away is whichever of the (exactly two)
+    participants isn't home."""
+    events = fetch_epl_events_raw(force_refresh=force_refresh)
+    rows = []
+    for event in events:
+        participants = {p["key"]: p["name"] for p in event.get("participants", [])}
+        home_key = event.get("homeParticipantKey")
+        if home_key not in participants or len(participants) != 2:
+            continue
+        away_name = next(name for key, name in participants.items() if key != home_key)
+        rows.append(
+            {
+                "event_id": str(event["key"]),
+                "commence_time": event.get("startTime"),
+                "team_home": to_canonical(participants[home_key], source="sportsbook_api"),
+                "team_away": to_canonical(away_name, source="sportsbook_api"),
+                "has_odds": True,
+            }
+        )
+    df = pd.DataFrame(rows)
+    if not df.empty:
+        df["commence_time"] = pd.to_datetime(df["commence_time"], utc=True)
+    return df
+
+
 def fetch_epl_odds(fixtures_df: pd.DataFrame, force_refresh: bool = False) -> pd.DataFrame:
     """Live odds for every fixture in `fixtures_df` that this provider has
     posted a line for, in the same long-format shape

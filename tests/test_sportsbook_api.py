@@ -1,5 +1,6 @@
 import pandas as pd
 
+from pl_predictor.data import sportsbook_api
 from pl_predictor.data.sportsbook_api import event_to_rows, match_project_event_ids
 
 # Trimmed from a real GET /v0/competitions/{key}/events response
@@ -77,6 +78,34 @@ _EVENT_ODDS = {
         },
     ],
 }
+
+
+def test_fetch_epl_fixtures_uses_participant_names_not_keys(monkeypatch):
+    # Real bug this guards against: an earlier caller passed
+    # `homeParticipantKey`/`awayParticipantKey` (opaque ids like
+    # "jFtf-wjcs-Wz8k") straight into `to_canonical` instead of looking up
+    # the matching participant *name* first -- silently unmappable team
+    # names, never a KeyError, since to_canonical falls back to its input.
+    monkeypatch.setattr(sportsbook_api, "fetch_epl_events_raw", lambda force_refresh=False: _LIST_EVENTS)
+
+    df = sportsbook_api.fetch_epl_fixtures()
+
+    assert len(df) == 1
+    row = df.iloc[0]
+    assert row["event_id"] == "qyLO-Ajup-5zBW"
+    assert row["team_home"] == "Fulham"
+    assert row["team_away"] == "Man United"
+    assert bool(row["has_odds"]) is True
+    assert row["commence_time"] == pd.Timestamp("2026-09-20T15:30:00Z")
+
+
+def test_fetch_epl_fixtures_skips_events_missing_a_participant(monkeypatch):
+    broken = [{**_LIST_EVENTS[0], "homeParticipantKey": "does-not-exist"}]
+    monkeypatch.setattr(sportsbook_api, "fetch_epl_events_raw", lambda force_refresh=False: broken)
+
+    df = sportsbook_api.fetch_epl_fixtures()
+
+    assert df.empty
 
 
 def test_match_project_event_ids_matches_by_team_names_and_time():

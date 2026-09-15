@@ -63,19 +63,19 @@ def test_fpl_fallback_keeps_unplayed_fixtures_from_the_in_progress_gameweek(monk
     assert sorted(df["gameweek"].tolist()) == [2, 3]
 
 
-def test_falls_back_to_fpl_fixtures_when_odds_api_errors(monkeypatch):
-    """Real incident: The Odds API returns 401 (not 429) once its monthly
-    free-tier credit quota is exhausted -- indistinguishable, from here, from
-    any other HTTP failure (a genuine rate limit, an outage). Only
-    `OddsAPIKeyMissing` fell back before this; any other `requests` failure
-    used to crash the whole Fixtures tab (and the public-snapshot build)
-    instead of degrading to fixtures-with-no-odds the same way a missing key
-    already does."""
+def test_falls_back_to_fpl_fixtures_when_sportsbook_api_errors(monkeypatch):
+    """Real incident: a read timeout hitting the (now-deprecated) Odds API
+    took down the whole Fixtures tab, because `get_upcoming_fixtures` was
+    still using it as the primary fixture source even after odds pricing
+    itself had already switched to the Sportsbook API. Any `requests`
+    failure from the actual primary source (Sportsbook API, a genuine rate
+    limit or an outage) must degrade to fixtures-with-no-odds instead of
+    crashing, same as a missing key already does."""
 
     def _raise(*args, **kwargs):
-        raise requests.HTTPError("401 quota exhausted")
+        raise requests.exceptions.ReadTimeout("read timeout")
 
-    monkeypatch.setattr(fixtures_mod, "fetch_epl_odds_raw", _raise)
+    monkeypatch.setattr(fixtures_mod, "fetch_epl_fixtures", _raise)
     monkeypatch.setattr(
         fixtures_mod,
         "_fixtures_from_fpl_api",
@@ -96,3 +96,30 @@ def test_falls_back_to_fpl_fixtures_when_odds_api_errors(monkeypatch):
 
     assert list(df["event_id"]) == ["fpl-1"]
     assert df["has_odds"].tolist() == [False]
+
+
+def test_falls_back_to_fpl_fixtures_when_sportsbook_key_missing(monkeypatch):
+    monkeypatch.setattr(
+        fixtures_mod,
+        "fetch_epl_fixtures",
+        lambda **kwargs: (_ for _ in ()).throw(fixtures_mod.SportsbookAPIKeyMissing("no key")),
+    )
+    monkeypatch.setattr(
+        fixtures_mod,
+        "_fixtures_from_fpl_api",
+        lambda: pd.DataFrame(
+            [
+                {
+                    "event_id": "fpl-1",
+                    "commence_time": pd.Timestamp.now(tz="UTC") + pd.Timedelta(days=1),
+                    "team_home": "Arsenal",
+                    "team_away": "Chelsea",
+                    "has_odds": False,
+                }
+            ]
+        ),
+    )
+
+    df = fixtures_mod.get_upcoming_fixtures()
+
+    assert list(df["event_id"]) == ["fpl-1"]
