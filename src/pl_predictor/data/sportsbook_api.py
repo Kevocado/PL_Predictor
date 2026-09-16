@@ -14,8 +14,8 @@ and `withOdds=true` are silently ignored. A full EPL gameweek costs ~10
 requests to price every fixture, against a confirmed 150/day cap (the
 `x-ratelimit-requests-limit` response header) — both event-list and
 per-event responses are cached to disk per `SPORTSBOOK_CACHE_TTL_SECONDS`
-(6h), so the periodic background refresh (~40 requests/day for a
-10-fixture gameweek) stays well inside that.
+(2h), so the periodic background refresh (~120 requests/day for a
+10-fixture gameweek) stays comfortably inside that.
 """
 
 from __future__ import annotations

@@ -92,9 +92,11 @@ SPORTSBOOK_API_KEY = os.getenv("SPORTSBOOK_API_KEY")
 SPORTSBOOK_API_HOST = "sportsbook-api2.p.rapidapi.com"
 SPORTSBOOK_API_BASE_URL = f"https://{SPORTSBOOK_API_HOST}/v0"
 SPORTSBOOK_EPL_COMPETITION_KEY = "Xa0f-wjcs-tANp"  # english-premier-league, from GET /v0/competitions
-# 6-hourly refresh: a 10-fixture EPL gameweek costs ~10 requests per
-# refresh cycle (~40/day at this cadence), well inside the 150/day cap.
-SPORTSBOOK_CACHE_TTL_SECONDS = 6 * 3600
+# 2-hourly refresh: a 10-fixture EPL gameweek costs ~10 requests per
+# refresh cycle (~120/day at this cadence), still comfortably inside the
+# 150/day cap while giving lines that move closer to live on matchdays
+# than the old 6-hourly cadence (~40/day) did.
+SPORTSBOOK_CACHE_TTL_SECONDS = 2 * 3600
 
 FPL_API_BASE_URL = "https://fantasy.premierleague.com/api"
 FPL_HISTORY_BASE_URL = "https://raw.githubusercontent.com/vaastav/Fantasy-Premier-League/master/data"

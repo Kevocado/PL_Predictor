@@ -2,8 +2,9 @@ name: Refresh public snapshot
 
 # Runs public_snapshot.py on GitHub's own infrastructure (full RAM, no
 # reliance on your laptop being on) and pushes data/public_snapshot.json if
-# it changed — Render's autoDeploy then picks up that push automatically.
-# See README's "Deploying a public, read-only version" section.
+# it changed — Azure's deploy-on-push then serves it (see README's
+# "Deploying a public, read-only version" section, and its note that the
+# live public deployment now runs on Azure Container Apps).
 
 on:
   schedule:
@@ -17,7 +18,19 @@ on:
     # day it could happen, without needing a separate weekday/weekend split
     # or per-slot cron entries that would break the moment fixtures get
     # rearranged. Cron's hour/day fields are UTC, same as everything here.
-    - cron: "0 11 * * 0"  # Weekly refresh every Sunday at 11:00 UTC
+    #
+    # Runs every 20 minutes across that window on matchdays so scores,
+    # gameweek promotion, and odds move close to live as games are played.
+    # This does NOT add Sportsbook API load beyond what it already used at
+    # the old weekly cadence: repeated runs inside SPORTSBOOK_CACHE_TTL_SECONDS
+    # (2h, see config.py) just reuse the same disk-cached odds, so requests
+    # only actually go out ~12x/day regardless of how often this fires
+    # (~120/day for a 10-fixture gameweek, still well under the Sportsbook
+    # API's 150/day cap -- see data/sportsbook_api.py). One extra daily run
+    # outside the match window catches everything else (team news, price
+    # moves, postponements, a new gameweek's fixture list appearing).
+    - cron: "*/20 11-21 * * 0,1,3,5,6"  # Every 20 min, 11:00-21:59 UTC, Sun/Mon/Wed/Fri/Sat
+    - cron: "0 8 * * *"  # Daily catch-all outside the match window, 08:00 UTC
   workflow_dispatch: {} # "Run workflow" button on this workflow's Actions page — a manual refresh-now.
 
 permissions:
