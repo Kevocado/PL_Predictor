@@ -61,6 +61,10 @@ export interface CurrentGameweekFixture {
   predicted_draw: number;
   predicted_away_win: number;
   predicted_scoreline: string | null;
+  // Top scoreline and the win/draw/loss percentages both point to a draw
+  // (see outcomes.py::predicted_result) -- informational only, not used
+  // for accuracy tracking.
+  draw_signal: boolean;
   hit: boolean | null;
   backfilled: boolean;
   has_live_odds: boolean;

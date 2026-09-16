@@ -20,6 +20,19 @@ from ..models.market_models import price_over_under
 MAX_RECOMMENDATION_ODDS = 6.0
 MAX_ODDS_AGE_SECONDS = 60 * 60
 
+# A positive edge alone isn't enough to call something "value" -- measured
+# directly against the offline backtest's own flagged bets, bucketed by the
+# model's own probability for the flagged side: every bucket under 30% lost
+# money on flat stakes (0-10% -100% ROI, 10-20% -31%, 20-30% -53%, n=44
+# total), while 30-40% was already solidly profitable (+13% ROI, n=40) and
+# 40-50% the best band measured (+43%, n=64). A heavy underdog can clear the
+# edge threshold on paper while still being a bad bet in practice -- the
+# model's calibration is least trustworthy exactly where it's making the
+# boldest claim (see evaluate/backtest.py's own note on this). Applied to
+# every market (1X2, O/U, BTTS), not just 1X2 -- the same tail-calibration
+# risk applies to a lopsided Over/Under or BTTS price too.
+MIN_VALUE_BET_PROBABILITY = 0.30
+
 
 def _best_quote(odds_df: pd.DataFrame, event_id, market: str, outcome_name: str, point: float | None = None) -> dict | None:
     rows = odds_df[
@@ -174,7 +187,9 @@ def build_value_bet_table(
         row["value_bet_flags"] = [] if row["odds_is_stale"] else [
             side
             for side in _SIDES
-            if row[f"{side}_edge"] is not None and row[f"{side}_edge"] > required_edge
+            if row[f"{side}_edge"] is not None
+            and row[f"{side}_edge"] > required_edge
+            and row[f"{side}_prob"] >= MIN_VALUE_BET_PROBABILITY
         ]
 
         # A recommendation is intentionally one independently priced market,

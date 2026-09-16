@@ -30,6 +30,14 @@ export function CurrentGameweekCard({ fixture, onClick }: { fixture: CurrentGame
             {date} &middot; {time}
           </span>
           <div className="flex items-center gap-1.5">
+            {fixture.draw_signal && (
+              <span
+                title="The scoreline model's top pick and the win/draw/loss percentages both lean draw. Informational only — not used to score accuracy."
+                className="rounded bg-pl-cyan/10 px-1.5 py-0.5 font-semibold normal-case tracking-normal text-pl-cyan"
+              >
+                Leans draw
+              </span>
+            )}
             {fixture.value_bet_flags.length > 0 && (
               <span
                 title={`Model probability beats the live market's implied odds on: ${fixture.value_bet_flags.join(", ")}`}

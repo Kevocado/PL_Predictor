@@ -35,6 +35,7 @@ import pandas as pd
 import penaltyblog as pb
 
 from ..models import scoreline
+from ..odds import value_bets
 
 RESULT_TO_SIDE = {"H": "home_win", "D": "draw", "A": "away_win"}
 ODDS_COLS = {
@@ -174,6 +175,13 @@ def build_value_bet_backtest(
         for side, odds_col in ODDS_COLS.items():
             odds = fixture[odds_col]
             if max_odds is not None and odds > max_odds:
+                continue
+            # Same minimum-probability floor as odds/value_bets.py's live
+            # flagging (see MIN_VALUE_BET_PROBABILITY there for the backtest
+            # evidence behind 30%) -- this offline replay should reflect the
+            # same qualification rule production actually applies, not a
+            # looser one that would make the two numbers incomparable.
+            if pred[side] < value_bets.MIN_VALUE_BET_PROBABILITY:
                 continue
             edge = pred[side] - implied[side]
             if edge > required_edge and (best is None or edge > best["edge"]):

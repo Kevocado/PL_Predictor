@@ -48,6 +48,7 @@ from ..data import espn, fpl_api, fpl_history, understat, understat_shots
 from ..data.team_names import to_canonical
 from ..data import football_data
 from ..data import football_data_org
+from ..outcomes import predicted_result
 from ..data.football_data_org import FootballDataOrgKeyMissing
 from ..data.sportsbook_api import SportsbookAPIKeyMissing, fetch_epl_odds as fetch_sportsbook_odds
 from ..evaluate import backtest as backtest_lib
@@ -946,6 +947,9 @@ def current_gameweek_fixtures(gameweek: int | None = None):
                     "predicted_draw": r["predicted_draw"],
                     "predicted_away_win": r["predicted_away_win"],
                     "predicted_scoreline": r["predicted_scoreline"],
+                    "draw_signal": predicted_result(
+                        r["predicted_scoreline"], r["predicted_home_win"], r["predicted_draw"], r["predicted_away_win"]
+                    ) == "draw",
                     "hit": r["hit"],
                     "backfilled": r["backfilled"],
                     "has_live_odds": False,
@@ -1009,6 +1013,9 @@ def current_gameweek_fixtures(gameweek: int | None = None):
                             "predicted_draw": float(vb_row["draw_prob"]),
                             "predicted_away_win": float(vb_row["away_win_prob"]),
                             "predicted_scoreline": vb_row["top_scoreline"],
+                            "draw_signal": predicted_result(
+                                vb_row["top_scoreline"], float(vb_row["home_win_prob"]), float(vb_row["draw_prob"]), float(vb_row["away_win_prob"])
+                            ) == "draw",
                             "hit": None,
                             "backfilled": False,
                             "has_live_odds": bool(vb_row["home_win_implied"] is not None and not pd.isna(vb_row["home_win_implied"])),
@@ -1031,6 +1038,9 @@ def current_gameweek_fixtures(gameweek: int | None = None):
                         "predicted_draw": pred["draw"],
                         "predicted_away_win": pred["away_win"],
                         "predicted_scoreline": f"{top['home']}-{top['away']}",
+                        "draw_signal": predicted_result(
+                            f"{top['home']}-{top['away']}", pred["home_win"], pred["draw"], pred["away_win"]
+                        ) == "draw",
                         "hit": None,
                         "backfilled": False,
                         "has_live_odds": False,

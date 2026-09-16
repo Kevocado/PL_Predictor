@@ -132,3 +132,58 @@ def test_gameweek_fallback_keeps_a_started_fpl_fixture_visible(monkeypatch):
         ("Crystal Palace", "Man City"),
         ("Chelsea", "Brighton"),
     ]
+
+
+def test_draw_signal_present_on_both_finished_and_upcoming_fixtures(monkeypatch):
+    # Draws are structurally suppressed in marginal 1x2 probabilities (see
+    # outcomes.py's module docstring) -- the finished fixture here has a
+    # clear away_win marginal favorite (0.6) despite a drawish scoreline, so
+    # draw_signal must be False; the upcoming one has a top scoreline of
+    # "1-1" with draw_prob (0.32) clearing the agreement threshold even
+    # though home_win narrowly wins the marginal argmax (0.38), so
+    # draw_signal must be True. Both fixtures come from the Fixtures page's
+    # /fixtures/gameweek response, not just the fixture-detail modal's.
+    monkeypatch.setattr(routes, "_value_bet_table", lambda: pd.DataFrame())
+    monkeypatch.setattr(routes, "_run_tracking_bookkeeping", lambda _table: None)
+    monkeypatch.setattr(routes, "_get_fd_org_matches", lambda: pd.DataFrame())
+    monkeypatch.setattr(routes, "_get_remaining_fixtures_df", lambda: pd.DataFrame())
+    monkeypatch.setattr(
+        routes.fixtures_mod,
+        "_fixtures_from_fpl_api",
+        lambda: pd.DataFrame([{
+            "event_id": 16, "gameweek": 2, "commence_time": pd.Timestamp("2026-08-30T13:00:00Z"),
+            "team_home": "Chelsea", "team_away": "Brighton", "has_odds": False,
+        }]),
+    )
+    monkeypatch.setattr(routes.tracking_store, "get_track_record", lambda: {"current_gameweek": 2})
+    monkeypatch.setattr(
+        routes.tracking_store,
+        "get_results_by_gameweek",
+        lambda: [{
+            "gameweek": 2,
+            "fixtures": [{
+                "event_id": "tracked-11", "team_home": "Crystal Palace", "team_away": "Man City",
+                "commence_time": "2026-08-28T19:00:00Z", "actual_goals_home": 1, "actual_goals_away": 4,
+                "predicted_home_win": 0.2, "predicted_draw": 0.15, "predicted_away_win": 0.65,
+                "predicted_scoreline": "0-2", "hit": True, "backfilled": False,
+            }],
+        }],
+    )
+    monkeypatch.setattr(routes.tracking_store, "has_fixture_player_outcomes", lambda _event_id: True)
+    monkeypatch.setattr(routes.tracking_store, "get_fixture_player_events", lambda _event_id, _bootstrap: {"home": [], "away": []})
+    monkeypatch.setattr(routes, "_get_bootstrap", lambda: {"elements": []})
+    monkeypatch.setattr(routes, "_get_models", lambda: {"scoreline": object()})
+    monkeypatch.setattr(
+        routes.scoreline,
+        "predict_fixtures_batch",
+        lambda _model, rows, market_overrides=None: [
+            {"home_win": 0.38, "draw": 0.32, "away_win": 0.30, "top_scorelines": [{"home": 1, "away": 1}]}
+            for _ in range(len(rows))
+        ],
+    )
+
+    result = routes.current_gameweek_fixtures()
+
+    by_team = {(f["team_home"], f["team_away"]): f["draw_signal"] for f in result["fixtures"]}
+    assert by_team[("Crystal Palace", "Man City")] is False
+    assert by_team[("Chelsea", "Brighton")] is True

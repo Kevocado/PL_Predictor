@@ -63,6 +63,55 @@ def test_historical_replay_records_qualified_de_vigged_selection(monkeypatch):
     assert selections[0]["edge"] > 0.05
 
 
+def test_backtest_skips_a_heavy_underdog_edge_below_the_probability_floor(monkeypatch):
+    # Same floor as odds/value_bets.py::MIN_VALUE_BET_PROBABILITY, mirrored
+    # here so the offline backtest reflects the same qualification rule
+    # production actually applies -- away_win has a real, qualifying edge
+    # (25% model vs ~15% de-vigged implied) but the model's own probability
+    # is only 25%, under the 30% floor, so it must be skipped in favor of
+    # over_2_5's smaller but floor-qualifying edge.
+    fixtures = pd.DataFrame(
+        [
+            {
+                "date": pd.Timestamp("2025-08-01"),
+                "team_home": "Arsenal",
+                "team_away": "Chelsea",
+                "goals_home": 2,
+                "goals_away": 1,
+                "ftr": "H",
+                "b365_h": 1.5,
+                "b365_d": 4.5,
+                "b365_a": 6.0,
+                "b365>2.5": 1.9,
+                "b365<2.5": 2.0,
+            }
+        ]
+    )
+    # De-vigged implied: home_win ~0.644, draw ~0.205, away_win ~0.151.
+    monkeypatch.setattr(
+        backtest,
+        "_precompute_predictions",
+        lambda _model, frame, market_overrides=None: {
+            frame.index[0]: {
+                "home_win": 0.60,
+                "draw": 0.15,
+                "away_win": 0.25,
+                "over_2_5": 0.60,
+                "under_2_5": 0.40,
+                "fallback": False,
+            }
+        },
+    )
+    selections = []
+
+    backtest.build_value_bet_backtest(
+        fixtures, model=object(), start_date="2025-08-01", end_date="2025-08-01",
+        staking="flat", selections=selections, max_odds=None,
+    )
+
+    assert [s["selection"] for s in selections] == ["over_2_5"]
+
+
 def test_bootstrap_drawdown_distribution_empty_selections_returns_none_stats():
     result = backtest.bootstrap_drawdown_distribution([])
     assert result["n_trials"] == 0

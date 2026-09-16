@@ -19,6 +19,7 @@ interface Props {
   predicted_home_win: number;
   predicted_draw: number;
   predicted_away_win: number;
+  draw_signal?: boolean;
   hit: boolean | null;
   backfilled: boolean;
   home_player_events?: FixturePlayerEvent[];
@@ -48,6 +49,7 @@ export function FinishedFixtureCard({
   predicted_home_win,
   predicted_draw,
   predicted_away_win,
+  draw_signal = false,
   hit,
   backfilled,
   home_player_events = [],
@@ -70,6 +72,14 @@ export function FinishedFixtureCard({
           {date} &middot; {time}
         </span>
         <div className="flex items-center gap-1.5">
+          {draw_signal && (
+            <span
+              title="The scoreline model's top pick and the win/draw/loss percentages both leaned draw. Informational only — not used to score accuracy."
+              className="rounded bg-pl-cyan/10 px-1.5 py-0.5 text-[9px] font-semibold normal-case tracking-normal text-pl-cyan"
+            >
+              Leaned draw
+            </span>
+          )}
           {backfilled && (
             <span
               title="This match had already finished before the app started tracking it live — the prediction shown is what the model would have said, computed the same way as any live prediction."

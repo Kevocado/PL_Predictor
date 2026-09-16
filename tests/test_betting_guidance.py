@@ -106,6 +106,42 @@ def test_stale_odds_do_not_create_a_value_recommendation(monkeypatch):
     assert row["recommended_market"] is None
 
 
+def test_heavy_underdog_with_a_qualifying_edge_is_not_flagged_as_value(monkeypatch):
+    # Real problem this guards against: a heavy underdog can clear the edge
+    # threshold on paper (model 25% vs market-implied 5% is a comfortable
+    # +20-point edge) while still being a bad bet in practice -- see
+    # MIN_VALUE_BET_PROBABILITY's own comment for the backtest evidence
+    # (every sub-30%-probability bucket lost money on flat stakes).
+    monkeypatch.setattr(value_bets, "_devig_h2h", lambda *_: {"home_win": 0.60, "draw": 0.20, "away_win": 0.05})
+    monkeypatch.setattr(
+        value_bets.scoreline,
+        "predict_fixtures_batch",
+        lambda *_, **__: [
+            {
+                "home_win": 0.55,
+                "draw": 0.20,
+                "away_win": 0.25,
+                "btts_yes": 0.5,
+                "btts_no": 0.5,
+                "over_2_5": 0.5,
+                "under_2_5": 0.5,
+                "top_scorelines": [{"home": 2, "away": 0}],
+                "fallback": False,
+                "data_confidence": "established",
+                "home_goal_expectation": 1.8,
+                "away_goal_expectation": 0.9,
+                "home_2plus_prob": 0.3,
+                "away_2plus_prob": 0.1,
+            }
+        ],
+    )
+    row = value_bets.build_value_bet_table(_fixtures_frame(), _odds_frame(), models={"scoreline": object()}).iloc[0]
+
+    assert row["away_win_edge"] > 0.05  # a real, qualifying edge on paper
+    assert "away_win" not in row["value_bet_flags"]
+    assert row["recommended_market"] != "away_win"
+
+
 def test_low_confidence_fixture_needs_a_bigger_edge_to_flag(monkeypatch):
     # home_win edge here is 0.68 - 0.60 = 0.08 -- clears the flat 5%
     # threshold but not "new" tier's 2.5x-scaled 12.5% requirement.
