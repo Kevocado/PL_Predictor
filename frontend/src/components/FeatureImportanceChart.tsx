@@ -54,8 +54,8 @@ export function FeatureImportanceChart({ title, importance, topN = 10 }: Props) 
   return (
     <div>
       <div className="mb-2 flex items-center justify-between gap-2">
-        <h4 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">
-          {title} — top {topN} features
+        <h4 className="flex items-center gap-1.5 text-sm font-semibold text-pl-text-dim">
+          {title}, top {topN} features
           <InfoTooltip text={METRIC_INFO[metric]} align="left" />
         </h4>
         <div className="flex gap-1 rounded-md border border-pl-border bg-pl-850/60 p-0.5">

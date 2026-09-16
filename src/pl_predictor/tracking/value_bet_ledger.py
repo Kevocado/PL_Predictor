@@ -341,6 +341,8 @@ def get_fixture_value_bets(event_id: str) -> list[dict]:
                 "won": bool(row["won"]) if resolved and pd.notna(row["won"]) else None,
                 "final_score": final_score,
                 "result_source": row["result_source"] if resolved and pd.notna(row["result_source"]) else None,
+                "closing_price": None if pd.isna(row.get("closing_price")) else float(row["closing_price"]),
+                "clv_pct": _clv_pct(row),
             }
         )
     return bets

@@ -65,29 +65,29 @@ export function ModelSummaryPage() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="clip-corner rounded-xl border border-pl-border bg-pl-850/70 p-4">
-          <span className="text-xs font-semibold uppercase tracking-wide text-pl-text-faint">
+          <span className="text-sm font-semibold text-pl-text-dim">
             Match outcome accuracy
           </span>
           <p className="mt-2 text-sm text-pl-text-dim">
             RPS <InfoTooltip text={GLOSSARY.rps} align="left" />{" "}
-            <span className="font-semibold text-pl-text">{chosenMetrics?.rps?.toFixed(4) ?? "—"}</span>
+            <span className="font-display font-semibold tracking-wide text-pl-text">{chosenMetrics?.rps?.toFixed(4) ?? "—"}</span>
             <br />
             Brier <InfoTooltip text={GLOSSARY.brier} align="left" />{" "}
-            <span className="font-semibold text-pl-text">{chosenMetrics?.brier?.toFixed(4) ?? "—"}</span>
+            <span className="font-display font-semibold tracking-wide text-pl-text">{chosenMetrics?.brier?.toFixed(4) ?? "—"}</span>
           </p>
         </div>
         <div className="clip-corner rounded-xl border border-pl-border bg-pl-850/70 p-4">
-          <span className="text-xs font-semibold uppercase tracking-wide text-pl-text-faint">Corners model</span>
+          <span className="text-sm font-semibold text-pl-text-dim">Corners model</span>
           <p className="mt-2 text-sm text-pl-text-dim">
             MAE <InfoTooltip text={GLOSSARY.mae} align="left" />{" "}
-            <span className="font-semibold text-pl-text">{manifest.corners.metrics.mae?.toFixed(2) ?? "—"}</span>
+            <span className="font-display font-semibold tracking-wide text-pl-text">{manifest.corners.metrics.mae?.toFixed(2) ?? "—"}</span>
           </p>
         </div>
         <div className="clip-corner rounded-xl border border-pl-border bg-pl-850/70 p-4">
-          <span className="text-xs font-semibold uppercase tracking-wide text-pl-text-faint">Cards model</span>
+          <span className="text-sm font-semibold text-pl-text-dim">Cards model</span>
           <p className="mt-2 text-sm text-pl-text-dim">
             MAE <InfoTooltip text={GLOSSARY.mae} align="left" />{" "}
-            <span className="font-semibold text-pl-text">{manifest.cards.metrics.mae?.toFixed(2) ?? "—"}</span>
+            <span className="font-display font-semibold tracking-wide text-pl-text">{manifest.cards.metrics.mae?.toFixed(2) ?? "—"}</span>
           </p>
         </div>
       </div>

@@ -12,7 +12,7 @@ function StatCard({ label, value, positive, info }: { label: string; value: stri
         {label}
         {info && <InfoTooltip text={info} align="left" />}
       </div>
-      <div className={`mt-1 text-2xl font-bold ${positive === undefined ? "text-pl-text" : positive ? "text-win" : "text-loss"}`}>
+      <div className={`mt-1 font-display text-3xl font-semibold tracking-wide ${positive === undefined ? "text-pl-text" : positive ? "text-win" : "text-loss"}`}>
         {value}
       </div>
     </div>
@@ -94,7 +94,7 @@ export function LiveValueBetPanel() {
 
       {data && data.n_flagged > 0 && (
         <>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-5">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6">
             <StatCard label="Flagged" value={String(data.n_flagged)} info="Every fixture/market ever flagged as a value bet, resolved or not." />
             <StatCard label="Confirmed W-L" value={`${data.confirmed_wins}-${data.confirmed_losses}`} info="Only final scores confirmed by the result feed count here." />
             <StatCard label="Pending" value={String(data.n_pending)} info="Flagged fixtures that haven't kicked off / finished yet — open positions, not counted in the results below." />
@@ -104,6 +104,12 @@ export function LiveValueBetPanel() {
               value={results ? `${results.ROI >= 0 ? "+" : ""}${results.ROI.toFixed(1)}%` : "—"}
               positive={results ? results.ROI >= 0 : undefined}
               info={`${GLOSSARY.roi} Uses the selected staking mode and excludes prices beyond the app's risk cap.`}
+            />
+            <StatCard
+              label="Avg CLV"
+              value={data.average_clv_pct === null ? "—" : `${data.average_clv_pct >= 0 ? "+" : ""}${data.average_clv_pct.toFixed(1)}%`}
+              positive={data.average_clv_pct === null ? undefined : data.average_clv_pct >= 0}
+              info={`${GLOSSARY.clv} Averaged over ${data.n_with_closing_line} bet${data.n_with_closing_line === 1 ? "" : "s"} where a closing price was actually captured before kickoff.`}
             />
           </div>
 
@@ -123,6 +129,7 @@ export function LiveValueBetPanel() {
                       <th className="pb-2 font-semibold">Pick</th>
                       <th className="pb-2 font-semibold">Price</th>
                       <th className="pb-2 font-semibold">Edge</th>
+                      <th className="pb-2 font-semibold">CLV</th>
                       <th className="pb-2 font-semibold">Result</th>
                     </tr>
                   </thead>
@@ -136,6 +143,9 @@ export function LiveValueBetPanel() {
                         <td className="py-2 text-pl-text-dim">{SELECTION_LABELS[bet.selection] ?? bet.selection}</td>
                         <td className="py-2 text-pl-text-dim">{americanOdds(bet.price)}</td>
                         <td className="py-2 font-semibold text-pl-cyan">+{(bet.edge * 100).toFixed(1)}%</td>
+                        <td className={`py-2 font-semibold ${bet.clv_pct === null ? "text-pl-text-faint" : bet.clv_pct >= 0 ? "text-win" : "text-loss"}`}>
+                          {bet.clv_pct === null ? "—" : `${bet.clv_pct >= 0 ? "+" : ""}${bet.clv_pct.toFixed(1)}%`}
+                        </td>
                         <td className={`py-2 font-semibold ${bet.won ? "text-win" : "text-loss"}`}>{bet.won ? "Won" : "Lost"}</td>
                       </tr>
                     ))}

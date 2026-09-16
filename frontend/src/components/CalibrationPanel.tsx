@@ -10,7 +10,7 @@ function StatCard({ label, value, sub, info }: { label: string; value: string; s
         {label}
         {info && <InfoTooltip text={info} align="left" />}
       </div>
-      <div className="mt-1 text-2xl font-bold text-pl-text">{value}</div>
+      <div className="mt-1 font-display text-3xl font-semibold tracking-wide text-pl-text">{value}</div>
       {sub && <div className="mt-0.5 text-xs text-pl-text-faint">{sub}</div>}
     </div>
   );

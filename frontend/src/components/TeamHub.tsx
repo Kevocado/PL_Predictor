@@ -45,7 +45,7 @@ function TeamDetailPanel({ selected }: { selected: TeamHubTeam }) {
         <TeamBadge team={selected.team} size="lg" />
         <div>
           <h3 className="text-lg font-semibold text-pl-text">{selected.team}</h3>
-          <p className="text-xs text-pl-text-faint">{selected.wins}W · {selected.draws}D · {selected.losses}L · Form {value(selected.form_points_per_match)} PPG <span title={FORM_TREND[selected.form_trend].label} className={`font-bold ${FORM_TREND[selected.form_trend].className}`}>{FORM_TREND[selected.form_trend].arrow}</span> · streak {selected.streak > 0 ? `+${selected.streak}` : selected.streak}</p>
+          <p className="text-xs text-pl-text-faint">{selected.wins}W · {selected.draws}D · {selected.losses}L. Form {value(selected.form_points_per_match)} PPG <span title={FORM_TREND[selected.form_trend].label} className={`font-bold ${FORM_TREND[selected.form_trend].className}`}>{FORM_TREND[selected.form_trend].arrow}</span>, streak {selected.streak > 0 ? `+${selected.streak}` : selected.streak}</p>
         </div>
       </div>
 
@@ -60,7 +60,7 @@ function TeamDetailPanel({ selected }: { selected: TeamHubTeam }) {
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <div>
-          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">Underlying performance</h4>
+          <h4 className="mb-2 text-sm font-semibold text-pl-text-dim">Underlying performance</h4>
           <div className="grid grid-cols-2 gap-2">
             <div className="rounded-lg bg-pl-900/60 px-3 py-2"><span className="flex items-center gap-1 text-xs text-pl-text-faint">xG for <InfoTooltip text={GLOSSARY.expectedGoals} align="left" /></span><p className="font-semibold text-pl-text">{value(selected.xg_for)}</p></div>
             <div className="rounded-lg bg-pl-900/60 px-3 py-2"><span className="flex items-center gap-1 text-xs text-pl-text-faint">xG against <InfoTooltip text={GLOSSARY.expectedGoals} align="left" /></span><p className="font-semibold text-pl-text">{value(selected.xg_against)}</p></div>
@@ -69,7 +69,7 @@ function TeamDetailPanel({ selected }: { selected: TeamHubTeam }) {
           </div>
         </div>
         <div>
-          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">Style</h4>
+          <h4 className="mb-2 text-sm font-semibold text-pl-text-dim">Style</h4>
           <div className="grid grid-cols-2 gap-2">
             <div className="rounded-lg bg-pl-900/60 px-3 py-2"><span className="flex items-center gap-1 text-xs text-pl-text-faint">Set-piece xG share <InfoTooltip text={GLOSSARY.setPieceShare} align="left" /></span><p className="font-semibold text-pl-text">{value(selected.set_piece_xg_share === null ? null : selected.set_piece_xg_share * 100, "%")}</p></div>
             <div className="rounded-lg bg-pl-900/60 px-3 py-2"><span className="text-xs text-pl-text-faint">Fouls / match</span><p className="font-semibold text-pl-text">{value(selected.fouls_per_match)}</p></div>
@@ -80,7 +80,7 @@ function TeamDetailPanel({ selected }: { selected: TeamHubTeam }) {
       </div>
 
       <div className="mt-4">
-        <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">Recent matches</h4>
+        <h4 className="mb-2 text-sm font-semibold text-pl-text-dim">Recent matches</h4>
         <div className="grid gap-1 sm:grid-cols-2">
           {selected.recent_matches.map((match) => (
             <div key={`${match.date}-${match.opponent}-${match.venue}`} className="flex items-center justify-between rounded-lg bg-pl-900/60 px-3 py-2 text-xs">

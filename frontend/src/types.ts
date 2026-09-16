@@ -141,6 +141,8 @@ export interface FixtureValueBetSnapshot {
   won: boolean | null;
   final_score: string | null;
   result_source: string | null;
+  closing_price: number | null;
+  clv_pct: number | null;
 }
 
 export interface PostMatchVerdict {
@@ -319,6 +321,8 @@ export interface ValueBetTrackRecordResponse {
   results: BacktestResults | null;
   bankroll_curve: number[];
   staking: "kelly" | "flat";
+  average_clv_pct: number | null;
+  n_with_closing_line: number;
 }
 
 export interface ConfirmedValueBet {
@@ -329,6 +333,7 @@ export interface ConfirmedValueBet {
   edge: number;
   won: boolean;
   result_source: string;
+  clv_pct: number | null;
   resolved_at: string | null;
 }
 

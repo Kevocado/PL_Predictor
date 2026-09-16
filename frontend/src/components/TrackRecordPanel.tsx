@@ -14,7 +14,7 @@ function StatCard({ label, value, info }: { label: string; value: string; info?:
         {label}
         {info && <InfoTooltip text={info} align="left" />}
       </div>
-      <div className="mt-1 text-2xl font-bold text-pl-text">{value}</div>
+      <div className="mt-1 font-display text-3xl font-semibold tracking-wide text-pl-text">{value}</div>
     </div>
   );
 }
@@ -30,7 +30,7 @@ export function TrackRecordPanel({ data }: { data: TrackRecordResponse }) {
   if (summary.n_resolved_fixtures === 0) {
     return (
       <div>
-        <h3 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">
+        <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-pl-text-dim">
           Live track record
           <InfoTooltip text={GLOSSARY.trackRecordScore} align="left" />
         </h3>
@@ -93,7 +93,7 @@ export function TrackRecordPanel({ data }: { data: TrackRecordResponse }) {
       )}
 
       <div>
-        <h3 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">
+        <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-pl-text-dim">
           Biggest upset
           <InfoTooltip text={GLOSSARY.biggestMisses} align="left" />
         </h3>
@@ -103,10 +103,10 @@ export function TrackRecordPanel({ data }: { data: TrackRecordResponse }) {
       <div className="flex flex-col gap-5">
         {gameweeks.map((group) => (
           <div key={group.gameweek ?? "none"}>
-            <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">
+            <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-pl-text-dim">
               {group.gameweek ? `Gameweek ${group.gameweek}` : "No gameweek data"}
-              <span className="text-pl-text-dim">
-                — {pct(group.pct_correct)} correct ({Math.round(group.pct_correct * group.n_fixtures)}/{group.n_fixtures})
+              <span className="text-xs font-normal text-pl-text-faint">
+                {pct(group.pct_correct)} correct ({Math.round(group.pct_correct * group.n_fixtures)}/{group.n_fixtures})
               </span>
             </h3>
             <GameweekResultsGrid results={group.fixtures} onSelect={setSelected} />

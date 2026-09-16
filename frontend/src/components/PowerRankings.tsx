@@ -153,8 +153,8 @@ export function PowerRankings({ data }: { data: RankingsResponse }) {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h3 className="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">
-          Power rankings
+        <h3 className="mb-1 flex items-center gap-1.5 text-sm text-pl-text-dim">
+          By attack and defence strength
           <InfoTooltip text={GLOSSARY.powerRankings} align="left" />
         </h3>
         <div className="mb-2 grid grid-cols-[1.25rem_1.5rem_minmax(6rem,1fr)_auto_minmax(5rem,1fr)_1px_minmax(5rem,1fr)] gap-2 px-3 text-[11px] font-semibold uppercase tracking-wide text-pl-text-faint">
@@ -183,7 +183,7 @@ export function PowerRankings({ data }: { data: RankingsResponse }) {
       </div>
 
       <div>
-        <h3 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">
+        <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-pl-text-dim">
           Elo rating this season
           <InfoTooltip text={GLOSSARY.ratingsTrend} align="left" />
         </h3>

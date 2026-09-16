@@ -4,6 +4,8 @@ export const GLOSSARY = {
     "The gap between the model's probability and the bookmaker's (de-vigged) implied probability. A positive edge means the model thinks that outcome is more likely than the market's price suggests.",
   marketImplied:
     "The bookmaker's own probability for this outcome, backed out from their odds and adjusted (de-vigged) to remove their built-in margin.",
+  clv:
+    "Closing-line value: how the price at the moment this bet was flagged compares to the price right before kickoff. Positive means the price shortened afterwards — the market moved toward agreeing with the pick — independent of whether the bet actually won. Widely considered a better long-run skill signal than win rate alone, since it isolates whether the model is beating the market's own final assessment.",
   btts: "Both Teams To Score — the model's probability that both sides find the net at least once.",
   teamTwoPlus: "The model's probability that this team alone scores 2 or more goals in the match.",
   expectedCount:

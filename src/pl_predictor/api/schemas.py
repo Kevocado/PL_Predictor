@@ -150,6 +150,8 @@ class FixtureValueBetSnapshot(BaseModel):
     won: bool | None = None
     final_score: str | None = None
     result_source: str | None = None
+    closing_price: float | None = None
+    clv_pct: float | None = None
 
 
 class FixtureDetail(FixtureSummary):

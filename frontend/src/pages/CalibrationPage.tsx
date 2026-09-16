@@ -66,9 +66,9 @@ export function CalibrationPage() {
           <h2 className="text-lg font-semibold text-pl-text">Model calibration</h2>
           {manifest && (
             <p className="mt-0.5 text-xs text-pl-text-faint">
-              Trained {new Date(manifest.trained_at).toLocaleString()} on {manifest.seasons[0]}–
-              {manifest.seasons[manifest.seasons.length - 1]} · {manifest.n_train} matches · scoreline model:{" "}
-              {manifest.scoreline.chosen_model.replace("_", " ")}
+              Trained {new Date(manifest.trained_at).toLocaleString()} on {manifest.n_train} matches from{" "}
+              {manifest.seasons[0]}–{manifest.seasons[manifest.seasons.length - 1]}, using{" "}
+              {manifest.scoreline.chosen_model.replace("_", " ")} as the scoreline model
             </p>
           )}
         </div>
@@ -154,24 +154,24 @@ export function CalibrationPage() {
       {manifest && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="clip-corner rounded-xl border border-pl-border bg-pl-850/70 p-4">
-            <span className="text-xs font-semibold uppercase tracking-wide text-pl-text-faint">Corners model</span>
+            <span className="text-sm font-semibold text-pl-text-dim">Corners model</span>
             <p className="mt-2 text-sm text-pl-text-dim">
               MAE <InfoTooltip text={GLOSSARY.mae} align="left" />{" "}
-              <span className="font-semibold text-pl-text">{manifest.corners.metrics.mae?.toFixed(2)}</span>{" "}
-              &middot; mean actual{" "}
-              <span className="font-semibold text-pl-text">{manifest.corners.metrics.mean_actual?.toFixed(1)}</span>{" "}
-              &middot; dispersion <InfoTooltip text={GLOSSARY.dispersion} align="left" />{" "}
+              <span className="font-semibold text-pl-text">{manifest.corners.metrics.mae?.toFixed(2)}</span>{", "}
+              mean actual{" "}
+              <span className="font-semibold text-pl-text">{manifest.corners.metrics.mean_actual?.toFixed(1)}</span>{", "}
+              dispersion <InfoTooltip text={GLOSSARY.dispersion} align="left" />{" "}
               <span className="font-semibold text-pl-text">{manifest.corners.dispersion?.toFixed(2)}</span>
             </p>
           </div>
           <div className="clip-corner rounded-xl border border-pl-border bg-pl-850/70 p-4">
-            <span className="text-xs font-semibold uppercase tracking-wide text-pl-text-faint">Cards model</span>
+            <span className="text-sm font-semibold text-pl-text-dim">Cards model</span>
             <p className="mt-2 text-sm text-pl-text-dim">
               MAE <InfoTooltip text={GLOSSARY.mae} align="left" />{" "}
-              <span className="font-semibold text-pl-text">{manifest.cards.metrics.mae?.toFixed(2)}</span>{" "}
-              &middot; mean actual{" "}
-              <span className="font-semibold text-pl-text">{manifest.cards.metrics.mean_actual?.toFixed(1)}</span>{" "}
-              &middot; dispersion <InfoTooltip text={GLOSSARY.dispersion} align="left" />{" "}
+              <span className="font-semibold text-pl-text">{manifest.cards.metrics.mae?.toFixed(2)}</span>{", "}
+              mean actual{" "}
+              <span className="font-semibold text-pl-text">{manifest.cards.metrics.mean_actual?.toFixed(1)}</span>{", "}
+              dispersion <InfoTooltip text={GLOSSARY.dispersion} align="left" />{" "}
               <span className="font-semibold text-pl-text">{manifest.cards.dispersion?.toFixed(2)}</span>
             </p>
           </div>
@@ -253,7 +253,7 @@ function ScorerTrackRecord({ data }: { data: ScorerAccuracyResponse }) {
           <p className="text-xs font-semibold uppercase tracking-wide text-pl-text-faint">{label}</p>
           {stats.calls === 0 ? <p className="mt-2 text-sm text-pl-text-faint">No resolved calls yet.</p> : <>
             <p className="mt-2 text-sm text-pl-text"><span className="font-semibold text-win">{stats.call_hits}/{stats.calls}</span> qualifying calls hit {stats.call_hit_rate === null ? "" : `(${(stats.call_hit_rate * 100).toFixed(0)}%)`}</p>
-            <p className="mt-1 text-xs text-pl-text-faint">Goal Brier: {stats.goal_brier?.toFixed(3) ?? "—"} · {stats.calibration.reduce((total, bucket) => total + bucket.n, 0)} confirmed starters</p>
+            <p className="mt-1 text-xs text-pl-text-faint">Goal Brier {stats.goal_brier?.toFixed(3) ?? "—"} across {stats.calibration.reduce((total, bucket) => total + bucket.n, 0)} confirmed starters</p>
           </>}
         </div>)}
       </div>

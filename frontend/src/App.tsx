@@ -34,7 +34,7 @@ function App() {
             PL
           </div>
           <div>
-            <h1 className="text-xl font-extrabold tracking-tight text-pl-text">PL Predictor</h1>
+            <h1 className="font-display text-2xl font-semibold tracking-wide text-pl-text">PL Predictor</h1>
             <p className="text-xs text-pl-text-faint">Match outcomes, scorelines &amp; betting markets</p>
           </div>
         </div>

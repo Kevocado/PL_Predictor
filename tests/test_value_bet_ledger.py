@@ -80,6 +80,20 @@ def test_fixture_value_bets_preserve_the_original_call_and_final_result(clean_db
     assert bets[0]["bookmaker"] == "first-book"
     assert bets[0]["final_score"] == "2-1"
     assert bets[0]["result_source"] == "official feed"
+    assert bets[0]["closing_price"] is None
+    assert bets[0]["clv_pct"] is None
+
+
+def test_fixture_value_bets_include_clv_once_closing_line_captured(clean_db):
+    table = _flagged_table(value_bet_flags=["home_win"], home_win_price=2.2)
+    value_bet_ledger.record_value_bets(table)
+    with value_bet_ledger._connect() as conn:
+        conn.execute("UPDATE value_bets SET closing_price = 2.0")
+
+    bets = value_bet_ledger.get_fixture_value_bets("e1")
+
+    assert bets[0]["closing_price"] == pytest.approx(2.0)
+    assert bets[0]["clv_pct"] == pytest.approx(10.0)
 
 
 def test_reconcile_and_replay_matches_offline_backtest_semantics(clean_db):

@@ -12,7 +12,7 @@ function StatCard({ label, value, positive, info }: { label: string; value: stri
         {label}
         {info && <InfoTooltip text={info} align="left" />}
       </div>
-      <div className={`mt-1 text-2xl font-bold ${positive === undefined ? "text-pl-text" : positive ? "text-win" : "text-loss"}`}>
+      <div className={`mt-1 font-display text-3xl font-semibold tracking-wide ${positive === undefined ? "text-pl-text" : positive ? "text-win" : "text-loss"}`}>
         {value}
       </div>
     </div>

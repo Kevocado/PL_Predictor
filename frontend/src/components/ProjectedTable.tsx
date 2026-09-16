@@ -52,8 +52,8 @@ function PositionDelta({ position, delta }: { position: number | null; delta: nu
 export function ProjectedTable({ data }: { data: ProjectedTableResponse }) {
   return (
     <div>
-      <h3 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">
-        Projected final table — {data.season}
+      <h3 className="mb-2 flex items-center gap-1.5 text-sm text-pl-text-dim">
+        {data.season} season
         <InfoTooltip text={GLOSSARY.projectedTable} align="left" />
       </h3>
       <div className="overflow-x-auto rounded-xl border border-pl-border">

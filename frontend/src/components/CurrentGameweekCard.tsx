@@ -53,8 +53,8 @@ export function CurrentGameweekCard({ fixture, onClick }: { fixture: CurrentGame
           </div>
           <div className="flex flex-col items-center gap-0.5 px-1">
             <span className="text-[10px] font-medium uppercase text-pl-text-faint">Likely</span>
-            <span className="rounded-lg bg-pl-700/50 px-2 py-1 font-mono text-base font-bold text-pl-text">
-              {fixture.predicted_scoreline ?? "?"}
+            <span className="rounded-lg bg-pl-700/50 px-2.5 py-1 font-display text-xl font-semibold tracking-wide text-pl-text">
+              {fixture.predicted_scoreline?.replace("-", "–") ?? "?"}
             </span>
           </div>
           <div className="flex flex-1 flex-col items-center gap-1.5 text-center">
