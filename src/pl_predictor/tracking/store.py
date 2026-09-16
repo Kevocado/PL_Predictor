@@ -632,6 +632,7 @@ def _fixture_hit_table() -> pd.DataFrame:
                 "team_away": first["team_away"],
                 "commence_time": first["commence_time"],
                 "resolved_at": first["resolved_at"],
+                "snapshotted_at": pd.to_datetime(group["snapshotted_at"]).min(),
                 "gameweek": _none_if_nan_int(first["gameweek"]),
                 "predicted_scoreline": first["predicted_scoreline"],
                 "actual_goals_home": _none_if_nan_int(first["actual_goals_home"]),
@@ -645,7 +646,21 @@ def _fixture_hit_table() -> pd.DataFrame:
                 "backfilled": bool(first["backfilled"]),
             }
         )
-    return pd.DataFrame(rows)
+    table = pd.DataFrame(rows)
+    if not table.empty:
+        # The same fixture can be snapshotted under two event_ids (Odds API
+        # hex id vs FPL numeric id when the fixture feed falls back), so
+        # group-by-event_id above yields two rows for one match. Dedupe by
+        # (teams, kickoff date), keeping the earliest snapshot — the most
+        # honest pre-match prediction.
+        table["_kickoff_date"] = pd.to_datetime(table["commence_time"]).dt.date
+        table = (
+            table.sort_values("snapshotted_at")
+            .drop_duplicates(subset=["team_home", "team_away", "_kickoff_date"], keep="first")
+            .drop(columns=["_kickoff_date"])
+            .reset_index(drop=True)
+        )
+    return table
 
 
 def get_track_record() -> dict:
