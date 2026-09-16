@@ -25,11 +25,11 @@ export function CurrentGameweekCard({ fixture, onClick }: { fixture: CurrentGame
           fixture.value_bet_flags.length > 0 ? "border-pl-pink/40 ring-1 ring-pl-pink/20" : "border-pl-border"
         }`}
       >
-        <div className="flex items-center justify-between text-[11px] font-medium uppercase tracking-wide text-pl-text-faint">
+        <div className="flex flex-wrap items-center justify-between gap-1.5 text-[11px] font-medium uppercase tracking-wide text-pl-text-faint">
           <span>
             {date} &middot; {time}
           </span>
-          <div className="flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center justify-end gap-1.5">
             {fixture.draw_signal && (
               <span
                 title="The scoreline model's top pick and the win/draw/loss percentages both lean draw. Informational only — not used to score accuracy."

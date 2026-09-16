@@ -28,7 +28,7 @@ export function NextFixtureHero({ fixture, onClick }: { fixture: CurrentGameweek
     >
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-medium uppercase tracking-wide text-pl-pink">
         <span>Next up</span>
-        <div className="flex items-center gap-1.5 normal-case text-pl-text-dim">
+        <div className="flex flex-wrap items-center justify-end gap-1.5 normal-case text-pl-text-dim">
           {fixture.draw_signal && (
             <span
               title="The scoreline model's top pick and the win/draw/loss percentages both lean draw. Informational only — not used to score accuracy."

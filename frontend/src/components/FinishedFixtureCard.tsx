@@ -67,11 +67,11 @@ export function FinishedFixtureCard({
       onKeyDown={(e) => e.key === "Enter" && onClick()}
       className="clip-corner flex cursor-pointer flex-col gap-3 rounded-xl border border-win/30 bg-pl-850/70 p-4 transition hover:border-pl-pink/40"
     >
-      <div className="flex items-center justify-between text-[11px] font-medium uppercase tracking-wide text-pl-text-faint">
+      <div className="flex flex-wrap items-center justify-between gap-1.5 text-[11px] font-medium uppercase tracking-wide text-pl-text-faint">
         <span>
           {date} &middot; {time}
         </span>
-        <div className="flex items-center gap-1.5">
+        <div className="flex flex-wrap items-center justify-end gap-1.5">
           {draw_signal && (
             <span
               title="The scoreline model's top pick and the win/draw/loss percentages both leaned draw. Informational only — not used to score accuracy."

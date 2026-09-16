@@ -27,7 +27,7 @@ function App() {
   }, []);
 
   return (
-    <div className="mx-auto min-h-screen max-w-7xl px-6 py-8">
+    <div className="mx-auto min-h-screen max-w-screen-2xl px-6 py-8">
       <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="clip-corner flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-pl-pink to-pl-600 font-black text-white">
