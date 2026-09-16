@@ -52,3 +52,9 @@
 {"trained_at": "2026-09-09T23:16:50.733099+00:00", "n_train": 2690, "n_current_season_matches": 30, "chosen_model": "ml_scoreline", "rps": 0.2081310213759024, "brier": 0.6168158632120445}
 {"trained_at": "2026-09-12T05:16:05.802938+00:00", "n_train": 2690, "n_current_season_matches": 30, "chosen_model": "ml_scoreline", "rps": 0.20824555602784117, "brier": 0.6170245590381522}
 {"trained_at": "2026-09-12T05:49:20.811505+00:00", "n_train": 2690, "n_current_season_matches": 30, "chosen_model": "ml_scoreline", "rps": 0.20824555602784117, "brier": 0.6170245590381522}
+{"trained_at": "2026-09-13T04:27:31.022473+00:00", "n_train": 2690, "n_current_season_matches": 30, "chosen_model": "ml_scoreline", "rps": 0.20824555602784117, "brier": 0.6170245590381522}
+{"trained_at": "2026-09-13T04:31:25.377675+00:00", "n_train": 2690, "n_current_season_matches": 30, "chosen_model": "ml_scoreline", "rps": 0.20824555602784117, "brier": 0.6170245590381522}
+{"trained_at": "2026-09-13T04:36:51.648047+00:00", "n_train": 2690, "n_current_season_matches": 30, "chosen_model": "ml_scoreline", "rps": 0.20824555602784117, "brier": 0.6170245590381522}
+{"trained_at": "2026-09-13T04:39:00.323742+00:00", "n_train": 2690, "n_current_season_matches": 30, "chosen_model": "ml_scoreline", "rps": 0.20824555602784117, "brier": 0.6170245590381522}
+{"trained_at": "2026-09-14T22:22:06.549031+00:00", "n_train": 2690, "n_current_season_matches": 30, "chosen_model": "ml_scoreline", "rps": 0.20824555602784117, "brier": 0.6170245590381522}
+{"trained_at": "2026-09-14T23:25:02.779670+00:00", "n_train": 2700, "n_current_season_matches": 40, "chosen_model": "ml_scoreline", "rps": 0.20778410803471484, "brier": 0.6160758115966097}
