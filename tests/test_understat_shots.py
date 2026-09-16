@@ -197,6 +197,25 @@ def test_crosswalk_never_guesses_on_ambiguous_surname():
     assert 105 not in result
 
 
+def test_crosswalk_matches_compound_second_name_despite_surname_collision():
+    # Real incident: Bruno Fernandes' FPL second_name is the compound
+    # "Borges Fernandes", so full_norm never matches Understat's plain
+    # "Bruno Fernandes" -- and the surname-only fallback then collides with
+    # a second, unrelated "Fernandes" (Mateus), correctly refusing the
+    # ambiguous guess. first-name + last-word-of-second_name resolves both
+    # without that ambiguity, since it still uses both names.
+    rows = pd.DataFrame([
+        {"player": "Bruno Fernandes", "player_id": 107},
+        {"player": "Mateus Fernandes", "player_id": 108},
+    ])
+    bootstrap = _bootstrap([
+        _element(9, "Bruno", "Borges Fernandes", "B.Fernandes"),
+        _element(10, "Mateus", "Fernandes", "Fernandes"),
+    ])
+    result = understat_shots.build_understat_fpl_crosswalk(rows, bootstrap)
+    assert result == {107: 9, 108: 10}
+
+
 def test_crosswalk_excludes_unmatchable_player_without_crashing():
     rows = pd.DataFrame([{"player": "Nobody Real", "player_id": 106}])
     bootstrap = _bootstrap([_element(8, "Someone", "Else", "Else")])

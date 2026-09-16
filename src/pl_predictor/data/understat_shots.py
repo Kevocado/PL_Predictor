@@ -97,6 +97,17 @@ def build_understat_fpl_crosswalk(shot_player_rows: pd.DataFrame, bootstrap: dic
     fpl_df["full_norm"] = fpl_df["full_name"].apply(_normalise_crosswalk_name)
     fpl_df["web_norm"] = fpl_df["web_name"].apply(_normalise_crosswalk_name)
     fpl_df["surname_norm"] = fpl_df["full_name"].apply(lambda n: _normalise_crosswalk_name(n.split()[-1]))
+    # FPL's `second_name` is sometimes a compound (e.g. Bruno Fernandes'
+    # is "Borges Fernandes") -- confirmed live: this makes `full_norm` miss
+    # Understat's plain "Bruno Fernandes", and the bare-surname stage below
+    # then collides with any other same-surnamed player (here, a second,
+    # unrelated "Fernandes") and correctly refuses the ambiguous guess.
+    # Comparing first-name + last-word-of-second_name resolves this without
+    # that ambiguity, since it still uses both names, just tolerant of the
+    # extra compound part FPL carries but Understat/common usage drops.
+    fpl_df["first_lastword_norm"] = fpl_df.apply(
+        lambda r: _normalise_crosswalk_name(f"{r['first_name']} {r['full_name'].split()[-1]}"), axis=1
+    )
 
     crosswalk: dict[int, int] = {}
     for _, row in shot_player_rows.iterrows():
@@ -118,6 +129,12 @@ def build_understat_fpl_crosswalk(shot_player_rows: pd.DataFrame, bootstrap: dic
             if len(hit) == 1:
                 crosswalk[int(row["player_id"])] = int(hit.iloc[0]["element_id"])
                 continue
+
+        first_lastword_norm = _normalise_crosswalk_name(f"{first} {surname}")
+        hit = fpl_df[fpl_df["first_lastword_norm"] == first_lastword_norm]
+        if len(hit) == 1:
+            crosswalk[int(row["player_id"])] = int(hit.iloc[0]["element_id"])
+            continue
 
         surname_norm = _normalise_crosswalk_name(surname)
         hit = fpl_df[(fpl_df["surname_norm"] == surname_norm) | (fpl_df["web_norm"] == surname_norm)]
