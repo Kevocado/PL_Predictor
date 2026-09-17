@@ -279,3 +279,46 @@ def test_model_change_forces_a_full_rebuild_of_every_gameweek(monkeypatch):
 
     assert set(gameweek_calls) == set(gameweeks)
     assert snapshot["model_fingerprint"] == "fp-new"
+
+
+def test_published_current_gameweek_matches_the_is_current_flag_actually_baked_in(monkeypatch):
+    """Real incident: the top-level `current_gameweek` and each gameweek
+    entry's own `is_current` flag are both derived from
+    `_resolve_current_gameweek`, but via two separate calls (one here in
+    build_snapshot, one inside `current_gameweek_fixtures` per gameweek).
+    A long-running snapshot build lets enough wall-clock time pass for a
+    calendar-day resolve boundary to fall between those calls, so they can
+    disagree -- confirmed live: the published `current_gameweek` pointed one
+    gameweek ahead of every fixture entry's own `is_current`, so PUBLIC_MODE's
+    default view (`routes.py`'s `snapshot.get("current_gameweek")`) opened on
+    a gameweek that every card on it showed as "not current". The published
+    value must always agree with whichever entry says `is_current`, not
+    whatever the earlier, possibly-drifted resolve call produced."""
+    gameweeks = range(1, 3)
+    matchdays = list(gameweeks)
+
+    def fixtures_by_gameweek_fn(gameweek):
+        # Simulate the top-level resolve (mocked to always say "2") having
+        # drifted ahead of the nested per-gameweek resolve baked into each
+        # entry, which says gameweek 1 is still the current one.
+        return {"fixtures": [{"event_id": f"gw{gameweek}-a", "finished": False}], "is_current": gameweek == 1}
+
+    monkeypatch.setattr(routes, "_get_fd_org_matches", lambda: pd.DataFrame({"matchday": matchdays}))
+    monkeypatch.setattr(routes.tracking_store, "get_track_record", lambda: {"current_gameweek": 2})
+    monkeypatch.setattr(routes, "_resolve_current_gameweek", lambda *_a, **_k: 2)
+    monkeypatch.setattr(routes, "current_gameweek_fixtures", fixtures_by_gameweek_fn)
+    monkeypatch.setattr(routes.manifest_lib, "manifest_fingerprint", lambda: "fp-fixed")
+    monkeypatch.setattr(routes, "fixture_detail", lambda event_id, read_only=False: {"event_id": event_id})
+    monkeypatch.setattr(routes, "fixture_players", lambda event_id, read_only=False: {"event_id": event_id})
+    monkeypatch.setattr(routes, "fixture_player_review", lambda event_id: {"event_id": event_id})
+    monkeypatch.setattr(routes, "get_power_rankings", lambda: {})
+    monkeypatch.setattr(routes, "get_projected_table", lambda: {})
+    monkeypatch.setattr(routes, "get_hub_track_record", lambda: {})
+    monkeypatch.setattr(routes, "get_team_hub", lambda: {})
+    monkeypatch.setattr(routes, "get_player_hub", lambda: {})
+
+    snapshot = public_snapshot.build_snapshot(previous=None)
+
+    assert snapshot["current_gameweek"] == 1
+    assert snapshot["fixtures_by_gameweek"]["1"]["is_current"] is True
+    assert snapshot["fixtures_by_gameweek"]["2"]["is_current"] is False

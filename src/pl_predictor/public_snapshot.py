@@ -107,6 +107,22 @@ def build_snapshot(previous: dict | None = None) -> dict:
         print(f"  gameweek {gw}")
         fixtures_by_gameweek[str(gw)] = routes.current_gameweek_fixtures(gameweek=gw)
 
+    # `current_gameweek` above and each entry's own `is_current` flag both
+    # come from `_resolve_current_gameweek`, but from two separate calls
+    # (one here, one inside `current_gameweek_fixtures` per gameweek) that
+    # can land on either side of its calendar-day boundary if enough wall-
+    # clock time passes between them -- confirmed live: a run where this
+    # variable came out one gameweek ahead of every entry's own `is_current`,
+    # so `PUBLIC_MODE`'s default view (`routes.py`'s `snapshot.get(
+    # "current_gameweek")`) opened on a gameweek every fixture card itself
+    # disagreed with. Trust whichever entry actually says `is_current` --
+    # it's the same value a client browsing that gameweek already sees --
+    # over re-deriving it a second time from a possibly-drifted clock read.
+    current_gameweek = next(
+        (int(gw) for gw, gw_data in fixtures_by_gameweek.items() if gw_data.get("is_current")),
+        current_gameweek,
+    )
+
     event_id_to_gw = {
         fixture["event_id"]: int(gw)
         for gw, gw_data in fixtures_by_gameweek.items()
