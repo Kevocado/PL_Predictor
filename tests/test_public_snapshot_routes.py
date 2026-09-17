@@ -203,33 +203,31 @@ def test_walk_forward_validation_disabled_in_public_mode(monkeypatch):
     assert exc_info.value.status_code == 503
 
 
-def test_calibration_serves_from_snapshot(monkeypatch):
+def test_calibration_disabled_in_public_mode(monkeypatch):
     """Confirmed live: reachable unguarded and firing on every Model-tab
     visit -- build_training_frame() + a chronological split + fitting
     calibration curves is exactly the heavy live-serving computation
     PUBLIC_MODE exists to avoid (the same football-data.co.uk scrape the
-    snapshot system exists to keep off this host)."""
+    snapshot system exists to keep off this host). Baking this into
+    public_snapshot.json was tried and reverted -- confirmed live it made
+    the snapshot build hang indefinitely partway through, twice in a row --
+    so this degrades to an honest empty state instead."""
     monkeypatch.setattr(routes, "PUBLIC_MODE", True)
-    fake_model = {"model": {"calibration": True}}
-    monkeypatch.setattr(routes, "_public_snapshot_cache", {"model": {"calibration": fake_model}})
     monkeypatch.setattr(routes, "_get_models", _explode)
     monkeypatch.setattr(routes, "build_training_frame", _explode)
     monkeypatch.setattr(routes, "chronological_split", _explode)
 
-    assert routes.get_calibration() == fake_model
+    assert routes.get_calibration() == {"model": [], "bookmaker": [], "naive": [], "season": None}
 
 
-def test_scorer_track_record_serves_from_snapshot(monkeypatch):
+def test_scorer_track_record_disabled_in_public_mode(monkeypatch):
     """Background tracking is skipped entirely in PUBLIC_MODE, so
-    tracking_store is never populated there -- must serve what
-    public_snapshot.py already computed locally, not read the (empty)
-    live store."""
+    tracking_store is never populated there -- must never read the (empty)
+    live store's real accuracy tables."""
     monkeypatch.setattr(routes, "PUBLIC_MODE", True)
-    fake_scorer = {"snapshot": {"calls": 5}, "reconstructed": {}}
-    monkeypatch.setattr(routes, "_public_snapshot_cache", {"model": {"scorer_track_record": fake_scorer}})
     monkeypatch.setattr(routes.tracking_store, "get_scorer_accuracy", _explode)
 
-    assert routes.get_scorer_track_record() == fake_scorer
+    assert routes.get_scorer_track_record() == {"snapshot": {}, "reconstructed": {}}
 
 
 def test_manifest_skips_live_results_probe_in_public_mode(monkeypatch, tmp_path):

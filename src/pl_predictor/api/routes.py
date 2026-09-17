@@ -1765,11 +1765,14 @@ def get_calibration():
         # the heavy live-serving computation PUBLIC_MODE exists to avoid --
         # it was reachable unguarded here and firing on every Model-tab
         # visit, the same football-data.co.uk scrape the snapshot system
-        # was built to keep off this host. See public_snapshot.py's "model"
-        # section for the precomputed equivalent.
-        return _public_snapshot().get("model", {}).get(
-            "calibration", {"model": [], "bookmaker": [], "naive": [], "season": None}
-        )
+        # was built to keep off this host. Baking this into
+        # public_snapshot.py was tried and reverted -- confirmed live it
+        # made the snapshot build hang indefinitely partway through
+        # (build_training_frame appears to stall on GitHub's runners in a
+        # way it never did locally) twice in a row, which is worse than an
+        # empty Model tab. Needs a real root-cause investigation, not a
+        # second guess, before trying again.
+        return {"model": [], "bookmaker": [], "naive": [], "season": None}
     trained_at = manifest_lib.load_manifest().get("trained_at", "untrained") if manifest_lib.MANIFEST_PATH.exists() else "untrained"
 
     def build():
@@ -2226,12 +2229,10 @@ def get_scorer_track_record():
     """Keep player-model evaluation with the calibration surfaces, not discovery."""
     if PUBLIC_MODE:
         # Background tracking is skipped entirely in PUBLIC_MODE (see
-        # main.py's lifespan), so tracking_store is never populated here --
-        # serve the same numbers public_snapshot.py already computed
-        # locally, where real tracking history does exist.
-        return _public_snapshot().get("model", {}).get(
-            "scorer_track_record", {"snapshot": {}, "reconstructed": {}}
-        )
+        # main.py's lifespan), so tracking_store is never populated here.
+        # Baking this into public_snapshot.json alongside get_calibration
+        # was tried and reverted -- see get_calibration's comment.
+        return {"snapshot": {}, "reconstructed": {}}
     return tracking_store.get_scorer_accuracy()
 
 
