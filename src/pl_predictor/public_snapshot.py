@@ -238,11 +238,32 @@ def build_snapshot(previous: dict | None = None) -> dict:
         "players": routes.get_player_hub(),
     }
 
-    print("Building Model snapshot...")
-    model = {
-        "calibration": routes.get_calibration(),
-        "scorer_track_record": routes.get_scorer_track_record(),
-    }
+    previous_model = previous.get("model", {})
+    if model_changed or "calibration" not in previous_model:
+        # Confirmed live: build_training_frame() + fitting calibration
+        # curves is one of the heaviest calls in the whole live pipeline
+        # (multi-season feature engineering) -- unlike the fixture loop
+        # above, it had no reuse guard the first time this was added, so
+        # every 20-minute scheduled run repeated it from scratch regardless
+        # of whether the model had changed since the last one. Calibration
+        # curves only meaningfully change when the model itself does, so
+        # gate it exactly like the fixture rebuild window does.
+        print("Building Model snapshot...")
+        try:
+            calibration = routes.get_calibration()
+        except Exception as exc:  # noqa: BLE001 - a slow/failing calibration build must not block the deploy
+            print(f"  ! skipped calibration: {exc}")
+            calibration = previous_model.get("calibration", {"model": [], "bookmaker": [], "naive": [], "season": None})
+    else:
+        calibration = previous_model["calibration"]
+    # Cheap (a local tracking_store read, no live fetch) -- fine to refresh
+    # every run so newly-resolved scorer calls show up promptly.
+    try:
+        scorer_track_record = routes.get_scorer_track_record()
+    except Exception as exc:  # noqa: BLE001
+        print(f"  ! skipped scorer track record: {exc}")
+        scorer_track_record = previous_model.get("scorer_track_record", {"snapshot": {}, "reconstructed": {}})
+    model = {"calibration": calibration, "scorer_track_record": scorer_track_record}
 
     print("Building FPL snapshot...")
     try:

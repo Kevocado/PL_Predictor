@@ -72,6 +72,8 @@ def _patch_common(
     monkeypatch.setattr(routes, "get_hub_track_record", lambda: {})
     monkeypatch.setattr(routes, "get_team_hub", lambda: {})
     monkeypatch.setattr(routes, "get_player_hub", lambda: {})
+    monkeypatch.setattr(routes, "get_calibration", lambda: {"model": [], "bookmaker": [], "naive": [], "season": None})
+    monkeypatch.setattr(routes, "get_scorer_track_record", lambda: {"snapshot": {}, "reconstructed": {}})
     return gameweek_calls
 
 
@@ -322,3 +324,39 @@ def test_published_current_gameweek_matches_the_is_current_flag_actually_baked_i
     assert snapshot["current_gameweek"] == 1
     assert snapshot["fixtures_by_gameweek"]["1"]["is_current"] is True
     assert snapshot["fixtures_by_gameweek"]["2"]["is_current"] is False
+
+
+def test_calibration_is_reused_unless_the_model_changed(monkeypatch):
+    """Real incident: get_calibration() runs build_training_frame() -- one
+    of the heaviest calls in the live pipeline -- with no reuse guard, so
+    every 20-minute scheduled snapshot run repeated it from scratch
+    regardless of whether the model had changed, turning a normally-quick
+    incremental run into one that ran long enough to back up the whole
+    schedule. Calibration only meaningfully changes when the model itself
+    does, so it must reuse the previous run's value otherwise, exactly like
+    the fixture rebuild window already does."""
+    gameweeks = range(1, 3)
+    fixtures_by_gameweek = _fake_fixtures_by_gameweek(finished_ids=set())
+    detail_calls: list[str] = []
+    players_calls: list[str] = []
+
+    def explode():
+        raise AssertionError("must not recompute calibration when the model hasn't changed")
+
+    gameweek_calls = _patch_common(
+        monkeypatch, fixtures_by_gameweek, detail_calls, players_calls,
+        current_gameweek=2, matchdays=list(gameweeks), model_fingerprint="fp-unchanged",
+    )
+    monkeypatch.setattr(routes, "get_calibration", explode)
+
+    previous = {
+        "model_fingerprint": "fp-unchanged",
+        "fixtures_by_gameweek": {str(gw): {"fixtures": [{"event_id": f"gw{gw}-a", "finished": False}]} for gw in gameweeks},
+        "fixture_detail_by_event_id": {},
+        "fixture_players_by_event_id": {},
+        "model": {"calibration": {"model": ["reused"]}, "scorer_track_record": {"snapshot": {}}},
+    }
+
+    snapshot = public_snapshot.build_snapshot(previous)
+
+    assert snapshot["model"]["calibration"] == {"model": ["reused"]}
