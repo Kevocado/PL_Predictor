@@ -1700,6 +1700,12 @@ def team_fixtures(team: str, limit: int = 5):
     always finds one regardless of how far out it is, unlike the main
     `/api/fixtures` list which is limited to whatever window The Odds API
     currently has pre-match lines for (typically 1-2 gameweeks)."""
+    if PUBLIC_MODE:
+        # Not called by the frontend anywhere, but was reachable unguarded
+        # -- _get_models() runs the same live pipeline PUBLIC_MODE exists
+        # to keep off this host (see get_calibration). No snapshot
+        # equivalent exists (out of public_snapshot.py's deliberate scope).
+        return []
     all_remaining = _get_remaining_fixtures_df()
     if all_remaining.empty:
         return []
@@ -1731,6 +1737,13 @@ def get_manifest():
     if not manifest_lib.MANIFEST_PATH.exists():
         raise HTTPException(status_code=409, detail="No trained models yet — call POST /api/retrain first.")
     manifest = manifest_lib.load_manifest().copy()
+    if PUBLIC_MODE:
+        # live_current_season_matches is a live-results probe, not a model
+        # fact -- skip it here rather than fetching FPL results live on
+        # every request to this deployment (see PUBLIC_MODE's contract of
+        # never running the live pipeline, api/main.py's lifespan docstring).
+        manifest["live_results_source"] = "unavailable"
+        return manifest
     try:
         manifest["live_current_season_matches"] = int(len(_get_live_current_results_df()))
         manifest["live_results_source"] = "official_fpl"
@@ -1746,6 +1759,17 @@ def get_manifest_history():
 
 @router.get("/calibration")
 def get_calibration():
+    if PUBLIC_MODE:
+        # Confirmed live: this endpoint's live path (build_training_frame +
+        # a chronological split + fitting calibration curves) is exactly
+        # the heavy live-serving computation PUBLIC_MODE exists to avoid --
+        # it was reachable unguarded here and firing on every Model-tab
+        # visit, the same football-data.co.uk scrape the snapshot system
+        # was built to keep off this host. See public_snapshot.py's "model"
+        # section for the precomputed equivalent.
+        return _public_snapshot().get("model", {}).get(
+            "calibration", {"model": [], "bookmaker": [], "naive": [], "season": None}
+        )
     trained_at = manifest_lib.load_manifest().get("trained_at", "untrained") if manifest_lib.MANIFEST_PATH.exists() else "untrained"
 
     def build():
@@ -1772,6 +1796,11 @@ def get_squad_continuity():
     this endpoint just exposes the raw per-team numbers for display,
     independent of which scoreline model happens to be `chosen_model`."""
     season = football_data.season_str(football_data.CURRENT_SEASON_START_YEAR)
+    if PUBLIC_MODE:
+        # Not called by the frontend anywhere, but was reachable unguarded
+        # -- team_season_continuity_table() builds the same live training
+        # frame PUBLIC_MODE exists to keep off this host (see get_calibration).
+        return {"season": season, "teams": []}
 
     def build():
         try:
@@ -2195,21 +2224,38 @@ def get_player_hub():
 @router.get("/scorer-track-record")
 def get_scorer_track_record():
     """Keep player-model evaluation with the calibration surfaces, not discovery."""
+    if PUBLIC_MODE:
+        # Background tracking is skipped entirely in PUBLIC_MODE (see
+        # main.py's lifespan), so tracking_store is never populated here --
+        # serve the same numbers public_snapshot.py already computed
+        # locally, where real tracking history does exist.
+        return _public_snapshot().get("model", {}).get(
+            "scorer_track_record", {"snapshot": {}, "reconstructed": {}}
+        )
     return tracking_store.get_scorer_accuracy()
 
 
 @router.get("/research/confirmed-xi")
 def get_confirmed_xi_experiment():
+    if PUBLIC_MODE:
+        return {}
     return tracking_store.confirmed_xi_experiment_status()
 
 
 @router.get("/research/odds-snapshots")
 def get_odds_snapshot_experiment():
+    if PUBLIC_MODE:
+        return {}
     return tracking_store.odds_snapshot_status()
 
 
 @router.get("/research/historical-closing-odds")
 def get_historical_closing_odds_benchmark():
+    if PUBLIC_MODE:
+        # Not called by the frontend anywhere, but was reachable unguarded
+        # -- _get_matches_df() runs the same live pipeline PUBLIC_MODE
+        # exists to keep off this host (see get_calibration).
+        return {}
     return _cached(
         "historical_closing_odds_benchmark",
         lambda: odds_benchmark.closing_odds_benchmark(_get_matches_df()),

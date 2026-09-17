@@ -201,3 +201,74 @@ def test_walk_forward_validation_disabled_in_public_mode(monkeypatch):
     with pytest.raises(HTTPException) as exc_info:
         routes.get_walk_forward_value_bet_validation()
     assert exc_info.value.status_code == 503
+
+
+def test_calibration_serves_from_snapshot(monkeypatch):
+    """Confirmed live: reachable unguarded and firing on every Model-tab
+    visit -- build_training_frame() + a chronological split + fitting
+    calibration curves is exactly the heavy live-serving computation
+    PUBLIC_MODE exists to avoid (the same football-data.co.uk scrape the
+    snapshot system exists to keep off this host)."""
+    monkeypatch.setattr(routes, "PUBLIC_MODE", True)
+    fake_model = {"model": {"calibration": True}}
+    monkeypatch.setattr(routes, "_public_snapshot_cache", {"model": {"calibration": fake_model}})
+    monkeypatch.setattr(routes, "_get_models", _explode)
+    monkeypatch.setattr(routes, "build_training_frame", _explode)
+    monkeypatch.setattr(routes, "chronological_split", _explode)
+
+    assert routes.get_calibration() == fake_model
+
+
+def test_scorer_track_record_serves_from_snapshot(monkeypatch):
+    """Background tracking is skipped entirely in PUBLIC_MODE, so
+    tracking_store is never populated there -- must serve what
+    public_snapshot.py already computed locally, not read the (empty)
+    live store."""
+    monkeypatch.setattr(routes, "PUBLIC_MODE", True)
+    fake_scorer = {"snapshot": {"calls": 5}, "reconstructed": {}}
+    monkeypatch.setattr(routes, "_public_snapshot_cache", {"model": {"scorer_track_record": fake_scorer}})
+    monkeypatch.setattr(routes.tracking_store, "get_scorer_accuracy", _explode)
+
+    assert routes.get_scorer_track_record() == fake_scorer
+
+
+def test_manifest_skips_live_results_probe_in_public_mode(monkeypatch, tmp_path):
+    """Confirmed live: reachable unguarded -- fetched FPL results live on
+    every /api/manifest request regardless of PUBLIC_MODE."""
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text('{"trained_at": "2026-01-01"}')
+    monkeypatch.setattr(routes, "PUBLIC_MODE", True)
+    monkeypatch.setattr(routes.manifest_lib, "MANIFEST_PATH", manifest_path)
+    monkeypatch.setattr(routes.manifest_lib, "load_manifest", lambda: {"trained_at": "2026-01-01"})
+    monkeypatch.setattr(routes, "_get_live_current_results_df", _explode)
+
+    result = routes.get_manifest()
+    assert result["live_results_source"] == "unavailable"
+    assert "live_current_season_matches" not in result
+
+
+def test_squad_continuity_disabled_in_public_mode(monkeypatch):
+    monkeypatch.setattr(routes, "PUBLIC_MODE", True)
+    monkeypatch.setattr(routes.squad_change, "team_season_continuity_table", _explode)
+
+    result = routes.get_squad_continuity()
+    assert result["teams"] == []
+
+
+def test_team_fixtures_disabled_in_public_mode(monkeypatch):
+    monkeypatch.setattr(routes, "PUBLIC_MODE", True)
+    monkeypatch.setattr(routes, "_get_remaining_fixtures_df", _explode)
+    monkeypatch.setattr(routes, "_get_models", _explode)
+
+    assert routes.team_fixtures("Arsenal") == []
+
+
+def test_research_endpoints_disabled_in_public_mode(monkeypatch):
+    monkeypatch.setattr(routes, "PUBLIC_MODE", True)
+    monkeypatch.setattr(routes.tracking_store, "confirmed_xi_experiment_status", _explode)
+    monkeypatch.setattr(routes.tracking_store, "odds_snapshot_status", _explode)
+    monkeypatch.setattr(routes, "_get_matches_df", _explode)
+
+    assert routes.get_confirmed_xi_experiment() == {}
+    assert routes.get_odds_snapshot_experiment() == {}
+    assert routes.get_historical_closing_odds_benchmark() == {}

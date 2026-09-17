@@ -238,6 +238,12 @@ def build_snapshot(previous: dict | None = None) -> dict:
         "players": routes.get_player_hub(),
     }
 
+    print("Building Model snapshot...")
+    model = {
+        "calibration": routes.get_calibration(),
+        "scorer_track_record": routes.get_scorer_track_record(),
+    }
+
     print("Building FPL snapshot...")
     try:
         fpl = {
@@ -260,6 +266,7 @@ def build_snapshot(previous: dict | None = None) -> dict:
         "fixture_players_by_event_id": fixture_players_by_event_id,
         "player_review_by_event_id": player_review_by_event_id,
         "hub": hub,
+        "model": model,
         "fpl": fpl,
     }
 
