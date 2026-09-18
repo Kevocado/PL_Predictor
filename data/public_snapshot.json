@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-18T21:07:45.535741+00:00",
+  "generated_at": "2026-09-18T21:20:13.986344+00:00",
   "model_fingerprint": "f441348cc979243f6b42f3c81a44d32e6d151a76ee9f7699cf1218fcdddbd15a",
   "current_gameweek": 5,
   "min_gameweek": 1,
@@ -663,6 +663,27 @@
       "gameweek": 4,
       "fixtures": [
         {
+          "event_id": "backfill-Crystal Palace-Ipswich-2026-09-12",
+          "team_home": "Crystal Palace",
+          "team_away": "Ipswich",
+          "commence_time": "2026-09-12T14:00:00",
+          "finished": true,
+          "actual_goals_home": 2,
+          "actual_goals_away": 3,
+          "predicted_home_win": 0.5013542643710729,
+          "predicted_draw": 0.23756263702418634,
+          "predicted_away_win": 0.2610830986047408,
+          "predicted_scoreline": "1-1",
+          "draw_signal": true,
+          "hit": false,
+          "backfilled": true,
+          "has_live_odds": false,
+          "value_bet_flags": [],
+          "home_player_events": [],
+          "away_player_events": [],
+          "player_events_pending": true
+        },
+        {
           "event_id": "backfill-Chelsea-Hull-2026-09-12",
           "team_home": "Chelsea",
           "team_away": "Hull",
@@ -684,16 +705,16 @@
           "player_events_pending": true
         },
         {
-          "event_id": "backfill-Aston Villa-Nott'm Forest-2026-09-12",
-          "team_home": "Aston Villa",
-          "team_away": "Nott'm Forest",
+          "event_id": "backfill-Liverpool-Fulham-2026-09-12",
+          "team_home": "Liverpool",
+          "team_away": "Fulham",
           "commence_time": "2026-09-12T14:00:00",
           "finished": true,
-          "actual_goals_home": 1,
-          "actual_goals_away": 2,
-          "predicted_home_win": 0.47734104067884175,
-          "predicted_draw": 0.24246673544050332,
-          "predicted_away_win": 0.28019222388065473,
+          "actual_goals_home": 0,
+          "actual_goals_away": 0,
+          "predicted_home_win": 0.5278429280202914,
+          "predicted_draw": 0.23610043855200302,
+          "predicted_away_win": 0.23605663342770572,
           "predicted_scoreline": "1-1",
           "draw_signal": true,
           "hit": false,
@@ -726,37 +747,16 @@
           "player_events_pending": true
         },
         {
-          "event_id": "backfill-Crystal Palace-Ipswich-2026-09-12",
-          "team_home": "Crystal Palace",
-          "team_away": "Ipswich",
+          "event_id": "backfill-Aston Villa-Nott'm Forest-2026-09-12",
+          "team_home": "Aston Villa",
+          "team_away": "Nott'm Forest",
           "commence_time": "2026-09-12T14:00:00",
           "finished": true,
-          "actual_goals_home": 2,
-          "actual_goals_away": 3,
-          "predicted_home_win": 0.5013542643710729,
-          "predicted_draw": 0.23756263702418634,
-          "predicted_away_win": 0.2610830986047408,
-          "predicted_scoreline": "1-1",
-          "draw_signal": true,
-          "hit": false,
-          "backfilled": true,
-          "has_live_odds": false,
-          "value_bet_flags": [],
-          "home_player_events": [],
-          "away_player_events": [],
-          "player_events_pending": true
-        },
-        {
-          "event_id": "backfill-Liverpool-Fulham-2026-09-12",
-          "team_home": "Liverpool",
-          "team_away": "Fulham",
-          "commence_time": "2026-09-12T14:00:00",
-          "finished": true,
-          "actual_goals_home": 0,
-          "actual_goals_away": 0,
-          "predicted_home_win": 0.5278429280202914,
-          "predicted_draw": 0.23610043855200302,
-          "predicted_away_win": 0.23605663342770572,
+          "actual_goals_home": 1,
+          "actual_goals_away": 2,
+          "predicted_home_win": 0.47734104067884175,
+          "predicted_draw": 0.24246673544050332,
+          "predicted_away_win": 0.28019222388065473,
           "predicted_scoreline": "1-1",
           "draw_signal": true,
           "hit": false,
@@ -881,22 +881,25 @@
       "gameweek": 5,
       "fixtures": [
         {
-          "event_id": "560591",
+          "event_id": "backfill-Brentford-Chelsea-2026-09-18",
           "team_home": "Brentford",
           "team_away": "Chelsea",
-          "commence_time": "2026-09-18T19:00:00+00:00",
-          "finished": false,
-          "actual_goals_home": null,
-          "actual_goals_away": null,
+          "commence_time": "2026-09-18T19:00:00",
+          "finished": true,
+          "actual_goals_home": 3,
+          "actual_goals_away": 0,
           "predicted_home_win": 0.5452217455816237,
           "predicted_draw": 0.2126428944170477,
           "predicted_away_win": 0.24213536000132851,
           "predicted_scoreline": "2-1",
           "draw_signal": false,
-          "hit": null,
-          "backfilled": false,
+          "hit": true,
+          "backfilled": true,
           "has_live_odds": false,
-          "value_bet_flags": []
+          "value_bet_flags": [],
+          "home_player_events": [],
+          "away_player_events": [],
+          "player_events_pending": true
         },
         {
           "event_id": "48",
@@ -75513,6 +75516,312 @@
           "Red cards": 0.0
         }
       },
+      "pre_match_value_bets": []
+    },
+    "backfill-Brentford-Chelsea-2026-09-18": {
+      "event_id": "backfill-Brentford-Chelsea-2026-09-18",
+      "commence_time": "2026-09-18T19:00:00",
+      "team_home": "Brentford",
+      "team_away": "Chelsea",
+      "home_win": {
+        "prob": 0.5452217455816237,
+        "implied": null,
+        "edge": null
+      },
+      "draw": {
+        "prob": 0.2126428944170477,
+        "implied": null,
+        "edge": null
+      },
+      "away_win": {
+        "prob": 0.24213536000132851,
+        "implied": null,
+        "edge": null
+      },
+      "over_2_5": {
+        "prob": 0.5484318913986446,
+        "implied": null,
+        "edge": null
+      },
+      "under_2_5": {
+        "prob": 0.45156810860135543,
+        "implied": null,
+        "edge": null
+      },
+      "btts_yes_prob": 0.6370786680595875,
+      "top_scoreline": "2-1",
+      "predicted_result": "home_win",
+      "draw_signal": false,
+      "is_fallback_prediction": false,
+      "data_confidence": null,
+      "predicted_total_goals": null,
+      "predicted_margin": null,
+      "home_2plus_prob": null,
+      "away_2plus_prob": null,
+      "value_bet_flags": [],
+      "has_live_odds": false,
+      "odds_fetched_at": null,
+      "odds_is_stale": false,
+      "recommended_bet": null,
+      "score_grid": [
+        [
+          0.03473708570498271,
+          0.045597808266090153,
+          0.02992709486813517,
+          0.013094649959486745,
+          0.004297189344230128,
+          0.0011281453917314948
+        ],
+        [
+          0.07131309927736235,
+          0.09360949434060875,
+          0.06143848408987959,
+          0.02688251053913942,
+          0.008821865280274501,
+          0.0023160130646281266
+        ],
+        [
+          0.07320070215063351,
+          0.09608726563751388,
+          0.06306471349615497,
+          0.027594069911100836,
+          0.009055373267157682,
+          0.0023773161486284793
+        ],
+        [
+          0.050092178946490956,
+          0.06575374775625292,
+          0.04315599196245193,
+          0.018882975808134132,
+          0.006196708020536484,
+          0.0016268279187326054
+        ],
+        [
+          0.02570904019243981,
+          0.03374709943591854,
+          0.022149148933857835,
+          0.009691396825096517,
+          0.003180365057207133,
+          0.0008349444010722081
+        ],
+        [
+          0.010555815482852532,
+          0.01385614367788759,
+          0.00909416794629217,
+          0.003979168257199463,
+          0.0013058187493853802,
+          0.0003428178948022655
+        ]
+      ],
+      "top_scorelines": [
+        {
+          "home": 2,
+          "away": 1,
+          "prob": 0.09608726563751388
+        },
+        {
+          "home": 1,
+          "away": 1,
+          "prob": 0.09360949434060875
+        },
+        {
+          "home": 2,
+          "away": 0,
+          "prob": 0.07320070215063351
+        },
+        {
+          "home": 1,
+          "away": 0,
+          "prob": 0.07131309927736235
+        },
+        {
+          "home": 3,
+          "away": 1,
+          "prob": 0.06575374775625292
+        }
+      ],
+      "corners": {
+        "lambda_": 10.434054374694824,
+        "line": 9.5,
+        "over": 0.595068092858908,
+        "under": 0.40493190714109195
+      },
+      "cards": {
+        "lambda_": 4.581583499908447,
+        "line": 3.5,
+        "over": 0.6712809678786145,
+        "under": 0.32871903212138553
+      },
+      "home_shots": 14.93088436126709,
+      "away_shots": 12.364985466003418,
+      "home_shots_on_target": 5.373612880706787,
+      "away_shots_on_target": 4.887904644012451,
+      "head_to_head": [
+        {
+          "date": "2026-01-17",
+          "team_home": "Chelsea",
+          "team_away": "Brentford",
+          "goals_home": 2,
+          "goals_away": 0
+        },
+        {
+          "date": "2025-09-13",
+          "team_home": "Brentford",
+          "team_away": "Chelsea",
+          "goals_home": 2,
+          "goals_away": 2
+        },
+        {
+          "date": "2025-04-06",
+          "team_home": "Brentford",
+          "team_away": "Chelsea",
+          "goals_home": 0,
+          "goals_away": 0
+        },
+        {
+          "date": "2024-12-15",
+          "team_home": "Chelsea",
+          "team_away": "Brentford",
+          "goals_home": 2,
+          "goals_away": 1
+        },
+        {
+          "date": "2024-03-02",
+          "team_home": "Brentford",
+          "team_away": "Chelsea",
+          "goals_home": 2,
+          "goals_away": 2
+        }
+      ],
+      "home_recent_form": [
+        "D",
+        "D",
+        "D",
+        "W"
+      ],
+      "away_recent_form": [
+        "D",
+        "L",
+        "W",
+        "W"
+      ],
+      "home_context": {
+        "rest_days": 3,
+        "xg_for_last_5": 1.9983575999999998,
+        "xg_against_last_5": 2.1402658000000003,
+        "corners_last_5": 4.0,
+        "cards_last_5": 2.4,
+        "set_piece_xg_share_last_5": 0.5660301760461861
+      },
+      "away_context": {
+        "rest_days": 6,
+        "xg_for_last_5": 1.4731698000000002,
+        "xg_against_last_5": 1.7667622,
+        "corners_last_5": 5.6,
+        "cards_last_5": 2.2,
+        "set_piece_xg_share_last_5": 0.24413315091427631
+      },
+      "post_match": {
+        "final_score": "3-0",
+        "provenance": "reconstructed",
+        "verdicts": [
+          {
+            "label": "Exact score",
+            "prediction": "2-1",
+            "actual": "3-0",
+            "hit": false
+          },
+          {
+            "label": "Match result",
+            "prediction": "home_win",
+            "actual": "home_win",
+            "hit": true
+          },
+          {
+            "label": "Goals O/U 2.5",
+            "prediction": "over",
+            "actual": "over",
+            "hit": true
+          },
+          {
+            "label": "BTTS",
+            "prediction": "yes",
+            "actual": "no",
+            "hit": false
+          }
+        ],
+        "player_calls": [
+          {
+            "name": "Schuster",
+            "team": "Brentford",
+            "goal_probability": 0.11419153951411765,
+            "assist_probability": 0.11948162013167696,
+            "contribution_probability": 0.2200293694993174,
+            "goals": 0,
+            "assists": 1,
+            "goal_hit": false,
+            "assist_hit": true,
+            "goal_called": false,
+            "assist_called": false,
+            "contribution_called": true,
+            "is_recommended": false,
+            "contribution_hit": true,
+            "provenance": "reconstructed"
+          },
+          {
+            "name": "Schade",
+            "team": "Brentford",
+            "goal_probability": 0.4334478984688994,
+            "assist_probability": 0.4468266557644962,
+            "contribution_probability": 0.6865984793123884,
+            "goals": 0,
+            "assists": 2,
+            "goal_hit": false,
+            "assist_hit": true,
+            "goal_called": true,
+            "assist_called": true,
+            "contribution_called": true,
+            "is_recommended": true,
+            "contribution_hit": true,
+            "provenance": "reconstructed"
+          },
+          {
+            "name": "Anthony",
+            "team": "Brentford",
+            "goal_probability": 0.36590774169481466,
+            "assist_probability": 0.37921430656838906,
+            "contribution_probability": 0.6063645977283993,
+            "goals": 1,
+            "assists": 0,
+            "goal_hit": true,
+            "assist_hit": false,
+            "goal_called": true,
+            "assist_called": true,
+            "contribution_called": true,
+            "is_recommended": false,
+            "contribution_hit": true,
+            "provenance": "reconstructed"
+          },
+          {
+            "name": "Thiago",
+            "team": "Brentford",
+            "goal_probability": 0.5411194522152041,
+            "assist_probability": 0.2847468920322911,
+            "contribution_probability": 0.6717842620109999,
+            "goals": 1,
+            "assists": 0,
+            "goal_hit": true,
+            "assist_hit": false,
+            "goal_called": true,
+            "assist_called": true,
+            "contribution_called": true,
+            "is_recommended": true,
+            "contribution_hit": true,
+            "provenance": "reconstructed"
+          }
+        ]
+      },
+      "actual_stats": null,
       "pre_match_value_bets": []
     },
     "backfill-Brentford-Sunderland-2026-09-05": {
@@ -196741,6 +197050,452 @@
         }
       ]
     },
+    "backfill-Brentford-Chelsea-2026-09-18": {
+      "home_players": [
+        {
+          "player_id": 106,
+          "name": "Thiago",
+          "position": "FWD",
+          "anytime_goal_prob": 0.5411194522152041,
+          "anytime_assist_prob": 0.2847468920322911,
+          "anytime_goal_contribution_prob": 0.6717842620109999,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": true,
+          "confirmed_starter": true,
+          "expected_minutes": 90.0,
+          "is_penalty_taker": true,
+          "is_set_piece_taker": false,
+          "expected_shots": 0.6192876203027786,
+          "expected_shots_on_target": 0.0,
+          "anytime_shot_on_target_prob": 0.0,
+          "expected_saves": 0.0
+        },
+        {
+          "player_id": 94,
+          "name": "Schade",
+          "position": "MID",
+          "anytime_goal_prob": 0.4334478984688994,
+          "anytime_assist_prob": 0.4468266557644962,
+          "anytime_goal_contribution_prob": 0.6865984793123884,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": true,
+          "confirmed_starter": true,
+          "expected_minutes": 90.0,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false,
+          "expected_shots": 1.5309011642831551,
+          "expected_shots_on_target": 0.612360465713262,
+          "anytime_shot_on_target_prob": 0.4579301794918008,
+          "expected_saves": 0.0
+        },
+        {
+          "player_id": 105,
+          "name": "Anthony",
+          "position": "MID",
+          "anytime_goal_prob": 0.36590774169481466,
+          "anytime_assist_prob": 0.37921430656838906,
+          "anytime_goal_contribution_prob": 0.6063645977283993,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": true,
+          "confirmed_starter": true,
+          "expected_minutes": 90.0,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false,
+          "expected_shots": 0.5125938729846968,
+          "expected_shots_on_target": 0.0,
+          "anytime_shot_on_target_prob": 0.0,
+          "expected_saves": 0.0
+        },
+        {
+          "player_id": 96,
+          "name": "Damsgaard",
+          "position": "MID",
+          "anytime_goal_prob": 0.3636332186222132,
+          "anytime_assist_prob": 0.4029521877891469,
+          "anytime_goal_contribution_prob": 0.6200586054147301,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": true,
+          "confirmed_starter": true,
+          "expected_minutes": 90.0,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false,
+          "expected_shots": 0.0,
+          "expected_shots_on_target": 0.0,
+          "anytime_shot_on_target_prob": 0.0,
+          "expected_saves": 0.0
+        },
+        {
+          "player_id": 102,
+          "name": "Yarmoliuk",
+          "position": "MID",
+          "anytime_goal_prob": 0.30220719136240404,
+          "anytime_assist_prob": 0.3042416871746909,
+          "anytime_goal_contribution_prob": 0.5145048527606726,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": true,
+          "confirmed_starter": true,
+          "expected_minutes": 90.0,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false,
+          "expected_shots": 0.0,
+          "expected_shots_on_target": 0.0,
+          "anytime_shot_on_target_prob": 0.0,
+          "expected_saves": 0.0
+        },
+        {
+          "player_id": 86,
+          "name": "Lewis-Potter",
+          "position": "MID",
+          "anytime_goal_prob": 0.28653476809352874,
+          "anytime_assist_prob": 0.3500468969098839,
+          "anytime_goal_contribution_prob": 0.5362810585754797,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": true,
+          "confirmed_starter": true,
+          "expected_minutes": 90.0,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": true,
+          "expected_shots": 0.6741998230882466,
+          "expected_shots_on_target": 0.3370999115441233,
+          "anytime_shot_on_target_prob": 0.2861624842687245,
+          "expected_saves": 0.0
+        },
+        {
+          "player_id": 98,
+          "name": "Janelt",
+          "position": "MID",
+          "anytime_goal_prob": 0.2722367281896956,
+          "anytime_assist_prob": 0.3891038234566099,
+          "anytime_goal_contribution_prob": 0.5554121998223771,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": true,
+          "confirmed_starter": true,
+          "expected_minutes": 90.0,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false,
+          "expected_shots": 0.6082780626085069,
+          "expected_shots_on_target": 0.30413903130425346,
+          "anytime_shot_on_target_prob": 0.2622417121770436,
+          "expected_saves": 0.0
+        },
+        {
+          "player_id": 88,
+          "name": "Kayode",
+          "position": "DEF",
+          "anytime_goal_prob": 0.11805907134848925,
+          "anytime_assist_prob": 0.13876363187912155,
+          "anytime_goal_contribution_prob": 0.2404403977110181,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": true,
+          "confirmed_starter": true,
+          "expected_minutes": 90.0,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false,
+          "expected_shots": 1.8620757018627763,
+          "expected_shots_on_target": 0.46551892546569407,
+          "anytime_shot_on_target_prob": 0.3721907655537122,
+          "expected_saves": 0.0
+        },
+        {
+          "player_id": 93,
+          "name": "Schuster",
+          "position": "DEF",
+          "anytime_goal_prob": 0.11419153951411765,
+          "anytime_assist_prob": 0.11948162013167696,
+          "anytime_goal_contribution_prob": 0.2200293694993174,
+          "status": "a",
+          "news": "",
+          "confidence": "position_avg",
+          "predicted_starter": true,
+          "confirmed_starter": true,
+          "expected_minutes": 90.0,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false,
+          "expected_shots": 0.0,
+          "expected_shots_on_target": 0.0,
+          "anytime_shot_on_target_prob": 0.0,
+          "expected_saves": 0.0
+        },
+        {
+          "player_id": 87,
+          "name": "Ajer",
+          "position": "DEF",
+          "anytime_goal_prob": 0.06703823990114743,
+          "anytime_assist_prob": 0.09839244435296202,
+          "anytime_goal_contribution_prob": 0.15883462796511527,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": true,
+          "confirmed_starter": true,
+          "expected_minutes": 90.0,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false,
+          "expected_shots": 0.30413903130425346,
+          "expected_shots_on_target": 0.30413903130425346,
+          "anytime_shot_on_target_prob": 0.2622417121770436,
+          "expected_saves": 0.0
+        },
+        {
+          "player_id": 82,
+          "name": "Kelleher",
+          "position": "GK",
+          "anytime_goal_prob": 0.016906179655858167,
+          "anytime_assist_prob": 0.04017548442133667,
+          "anytime_goal_contribution_prob": 0.05640245011980649,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": true,
+          "confirmed_starter": true,
+          "expected_minutes": 90.0,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false,
+          "expected_shots": 0.0,
+          "expected_shots_on_target": 0.0,
+          "anytime_shot_on_target_prob": 0.0,
+          "expected_saves": 3.172972972972973
+        }
+      ],
+      "away_players": [
+        {
+          "player_id": 136,
+          "name": "Welbeck",
+          "position": "FWD",
+          "anytime_goal_prob": 0.3762235842268691,
+          "anytime_assist_prob": 0.16430992092490215,
+          "anytime_goal_contribution_prob": 0.47871623777737116,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": true,
+          "confirmed_starter": true,
+          "expected_minutes": 90.0,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false,
+          "expected_shots": 0.0,
+          "expected_shots_on_target": 0.0,
+          "anytime_shot_on_target_prob": 0.0,
+          "expected_saves": 0.0
+        },
+        {
+          "player_id": 154,
+          "name": "Palmer",
+          "position": "MID",
+          "anytime_goal_prob": 0.3311486090979615,
+          "anytime_assist_prob": 0.2555862113116997,
+          "anytime_goal_contribution_prob": 0.5020978020291742,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": true,
+          "confirmed_starter": true,
+          "expected_minutes": 90.0,
+          "is_penalty_taker": true,
+          "is_set_piece_taker": false,
+          "expected_shots": 0.9899358763773876,
+          "expected_shots_on_target": 0.3959743505509551,
+          "anytime_shot_on_target_prob": 0.3269760415902737,
+          "expected_saves": 0.0
+        },
+        {
+          "player_id": 40,
+          "name": "Rogers",
+          "position": "MID",
+          "anytime_goal_prob": 0.30063669804294224,
+          "anytime_assist_prob": 0.281661954201755,
+          "anytime_goal_contribution_prob": 0.49762073236915927,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": true,
+          "confirmed_starter": true,
+          "expected_minutes": 90.0,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false,
+          "expected_shots": 0.6007574242912659,
+          "expected_shots_on_target": 0.2002524747637553,
+          "anytime_shot_on_target_prob": 0.18147592968329218,
+          "expected_saves": 0.0
+        },
+        {
+          "player_id": 156,
+          "name": "Neto",
+          "position": "MID",
+          "anytime_goal_prob": 0.22087472528496388,
+          "anytime_assist_prob": 0.20728584243583914,
+          "anytime_goal_contribution_prob": 0.3823763642173248,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": true,
+          "confirmed_starter": true,
+          "expected_minutes": 90.0,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false,
+          "expected_shots": 0.2635853357583165,
+          "expected_shots_on_target": 0.0,
+          "anytime_shot_on_target_prob": 0.0,
+          "expected_saves": 0.0
+        },
+        {
+          "player_id": 568,
+          "name": "Barco",
+          "position": "MID",
+          "anytime_goal_prob": 0.18243099597873746,
+          "anytime_assist_prob": 0.13384627100626356,
+          "anytime_goal_contribution_prob": 0.2918595584572884,
+          "status": "a",
+          "news": "",
+          "confidence": "position_avg",
+          "predicted_starter": true,
+          "confirmed_starter": true,
+          "expected_minutes": 90.0,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false,
+          "expected_shots": 0.0,
+          "expected_shots_on_target": 0.0,
+          "anytime_shot_on_target_prob": 0.0,
+          "expected_saves": 0.0
+        },
+        {
+          "player_id": 101,
+          "name": "Henderson",
+          "position": "MID",
+          "anytime_goal_prob": 0.171603692085055,
+          "anytime_assist_prob": 0.1244035972512304,
+          "anytime_goal_contribution_prob": 0.27465917273931206,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": true,
+          "confirmed_starter": true,
+          "expected_minutes": 90.0,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false,
+          "expected_shots": 0.0,
+          "expected_shots_on_target": 0.0,
+          "anytime_shot_on_target_prob": 0.0,
+          "expected_saves": 0.0
+        },
+        {
+          "player_id": 200,
+          "name": "Lacroix",
+          "position": "DEF",
+          "anytime_goal_prob": 0.037670642693758416,
+          "anytime_assist_prob": 0.04982785637951437,
+          "anytime_goal_contribution_prob": 0.08562145169940416,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": true,
+          "confirmed_starter": true,
+          "expected_minutes": 90.0,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false,
+          "expected_shots": 0.0,
+          "expected_shots_on_target": 0.0,
+          "anytime_shot_on_target_prob": 0.0,
+          "expected_saves": 0.0
+        },
+        {
+          "player_id": 583,
+          "name": "Chavarria",
+          "position": "DEF",
+          "anytime_goal_prob": 0.035557762690778816,
+          "anytime_assist_prob": 0.04626715007147153,
+          "anytime_goal_contribution_prob": 0.08017975641963027,
+          "status": "a",
+          "news": "",
+          "confidence": "position_avg",
+          "predicted_starter": true,
+          "confirmed_starter": true,
+          "expected_minutes": 90.0,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false,
+          "expected_shots": 0.0,
+          "expected_shots_on_target": 0.0,
+          "anytime_shot_on_target_prob": 0.0,
+          "expected_saves": 0.0
+        },
+        {
+          "player_id": 145,
+          "name": "Fofana",
+          "position": "DEF",
+          "anytime_goal_prob": 0.020893886126016836,
+          "anytime_assist_prob": 0.06731018728598015,
+          "anytime_goal_contribution_prob": 0.08679770202372283,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": true,
+          "confirmed_starter": true,
+          "expected_minutes": 90.0,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false,
+          "expected_shots": 0.0,
+          "expected_shots_on_target": 0.0,
+          "anytime_shot_on_target_prob": 0.0,
+          "expected_saves": 0.0
+        },
+        {
+          "player_id": 149,
+          "name": "Colwill",
+          "position": "DEF",
+          "anytime_goal_prob": 0.020045955543375737,
+          "anytime_assist_prob": 0.04998408553259415,
+          "anytime_goal_contribution_prob": 0.0690280623195072,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": true,
+          "confirmed_starter": true,
+          "expected_minutes": 90.0,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false,
+          "expected_shots": 0.256628538040355,
+          "expected_shots_on_target": 0.0,
+          "anytime_shot_on_target_prob": 0.0,
+          "expected_saves": 0.0
+        },
+        {
+          "player_id": 28,
+          "name": "Martinez",
+          "position": "GK",
+          "anytime_goal_prob": 0.010843067042380694,
+          "anytime_assist_prob": 0.03820449832284811,
+          "anytime_goal_contribution_prob": 0.04863331142859362,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": true,
+          "confirmed_starter": true,
+          "expected_minutes": 90.0,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false,
+          "expected_shots": 0.0,
+          "expected_shots_on_target": 0.0,
+          "anytime_shot_on_target_prob": 0.0,
+          "expected_saves": 3.609523809523809
+        }
+      ]
+    },
     "backfill-Brentford-Sunderland-2026-09-05": {
       "home_players": [
         {
@@ -206940,6 +207695,183 @@
         }
       ]
     },
+    "backfill-Brentford-Chelsea-2026-09-18": {
+      "provenance": "reconstructed",
+      "correct": [
+        {
+          "name": "Thiago",
+          "team": "Brentford",
+          "goal_probability": 0.5411194522152041,
+          "assist_probability": 0.2847468920322911,
+          "contribution_probability": 0.6717842620109999,
+          "goals": 1,
+          "assists": 0,
+          "hit": true,
+          "is_recommended": true,
+          "review_label": "Goal call",
+          "review_probability": 0.5411194522152041,
+          "review_market": "Goal"
+        },
+        {
+          "name": "Schade",
+          "team": "Brentford",
+          "goal_probability": 0.4334478984688994,
+          "assist_probability": 0.4468266557644962,
+          "contribution_probability": 0.6865984793123884,
+          "goals": 0,
+          "assists": 2,
+          "hit": true,
+          "is_recommended": true,
+          "review_label": "Assist call",
+          "review_probability": 0.4468266557644962,
+          "review_market": "Assist"
+        },
+        {
+          "name": "Anthony",
+          "team": "Brentford",
+          "goal_probability": 0.36590774169481466,
+          "assist_probability": 0.37921430656838906,
+          "contribution_probability": 0.6063645977283993,
+          "goals": 1,
+          "assists": 0,
+          "hit": true,
+          "is_recommended": false,
+          "review_label": "Goal call",
+          "review_probability": 0.36590774169481466,
+          "review_market": "Goal"
+        }
+      ],
+      "missed": [
+        {
+          "name": "Janelt",
+          "team": "Brentford",
+          "goal_probability": 0.2722367281896956,
+          "assist_probability": 0.3891038234566099,
+          "contribution_probability": 0.5554121998223771,
+          "goals": 0,
+          "assists": 0,
+          "hit": false,
+          "is_recommended": false,
+          "review_label": "Assist call",
+          "review_probability": 0.3891038234566099,
+          "review_market": "Assist"
+        },
+        {
+          "name": "Neto",
+          "team": "Chelsea",
+          "goal_probability": 0.22087472528496388,
+          "assist_probability": 0.20728584243583914,
+          "contribution_probability": 0.3823763642173248,
+          "goals": 0,
+          "assists": 0,
+          "hit": false,
+          "is_recommended": false,
+          "review_label": "G+A call",
+          "review_probability": 0.3823763642173248,
+          "review_market": "G+A"
+        },
+        {
+          "name": "Welbeck",
+          "team": "Chelsea",
+          "goal_probability": 0.3762235842268691,
+          "assist_probability": 0.16430992092490215,
+          "contribution_probability": 0.47871623777737116,
+          "goals": 0,
+          "assists": 0,
+          "hit": false,
+          "is_recommended": false,
+          "review_label": "Goal call",
+          "review_probability": 0.3762235842268691,
+          "review_market": "Goal"
+        },
+        {
+          "name": "Damsgaard",
+          "team": "Brentford",
+          "goal_probability": 0.3636332186222132,
+          "assist_probability": 0.4029521877891469,
+          "contribution_probability": 0.6200586054147301,
+          "goals": 0,
+          "assists": 0,
+          "hit": false,
+          "is_recommended": true,
+          "review_label": "Goal call",
+          "review_probability": 0.3636332186222132,
+          "review_market": "Goal"
+        },
+        {
+          "name": "Lewis-Potter",
+          "team": "Brentford",
+          "goal_probability": 0.28653476809352874,
+          "assist_probability": 0.3500468969098839,
+          "contribution_probability": 0.5362810585754797,
+          "goals": 0,
+          "assists": 0,
+          "hit": false,
+          "is_recommended": false,
+          "review_label": "Assist call",
+          "review_probability": 0.3500468969098839,
+          "review_market": "Assist"
+        },
+        {
+          "name": "Yarmoliuk",
+          "team": "Brentford",
+          "goal_probability": 0.30220719136240404,
+          "assist_probability": 0.3042416871746909,
+          "contribution_probability": 0.5145048527606726,
+          "goals": 0,
+          "assists": 0,
+          "hit": false,
+          "is_recommended": false,
+          "review_label": "Assist call",
+          "review_probability": 0.3042416871746909,
+          "review_market": "Assist"
+        },
+        {
+          "name": "Rogers",
+          "team": "Chelsea",
+          "goal_probability": 0.30063669804294224,
+          "assist_probability": 0.281661954201755,
+          "contribution_probability": 0.49762073236915927,
+          "goals": 0,
+          "assists": 0,
+          "hit": false,
+          "is_recommended": false,
+          "review_label": "Assist call",
+          "review_probability": 0.281661954201755,
+          "review_market": "Assist"
+        },
+        {
+          "name": "Palmer",
+          "team": "Chelsea",
+          "goal_probability": 0.3311486090979615,
+          "assist_probability": 0.2555862113116997,
+          "contribution_probability": 0.5020978020291742,
+          "goals": 0,
+          "assists": 0,
+          "hit": false,
+          "is_recommended": false,
+          "review_label": "Assist call",
+          "review_probability": 0.2555862113116997,
+          "review_market": "Assist"
+        }
+      ],
+      "overperformed": [
+        {
+          "name": "Schuster",
+          "team": "Brentford",
+          "goal_probability": 0.11419153951411765,
+          "assist_probability": 0.11948162013167696,
+          "contribution_probability": 0.2200293694993174,
+          "goals": 0,
+          "assists": 1,
+          "hit": true,
+          "is_recommended": false,
+          "review_label": "Overperformer",
+          "review_probability": 0.2200293694993174,
+          "review_market": "G+A"
+        }
+      ]
+    },
     "backfill-Brentford-Sunderland-2026-09-05": {
       "provenance": "reconstructed",
       "correct": [
@@ -211109,11 +212041,11 @@
     },
     "track_record": {
       "summary": {
-        "n_resolved_fixtures": 40,
-        "pct_correct_overall": 0.425,
-        "current_gameweek": 4,
-        "pct_correct_current_gameweek": 0.3,
-        "n_fixtures_current_gameweek": 10,
+        "n_resolved_fixtures": 41,
+        "pct_correct_overall": 0.43902439024390244,
+        "current_gameweek": 5,
+        "pct_correct_current_gameweek": 1.0,
+        "n_fixtures_current_gameweek": 1,
         "gameweek_trend": [
           {
             "gameweek": 1,
@@ -211134,6 +212066,11 @@
             "gameweek": 4,
             "pct_correct": 0.3,
             "n_fixtures": 10
+          },
+          {
+            "gameweek": 5,
+            "pct_correct": 1.0,
+            "n_fixtures": 1
           }
         ]
       },
@@ -211190,6 +212127,28 @@
         }
       ],
       "gameweeks": [
+        {
+          "gameweek": 5,
+          "pct_correct": 1.0,
+          "n_fixtures": 1,
+          "fixtures": [
+            {
+              "event_id": "backfill-Brentford-Chelsea-2026-09-18",
+              "team_home": "Brentford",
+              "team_away": "Chelsea",
+              "commence_time": "2026-09-18T19:00:00",
+              "predicted_scoreline": "2-1",
+              "actual_goals_home": 3,
+              "actual_goals_away": 0,
+              "predicted_home_win": 0.5452217455816237,
+              "predicted_draw": 0.2126428944170477,
+              "predicted_away_win": 0.24213536000132851,
+              "actual_outcome": "home_win",
+              "hit": true,
+              "backfilled": true
+            }
+          ]
+        },
         {
           "gameweek": 4,
           "pct_correct": 0.3,
@@ -211271,6 +212230,21 @@
               "backfilled": true
             },
             {
+              "event_id": "backfill-Crystal Palace-Ipswich-2026-09-12",
+              "team_home": "Crystal Palace",
+              "team_away": "Ipswich",
+              "commence_time": "2026-09-12T14:00:00",
+              "predicted_scoreline": "1-1",
+              "actual_goals_home": 2,
+              "actual_goals_away": 3,
+              "predicted_home_win": 0.5013542643710729,
+              "predicted_draw": 0.23756263702418634,
+              "predicted_away_win": 0.2610830986047408,
+              "actual_outcome": "away_win",
+              "hit": false,
+              "backfilled": true
+            },
+            {
               "event_id": "backfill-Chelsea-Hull-2026-09-12",
               "team_home": "Chelsea",
               "team_away": "Hull",
@@ -211286,17 +212260,17 @@
               "backfilled": true
             },
             {
-              "event_id": "backfill-Aston Villa-Nott'm Forest-2026-09-12",
-              "team_home": "Aston Villa",
-              "team_away": "Nott'm Forest",
+              "event_id": "backfill-Liverpool-Fulham-2026-09-12",
+              "team_home": "Liverpool",
+              "team_away": "Fulham",
               "commence_time": "2026-09-12T14:00:00",
               "predicted_scoreline": "1-1",
-              "actual_goals_home": 1,
-              "actual_goals_away": 2,
-              "predicted_home_win": 0.47734104067884175,
-              "predicted_draw": 0.24246673544050332,
-              "predicted_away_win": 0.28019222388065473,
-              "actual_outcome": "away_win",
+              "actual_goals_home": 0,
+              "actual_goals_away": 0,
+              "predicted_home_win": 0.5278429280202914,
+              "predicted_draw": 0.23610043855200302,
+              "predicted_away_win": 0.23605663342770572,
+              "actual_outcome": "draw",
               "hit": false,
               "backfilled": true
             },
@@ -211316,32 +212290,17 @@
               "backfilled": true
             },
             {
-              "event_id": "backfill-Crystal Palace-Ipswich-2026-09-12",
-              "team_home": "Crystal Palace",
-              "team_away": "Ipswich",
+              "event_id": "backfill-Aston Villa-Nott'm Forest-2026-09-12",
+              "team_home": "Aston Villa",
+              "team_away": "Nott'm Forest",
               "commence_time": "2026-09-12T14:00:00",
               "predicted_scoreline": "1-1",
-              "actual_goals_home": 2,
-              "actual_goals_away": 3,
-              "predicted_home_win": 0.5013542643710729,
-              "predicted_draw": 0.23756263702418634,
-              "predicted_away_win": 0.2610830986047408,
+              "actual_goals_home": 1,
+              "actual_goals_away": 2,
+              "predicted_home_win": 0.47734104067884175,
+              "predicted_draw": 0.24246673544050332,
+              "predicted_away_win": 0.28019222388065473,
               "actual_outcome": "away_win",
-              "hit": false,
-              "backfilled": true
-            },
-            {
-              "event_id": "backfill-Liverpool-Fulham-2026-09-12",
-              "team_home": "Liverpool",
-              "team_away": "Fulham",
-              "commence_time": "2026-09-12T14:00:00",
-              "predicted_scoreline": "1-1",
-              "actual_goals_home": 0,
-              "actual_goals_away": 0,
-              "predicted_home_win": 0.5278429280202914,
-              "predicted_draw": 0.23610043855200302,
-              "predicted_away_win": 0.23605663342770572,
-              "actual_outcome": "draw",
               "hit": false,
               "backfilled": true
             }
@@ -211398,6 +212357,21 @@
               "backfilled": true
             },
             {
+              "event_id": "backfill-Brighton-Leeds-2026-09-05",
+              "team_home": "Brighton",
+              "team_away": "Leeds",
+              "commence_time": "2026-09-05T14:00:00",
+              "predicted_scoreline": "2-0",
+              "actual_goals_home": 1,
+              "actual_goals_away": 1,
+              "predicted_home_win": 0.6385657996938064,
+              "predicted_draw": 0.199710837425574,
+              "predicted_away_win": 0.1617233628806194,
+              "actual_outcome": "draw",
+              "hit": false,
+              "backfilled": true
+            },
+            {
               "event_id": "backfill-Brentford-Sunderland-2026-09-05",
               "team_home": "Brentford",
               "team_away": "Sunderland",
@@ -211413,17 +212387,17 @@
               "backfilled": true
             },
             {
-              "event_id": "backfill-Nott'm Forest-Tottenham-2026-09-05",
-              "team_home": "Nott'm Forest",
-              "team_away": "Tottenham",
+              "event_id": "backfill-Fulham-Crystal Palace-2026-09-05",
+              "team_home": "Fulham",
+              "team_away": "Crystal Palace",
               "commence_time": "2026-09-05T14:00:00",
               "predicted_scoreline": "1-1",
-              "actual_goals_home": 0,
-              "actual_goals_away": 0,
-              "predicted_home_win": 0.4748269595239059,
-              "predicted_draw": 0.2589428452308425,
-              "predicted_away_win": 0.26623019524525154,
-              "actual_outcome": "draw",
+              "actual_goals_home": 2,
+              "actual_goals_away": 3,
+              "predicted_home_win": 0.4640988341051932,
+              "predicted_draw": 0.2554974831407703,
+              "predicted_away_win": 0.2804036827540369,
+              "actual_outcome": "away_win",
               "hit": false,
               "backfilled": true
             },
@@ -211443,31 +212417,16 @@
               "backfilled": true
             },
             {
-              "event_id": "backfill-Fulham-Crystal Palace-2026-09-05",
-              "team_home": "Fulham",
-              "team_away": "Crystal Palace",
+              "event_id": "backfill-Nott'm Forest-Tottenham-2026-09-05",
+              "team_home": "Nott'm Forest",
+              "team_away": "Tottenham",
               "commence_time": "2026-09-05T14:00:00",
               "predicted_scoreline": "1-1",
-              "actual_goals_home": 2,
-              "actual_goals_away": 3,
-              "predicted_home_win": 0.4640988341051932,
-              "predicted_draw": 0.2554974831407703,
-              "predicted_away_win": 0.2804036827540369,
-              "actual_outcome": "away_win",
-              "hit": false,
-              "backfilled": true
-            },
-            {
-              "event_id": "backfill-Brighton-Leeds-2026-09-05",
-              "team_home": "Brighton",
-              "team_away": "Leeds",
-              "commence_time": "2026-09-05T14:00:00",
-              "predicted_scoreline": "2-0",
-              "actual_goals_home": 1,
-              "actual_goals_away": 1,
-              "predicted_home_win": 0.6385657996938064,
-              "predicted_draw": 0.199710837425574,
-              "predicted_away_win": 0.1617233628806194,
+              "actual_goals_home": 0,
+              "actual_goals_away": 0,
+              "predicted_home_win": 0.4748269595239059,
+              "predicted_draw": 0.2589428452308425,
+              "predicted_away_win": 0.26623019524525154,
               "actual_outcome": "draw",
               "hit": false,
               "backfilled": true
@@ -211540,16 +212499,16 @@
               "backfilled": true
             },
             {
-              "event_id": "backfill-Chelsea-Brighton-2026-08-30",
-              "team_home": "Chelsea",
-              "team_away": "Brighton",
+              "event_id": "backfill-Sunderland-Fulham-2026-08-30",
+              "team_home": "Sunderland",
+              "team_away": "Fulham",
               "commence_time": "2026-08-30T13:00:00",
               "predicted_scoreline": "1-1",
-              "actual_goals_home": 4,
-              "actual_goals_away": 3,
-              "predicted_home_win": 0.429543498948186,
-              "predicted_draw": 0.23654385524699106,
-              "predicted_away_win": 0.33391264580482305,
+              "actual_goals_home": 1,
+              "actual_goals_away": 0,
+              "predicted_home_win": 0.48862565222444754,
+              "predicted_draw": 0.2495088353803231,
+              "predicted_away_win": 0.26186551239522937,
               "actual_outcome": "home_win",
               "hit": true,
               "backfilled": true
@@ -211570,16 +212529,16 @@
               "backfilled": true
             },
             {
-              "event_id": "backfill-Sunderland-Fulham-2026-08-30",
-              "team_home": "Sunderland",
-              "team_away": "Fulham",
+              "event_id": "backfill-Chelsea-Brighton-2026-08-30",
+              "team_home": "Chelsea",
+              "team_away": "Brighton",
               "commence_time": "2026-08-30T13:00:00",
               "predicted_scoreline": "1-1",
-              "actual_goals_home": 1,
-              "actual_goals_away": 0,
-              "predicted_home_win": 0.48862565222444754,
-              "predicted_draw": 0.2495088353803231,
-              "predicted_away_win": 0.26186551239522937,
+              "actual_goals_home": 4,
+              "actual_goals_away": 3,
+              "predicted_home_win": 0.429543498948186,
+              "predicted_draw": 0.23654385524699106,
+              "predicted_away_win": 0.33391264580482305,
               "actual_outcome": "home_win",
               "hit": true,
               "backfilled": true
@@ -211697,21 +212656,6 @@
               "backfilled": true
             },
             {
-              "event_id": "backfill-Brighton-Aston Villa-2026-08-23",
-              "team_home": "Brighton",
-              "team_away": "Aston Villa",
-              "commence_time": "2026-08-23T13:00:00",
-              "predicted_scoreline": "2-0",
-              "actual_goals_home": 4,
-              "actual_goals_away": 0,
-              "predicted_home_win": 0.6321752352631559,
-              "predicted_draw": 0.20570622507716108,
-              "predicted_away_win": 0.16211853965968304,
-              "actual_outcome": "home_win",
-              "hit": true,
-              "backfilled": true
-            },
-            {
               "event_id": "backfill-Man City-Bournemouth-2026-08-23",
               "team_home": "Man City",
               "team_away": "Bournemouth",
@@ -211722,6 +212666,21 @@
               "predicted_home_win": 0.6017741825677144,
               "predicted_draw": 0.2124163155682081,
               "predicted_away_win": 0.18580950186407766,
+              "actual_outcome": "home_win",
+              "hit": true,
+              "backfilled": true
+            },
+            {
+              "event_id": "backfill-Brighton-Aston Villa-2026-08-23",
+              "team_home": "Brighton",
+              "team_away": "Aston Villa",
+              "commence_time": "2026-08-23T13:00:00",
+              "predicted_scoreline": "2-0",
+              "actual_goals_home": 4,
+              "actual_goals_away": 0,
+              "predicted_home_win": 0.6321752352631559,
+              "predicted_draw": 0.20570622507716108,
+              "predicted_away_win": 0.16211853965968304,
               "actual_outcome": "home_win",
               "hit": true,
               "backfilled": true
@@ -211739,6 +212698,21 @@
               "predicted_away_win": 0.2544282093587287,
               "actual_outcome": "home_win",
               "hit": true,
+              "backfilled": true
+            },
+            {
+              "event_id": "backfill-Ipswich-Sunderland-2026-08-22",
+              "team_home": "Ipswich",
+              "team_away": "Sunderland",
+              "commence_time": "2026-08-22T14:00:00",
+              "predicted_scoreline": "1-1",
+              "actual_goals_home": 2,
+              "actual_goals_away": 1,
+              "predicted_home_win": 0.23679210796961392,
+              "predicted_draw": 0.2457899670136895,
+              "predicted_away_win": 0.5174179250166966,
+              "actual_outcome": "home_win",
+              "hit": false,
               "backfilled": true
             },
             {
@@ -211769,21 +212743,6 @@
               "predicted_away_win": 0.2562610291741066,
               "actual_outcome": "home_win",
               "hit": true,
-              "backfilled": true
-            },
-            {
-              "event_id": "backfill-Ipswich-Sunderland-2026-08-22",
-              "team_home": "Ipswich",
-              "team_away": "Sunderland",
-              "commence_time": "2026-08-22T14:00:00",
-              "predicted_scoreline": "1-1",
-              "actual_goals_home": 2,
-              "actual_goals_away": 1,
-              "predicted_home_win": 0.23679210796961392,
-              "predicted_draw": 0.2457899670136895,
-              "predicted_away_win": 0.5174179250166966,
-              "actual_outcome": "home_win",
-              "hit": false,
               "backfilled": true
             },
             {
@@ -212031,7 +212990,7 @@
           "goals_for": 10,
           "goals_against": 4,
           "assists": 9,
-          "xa": 5.82,
+          "xa": 5.91,
           "points_per_match": 1.8,
           "form_points_per_match": 1.8,
           "form_trend": "down",
@@ -215000,9 +215959,9 @@
           "starts": 4,
           "goals": 1,
           "assists": 0,
-          "xg": 0.66,
+          "xg": 0.7,
           "xa": 0.58,
-          "xgi": 1.24,
+          "xgi": 1.28,
           "threat": 83.0,
           "creativity": 84.8,
           "ict": 24.0,
@@ -215609,8 +216568,8 @@
           "goals": 0,
           "assists": 1,
           "xg": 0.18,
-          "xa": 0.7,
-          "xgi": 0.88,
+          "xa": 0.73,
+          "xgi": 0.91,
           "threat": 37.0,
           "creativity": 95.0,
           "ict": 16.6,
@@ -217406,7 +218365,7 @@
           "threat": 45.0,
           "creativity": 91.7,
           "ict": 28.3,
-          "bps": 111,
+          "bps": 109,
           "bonus": 3,
           "news": "",
           "quality_rating": 43.0,
@@ -222201,8 +223160,8 @@
           "goals": 0,
           "assists": 1,
           "xg": 0.1,
-          "xa": 0.48,
-          "xgi": 0.58,
+          "xa": 0.54,
+          "xgi": 0.64,
           "threat": 12.0,
           "creativity": 0.7,
           "ict": 5.2,
@@ -234911,7 +235870,7 @@
   "fpl": {
     "projections": {
       "gameweek": 6,
-      "generated_at": "2026-09-18T21:07:45.468623+00:00",
+      "generated_at": "2026-09-18T21:20:13.919103+00:00",
       "model_source": "hybrid_match_context_baseline",
       "data_freshness": "live official FPL API + independent pre-match scoreline model",
       "players": [
@@ -237284,6 +238243,38 @@
           ]
         },
         {
+          "player_id": 156,
+          "name": "Pedro Lomba Neto",
+          "web_name": "Neto",
+          "team": "Chelsea",
+          "team_id": 6,
+          "position": "MID",
+          "price": 6.5,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 72.0,
+          "projected_points": 3.87,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 3,
+              "expected_goals": 1.71,
+              "clean_sheet_probability": 0.283,
+              "expected_minutes": 72.0,
+              "opponent": "Bournemouth",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "72 expected minutes",
+            "form 2.8",
+            "1.71 expected team goals"
+          ]
+        },
+        {
           "player_id": 165,
           "name": "Jo\u00e3o Pedro Junqueira de Jesus",
           "web_name": "Jo\u00e3o Pedro",
@@ -237504,38 +238495,6 @@
             "1 fixture",
             "86 expected minutes",
             "form 1.6",
-            "1.71 expected team goals"
-          ]
-        },
-        {
-          "player_id": 156,
-          "name": "Pedro Lomba Neto",
-          "web_name": "Neto",
-          "team": "Chelsea",
-          "team_id": 6,
-          "position": "MID",
-          "price": 6.5,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 72.0,
-          "projected_points": 3.83,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 3,
-              "expected_goals": 1.71,
-              "clean_sheet_probability": 0.283,
-              "expected_minutes": 72.0,
-              "opponent": "Bournemouth",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "72 expected minutes",
-            "form 2.8",
             "1.71 expected team goals"
           ]
         },
@@ -238724,6 +239683,38 @@
           ]
         },
         {
+          "player_id": 93,
+          "name": "Jannik Schuster",
+          "web_name": "Schuster",
+          "team": "Brentford",
+          "team_id": 4,
+          "position": "DEF",
+          "price": 4.5,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 55.8,
+          "projected_points": 3.51,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": false,
+              "difficulty": 4,
+              "expected_goals": 1.26,
+              "clean_sheet_probability": 0.181,
+              "expected_minutes": 55.8,
+              "opponent": "Aston Villa",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "56 expected minutes",
+            "form 4.2",
+            "1.26 expected team goals"
+          ]
+        },
+        {
           "player_id": 565,
           "name": "Mamadou Sangar\u00e9",
           "web_name": "M.Sangar\u00e9",
@@ -239073,38 +240064,6 @@
             "69 expected minutes",
             "form 2.2",
             "1.71 expected team goals"
-          ]
-        },
-        {
-          "player_id": 93,
-          "name": "Jannik Schuster",
-          "web_name": "Schuster",
-          "team": "Brentford",
-          "team_id": 4,
-          "position": "DEF",
-          "price": 4.5,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 55.8,
-          "projected_points": 3.47,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": false,
-              "difficulty": 4,
-              "expected_goals": 1.26,
-              "clean_sheet_probability": 0.181,
-              "expected_minutes": 55.8,
-              "opponent": "Aston Villa",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "56 expected minutes",
-            "form 4.2",
-            "1.26 expected team goals"
           ]
         },
         {
@@ -240036,6 +240995,38 @@
           ]
         },
         {
+          "player_id": 96,
+          "name": "Mikkel Damsgaard",
+          "web_name": "Damsgaard",
+          "team": "Brentford",
+          "team_id": 4,
+          "position": "MID",
+          "price": 5.4,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 66.3,
+          "projected_points": 3.22,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": false,
+              "difficulty": 4,
+              "expected_goals": 1.26,
+              "clean_sheet_probability": 0.181,
+              "expected_minutes": 66.3,
+              "opponent": "Aston Villa",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "66 expected minutes",
+            "form 3.2",
+            "1.26 expected team goals"
+          ]
+        },
+        {
           "player_id": 175,
           "name": "Milan van Ewijk",
           "web_name": "van Ewijk",
@@ -240161,38 +241152,6 @@
             "70 expected minutes",
             "form 1.4",
             "1.09 expected team goals"
-          ]
-        },
-        {
-          "player_id": 96,
-          "name": "Mikkel Damsgaard",
-          "web_name": "Damsgaard",
-          "team": "Brentford",
-          "team_id": 4,
-          "position": "MID",
-          "price": 5.4,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 66.3,
-          "projected_points": 3.2,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": false,
-              "difficulty": 4,
-              "expected_goals": 1.26,
-              "clean_sheet_probability": 0.181,
-              "expected_minutes": 66.3,
-              "opponent": "Aston Villa",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "66 expected minutes",
-            "form 3.2",
-            "1.26 expected team goals"
           ]
         },
         {
