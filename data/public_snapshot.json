@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-18T13:00:00.561938+00:00",
+  "generated_at": "2026-09-18T14:59:42.253124+00:00",
   "model_fingerprint": "f441348cc979243f6b42f3c81a44d32e6d151a76ee9f7699cf1218fcdddbd15a",
   "current_gameweek": 5,
   "min_gameweek": 1,
@@ -214069,8 +214069,8 @@
           "name": "Doku",
           "team": "Man City",
           "position": "MID",
-          "status": "i",
-          "chance_of_playing": 0,
+          "status": "d",
+          "chance_of_playing": 75,
           "minutes": 0,
           "starts": 0,
           "goals": 0,
@@ -214083,15 +214083,15 @@
           "ict": 0.0,
           "bps": 0,
           "bonus": 0,
-          "news": "Calf injury - Expected back 20 Sep",
+          "news": "Calf injury - 75% chance of playing",
           "quality_rating": 78.2,
           "form_rating": 0.0,
           "live_form_rating": 14.0,
           "live_form_vs_quality": -64.2,
           "overall_rating": 78.2,
-          "current_impact_rating": 0.0,
+          "current_impact_rating": 12.2,
           "rating_driver": "Expected goal involvements",
-          "rating_expected_minutes": 0.0,
+          "rating_expected_minutes": 18.8,
           "rating_status": "established",
           "rating_evidence_minutes": 4864.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -214965,8 +214965,8 @@
           "name": "Wilson",
           "team": "Leeds",
           "position": "MID",
-          "status": "a",
-          "chance_of_playing": null,
+          "status": "i",
+          "chance_of_playing": 0,
           "minutes": 145,
           "starts": 1,
           "goals": 0,
@@ -214979,15 +214979,15 @@
           "ict": 8.5,
           "bps": 19,
           "bonus": 0,
-          "news": "",
+          "news": "Thigh injury - Unknown return date",
           "quality_rating": 67.5,
           "form_rating": 0.0,
           "live_form_rating": 24.8,
           "live_form_vs_quality": -42.7,
           "overall_rating": 67.5,
-          "current_impact_rating": 38.9,
+          "current_impact_rating": 0.0,
           "rating_driver": "Expected goal involvements",
-          "rating_expected_minutes": 51.9,
+          "rating_expected_minutes": 0.0,
           "rating_status": "established",
           "rating_evidence_minutes": 5425.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -216213,8 +216213,8 @@
           "name": "Pau",
           "team": "Aston Villa",
           "position": "DEF",
-          "status": "d",
-          "chance_of_playing": 75,
+          "status": "i",
+          "chance_of_playing": 0,
           "minutes": 187,
           "starts": 3,
           "goals": 0,
@@ -216227,15 +216227,15 @@
           "ict": 1.5,
           "bps": -4,
           "bonus": 0,
-          "news": "Hamstring injury - 75% chance of playing",
+          "news": "Hamstring injury - Expected back 10 Oct",
           "quality_rating": 59.1,
           "form_rating": 0.0,
           "live_form_rating": 25.7,
           "live_form_vs_quality": -33.4,
           "overall_rating": 59.1,
-          "current_impact_rating": 32.3,
+          "current_impact_rating": 0.0,
           "rating_driver": "Team Adjusted Prevention",
-          "rating_expected_minutes": 65.7,
+          "rating_expected_minutes": 0.0,
           "rating_status": "established",
           "rating_evidence_minutes": 6154.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -216534,7 +216534,7 @@
           "team": "Man United",
           "position": "DEF",
           "status": "d",
-          "chance_of_playing": 75,
+          "chance_of_playing": 50,
           "minutes": 252,
           "starts": 3,
           "goals": 0,
@@ -216547,15 +216547,15 @@
           "ict": 18.4,
           "bps": 47,
           "bonus": 0,
-          "news": "Unspecified injury - 75% chance of playing",
+          "news": "Unspecified injury - 50% chance of playing",
           "quality_rating": 57.2,
           "form_rating": 0.0,
           "live_form_rating": 34.7,
           "live_form_vs_quality": -22.5,
           "overall_rating": 57.2,
-          "current_impact_rating": 25.5,
+          "current_impact_rating": 11.3,
           "rating_driver": "Clean sheets",
-          "rating_expected_minutes": 53.6,
+          "rating_expected_minutes": 35.7,
           "rating_status": "established",
           "rating_evidence_minutes": 4526.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -218645,8 +218645,8 @@
           "name": "Maatsen",
           "team": "Aston Villa",
           "position": "DEF",
-          "status": "d",
-          "chance_of_playing": 25,
+          "status": "i",
+          "chance_of_playing": 0,
           "minutes": 335,
           "starts": 4,
           "goals": 0,
@@ -218659,15 +218659,15 @@
           "ict": 10.2,
           "bps": 22,
           "bonus": 1,
-          "news": "Ankle injury - 25% chance of playing",
+          "news": "Ankle injury - Unknown return date",
           "quality_rating": 44.5,
           "form_rating": 0.0,
           "live_form_rating": 38.3,
           "live_form_vs_quality": -6.2,
           "overall_rating": 44.5,
-          "current_impact_rating": 2.2,
+          "current_impact_rating": 0.0,
           "rating_driver": "Bonus Point System",
-          "rating_expected_minutes": 17.9,
+          "rating_expected_minutes": 0.0,
           "rating_status": "established",
           "rating_evidence_minutes": 2915.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -220053,8 +220053,8 @@
           "name": "Baleba",
           "team": "Man United",
           "position": "MID",
-          "status": "i",
-          "chance_of_playing": 0,
+          "status": "d",
+          "chance_of_playing": 50,
           "minutes": 0,
           "starts": 0,
           "goals": 0,
@@ -220067,15 +220067,15 @@
           "ict": 0.0,
           "bps": 0,
           "bonus": 0,
-          "news": "Ankle injury - Expected back 19 Sep",
+          "news": "Ankle injury - 50% chance of playing",
           "quality_rating": 32.0,
           "form_rating": 0.0,
           "live_form_rating": 14.0,
           "live_form_vs_quality": -18.0,
           "overall_rating": 32.0,
-          "current_impact_rating": 0.0,
+          "current_impact_rating": 2.2,
           "rating_driver": "Bonus Point System",
-          "rating_expected_minutes": 0.0,
+          "rating_expected_minutes": 12.5,
           "rating_status": "established",
           "rating_evidence_minutes": 5620.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -222645,8 +222645,8 @@
           "name": "R\u00f6hl",
           "team": "Everton",
           "position": "MID",
-          "status": "d",
-          "chance_of_playing": 75,
+          "status": "i",
+          "chance_of_playing": 0,
           "minutes": 249,
           "starts": 3,
           "goals": 0,
@@ -222659,15 +222659,15 @@
           "ict": 6.1,
           "bps": 35,
           "bonus": 0,
-          "news": "Unspecified injury - 75% chance of playing",
+          "news": "Unspecified injury - Expected back 11 Oct",
           "quality_rating": null,
           "form_rating": 0.0,
           "live_form_rating": 27.5,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 12.4,
+          "current_impact_rating": 0.0,
           "rating_driver": "Bonus Point System",
-          "rating_expected_minutes": 54.0,
+          "rating_expected_minutes": 0.0,
           "rating_status": "provisional",
           "rating_evidence_minutes": 675.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -224533,8 +224533,8 @@
           "name": "M.Bizot",
           "team": "Aston Villa",
           "position": "GK",
-          "status": "d",
-          "chance_of_playing": 75,
+          "status": "i",
+          "chance_of_playing": 0,
           "minutes": 90,
           "starts": 1,
           "goals": 0,
@@ -224547,15 +224547,15 @@
           "ict": 2.8,
           "bps": 1,
           "bonus": 0,
-          "news": "Back injury - 75% chance of playing",
+          "news": "Back injury - Expected back 10 Oct",
           "quality_rating": null,
           "form_rating": 0.0,
           "live_form_rating": 20.3,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 8.7,
+          "current_impact_rating": 0.0,
           "rating_driver": "Bonus Point System",
-          "rating_expected_minutes": 51.2,
+          "rating_expected_minutes": 0.0,
           "rating_status": "provisional",
           "rating_evidence_minutes": 585.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -225781,8 +225781,8 @@
           "name": "Gomes",
           "team": "Aston Villa",
           "position": "MID",
-          "status": "d",
-          "chance_of_playing": 75,
+          "status": "a",
+          "chance_of_playing": 100,
           "minutes": 39,
           "starts": 1,
           "goals": 0,
@@ -225795,15 +225795,15 @@
           "ict": 1.2,
           "bps": -2,
           "bonus": 0,
-          "news": "Calf injury - 75% chance of playing",
+          "news": "",
           "quality_rating": null,
           "form_rating": 0.0,
           "live_form_rating": 9.5,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 5.3,
+          "current_impact_rating": 9.5,
           "rating_driver": "Creativity",
-          "rating_expected_minutes": 67.5,
+          "rating_expected_minutes": 90.0,
           "rating_status": "provisional",
           "rating_evidence_minutes": 0.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -232181,8 +232181,8 @@
           "name": "Gruev",
           "team": "Leeds",
           "position": "MID",
-          "status": "d",
-          "chance_of_playing": 25,
+          "status": "a",
+          "chance_of_playing": 100,
           "minutes": 0,
           "starts": 0,
           "goals": 0,
@@ -232195,15 +232195,15 @@
           "ict": 0.0,
           "bps": 0,
           "bonus": 0,
-          "news": "Knee injury - 25% chance of playing",
+          "news": "",
           "quality_rating": null,
           "form_rating": 0.0,
           "live_form_rating": 14.0,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 0.2,
+          "current_impact_rating": 3.9,
           "rating_driver": "Bonus Point System",
-          "rating_expected_minutes": 6.2,
+          "rating_expected_minutes": 25.0,
           "rating_status": "limited",
           "rating_evidence_minutes": 1318.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -235426,7 +235426,7 @@
   "fpl": {
     "projections": {
       "gameweek": 5,
-      "generated_at": "2026-09-18T13:00:00.507395+00:00",
+      "generated_at": "2026-09-18T14:59:42.192142+00:00",
       "model_source": "hybrid_match_context_baseline",
       "data_freshness": "live official FPL API + independent pre-match scoreline model",
       "players": [
@@ -239239,38 +239239,6 @@
           ]
         },
         {
-          "player_id": 423,
-          "name": "Luke Shaw",
-          "web_name": "Shaw",
-          "team": "Man Utd",
-          "team_id": 16,
-          "position": "DEF",
-          "price": 4.4,
-          "status": "d",
-          "news": "Unspecified injury - 75% chance of playing",
-          "availability": 0.75,
-          "expected_minutes": 53.6,
-          "projected_points": 3.61,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": false,
-              "difficulty": 3,
-              "expected_goals": 1.49,
-              "clean_sheet_probability": 0.309,
-              "expected_minutes": 53.6,
-              "opponent": "Fulham",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "54 expected minutes",
-            "form 1.8",
-            "1.49 expected team goals"
-          ]
-        },
-        {
           "player_id": 453,
           "name": "Harvey Barnes",
           "web_name": "Barnes",
@@ -240388,38 +240356,6 @@
             "79 expected minutes",
             "form 3.5",
             "1.38 expected team goals"
-          ]
-        },
-        {
-          "player_id": 34,
-          "name": "Pau Torres",
-          "web_name": "Pau",
-          "team": "Aston Villa",
-          "team_id": 2,
-          "position": "DEF",
-          "price": 4.5,
-          "status": "d",
-          "news": "Hamstring injury - 75% chance of playing",
-          "availability": 0.75,
-          "expected_minutes": 65.7,
-          "projected_points": 3.37,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": false,
-              "difficulty": 3,
-              "expected_goals": 1.24,
-              "clean_sheet_probability": 0.269,
-              "expected_minutes": 65.7,
-              "opponent": "Spurs",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "66 expected minutes",
-            "form 0.8",
-            "1.24 expected team goals"
           ]
         },
         {
@@ -242663,38 +242599,6 @@
           ]
         },
         {
-          "player_id": 29,
-          "name": "Marco Bizot",
-          "web_name": "M.Bizot",
-          "team": "Aston Villa",
-          "team_id": 2,
-          "position": "GK",
-          "price": 4.5,
-          "status": "d",
-          "news": "Back injury - 75% chance of playing",
-          "availability": 0.75,
-          "expected_minutes": 51.2,
-          "projected_points": 2.8,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": false,
-              "difficulty": 3,
-              "expected_goals": 1.24,
-              "clean_sheet_probability": 0.269,
-              "expected_minutes": 51.2,
-              "opponent": "Spurs",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "51 expected minutes",
-            "form 0.2",
-            "1.24 expected team goals"
-          ]
-        },
-        {
           "player_id": 149,
           "name": "Levi Samuels Colwill",
           "web_name": "Colwill",
@@ -243463,38 +243367,6 @@
           ]
         },
         {
-          "player_id": 246,
-          "name": "Merlin R\u00f6hl",
-          "web_name": "R\u00f6hl",
-          "team": "Everton",
-          "team_id": 9,
-          "position": "MID",
-          "price": 4.9,
-          "status": "d",
-          "news": "Unspecified injury - 75% chance of playing",
-          "availability": 0.75,
-          "expected_minutes": 54.0,
-          "projected_points": 2.61,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 2,
-              "expected_goals": 1.85,
-              "clean_sheet_probability": 0.339,
-              "expected_minutes": 54.0,
-              "opponent": "Ipswich Town",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "54 expected minutes",
-            "form 1.5",
-            "1.85 expected team goals"
-          ]
-        },
-        {
           "player_id": 552,
           "name": "Brian Brobbey",
           "web_name": "Brobbey",
@@ -243879,6 +243751,70 @@
           ]
         },
         {
+          "player_id": 423,
+          "name": "Luke Shaw",
+          "web_name": "Shaw",
+          "team": "Man Utd",
+          "team_id": 16,
+          "position": "DEF",
+          "price": 4.4,
+          "status": "d",
+          "news": "Unspecified injury - 50% chance of playing",
+          "availability": 0.5,
+          "expected_minutes": 35.7,
+          "projected_points": 2.48,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": false,
+              "difficulty": 3,
+              "expected_goals": 1.49,
+              "clean_sheet_probability": 0.309,
+              "expected_minutes": 35.7,
+              "opponent": "Fulham",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "36 expected minutes",
+            "form 1.8",
+            "1.49 expected team goals"
+          ]
+        },
+        {
+          "player_id": 54,
+          "name": "Joao Gomes",
+          "web_name": "Gomes",
+          "team": "Aston Villa",
+          "team_id": 2,
+          "position": "MID",
+          "price": 5.5,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 90.0,
+          "projected_points": 2.44,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": false,
+              "difficulty": 3,
+              "expected_goals": 1.24,
+              "clean_sheet_probability": 0.269,
+              "expected_minutes": 90.0,
+              "opponent": "Spurs",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "90 expected minutes",
+            "form -0.5",
+            "1.24 expected team goals"
+          ]
+        },
+        {
           "player_id": 72,
           "name": "Ben Gannon-Doak",
           "web_name": "Gannon-Doak",
@@ -243908,70 +243844,6 @@
             "25 expected minutes",
             "form 0.8",
             "1.79 expected team goals"
-          ]
-        },
-        {
-          "player_id": 54,
-          "name": "Joao Gomes",
-          "web_name": "Gomes",
-          "team": "Aston Villa",
-          "team_id": 2,
-          "position": "MID",
-          "price": 5.5,
-          "status": "d",
-          "news": "Calf injury - 75% chance of playing",
-          "availability": 0.75,
-          "expected_minutes": 67.5,
-          "projected_points": 2.38,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": false,
-              "difficulty": 3,
-              "expected_goals": 1.24,
-              "clean_sheet_probability": 0.269,
-              "expected_minutes": 67.5,
-              "opponent": "Spurs",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "68 expected minutes",
-            "form -0.5",
-            "1.24 expected team goals"
-          ]
-        },
-        {
-          "player_id": 260,
-          "name": "Harry Wilson",
-          "web_name": "Wilson",
-          "team": "Leeds",
-          "team_id": 13,
-          "position": "MID",
-          "price": 6.2,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 51.9,
-          "projected_points": 2.38,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 3,
-              "expected_goals": 1.68,
-              "clean_sheet_probability": 0.298,
-              "expected_minutes": 51.9,
-              "opponent": "Crystal Palace",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "52 expected minutes",
-            "form 1.2",
-            "1.68 expected team goals"
           ]
         },
         {
@@ -246471,38 +246343,6 @@
           ]
         },
         {
-          "player_id": 36,
-          "name": "Ian Maatsen",
-          "web_name": "Maatsen",
-          "team": "Aston Villa",
-          "team_id": 2,
-          "position": "DEF",
-          "price": 4.5,
-          "status": "d",
-          "news": "Ankle injury - 25% chance of playing",
-          "availability": 0.25,
-          "expected_minutes": 17.9,
-          "projected_points": 1.32,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": false,
-              "difficulty": 3,
-              "expected_goals": 1.24,
-              "clean_sheet_probability": 0.269,
-              "expected_minutes": 17.9,
-              "opponent": "Spurs",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "18 expected minutes",
-            "form 2.2",
-            "1.24 expected team goals"
-          ]
-        },
-        {
           "player_id": 111,
           "name": "Jason Steele",
           "web_name": "Steele",
@@ -248839,6 +248679,38 @@
           ]
         },
         {
+          "player_id": 344,
+          "name": "Ilia Gruev",
+          "web_name": "Gruev",
+          "team": "Leeds",
+          "team_id": 13,
+          "position": "MID",
+          "price": 5.0,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 25.0,
+          "projected_points": 1.04,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 3,
+              "expected_goals": 1.68,
+              "clean_sheet_probability": 0.298,
+              "expected_minutes": 25.0,
+              "opponent": "Crystal Palace",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "25 expected minutes",
+            "form 0.0",
+            "1.68 expected team goals"
+          ]
+        },
+        {
           "player_id": 604,
           "name": "Alfie Cresswell",
           "web_name": "Cresswell",
@@ -250663,6 +250535,38 @@
           ]
         },
         {
+          "player_id": 400,
+          "name": "J\u00e9r\u00e9my Doku",
+          "web_name": "Doku",
+          "team": "Man City",
+          "team_id": 15,
+          "position": "MID",
+          "price": 7.4,
+          "status": "d",
+          "news": "Calf injury - 75% chance of playing",
+          "availability": 0.75,
+          "expected_minutes": 18.8,
+          "projected_points": 0.82,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 2,
+              "expected_goals": 2.04,
+              "clean_sheet_probability": 0.372,
+              "expected_minutes": 18.8,
+              "opponent": "Sunderland",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "19 expected minutes",
+            "form 0.0",
+            "2.04 expected team goals"
+          ]
+        },
+        {
           "player_id": 586,
           "name": "Nobel Mendy",
           "web_name": "Mendy",
@@ -250788,6 +250692,38 @@
             "0 expected minutes",
             "form 4.5",
             "1.69 expected team goals"
+          ]
+        },
+        {
+          "player_id": 131,
+          "name": "Carlos Baleba",
+          "web_name": "Baleba",
+          "team": "Man Utd",
+          "team_id": 16,
+          "position": "MID",
+          "price": 4.9,
+          "status": "d",
+          "news": "Ankle injury - 50% chance of playing",
+          "availability": 0.5,
+          "expected_minutes": 12.5,
+          "projected_points": 0.52,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": false,
+              "difficulty": 3,
+              "expected_goals": 1.49,
+              "clean_sheet_probability": 0.309,
+              "expected_minutes": 12.5,
+              "opponent": "Fulham",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "12 expected minutes",
+            "form 0.0",
+            "1.49 expected team goals"
           ]
         },
         {
@@ -250983,6 +250919,38 @@
           ]
         },
         {
+          "player_id": 36,
+          "name": "Ian Maatsen",
+          "web_name": "Maatsen",
+          "team": "Aston Villa",
+          "team_id": 2,
+          "position": "DEF",
+          "price": 4.5,
+          "status": "i",
+          "news": "Ankle injury - Unknown return date",
+          "availability": 0.0,
+          "expected_minutes": 0.0,
+          "projected_points": 0.28,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": false,
+              "difficulty": 3,
+              "expected_goals": 1.24,
+              "clean_sheet_probability": 0.269,
+              "expected_minutes": 0.0,
+              "opponent": "Spurs",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "0 expected minutes",
+            "form 2.2",
+            "1.24 expected team goals"
+          ]
+        },
+        {
           "player_id": 398,
           "name": "Phil Foden",
           "web_name": "Foden",
@@ -251012,38 +250980,6 @@
             "0 expected minutes",
             "form 2.2",
             "2.04 expected team goals"
-          ]
-        },
-        {
-          "player_id": 344,
-          "name": "Ilia Gruev",
-          "web_name": "Gruev",
-          "team": "Leeds",
-          "team_id": 13,
-          "position": "MID",
-          "price": 5.0,
-          "status": "d",
-          "news": "Knee injury - 25% chance of playing",
-          "availability": 0.25,
-          "expected_minutes": 6.2,
-          "projected_points": 0.26,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 3,
-              "expected_goals": 1.68,
-              "clean_sheet_probability": 0.298,
-              "expected_minutes": 6.2,
-              "opponent": "Crystal Palace",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "6 expected minutes",
-            "form 0.0",
-            "1.68 expected team goals"
           ]
         },
         {
@@ -251207,6 +251143,38 @@
           ]
         },
         {
+          "player_id": 246,
+          "name": "Merlin R\u00f6hl",
+          "web_name": "R\u00f6hl",
+          "team": "Everton",
+          "team_id": 9,
+          "position": "MID",
+          "price": 4.9,
+          "status": "i",
+          "news": "Unspecified injury - Expected back 11 Oct",
+          "availability": 0.0,
+          "expected_minutes": 0.0,
+          "projected_points": 0.19,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 2,
+              "expected_goals": 1.85,
+              "clean_sheet_probability": 0.339,
+              "expected_minutes": 0.0,
+              "opponent": "Ipswich Town",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "0 expected minutes",
+            "form 1.5",
+            "1.85 expected team goals"
+          ]
+        },
+        {
           "player_id": 287,
           "name": "Liam Millar",
           "web_name": "Millar",
@@ -251268,6 +251236,38 @@
             "0 expected minutes",
             "form 1.2",
             "1.21 expected team goals"
+          ]
+        },
+        {
+          "player_id": 260,
+          "name": "Harry Wilson",
+          "web_name": "Wilson",
+          "team": "Leeds",
+          "team_id": 13,
+          "position": "MID",
+          "price": 6.2,
+          "status": "i",
+          "news": "Thigh injury - Unknown return date",
+          "availability": 0.0,
+          "expected_minutes": 0.0,
+          "projected_points": 0.15,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 3,
+              "expected_goals": 1.68,
+              "clean_sheet_probability": 0.298,
+              "expected_minutes": 0.0,
+              "opponent": "Crystal Palace",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "0 expected minutes",
+            "form 1.2",
+            "1.68 expected team goals"
           ]
         },
         {
@@ -251396,6 +251396,38 @@
             "0 expected minutes",
             "form 1.0",
             "1.69 expected team goals"
+          ]
+        },
+        {
+          "player_id": 34,
+          "name": "Pau Torres",
+          "web_name": "Pau",
+          "team": "Aston Villa",
+          "team_id": 2,
+          "position": "DEF",
+          "price": 4.5,
+          "status": "i",
+          "news": "Hamstring injury - Expected back 10 Oct",
+          "availability": 0.0,
+          "expected_minutes": 0.0,
+          "projected_points": 0.1,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": false,
+              "difficulty": 3,
+              "expected_goals": 1.24,
+              "clean_sheet_probability": 0.269,
+              "expected_minutes": 0.0,
+              "opponent": "Spurs",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "0 expected minutes",
+            "form 0.8",
+            "1.24 expected team goals"
           ]
         },
         {
@@ -251620,6 +251652,38 @@
             "0 expected minutes",
             "form 0.5",
             "1.31 expected team goals"
+          ]
+        },
+        {
+          "player_id": 29,
+          "name": "Marco Bizot",
+          "web_name": "M.Bizot",
+          "team": "Aston Villa",
+          "team_id": 2,
+          "position": "GK",
+          "price": 4.5,
+          "status": "i",
+          "news": "Back injury - Expected back 10 Oct",
+          "availability": 0.0,
+          "expected_minutes": 0.0,
+          "projected_points": 0.03,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": false,
+              "difficulty": 3,
+              "expected_goals": 1.24,
+              "clean_sheet_probability": 0.269,
+              "expected_minutes": 0.0,
+              "opponent": "Spurs",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "0 expected minutes",
+            "form 0.2",
+            "1.24 expected team goals"
           ]
         },
         {
@@ -255175,38 +255239,6 @@
           ]
         },
         {
-          "player_id": 400,
-          "name": "J\u00e9r\u00e9my Doku",
-          "web_name": "Doku",
-          "team": "Man City",
-          "team_id": 15,
-          "position": "MID",
-          "price": 7.4,
-          "status": "i",
-          "news": "Calf injury - Expected back 20 Sep",
-          "availability": 0.0,
-          "expected_minutes": 0.0,
-          "projected_points": 0.0,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 2,
-              "expected_goals": 2.04,
-              "clean_sheet_probability": 0.372,
-              "expected_minutes": 0.0,
-              "opponent": "Sunderland",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "0 expected minutes",
-            "form 0.0",
-            "2.04 expected team goals"
-          ]
-        },
-        {
           "player_id": 402,
           "name": "Rodrigo 'Rodri' Hernandez Cascante",
           "web_name": "Rodrigo",
@@ -255396,38 +255428,6 @@
             "0 expected minutes",
             "form 0.0",
             "2.04 expected team goals"
-          ]
-        },
-        {
-          "player_id": 131,
-          "name": "Carlos Baleba",
-          "web_name": "Baleba",
-          "team": "Man Utd",
-          "team_id": 16,
-          "position": "MID",
-          "price": 4.9,
-          "status": "i",
-          "news": "Ankle injury - Expected back 19 Sep",
-          "availability": 0.0,
-          "expected_minutes": 0.0,
-          "projected_points": 0.0,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": false,
-              "difficulty": 3,
-              "expected_goals": 1.49,
-              "clean_sheet_probability": 0.309,
-              "expected_minutes": 0.0,
-              "opponent": "Fulham",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "0 expected minutes",
-            "form 0.0",
-            "1.49 expected team goals"
           ]
         },
         {
