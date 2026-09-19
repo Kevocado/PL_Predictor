@@ -23,6 +23,13 @@ function pct(value: number | null): string {
   return value === null ? "—" : `${(value * 100).toFixed(0)}%`;
 }
 
+const MARKET_LABELS: Record<keyof TrackRecordResponse["summary"]["by_market"], string> = {
+  exact_score: "Exact score",
+  match_result: "Match result",
+  over_under_2_5: "Goals O/U 2.5",
+  btts: "BTTS",
+};
+
 export function TrackRecordPanel({ data }: { data: TrackRecordResponse }) {
   const { summary, biggest_upsets, gameweeks } = data;
   const [selected, setSelected] = useState<string | null>(null);
@@ -65,6 +72,25 @@ export function TrackRecordPanel({ data }: { data: TrackRecordResponse }) {
         />
       </div>
 
+      <div>
+        <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-pl-text-dim">
+          Prediction reliability
+          <InfoTooltip text={GLOSSARY.trackRecordByMarket} align="left" />
+        </h3>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          {(Object.keys(MARKET_LABELS) as (keyof typeof MARKET_LABELS)[]).map((market) => {
+            const stat = summary.by_market[market];
+            return (
+              <StatCard
+                key={market}
+                label={MARKET_LABELS[market]}
+                value={stat.n_resolved === 0 ? "—" : `${pct(stat.pct_correct)} (${Math.round((stat.pct_correct ?? 0) * stat.n_resolved)}/${stat.n_resolved})`}
+              />
+            );
+          })}
+        </div>
+      </div>
+
       {summary.gameweek_trend.length > 1 && (
         <div className="clip-corner-lg h-64 rounded-xl border border-pl-border bg-pl-850/70 p-4">
           <ResponsiveContainer width="100%" height="100%">
@@ -103,12 +129,16 @@ export function TrackRecordPanel({ data }: { data: TrackRecordResponse }) {
       <div className="flex flex-col gap-5">
         {gameweeks.map((group) => (
           <div key={group.gameweek ?? "none"}>
-            <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-pl-text-dim">
+            <h3 className="mb-1 flex items-center gap-2 text-sm font-semibold text-pl-text-dim">
               {group.gameweek ? `Gameweek ${group.gameweek}` : "No gameweek data"}
               <span className="text-xs font-normal text-pl-text-faint">
                 {pct(group.pct_correct)} correct ({Math.round(group.pct_correct * group.n_fixtures)}/{group.n_fixtures})
               </span>
             </h3>
+            <p className="mb-2 text-[11px] text-pl-text-faint">
+              Exact score {pct(group.pct_correct_by_market.exact_score)} &middot; Goals O/U 2.5{" "}
+              {pct(group.pct_correct_by_market.over_under_2_5)} &middot; BTTS {pct(group.pct_correct_by_market.btts)}
+            </p>
             <GameweekResultsGrid results={group.fixtures} onSelect={setSelected} />
           </div>
         ))}

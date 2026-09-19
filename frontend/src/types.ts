@@ -497,6 +497,22 @@ export interface GameweekTrendPoint {
   n_fixtures: number;
 }
 
+export interface MarketReliability {
+  pct_correct: number | null;
+  n_resolved: number;
+}
+
+// Reliability by market: how often each of the 4 things the model predicts
+// per fixture (exact scoreline, match result, Over/Under 2.5 goals, BTTS)
+// actually came in -- lets you see which calls to trust, not just the
+// single match-result number the rest of this response is built around.
+export interface TrackRecordByMarket {
+  exact_score: MarketReliability;
+  match_result: MarketReliability;
+  over_under_2_5: MarketReliability;
+  btts: MarketReliability;
+}
+
 export interface TrackRecordSummary {
   n_resolved_fixtures: number;
   pct_correct_overall: number | null;
@@ -504,6 +520,7 @@ export interface TrackRecordSummary {
   pct_correct_current_gameweek: number | null;
   n_fixtures_current_gameweek: number;
   gameweek_trend: GameweekTrendPoint[];
+  by_market: TrackRecordByMarket;
 }
 
 export interface BiggestUpset {
@@ -537,6 +554,12 @@ export interface GameweekGroup {
   gameweek: number | null;
   pct_correct: number;
   n_fixtures: number;
+  pct_correct_by_market: {
+    exact_score: number | null;
+    match_result: number;
+    over_under_2_5: number | null;
+    btts: number | null;
+  };
   fixtures: GameweekResult[];
 }
 

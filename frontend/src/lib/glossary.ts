@@ -44,6 +44,8 @@ export const GLOSSARY = {
     "Current actual points plus each team's *expected* points (3×P(win) + 1×P(draw), summed) from the scoreline model over every fixture left in the season — not a single simulated run, but the mathematical average across all the ways the rest of the season could go.",
   trackRecordScore:
     "Whether the model's highest-probability result (home win / draw / away win) matched what actually happened — computed only on predictions that were logged before kickoff (or honestly backfilled the same way) and have since been resolved against the real result. Not a backtest on old seasons: a live, ongoing record.",
+  trackRecordByMarket:
+    "The same live track record, broken out by what's actually being predicted: the exact scoreline, the match result (home/draw/away), Over/Under 2.5 total goals, and both teams to score. Exact score is always the hardest to call — a low number there doesn't mean the model is bad, it means scorelines are inherently harder to nail than a 3-way or 2-way market.",
   biggestMisses:
     "The biggest genuine upsets — results the model gave the lowest chance of happening, and they happened anyway. Only the match-result market; goals/BTTS misses aren't shown here.",
   pointsPerMatch: "League points won per match played: three for a win, one for a draw, and none for a loss.",

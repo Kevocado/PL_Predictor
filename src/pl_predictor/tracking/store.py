@@ -663,8 +663,74 @@ def _fixture_hit_table() -> pd.DataFrame:
     return table
 
 
+def _fixture_market_hit_table() -> pd.DataFrame:
+    """`_fixture_hit_table()` extended with three more columns -- whether
+    the exact scoreline, the Over/Under 2.5 goals call, and the BTTS call
+    were correct -- so accuracy can be compared across every market the
+    model calls, not just match result (see `get_fixture_post_match`'s
+    per-fixture verdicts, which this generalises across a whole season).
+    Same fixture universe as `_fixture_hit_table` (only where all three 1x2
+    rows are resolved); a market column is None for a fixture whose
+    totals_2_5/btts rows were never recorded (an early backfilled result,
+    say) rather than dropping the fixture from every other column."""
+    base = _fixture_hit_table()
+    if base.empty:
+        return base
+
+    with _connect() as conn:
+        markets = pd.read_sql(
+            "SELECT event_id, market, outcome_name, predicted_prob FROM predictions "
+            "WHERE resolved = 1 AND market IN ('totals_2_5', 'btts')",
+            conn,
+        )
+
+    def _favoured_outcome(event_id, market: str, outcome_a: str, outcome_b: str) -> str | None:
+        rows = markets[(markets["event_id"] == event_id) & (markets["market"] == market)]
+        probs = {r["outcome_name"]: float(r["predicted_prob"]) for _, r in rows.iterrows()}
+        if outcome_a not in probs or outcome_b not in probs:
+            return None
+        return outcome_a if probs[outcome_a] >= probs[outcome_b] else outcome_b
+
+    def _btts_pick(event_id) -> str | None:
+        # Unlike totals_2_5, only a single "yes" probability row is ever
+        # stored for btts (see get_fixture_post_match's identical 0.5
+        # threshold) -- there is no "no" row to look up.
+        rows = markets[
+            (markets["event_id"] == event_id) & (markets["market"] == "btts") & (markets["outcome_name"] == "yes")
+        ]
+        if rows.empty:
+            return None
+        return "yes" if float(rows.iloc[0]["predicted_prob"]) >= 0.5 else "no"
+
+    def _row_market_hits(row) -> pd.Series:
+        home, away, scoreline = row["actual_goals_home"], row["actual_goals_away"], row["predicted_scoreline"]
+        exact_score_hit = None if home is None or away is None or scoreline is None else scoreline == f"{home}-{away}"
+
+        over_under_pick = _favoured_outcome(row["event_id"], "totals_2_5", "over", "under")
+        over_under_hit = None if over_under_pick is None or home is None or away is None else (
+            (over_under_pick == "over") == ((home + away) > 2.5)
+        )
+
+        btts_pick = _btts_pick(row["event_id"])
+        btts_hit = None if btts_pick is None or home is None or away is None else (
+            (btts_pick == "yes") == bool(home and away)
+        )
+
+        return pd.Series({"exact_score_hit": exact_score_hit, "over_under_hit": over_under_hit, "btts_hit": btts_hit})
+
+    return pd.concat([base, base.apply(_row_market_hits, axis=1)], axis=1)
+
+
+def _market_reliability(fixtures: pd.DataFrame, column: str) -> dict:
+    resolved = fixtures[column].dropna()
+    return {
+        "pct_correct": float(resolved.mean()) if not resolved.empty else None,
+        "n_resolved": int(len(resolved)),
+    }
+
+
 def get_track_record() -> dict:
-    fixtures = _fixture_hit_table()
+    fixtures = _fixture_market_hit_table()
     if fixtures.empty:
         return {
             "n_resolved_fixtures": 0,
@@ -673,6 +739,12 @@ def get_track_record() -> dict:
             "pct_correct_current_gameweek": None,
             "n_fixtures_current_gameweek": 0,
             "gameweek_trend": [],
+            "by_market": {
+                "exact_score": {"pct_correct": None, "n_resolved": 0},
+                "match_result": {"pct_correct": None, "n_resolved": 0},
+                "over_under_2_5": {"pct_correct": None, "n_resolved": 0},
+                "btts": {"pct_correct": None, "n_resolved": 0},
+            },
         }
 
     n_resolved = int(len(fixtures))
@@ -703,6 +775,12 @@ def get_track_record() -> dict:
         "pct_correct_current_gameweek": pct_correct_current_gameweek,
         "n_fixtures_current_gameweek": n_fixtures_current_gameweek,
         "gameweek_trend": gameweek_trend,
+        "by_market": {
+            "exact_score": _market_reliability(fixtures, "exact_score_hit"),
+            "match_result": _market_reliability(fixtures, "hit"),
+            "over_under_2_5": _market_reliability(fixtures, "over_under_hit"),
+            "btts": _market_reliability(fixtures, "btts_hit"),
+        },
     }
 
 
@@ -738,8 +816,11 @@ def get_results_by_gameweek() -> list[dict]:
     (fixtures with no gameweek data — resolved via the football-data.co.uk
     fallback, which has no matchday column — bucketed last under `gameweek:
     null`). Each group also carries its own `pct_correct`/`n_fixtures` so the
-    frontend can render a per-gameweek header without a second aggregation."""
-    fixtures = _fixture_hit_table()
+    frontend can render a per-gameweek header without a second aggregation.
+    `pct_correct_by_market` breaks that same header out per market, so the
+    per-gameweek list doubles as a reliability trend for each of the 4
+    markets without a separate chart (see `_fixture_market_hit_table`)."""
+    fixtures = _fixture_market_hit_table()
     if fixtures.empty:
         return []
 
@@ -752,6 +833,12 @@ def get_results_by_gameweek() -> list[dict]:
                 "gameweek": gw_value,
                 "pct_correct": float(group["hit"].mean()),
                 "n_fixtures": int(len(group)),
+                "pct_correct_by_market": {
+                    "exact_score": _market_reliability(group, "exact_score_hit")["pct_correct"],
+                    "match_result": float(group["hit"].mean()),
+                    "over_under_2_5": _market_reliability(group, "over_under_hit")["pct_correct"],
+                    "btts": _market_reliability(group, "btts_hit")["pct_correct"],
+                },
                 "fixtures": [
                     {
                         "event_id": r["event_id"],

@@ -528,3 +528,36 @@ def test_single_fixture_review_and_season_wide_track_record_agree_on_the_same_fi
 
     assert single_fixture_hit is False
     assert season_wide_hit == 0.0
+
+
+def test_by_market_track_record_agrees_with_single_fixture_review_on_every_market(clean_db):
+    """`get_track_record()["by_market"]` must never disagree with
+    `get_fixture_post_match`'s own per-market verdicts for the same
+    fixture, for the same reason as the match-result-only test above --
+    extended to all four markets the model calls (exact score, match
+    result, Over/Under 2.5, BTTS), not just match result."""
+    table = pd.DataFrame(
+        [{
+            "event_id": "e1", "team_home": "Arsenal", "team_away": "Chelsea",
+            "commence_time": pd.Timestamp("2020-01-01T15:00:00Z"), "home_win_prob": 0.40,
+            "draw_prob": 0.30, "away_win_prob": 0.30, "over_2_5_prob": 0.4,
+            "under_2_5_prob": 0.6, "btts_yes_prob": 0.5, "top_scoreline": "1-1", "gameweek": 1,
+        }]
+    )
+    store.record_predictions(table)
+    matches = pd.DataFrame([{
+        "team_home": "Arsenal", "team_away": "Chelsea", "date": pd.Timestamp("2020-01-01"),
+        # 2-2: a draw (misses the home_win call), 4 total goals (misses the
+        # "under" call), both teams scored (hits the "yes" BTTS call), and
+        # obviously isn't the predicted "1-1" scoreline.
+        "goals_home": 2, "goals_away": 2, "ftr": "D",
+    }])
+    store.reconcile_predictions(matches)
+
+    verdicts = {row["label"]: row["hit"] for row in store.get_fixture_post_match("e1")["verdicts"]}
+    by_market = store.get_track_record()["by_market"]
+
+    assert verdicts["Exact score"] is False and by_market["exact_score"]["pct_correct"] == 0.0
+    assert verdicts["Match result"] is False and by_market["match_result"]["pct_correct"] == 0.0
+    assert verdicts["Goals O/U 2.5"] is False and by_market["over_under_2_5"]["pct_correct"] == 0.0
+    assert verdicts["BTTS"] is True and by_market["btts"]["pct_correct"] == 1.0
