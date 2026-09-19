@@ -520,7 +520,9 @@ export interface TrackRecordSummary {
   pct_correct_current_gameweek: number | null;
   n_fixtures_current_gameweek: number;
   gameweek_trend: GameweekTrendPoint[];
-  by_market: TrackRecordByMarket;
+  // Optional: absent from a public_snapshot.json baked before this field
+  // existed, until the next scheduled snapshot rebuild catches up.
+  by_market?: TrackRecordByMarket;
 }
 
 export interface BiggestUpset {
@@ -554,7 +556,9 @@ export interface GameweekGroup {
   gameweek: number | null;
   pct_correct: number;
   n_fixtures: number;
-  pct_correct_by_market: {
+  // Optional: absent from a public_snapshot.json baked before this field
+  // existed, until the next scheduled snapshot rebuild catches up.
+  pct_correct_by_market?: {
     exact_score: number | null;
     match_result: number;
     over_under_2_5: number | null;

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import type { TrackRecordResponse } from "../types";
+import type { MarketReliability, TrackRecordByMarket, TrackRecordResponse } from "../types";
 import { InfoTooltip } from "./InfoTooltip";
 import { MissesTable } from "./MissesTable";
 import { GameweekResultsGrid } from "./GameweekResultsGrid";
@@ -23,16 +23,30 @@ function pct(value: number | null): string {
   return value === null ? "—" : `${(value * 100).toFixed(0)}%`;
 }
 
-const MARKET_LABELS: Record<keyof TrackRecordResponse["summary"]["by_market"], string> = {
+const MARKET_LABELS: Record<keyof TrackRecordByMarket, string> = {
   exact_score: "Exact score",
   match_result: "Match result",
   over_under_2_5: "Goals O/U 2.5",
   btts: "BTTS",
 };
 
+const NO_MARKET_DATA: MarketReliability = { pct_correct: null, n_resolved: 0 };
+const DEFAULT_BY_MARKET: TrackRecordByMarket = {
+  exact_score: NO_MARKET_DATA,
+  match_result: NO_MARKET_DATA,
+  over_under_2_5: NO_MARKET_DATA,
+  btts: NO_MARKET_DATA,
+};
+
 export function TrackRecordPanel({ data }: { data: TrackRecordResponse }) {
   const { summary, biggest_upsets, gameweeks } = data;
   const [selected, setSelected] = useState<string | null>(null);
+  // Defensive: an older public_snapshot.json built before this field
+  // existed can still be live for a few minutes after a deploy (the
+  // frontend ships instantly; the data it reads is regenerated on its own
+  // schedule) -- confirmed live, this crashed the whole Data Hub page
+  // rather than just missing a section.
+  const byMarket = summary.by_market ?? DEFAULT_BY_MARKET;
 
   if (summary.n_resolved_fixtures === 0) {
     return (
@@ -79,7 +93,7 @@ export function TrackRecordPanel({ data }: { data: TrackRecordResponse }) {
         </h3>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           {(Object.keys(MARKET_LABELS) as (keyof typeof MARKET_LABELS)[]).map((market) => {
-            const stat = summary.by_market[market];
+            const stat = byMarket[market];
             return (
               <StatCard
                 key={market}
@@ -135,10 +149,12 @@ export function TrackRecordPanel({ data }: { data: TrackRecordResponse }) {
                 {pct(group.pct_correct)} correct ({Math.round(group.pct_correct * group.n_fixtures)}/{group.n_fixtures})
               </span>
             </h3>
-            <p className="mb-2 text-[11px] text-pl-text-faint">
-              Exact score {pct(group.pct_correct_by_market.exact_score)} &middot; Goals O/U 2.5{" "}
-              {pct(group.pct_correct_by_market.over_under_2_5)} &middot; BTTS {pct(group.pct_correct_by_market.btts)}
-            </p>
+            {group.pct_correct_by_market && (
+              <p className="mb-2 text-[11px] text-pl-text-faint">
+                Exact score {pct(group.pct_correct_by_market.exact_score)} &middot; Goals O/U 2.5{" "}
+                {pct(group.pct_correct_by_market.over_under_2_5)} &middot; BTTS {pct(group.pct_correct_by_market.btts)}
+              </p>
+            )}
             <GameweekResultsGrid results={group.fixtures} onSelect={setSelected} />
           </div>
         ))}
