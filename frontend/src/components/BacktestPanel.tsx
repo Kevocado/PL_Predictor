@@ -126,7 +126,7 @@ export function BacktestPanel() {
               <span className="text-[11px] text-pl-text-faint">{result.season ?? "Held-out season"} · archived Bet365 closing prices</span>
             </div>
             {result.selections.length === 0 ? (
-              <p className="mt-3 text-xs text-pl-text-faint">No historical fixture cleared the live value-bet rules.</p>
+              <p className="mt-3 text-xs text-pl-text-faint">No historical fixture cleared the live edge rules.</p>
             ) : (
               <div className="mt-3 max-h-80 overflow-auto">
                 <table className="w-full min-w-[680px] text-left text-xs">

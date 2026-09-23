@@ -219,12 +219,12 @@ export function CalibrationPage() {
       </div>
 
       <div>
-        <h2 className="mb-3 text-lg font-semibold text-pl-text">Live value-bet track record</h2>
+        <h2 className="mb-3 text-lg font-semibold text-pl-text">Live edge track record</h2>
         <LiveValueBetPanel />
       </div>
 
       <div>
-        <h2 className="mb-3 text-lg font-semibold text-pl-text">Historical value-bet replay</h2>
+        <h2 className="mb-3 text-lg font-semibold text-pl-text">Historical edge replay</h2>
         <BacktestPanel />
       </div>
 

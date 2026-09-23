@@ -43,7 +43,7 @@ export function CurrentGameweekCard({ fixture, onClick }: { fixture: CurrentGame
                 title={`Model probability beats the live market's implied odds on: ${fixture.value_bet_flags.join(", ")}`}
                 className="rounded bg-pl-pink/20 px-1.5 py-0.5 font-semibold text-pl-pink"
               >
-                Value bet
+                Edge
               </span>
             )}
             {!fixture.has_live_odds && (

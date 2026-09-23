@@ -27,7 +27,7 @@ Builds the production bundle and type-checks the client.
 - `components/FixtureModal.tsx` keeps pre-match projections, completed-match
   reviews, and player-call review provenance visibly distinct.
 - `components/TeamHub.tsx` and `components/PlayerHub.tsx` are descriptive
-  analytics only; they must not change prediction or value-bet decisions.
+  analytics only; they must not change prediction or edge decisions.
 - `components/TeamBadge.tsx` resolves local crest assets and has an initials
   fallback. See `public/badges/README.md` before adding assets.
 

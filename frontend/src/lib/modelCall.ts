@@ -1,5 +1,5 @@
 // A "model call" is a plain, informational probability decisively on one
-// side or the other -- distinct from a value bet (which requires a live
+// side or the other -- distinct from an edge (which requires a live
 // market the model beats). Threshold is a starting judgment call (see
 // docs/superpowers/specs/2026-09-04-bet-recommendation-trustworthiness-design.md),
 // open to tuning after real usage.

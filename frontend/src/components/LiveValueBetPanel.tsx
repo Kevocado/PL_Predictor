@@ -56,7 +56,7 @@ export function LiveValueBetPanel() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-4">
         <p className="max-w-xl text-xs text-pl-text-faint">
-          Every fixture actually flagged "Value bet" in the app (see the Fixtures page) gets snapshotted the moment
+          Every fixture actually flagged "Edge" in the app (see the Fixtures page) gets snapshotted the moment
           it's first flagged — including the live bookmaker price at that instant — and reconciled once the match
           finishes. This is the real live record, not a simulation: does following the app's own recommendations
           over time actually make money?
@@ -83,11 +83,11 @@ export function LiveValueBetPanel() {
 
       {error && <div className="rounded-lg border border-loss/40 bg-loss/10 px-4 py-3 text-sm text-loss">{error}</div>}
 
-      {loading && !data && <div className="py-8 text-center text-xs text-pl-text-faint">Loading live value-bet record…</div>}
+      {loading && !data && <div className="py-8 text-center text-xs text-pl-text-faint">Loading live edge record…</div>}
 
       {data && data.n_flagged === 0 && (
         <p className="text-xs text-pl-text-faint">
-          No fixtures have been flagged as a value bet yet — this builds up automatically as live odds come in and
+          No fixtures have been flagged with an edge yet — this builds up automatically as live odds come in and
           the model finds edges above its confidence-adjusted threshold.
         </p>
       )}
@@ -95,10 +95,10 @@ export function LiveValueBetPanel() {
       {data && data.n_flagged > 0 && (
         <>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6">
-            <StatCard label="Flagged" value={String(data.n_flagged)} info="Every fixture/market ever flagged as a value bet, resolved or not." />
+            <StatCard label="Flagged" value={String(data.n_flagged)} info="Every fixture/market ever flagged with an edge, resolved or not." />
             <StatCard label="Confirmed W-L" value={`${data.confirmed_wins}-${data.confirmed_losses}`} info="Only final scores confirmed by the result feed count here." />
             <StatCard label="Pending" value={String(data.n_pending)} info="Flagged fixtures that haven't kicked off / finished yet — open positions, not counted in the results below." />
-            <StatCard label="Win rate" value={data.confirmed_win_rate === null ? "—" : `${data.confirmed_win_rate.toFixed(1)}%`} info="Actual wins divided by every confirmed value-bet result, independent of staking or odds caps." />
+            <StatCard label="Win rate" value={data.confirmed_win_rate === null ? "—" : `${data.confirmed_win_rate.toFixed(1)}%`} info="Actual wins divided by every confirmed edge result, independent of staking or odds caps." />
             <StatCard
               label="ROI"
               value={results ? `${results.ROI >= 0 ? "+" : ""}${results.ROI.toFixed(1)}%` : "—"}

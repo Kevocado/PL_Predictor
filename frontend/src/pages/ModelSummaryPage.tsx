@@ -111,9 +111,40 @@ export function ModelSummaryPage() {
           </div>
         )}
 
-      <p className="text-xs text-pl-text-faint">
-        Last trained {new Date(manifest.trained_at).toLocaleString()} on {manifest.n_train} matches.
-      </p>
+      <div className="clip-corner rounded-xl border border-pl-border bg-pl-850/70 p-4">
+        <h2 className="text-lg font-semibold text-pl-text">Training data</h2>
+        <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div>
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-pl-text-faint">
+              Matches in training
+            </span>
+            <p className="mt-1 font-display text-3xl font-semibold tracking-wide text-pl-text">
+              {manifest.n_train.toLocaleString()}
+            </p>
+          </div>
+          <div>
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-pl-text-faint">
+              Current-season matches in training
+            </span>
+            <p className="mt-1 font-display text-3xl font-semibold tracking-wide text-pl-text">
+              {manifest.n_current_season_matches.toLocaleString()}
+            </p>
+          </div>
+          <div>
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-pl-text-faint">
+              Held-out validation matches
+            </span>
+            <p className="mt-1 font-display text-3xl font-semibold tracking-wide text-pl-text">
+              {manifest.n_val.toLocaleString()}
+            </p>
+          </div>
+        </div>
+        <p className="mt-3 text-xs text-pl-text-faint">
+          A current-season match only counts here once its stats are final and the model has been retrained on
+          it — so this number always lags the latest results. Last trained{" "}
+          {new Date(manifest.trained_at).toLocaleString()}.
+        </p>
+      </div>
     </div>
   );
 }

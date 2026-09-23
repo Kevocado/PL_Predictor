@@ -42,7 +42,7 @@ export function NextFixtureHero({ fixture, onClick }: { fixture: CurrentGameweek
               title={`Model probability beats the live market's implied odds on: ${fixture.value_bet_flags.join(", ")}`}
               className="rounded bg-pl-pink/20 px-1.5 py-0.5 text-xs font-semibold uppercase text-pl-pink"
             >
-              Value bet
+              Edge
             </span>
           )}
           {!fixture.has_live_odds && <span className="text-pl-text-faint">Model only</span>}

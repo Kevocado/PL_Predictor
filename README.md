@@ -72,7 +72,7 @@ much of the current season has folded into training so far.
   RPS is served. Full scoreline probability grid, not just 1X2.
 - **Corners & cards** — XGBoost count regressors on the same feature set,
   since the goal models can't derive these markets on their own.
-- **Live value bets** — [The Odds API](https://the-odds-api.com/) odds are
+- **Live edges** — [The Odds API](https://the-odds-api.com/) odds are
   de-vigged (Shin's method) and compared against the model's own
   probabilities; the fixture detail surfaces at most one qualified
   match-result or goals-total single, never a parlay.
@@ -401,7 +401,7 @@ src/pl_predictor/
 ├── models/          scoreline (Dixon-Coles/Bivariate-Poisson/XGBoost), corners/cards, player goals, manifest
 ├── evaluate/        calibration (RPS/Brier vs. bookmaker), backtest, walk-forward validation, Optuna tuning,
 │                    player/seasonal/power-ranking research and betting validation
-├── odds/            de-vig live odds, surface value bets
+├── odds/            de-vig live odds, surface edges
 ├── tracking/        SQLite-backed live prediction track record (snapshot → reconcile)
 └── api/             FastAPI app — thin JSON layer over everything above
 frontend/            React + TypeScript + Vite + Tailwind dashboard

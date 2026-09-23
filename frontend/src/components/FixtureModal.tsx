@@ -95,7 +95,7 @@ function PreMatchValueBets({ bets }: { bets: FixtureValueBetSnapshot[] }) {
   return (
     <section>
       <div className="mb-2 flex flex-wrap items-end justify-between gap-1">
-        <h3 className="text-sm font-semibold text-pl-text-dim">Pre-match value bets</h3>
+        <h3 className="text-sm font-semibold text-pl-text-dim">Pre-match edges</h3>
         <p className="text-[11px] text-pl-text-faint">Saved when first flagged; prices and edges never change afterwards.</p>
       </div>
       <div className="grid gap-2 sm:grid-cols-2">
@@ -304,8 +304,8 @@ export function FixtureModal({ eventId, onClose }: Props) {
               {detail.post_match && (
                 detail.pre_match_value_bets?.length > 0 ? <PreMatchValueBets bets={detail.pre_match_value_bets} /> : (
                   <section>
-                    <h3 className="mb-2 text-sm font-semibold text-pl-text-dim">Pre-match value bets</h3>
-                    <p className="rounded-lg bg-pl-850/60 px-3 py-2 text-xs text-pl-text-faint">No value bet qualified before kickoff for this fixture, so no pre-match bet was recorded.</p>
+                    <h3 className="mb-2 text-sm font-semibold text-pl-text-dim">Pre-match edges</h3>
+                    <p className="rounded-lg bg-pl-850/60 px-3 py-2 text-xs text-pl-text-faint">No edge qualified before kickoff for this fixture, so no pre-match pick was recorded.</p>
                   </section>
                 )
               )}
@@ -465,12 +465,12 @@ export function FixtureModal({ eventId, onClose }: Props) {
                     {!detail.post_match && !detail.recommended_bet && (
                       <p className="mt-2 text-xs text-pl-text-faint">
                         {new Date(detail.commence_time).getTime() <= Date.now()
-                          ? "Kickoff has passed, so pre-match odds can no longer be used to calculate a value bet."
+                          ? "Kickoff has passed, so pre-match odds can no longer be used to calculate an edge."
                           : detail.odds_is_stale
                             ? `Live odds were last fetched ${detail.odds_fetched_at ? new Date(detail.odds_fetched_at).toLocaleString() : "too long ago"}. Refresh odds before treating an edge as actionable.`
                           : detail.has_live_odds
-                            ? "No value bet clears the current edge and price filters."
-                            : "Live match-result and goals odds have not loaded yet, so a value bet cannot be calculated."}
+                            ? "No pick clears the current edge and price filters."
+                            : "Live match-result and goals odds have not loaded yet, so no edge can be calculated."}
                       </p>
                     )}
                     <p className="mt-2 text-[11px] text-pl-text-faint">Corners/cards/shots are match-context signals (for example, a high Over chance suggests a busier game), not verified betting edges.</p>

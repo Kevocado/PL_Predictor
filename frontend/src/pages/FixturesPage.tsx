@@ -63,7 +63,7 @@ export function FixturesPage() {
           <button
             disabled={busy !== null}
             onClick={() => runAction("odds", api.refreshOddsPublic)}
-            title={PUBLIC_MODE ? "Requests the latest odds and value bets — can take a few minutes to appear" : undefined}
+            title={PUBLIC_MODE ? "Requests the latest odds and edges — can take a few minutes to appear" : undefined}
             className="rounded-lg border border-pl-border bg-pl-850/70 px-3 py-2 text-sm text-pl-text-dim transition hover:text-pl-text disabled:opacity-50"
           >
             {busy === "odds" ? "Refreshing…" : "Refresh odds"}

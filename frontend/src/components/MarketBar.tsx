@@ -7,8 +7,8 @@ interface MarketBarProps {
   highlight?: "flagged" | "hit" | "miss" | "modelCall";
   // Distinct from `highlight` on purpose: `highlight="flagged"` is also
   // reused by the scoreline list for "most likely" (a different meaning,
-  // same ring styling) — the literal "Value" badge must only ever appear
-  // for an actual value-bet flag, never piggyback on that shared ring.
+  // same ring styling) — the literal "Edge" badge must only ever appear
+  // for an actual edge flag, never piggyback on that shared ring.
   valueBet?: boolean;
   detail?: ReactNode;
 }
@@ -18,7 +18,7 @@ const HIGHLIGHT_CLASSES: Record<string, string> = {
   miss: "bg-loss/10",
   // Bolder than hit/miss on purpose: this is the one row a glance should
   // land on. A thin same-weight ring made the old fold-in of the "Best
-  // value bet" callout too easy to miss in a list of 5-7 rows — this is
+  // edge" callout too easy to miss in a list of 5-7 rows — this is
   // deliberately louder, closer to the standalone box's visual weight.
   flagged: "bg-pl-pink/15 ring-2 ring-pl-pink/70",
   // Deliberately not the pink `flagged` treatment -- that specifically
@@ -44,7 +44,7 @@ export function MarketBar({ label, prob, marketProb, highlight, valueBet, detail
           {label}
           {valueBet && (
             <span className="rounded bg-pl-pink/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-pl-pink">
-              Value
+              Edge
             </span>
           )}
         </span>

@@ -1,7 +1,7 @@
 // Short explanations for the jargon-heavy stats shown around the app.
 export const GLOSSARY = {
   edge:
-    "The gap between the model's probability and the bookmaker's (de-vigged) implied probability. A positive edge means the model thinks that outcome is more likely than the market's price suggests.",
+    "The gap between the model's probability and the market's (de-vigged) implied probability — it shows how much the model agrees or disagrees with bookmakers and betting markets. A positive edge means the model thinks that outcome is more likely than the market's price suggests.",
   marketImplied:
     "The bookmaker's own probability for this outcome, backed out from their odds and adjusted (de-vigged) to remove their built-in margin.",
   clv:
@@ -23,8 +23,8 @@ export const GLOSSARY = {
     "Variance divided by mean of the actual counts. Close to 1 means a Poisson distribution fits well; noticeably above 1 (common for cards, which spike on red cards/melees) means the model switches to a negative binomial when pricing over/under lines.",
   mae: "Mean Absolute Error — on average, how many corners/cards off the model's prediction was, in either direction.",
   roi: "Return on Investment from the backtest's bets, as a percentage of the starting bankroll. A strongly positive number here usually signals overfitting rather than a real edge.",
-  valueBetThreshold:
-    "A fixture is flagged as a value bet when the model's probability beats the live bookmaker's implied probability by more than 5 percentage points.",
+  edgeThreshold:
+    "An edge is flagged when the model's probability beats the live market's de-vigged implied probability by more than 5 percentage points.",
   scorelineGrid:
     "The full probability for every exact scoreline up to 5-5, from the same statistical model (Dixon-Coles or Bivariate-Poisson) that produces the win/draw/loss and goals predictions — darker cells are more likely.",
   recentForm:
@@ -37,7 +37,7 @@ export const GLOSSARY = {
   playerAvailability:
     "Live status from the official FPL API. A doubtful player's probability is already discounted by their listed chance of playing; an injured/suspended player's probability is zeroed out. There's no live check for a very recent, not-yet-reflected change — a player who just picked up an injury could take a match or two to fully drop out of their own recent-form numbers.",
   powerRankings:
-    "A display-only live-strength ranking: 75% history-seeded Elo/Pi form (updated after each result) plus 25% pre-season Dixon-Coles strength. Attack and defence are fixed 0–100 conversions of the underlying Dixon-Coles values: 50 means a typical league-level strength, and higher is always stronger. They are not rescaled against this week's teams. The ranking is separate from the scoreline and value-bet models, so it helps describe current relative form without changing match probabilities.",
+    "A display-only live-strength ranking: 75% history-seeded Elo/Pi form (updated after each result) plus 25% pre-season Dixon-Coles strength. Attack and defence are fixed 0–100 conversions of the underlying Dixon-Coles values: 50 means a typical league-level strength, and higher is always stronger. They are not rescaled against this week's teams. The ranking is separate from the scoreline and edge models, so it helps describe current relative form without changing match probabilities.",
   ratingsTrend:
     "Elo and Pi ratings, replayed match-by-match through this season so far — two independent, simpler ways of tracking form over time (both reward wins and account for opponent strength) alongside the main model's own attack/defence numbers.",
   projectedTable:
