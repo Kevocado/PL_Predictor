@@ -8,9 +8,16 @@ interface Props {
   onNavigate: (gameweek: number) => void;
 }
 
+// Only picks captured before kickoff count; ones rebuilt after the match
+// (backfilled) are listed on their cards but never scored here.
+export function prekickoffTally(fixtures: { finished: boolean; hit: boolean | null; backfilled: boolean }[]) {
+  const finished = fixtures.filter((f) => f.finished);
+  const counted = finished.filter((f) => !f.backfilled);
+  return { hits: counted.filter((f) => f.hit).length, settled: counted.length, rebuilt: finished.length - counted.length };
+}
+
 export function CurrentGameweekSection({ data, onSelect, onNavigate }: Props) {
-  const nCompleted = data.fixtures.filter((f) => f.finished).length;
-  const nHit = data.fixtures.filter((f) => f.finished && f.hit).length;
+  const tally = prekickoffTally(data.fixtures);
 
   // Only the current gameweek gets a hero -- browsing a past gameweek via
   // the arrows shouldn't promote one of its (already-played) fixtures, and
@@ -54,9 +61,10 @@ export function CurrentGameweekSection({ data, onSelect, onNavigate }: Props) {
             →
           </button>
         </div>
-        <span className="text-xs font-normal text-pl-text-faint">
+        <span className="text-xs font-normal text-pl-text-dim">
           {data.fixtures.length} fixture{data.fixtures.length === 1 ? "" : "s"}
-          {nCompleted > 0 && `, ${nHit}/${nCompleted} called correctly so far`}
+          {tally.settled > 0 && ` · ${tally.hits}/${tally.settled} picks made before kickoff correct`}
+          {tally.settled === 0 && tally.rebuilt > 0 && " · No pre-kickoff picks settled yet"}
         </span>
       </div>
 
