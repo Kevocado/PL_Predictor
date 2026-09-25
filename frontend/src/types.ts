@@ -514,7 +514,11 @@ export interface TrackRecordByMarket {
 }
 
 export interface TrackRecordSummary {
+  // Counts and rates cover only picks captured before kickoff; picks rebuilt
+  // after the match (backfilled) are reported here and never counted.
   n_resolved_fixtures: number;
+  // Optional: absent from snapshots baked before this field existed.
+  n_rebuilt_fixtures?: number;
   pct_correct_overall: number | null;
   current_gameweek: number | null;
   pct_correct_current_gameweek: number | null;
@@ -554,13 +558,15 @@ export interface GameweekResult {
 
 export interface GameweekGroup {
   gameweek: number | null;
-  pct_correct: number;
+  // null when every fixture in the gameweek was rebuilt after kickoff.
+  pct_correct: number | null;
   n_fixtures: number;
+  n_rebuilt?: number;
   // Optional: absent from a public_snapshot.json baked before this field
   // existed, until the next scheduled snapshot rebuild catches up.
   pct_correct_by_market?: {
     exact_score: number | null;
-    match_result: number;
+    match_result: number | null;
     over_under_2_5: number | null;
     btts: number | null;
   };

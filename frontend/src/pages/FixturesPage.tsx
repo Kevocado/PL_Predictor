@@ -49,9 +49,11 @@ export function FixturesPage() {
 
   return (
     <div>
-      <div className="mb-6 flex flex-wrap items-center gap-3">
-        <div className="ml-auto flex gap-2">
-          {!PUBLIC_MODE && (
+      {/* Admin-only: public visitors never trigger backend work; the public
+          snapshot refreshes odds and fixtures on a schedule. */}
+      {!PUBLIC_MODE && (
+        <div className="mb-6 flex flex-wrap items-center gap-3">
+          <div className="ml-auto flex gap-2">
             <button
               disabled={busy !== null}
               onClick={() => runAction("fixtures", api.refreshFixtures)}
@@ -59,17 +61,16 @@ export function FixturesPage() {
             >
               {busy === "fixtures" ? "Refreshing…" : "Refresh fixtures"}
             </button>
-          )}
-          <button
-            disabled={busy !== null}
-            onClick={() => runAction("odds", api.refreshOddsPublic)}
-            title={PUBLIC_MODE ? "Requests the latest odds and value bets — can take a few minutes to appear" : undefined}
-            className="rounded-lg border border-pl-border bg-pl-850/70 px-3 py-2 text-sm text-pl-text-dim transition hover:text-pl-text disabled:opacity-50"
-          >
-            {busy === "odds" ? "Refreshing…" : "Refresh odds"}
-          </button>
+            <button
+              disabled={busy !== null}
+              onClick={() => runAction("odds", api.refreshOddsPublic)}
+              className="rounded-lg border border-pl-border bg-pl-850/70 px-3 py-2 text-sm text-pl-text-dim transition hover:text-pl-text disabled:opacity-50"
+            >
+              {busy === "odds" ? "Refreshing…" : "Refresh odds"}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {error && (
         <div className="mb-4 rounded-lg border border-loss/40 bg-loss/10 px-4 py-3 text-sm text-loss">{error}</div>

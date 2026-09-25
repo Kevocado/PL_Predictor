@@ -100,13 +100,15 @@ export function DataHubPage() {
             </button>
           ))}
         </div>
-        <button
-          onClick={() => { void refresh(); }}
-          disabled={refreshing}
-          className="rounded-lg border border-pl-border bg-pl-850/50 px-3 py-2 text-xs font-semibold text-pl-text-dim transition hover:text-pl-text disabled:opacity-50"
-        >
-          {refreshing ? "Refreshing…" : "Refresh live data"}
-        </button>
+        {!PUBLIC_MODE && (
+          <button
+            onClick={() => { void refresh(); }}
+            disabled={refreshing}
+            className="rounded-lg border border-pl-border bg-pl-850/50 px-3 py-2 text-xs font-semibold text-pl-text-dim transition hover:text-pl-text disabled:opacity-50"
+          >
+            {refreshing ? "Refreshing…" : "Refresh live data"}
+          </button>
+        )}
       </div>
 
       {tab === "Team Hub" && <section><h2 className="mb-3 text-lg font-semibold text-pl-text">Team Hub</h2>{errors.teamHub ? <PanelUnavailable message={errors.teamHub} onRetry={() => { void load(true); }} /> : teamHub ? <TeamHub data={teamHub} /> : <p className="py-10 text-center text-sm text-pl-text-faint">Loading team analytics…</p>}</section>}

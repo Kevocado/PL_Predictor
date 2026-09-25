@@ -47,8 +47,11 @@ export function TrackRecordPanel({ data }: { data: TrackRecordResponse }) {
   // schedule) -- confirmed live, this crashed the whole Data Hub page
   // rather than just missing a section.
   const byMarket = summary.by_market ?? DEFAULT_BY_MARKET;
+  const nRebuilt = summary.n_rebuilt_fixtures ?? 0;
 
-  if (summary.n_resolved_fixtures === 0) {
+  // Rebuilt picks still get listed below, so only an entirely empty record
+  // falls back to the "nothing yet" message.
+  if (summary.n_resolved_fixtures === 0 && nRebuilt === 0) {
     return (
       <div>
         <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-pl-text-dim">
@@ -79,12 +82,22 @@ export function TrackRecordPanel({ data }: { data: TrackRecordResponse }) {
         />
         <StatCard
           label="Correct overall"
-          value={`${pct(summary.pct_correct_overall)} (${Math.round(
-            (summary.pct_correct_overall ?? 0) * summary.n_resolved_fixtures
-          )}/${summary.n_resolved_fixtures})`}
+          value={
+            summary.pct_correct_overall === null
+              ? "—"
+              : `${pct(summary.pct_correct_overall)} (${Math.round(
+                  summary.pct_correct_overall * summary.n_resolved_fixtures
+                )}/${summary.n_resolved_fixtures})`
+          }
           info={GLOSSARY.trackRecordScore}
         />
       </div>
+
+      {nRebuilt > 0 && (
+        <p className="text-xs text-pl-text-dim">
+          {nRebuilt} pick{nRebuilt === 1 ? "" : "s"} rebuilt after kickoff {nRebuilt === 1 ? "is" : "are"} shown but not counted.
+        </p>
+      )}
 
       <div>
         <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-pl-text-dim">
@@ -145,8 +158,10 @@ export function TrackRecordPanel({ data }: { data: TrackRecordResponse }) {
           <div key={group.gameweek ?? "none"}>
             <h3 className="mb-1 flex items-center gap-2 text-sm font-semibold text-pl-text-dim">
               {group.gameweek ? `Gameweek ${group.gameweek}` : "No gameweek data"}
-              <span className="text-xs font-normal text-pl-text-faint">
-                {pct(group.pct_correct)} correct ({Math.round(group.pct_correct * group.n_fixtures)}/{group.n_fixtures})
+              <span className="text-xs font-normal text-pl-text-dim">
+                {group.pct_correct === null
+                  ? "No pre-kickoff picks"
+                  : `${pct(group.pct_correct)} correct (${Math.round(group.pct_correct * group.n_fixtures)}/${group.n_fixtures})`}
               </span>
             </h3>
             {group.pct_correct_by_market && (
