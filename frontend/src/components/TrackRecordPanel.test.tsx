@@ -16,7 +16,7 @@ const onlyRebuilt: TrackRecordResponse = {
     pct_correct_current_gameweek: null, n_fixtures_current_gameweek: 0, gameweek_trend: [],
   },
   biggest_upsets: [],
-  gameweeks: [{ gameweek: 5, pct_correct: null, n_fixtures: 0, n_rebuilt: 3, fixtures: [rebuiltFixture] }],
+  gameweeks: [{ gameweek: 5, pct_correct: null, n_fixtures: 0, n_rebuilt: 3, pct_correct_by_market: { exact_score: null, match_result: null, over_under_2_5: null, btts: null }, fixtures: [rebuiltFixture] }],
 };
 
 describe("TrackRecordPanel", () => {
@@ -29,5 +29,8 @@ describe("TrackRecordPanel", () => {
     render(<TrackRecordPanel data={onlyRebuilt} />);
     expect(screen.getByText("No pre-kickoff picks")).toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(/NaN/);
+    const overall = screen.getByText(/Correct overall/i).parentElement;
+    expect(overall).toHaveTextContent("—");
+    expect(screen.queryByText(/Exact score —/)).not.toBeInTheDocument();
   });
 });

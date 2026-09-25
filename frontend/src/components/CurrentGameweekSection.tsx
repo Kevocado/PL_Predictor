@@ -64,7 +64,7 @@ export function CurrentGameweekSection({ data, onSelect, onNavigate }: Props) {
         <span className="text-xs font-normal text-pl-text-dim">
           {data.fixtures.length} fixture{data.fixtures.length === 1 ? "" : "s"}
           {tally.settled > 0 && ` · ${tally.hits}/${tally.settled} picks made before kickoff correct`}
-          {tally.settled === 0 && tally.rebuilt > 0 && " · No pre-kickoff picks settled yet"}
+          {tally.settled === 0 && tally.rebuilt > 0 && " · No pre-kickoff picks this gameweek"}
         </span>
       </div>
 

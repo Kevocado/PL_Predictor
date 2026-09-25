@@ -735,12 +735,17 @@ def get_track_record() -> dict:
     # counted: only a prediction captured before the match is evidence.
     n_rebuilt = int(all_fixtures["backfilled"].sum()) if not all_fixtures.empty else 0
     fixtures = all_fixtures[~all_fixtures["backfilled"].astype(bool)] if not all_fixtures.empty else all_fixtures
+    # current_gameweek is a navigation anchor (routes._resolve_current_gameweek,
+    # public_snapshot's default view), not a rate: it follows every resolved
+    # fixture, rebuilt or not.
+    all_with_gw = all_fixtures[all_fixtures["gameweek"].notna()] if not all_fixtures.empty else all_fixtures
+    current_gameweek = int(all_with_gw["gameweek"].max()) if not all_with_gw.empty else None
     if fixtures.empty:
         return {
             "n_resolved_fixtures": 0,
             "n_rebuilt_fixtures": n_rebuilt,
             "pct_correct_overall": None,
-            "current_gameweek": None,
+            "current_gameweek": current_gameweek,
             "pct_correct_current_gameweek": None,
             "n_fixtures_current_gameweek": 0,
             "gameweek_trend": [],
@@ -756,9 +761,8 @@ def get_track_record() -> dict:
     pct_correct_overall = float(fixtures["hit"].mean())
 
     with_gw = fixtures[fixtures["gameweek"].notna()]
-    current_gameweek = int(with_gw["gameweek"].max()) if not with_gw.empty else None
-    if current_gameweek is not None:
-        this_gw = with_gw[with_gw["gameweek"] == current_gameweek]
+    this_gw = with_gw[with_gw["gameweek"] == current_gameweek] if current_gameweek is not None else with_gw.iloc[0:0]
+    if not this_gw.empty:
         pct_correct_current_gameweek = float(this_gw["hit"].mean())
         n_fixtures_current_gameweek = int(len(this_gw))
     else:
@@ -797,7 +801,9 @@ def get_biggest_upsets(limit: int = 5) -> list[dict]:
     goals/BTTS misses, which aren't what "upset" means and aren't tracked by
     this view anymore."""
     fixtures = _fixture_hit_table()
-    fixtures = fixtures[fixtures["actual_outcome"].notna()] if not fixtures.empty else fixtures
+    # An "upset" claims the model published odds before kickoff, so picks
+    # rebuilt after the match (backfilled) never qualify.
+    fixtures = fixtures[fixtures["actual_outcome"].notna() & ~fixtures["backfilled"].astype(bool)] if not fixtures.empty else fixtures
     if fixtures.empty:
         return []
 

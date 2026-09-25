@@ -164,7 +164,7 @@ export function TrackRecordPanel({ data }: { data: TrackRecordResponse }) {
                   : `${pct(group.pct_correct)} correct (${Math.round(group.pct_correct * group.n_fixtures)}/${group.n_fixtures})`}
               </span>
             </h3>
-            {group.pct_correct_by_market && (
+            {group.pct_correct !== null && group.pct_correct_by_market && (
               <p className="mb-2 text-[11px] text-pl-text-faint">
                 Exact score {pct(group.pct_correct_by_market.exact_score)} &middot; Goals O/U 2.5{" "}
                 {pct(group.pct_correct_by_market.over_under_2_5)} &middot; BTTS {pct(group.pct_correct_by_market.btts)}

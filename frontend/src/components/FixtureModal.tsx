@@ -81,12 +81,12 @@ function PostMatchReview({ review }: { review: FixturePostMatch }) {
     <section className="rounded-xl border border-win/30 bg-win/5 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div><h3 className="text-sm font-semibold text-pl-text">Prediction review, final {review.final_score.replace("-", "–")}</h3><p className="mt-0.5 text-xs text-pl-text-dim">{correct}/{review.verdicts.length} match calls correct</p></div>
-        <span className={`rounded px-2 py-1 text-[10px] font-semibold uppercase ${review.provenance === "snapshot" ? "bg-win/20 text-win" : "bg-pl-700/60 text-pl-text-dim"}`}>{review.provenance === "snapshot" ? "Pre-match snapshot" : "Reconstructed"}</span>
+        <span className={`rounded px-2 py-1 text-[10px] font-semibold uppercase ${review.provenance === "snapshot" ? "bg-win/20 text-win" : "bg-pl-700/60 text-pl-text-dim"}`}>{review.provenance === "snapshot" ? "Pre-match snapshot" : "Rebuilt after kickoff"}</span>
       </div>
       <div className="mt-3 grid gap-1.5 sm:grid-cols-2">
         {review.verdicts.map((verdict) => <div key={verdict.label} className={`flex items-center justify-between rounded-lg px-3 py-2 text-xs ${verdict.hit ? "bg-win/10 text-win" : "bg-pl-850/70 text-pl-text-dim"}`}><span className="font-semibold">{verdict.hit ? "✓" : "×"} {verdict.label}</span><span><span className="text-pl-text-faint">{verdict.prediction}</span><span className="mx-1">→</span><span>{verdict.actual}</span></span></div>)}
       </div>
-      {review.provenance === "reconstructed" && <p className="mt-2 text-[11px] text-pl-text-faint">Reconstructed after the match from saved inputs where available; it is shown for consistency, not counted as prospective proof.</p>}
+      {review.provenance === "reconstructed" && <p className="mt-2 text-[11px] text-pl-text-faint">Rebuilt after the match from saved inputs where available. Shown for reference; not counted in the hit rate.</p>}
     </section>
   );
 }
@@ -140,7 +140,7 @@ function PlayerCallReview({ review, loading, error }: { review: FixturePlayerRev
     return <div key={`${player.team}-${player.name}`} className={`flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-xs ${tone}`}><span className="min-w-0 font-semibold text-pl-text">{state === "hit" ? "✓" : state === "miss" ? "×" : "↑"} {player.name} <span className="font-normal text-pl-text-faint">{player.team}</span>{player.is_recommended && <span className="ml-2 rounded bg-pl-pink/20 px-1.5 py-0.5 text-[10px] font-semibold text-pl-pink">Recommended</span>}</span><span className={`shrink-0 text-right ${hit ? state === "longShot" ? "text-pl-blue" : "text-win" : "text-pl-text-dim"}`}><span className="block">{hit ? outcome(player) : "No goal involvement"}</span><span className="text-pl-text-faint">{signal}</span></span></div>;
   });
   return <section className="rounded-xl border border-pl-border bg-pl-850/50 p-4">
-    <div className="flex items-center justify-between gap-2"><h3 className="text-sm font-semibold text-pl-text">Player call review</h3>{review && <span className="text-[10px] font-semibold uppercase text-pl-text-faint">{review.provenance === "snapshot" ? "Pre-match snapshot" : "Reconstructed"}</span>}</div>
+    <div className="flex items-center justify-between gap-2"><h3 className="text-sm font-semibold text-pl-text">Player call review</h3>{review && <span className="text-[10px] font-semibold uppercase text-pl-text-faint">{review.provenance === "snapshot" ? "Pre-match snapshot" : "Rebuilt after kickoff"}</span>}</div>
     {loading && <p className="mt-2 text-xs text-pl-text-faint">Reconstructing confirmed player calls…</p>}
     {error && <p className="mt-2 text-xs text-loss">{error}</p>}
     {!loading && !error && !review && <p className="mt-2 text-xs text-pl-text-faint">Official player outcomes are not available for this fixture yet.</p>}

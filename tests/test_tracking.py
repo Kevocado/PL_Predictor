@@ -606,3 +606,40 @@ def test_track_record_with_only_rebuilt_picks_reports_no_rate(clean_db):
     assert groups[0]["n_fixtures"] == 0
     assert groups[0]["n_rebuilt"] == 1
     assert len(groups[0]["fixtures"]) == 1  # still listed, just not counted
+
+
+def test_current_gameweek_still_tracks_the_latest_gameweek_when_it_is_all_rebuilt(clean_db):
+    """current_gameweek anchors navigation (routes._resolve_current_gameweek,
+    public_snapshot's default view), so rebuilt picks must still move it even
+    though they never count toward a rate."""
+    store.record_predictions(_one_fixture("live", "Arsenal", "Chelsea", gameweek=4))
+    store.record_predictions(_one_fixture("rebuilt", "Spurs", "Villa", gameweek=5), backfilled=True)
+    store.reconcile_predictions(pd.DataFrame([
+        {"team_home": "Arsenal", "team_away": "Chelsea", "date": pd.Timestamp("2020-01-01"), "goals_home": 1, "goals_away": 0, "ftr": "H", "matchday": 4},
+        {"team_home": "Spurs", "team_away": "Villa", "date": pd.Timestamp("2020-01-01"), "goals_home": 2, "goals_away": 0, "ftr": "H", "matchday": 5},
+    ]))
+
+    record = store.get_track_record()
+
+    assert record["current_gameweek"] == 5
+    assert record["pct_correct_current_gameweek"] is None
+    assert record["n_fixtures_current_gameweek"] == 0
+    assert record["pct_correct_overall"] == 1.0
+
+
+def test_current_gameweek_is_set_even_when_every_pick_is_rebuilt(clean_db):
+    store.record_predictions(_one_fixture("rebuilt", "Spurs", "Villa", gameweek=5), backfilled=True)
+    store.reconcile_predictions(pd.DataFrame([
+        {"team_home": "Spurs", "team_away": "Villa", "date": pd.Timestamp("2020-01-01"), "goals_home": 2, "goals_away": 0, "ftr": "H", "matchday": 5},
+    ]))
+
+    assert store.get_track_record()["current_gameweek"] == 5
+
+
+def test_biggest_upsets_leave_out_rebuilt_picks(clean_db):
+    store.record_predictions(_one_fixture("rebuilt", "Spurs", "Villa"), backfilled=True)
+    store.reconcile_predictions(pd.DataFrame([
+        {"team_home": "Spurs", "team_away": "Villa", "date": pd.Timestamp("2020-01-01"), "goals_home": 0, "goals_away": 3, "ftr": "A"},
+    ]))
+
+    assert store.get_biggest_upsets() == []
