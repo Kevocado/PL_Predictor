@@ -1,14 +1,12 @@
 import type { CurrentGameweekFixture } from "../types";
+import { kickoffParts } from "../lib/kickoffTime";
 import { TeamBadge } from "./TeamBadge";
 import { ProbabilityBar } from "./ProbabilityBar";
 import { FinishedFixtureCard } from "./FinishedFixtureCard";
 
 function formatKickoff(iso: string): { date: string; time: string } {
-  const d = new Date(iso);
-  return {
-    date: d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" }),
-    time: d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }),
-  };
+  const { day, time } = kickoffParts(iso);
+  return { date: day, time };
 }
 
 export function CurrentGameweekCard({ fixture, onClick }: { fixture: CurrentGameweekFixture; onClick: () => void }) {

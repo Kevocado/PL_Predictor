@@ -1,13 +1,16 @@
 import type { CurrentGameweekFixture } from "../types";
+import { kickoffParts } from "../lib/kickoffTime";
+import { parseKickoff } from "../predictor-ui";
 import { TeamBadge } from "./TeamBadge";
 import { ProbabilityBar } from "./ProbabilityBar";
 
 function formatKickoff(iso: string): { day: string; date: string; time: string } {
-  const d = new Date(iso);
+  const d = parseKickoff(iso);
+  const { time } = kickoffParts(iso);
   return {
-    day: d.toLocaleDateString(undefined, { weekday: "long" }),
-    date: d.toLocaleDateString(undefined, { day: "numeric", month: "long" }),
-    time: d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }),
+    day: d.toLocaleDateString("en-US", { weekday: "long" }),
+    date: `${d.getDate()} ${d.toLocaleDateString("en-US", { month: "long" })}`,
+    time,
   };
 }
 
@@ -24,7 +27,7 @@ export function NextFixtureHero({ fixture, onClick }: { fixture: CurrentGameweek
       role="button"
       tabIndex={0}
       onKeyDown={(e) => e.key === "Enter" && onClick()}
-      className="clip-corner-lg relative mb-6 cursor-pointer overflow-hidden rounded-2xl border border-pl-pink/30 bg-gradient-to-br from-pl-800 via-pl-850 to-pl-900 p-6 transition hover:border-pl-pink/60 sm:p-8"
+      className="clip-corner-lg relative mb-6 cursor-pointer overflow-hidden rounded-2xl border border-pl-pink/30 bg-pl-850 p-6 transition hover:border-pl-pink/60 sm:p-8"
     >
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-medium uppercase tracking-wide text-pl-pink">
         <span>Next up</span>

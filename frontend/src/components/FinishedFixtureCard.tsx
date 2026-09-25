@@ -1,13 +1,11 @@
 import { TeamBadge } from "./TeamBadge";
+import { kickoffParts } from "../lib/kickoffTime";
 import type { FixturePlayerEvent } from "../types";
 import { matchPick } from "../lib/pick";
 
 function formatKickoff(iso: string): { date: string; time: string } {
-  const d = new Date(iso);
-  return {
-    date: d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" }),
-    time: d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }),
-  };
+  const { day, time } = kickoffParts(iso);
+  return { date: day, time };
 }
 
 interface Props {

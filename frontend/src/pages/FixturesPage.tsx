@@ -4,6 +4,7 @@ import type { CurrentGameweekResponse } from "../types";
 import { FixtureModal } from "../components/FixtureModal";
 import { CurrentGameweekSection } from "../components/CurrentGameweekSection";
 import { PUBLIC_MODE } from "../lib/publicMode";
+import { ErrorState, Skeleton } from "../predictor-ui";
 
 export function FixturesPage() {
   const [gameweek, setGameweek] = useState<CurrentGameweekResponse | null>(null);
@@ -33,7 +34,7 @@ export function FixturesPage() {
     return () => window.clearTimeout(timer);
   }, [gameweek, viewGameweek]);
 
-  const navigate = (gw: number) => setViewGameweek(gw);
+  const navigate = (gw: number | undefined) => setViewGameweek(gw);
 
   const runAction = async (key: string, fn: () => Promise<unknown>) => {
     setBusy(key);
@@ -73,11 +74,13 @@ export function FixturesPage() {
       )}
 
       {error && (
-        <div className="mb-4 rounded-lg border border-loss/40 bg-loss/10 px-4 py-3 text-sm text-loss">{error}</div>
+        <div className="mb-4">
+          <ErrorState message="We couldn't load this gameweek. Check your connection and try again." onRetry={() => load(viewGameweek)} />
+        </div>
       )}
 
       {loading && !gameweek ? (
-        <div className="py-16 text-center text-pl-text-faint">Loading fixtures…</div>
+        <Skeleton label="Loading fixtures…" />
       ) : (
         gameweek && <CurrentGameweekSection data={gameweek} onSelect={setSelected} onNavigate={navigate} />
       )}
