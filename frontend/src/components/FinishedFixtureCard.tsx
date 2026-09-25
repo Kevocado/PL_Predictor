@@ -70,7 +70,7 @@ export function FinishedFixtureCard({
       title={draw_signal ? "The scoreline model also leaned towards a draw." : undefined}
       className="clip-corner flex cursor-pointer flex-col gap-3 rounded-xl border border-win/30 bg-pl-850/70 p-4 transition hover:border-pl-pink/40"
     >
-      <div className="flex flex-wrap items-center justify-between gap-1.5 text-[11px] font-medium uppercase tracking-wide text-pl-text-faint">
+      <div className="flex flex-wrap items-center justify-between gap-1.5 text-xs font-medium uppercase tracking-wide text-pl-text-faint">
         <span>
           {date} &middot; {time}
         </span>
@@ -92,7 +92,7 @@ export function FinishedFixtureCard({
           <span className="text-xs font-semibold leading-tight text-pl-text">{team_home}</span>
         </div>
         <div className="flex flex-col items-center gap-0.5 px-1">
-          <span className="text-[10px] font-medium uppercase text-pl-text-faint">Final</span>
+          <span className="text-xs font-medium uppercase text-pl-text-faint">Final</span>
           <span className="rounded-lg bg-pl-700/50 px-2.5 py-1 font-display text-xl font-semibold tracking-wide text-pl-text">
             {actual_goals_home}–{actual_goals_away}
           </span>
@@ -103,7 +103,7 @@ export function FinishedFixtureCard({
         </div>
       </div>
       {(home_player_events.length > 0 || away_player_events.length > 0) && (
-        <div className="grid grid-cols-2 gap-3 border-t border-pl-border/70 pt-2 text-[10px] leading-relaxed text-pl-text-dim">
+        <div className="grid grid-cols-2 gap-3 border-t border-pl-border/70 pt-2 text-xs leading-relaxed text-pl-text-dim">
           <div>{playerSummary(home_player_events, "goals", "Goals") && <p>{playerSummary(home_player_events, "goals", "Goals")}</p>}{playerSummary(home_player_events, "assists", "Assists") && <p>{playerSummary(home_player_events, "assists", "Assists")}</p>}</div>
           <div className="text-right">{playerSummary(away_player_events, "goals", "Goals") && <p>{playerSummary(away_player_events, "goals", "Goals")}</p>}{playerSummary(away_player_events, "assists", "Assists") && <p>{playerSummary(away_player_events, "assists", "Assists")}</p>}</div>
         </div>

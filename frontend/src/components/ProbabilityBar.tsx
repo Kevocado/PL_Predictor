@@ -16,7 +16,7 @@ export function ProbabilityBar({ home, draw, away, homeLabel = "H", awayLabel = 
         <div className="bg-draw" style={{ width: pct(draw) }} />
         <div className="bg-loss" style={{ width: pct(away) }} />
       </div>
-      <div className="mt-1.5 flex justify-between text-[11px] font-medium text-pl-text-dim">
+      <div className="mt-1.5 flex justify-between text-xs font-medium text-pl-text-dim">
         <span>
           {homeLabel} <span className="font-mono text-pl-text">{pct(home)}</span>
         </span>

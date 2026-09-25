@@ -7,7 +7,7 @@ interface Props {
 }
 
 const SIZES = {
-  sm: "h-7 w-7 text-[10px]",
+  sm: "h-7 w-7 text-xs",
   md: "h-10 w-10 text-xs",
   lg: "h-14 w-14 text-sm",
 };

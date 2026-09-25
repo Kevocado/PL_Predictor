@@ -6,6 +6,8 @@ import { DataHubPage } from "./pages/DataHubPage";
 import { FPLPage } from "./pages/FPLPage";
 import { PUBLIC_MODE } from "./lib/publicMode";
 import { api } from "./api/client";
+import { AppFrame } from "./predictor-ui";
+import { SITES } from "./lib/sites";
 
 type Tab = "fixtures" | "calibration" | "hub" | "fpl";
 
@@ -26,57 +28,38 @@ function App() {
     return () => window.clearTimeout(id);
   }, []);
 
-  return (
-    <div className="mx-auto min-h-screen max-w-screen-2xl px-6 py-8">
-      <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="clip-corner flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-pl-pink to-pl-600 font-black text-white">
-            PL
-          </div>
-          <div>
-            <h1 className="font-display text-2xl font-semibold tracking-wide text-pl-text">PL Predictor</h1>
-            <p className="text-xs text-pl-text-faint">Match outcomes, scorelines &amp; betting markets</p>
-          </div>
-        </div>
-        <nav className="flex flex-wrap gap-1 rounded-lg border border-pl-border bg-pl-850/60 p-1">
-          {(
-            [
-              ["fixtures", "Fixtures"],
-              ["hub", "Data Hub"],
-              ["fpl", "FPL"],
-              ["calibration", PUBLIC_MODE ? "Model" : "Calibration & Backtest"],
-            ] as const
-          ).map(([key, label]) => (
-            <button
-              key={key}
-              onClick={() => selectTab(key)}
-              className={`rounded-md px-3.5 py-1.5 text-sm font-medium transition ${
-                tab === key ? "bg-pl-pink text-white" : "text-pl-text-dim hover:text-pl-text"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </nav>
-      </header>
+  const tabs = [
+    { id: "fixtures", label: "Fixtures" },
+    { id: "hub", label: "Data Hub" },
+    { id: "fpl", label: "FPL" },
+    { id: "calibration", label: PUBLIC_MODE ? "Model" : "Calibration & Backtest" },
+  ];
 
-      {/* Tabs mount on first visit, then stay mounted. Dashboard data itself
-          is warmed after the Fixtures page has painted. */}
-      <main>
-        {mountedTabs.has("fixtures") && <div style={{ display: tab === "fixtures" ? "block" : "none" }}>
+  // Tabs mount on first visit, then stay mounted (hidden). Dashboard data
+  // itself is warmed after the Fixtures page has painted.
+  return (
+    <AppFrame sport="pl" sportName="PL" sites={SITES} tabs={tabs} activeTab={tab} onTab={(id) => selectTab(id as Tab)}>
+      {mountedTabs.has("fixtures") && (
+        <div data-testid="page-fixtures" hidden={tab !== "fixtures"}>
           <FixturesPage />
-        </div>}
-        {mountedTabs.has("hub") && <div style={{ display: tab === "hub" ? "block" : "none" }}>
+        </div>
+      )}
+      {mountedTabs.has("hub") && (
+        <div data-testid="page-hub" hidden={tab !== "hub"}>
           <DataHubPage />
-        </div>}
-        {mountedTabs.has("fpl") && <div style={{ display: tab === "fpl" ? "block" : "none" }}>
+        </div>
+      )}
+      {mountedTabs.has("fpl") && (
+        <div data-testid="page-fpl" hidden={tab !== "fpl"}>
           <FPLPage />
-        </div>}
-        {mountedTabs.has("calibration") && <div style={{ display: tab === "calibration" ? "block" : "none" }}>
+        </div>
+      )}
+      {mountedTabs.has("calibration") && (
+        <div data-testid="page-calibration" hidden={tab !== "calibration"}>
           {PUBLIC_MODE ? <ModelSummaryPage /> : <CalibrationPage />}
-        </div>}
-      </main>
-    </div>
+        </div>
+      )}
+    </AppFrame>
   );
 }
 

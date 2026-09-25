@@ -87,7 +87,7 @@ function RankingRow({ rank, team, attackScore, defenceScore, confidence, fitted 
       <TeamBadge team={team} size="sm" />
       <span className="truncate text-sm text-pl-text">{team}</span>
       {badge && (
-        <span className="flex items-center gap-1 rounded bg-pl-700/60 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-pl-text-dim">
+        <span className="flex items-center gap-1 rounded bg-pl-700/60 px-1.5 py-0.5 text-xs font-semibold uppercase text-pl-text-dim">
           {badge.label}
           <InfoTooltip text={badge.tooltip} align="left" />
         </span>
@@ -157,7 +157,7 @@ export function PowerRankings({ data }: { data: RankingsResponse }) {
           By attack and defence strength
           <InfoTooltip text={GLOSSARY.powerRankings} align="left" />
         </h3>
-        <div className="mb-2 grid grid-cols-[1.25rem_1.5rem_minmax(6rem,1fr)_auto_minmax(5rem,1fr)_1px_minmax(5rem,1fr)] gap-2 px-3 text-[11px] font-semibold uppercase tracking-wide text-pl-text-faint">
+        <div className="mb-2 grid grid-cols-[1.25rem_1.5rem_minmax(6rem,1fr)_auto_minmax(5rem,1fr)_1px_minmax(5rem,1fr)] gap-2 px-3 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">
           <span className="col-start-5 flex items-center justify-center gap-1 text-center">
             Attack
             <InfoTooltip text="Fixed 0–100 conversion of the model's attacking-strength value. 50 is typical league-level attack; higher means stronger." />

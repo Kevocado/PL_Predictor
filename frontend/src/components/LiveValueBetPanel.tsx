@@ -8,7 +8,7 @@ import { GLOSSARY } from "../lib/glossary";
 function StatCard({ label, value, positive, info }: { label: string; value: string; positive?: boolean; info?: string }) {
   return (
     <div className="clip-corner rounded-xl border border-pl-border bg-pl-850/70 p-4">
-      <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-pl-text-faint">
+      <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">
         {label}
         {info && <InfoTooltip text={info} align="left" />}
       </div>
@@ -65,7 +65,7 @@ export function LiveValueBetPanel() {
           <button
             onClick={() => setStaking("kelly")}
             className={`rounded-md px-2.5 py-1 font-semibold transition ${
-              staking === "kelly" ? "bg-pl-pink text-white" : "text-pl-text-faint hover:text-pl-text"
+              staking === "kelly" ? "bg-pl-pink text-pr-accent-ink" : "text-pl-text-faint hover:text-pl-text"
             }`}
           >
             Kelly stakes
@@ -73,7 +73,7 @@ export function LiveValueBetPanel() {
           <button
             onClick={() => setStaking("flat")}
             className={`rounded-md px-2.5 py-1 font-semibold transition ${
-              staking === "flat" ? "bg-pl-pink text-white" : "text-pl-text-faint hover:text-pl-text"
+              staking === "flat" ? "bg-pl-pink text-pr-accent-ink" : "text-pl-text-faint hover:text-pl-text"
             }`}
           >
             Flat stakes
@@ -116,14 +116,14 @@ export function LiveValueBetPanel() {
           <div className="clip-corner rounded-xl border border-pl-border bg-pl-850/70 p-4">
             <div className="flex items-baseline justify-between gap-3">
               <h3 className="text-sm font-semibold text-pl-text">Confirmed results</h3>
-              <span className="text-[11px] text-pl-text-faint">Final scores from the named result source</span>
+              <span className="text-xs text-pl-text-faint">Final scores from the named result source</span>
             </div>
             {data.confirmed_bets.length === 0 ? (
               <p className="mt-3 text-xs text-pl-text-faint">No flagged fixture has a confirmed final result yet.</p>
             ) : (
               <div className="mt-3 overflow-x-auto">
                 <table className="w-full min-w-[620px] text-left text-xs">
-                  <thead className="border-b border-pl-border text-[10px] uppercase tracking-wide text-pl-text-faint">
+                  <thead className="border-b border-pl-border text-xs uppercase tracking-wide text-pl-text-faint">
                     <tr>
                       <th className="pb-2 font-semibold">Fixture / final score</th>
                       <th className="pb-2 font-semibold">Pick</th>
@@ -138,7 +138,7 @@ export function LiveValueBetPanel() {
                       <tr key={`${bet.fixture}-${bet.selection}-${index}`} className="border-b border-pl-border/60 last:border-0">
                         <td className="py-2 text-pl-text">
                           {bet.fixture}
-                          <span className="ml-2 text-[10px] text-pl-text-faint">{bet.result_source}</span>
+                          <span className="ml-2 text-xs text-pl-text-faint">{bet.result_source}</span>
                         </td>
                         <td className="py-2 text-pl-text-dim">{SELECTION_LABELS[bet.selection] ?? bet.selection}</td>
                         <td className="py-2 text-pl-text-dim">{americanOdds(bet.price)}</td>

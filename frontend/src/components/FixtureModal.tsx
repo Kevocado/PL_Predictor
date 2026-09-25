@@ -81,12 +81,12 @@ function PostMatchReview({ review }: { review: FixturePostMatch }) {
     <section className="rounded-xl border border-win/30 bg-win/5 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div><h3 className="text-sm font-semibold text-pl-text">Prediction review, final {review.final_score.replace("-", "–")}</h3><p className="mt-0.5 text-xs text-pl-text-dim">{correct}/{review.verdicts.length} match calls correct</p></div>
-        <span className={`rounded px-2 py-1 text-[10px] font-semibold uppercase ${review.provenance === "snapshot" ? "bg-win/20 text-win" : "bg-pl-700/60 text-pl-text-dim"}`}>{review.provenance === "snapshot" ? "Pre-match snapshot" : "Rebuilt after kickoff"}</span>
+        <span className={`rounded px-2 py-1 text-xs font-semibold uppercase ${review.provenance === "snapshot" ? "bg-win/20 text-win" : "bg-pl-700/60 text-pl-text-dim"}`}>{review.provenance === "snapshot" ? "Pre-match snapshot" : "Rebuilt after kickoff"}</span>
       </div>
       <div className="mt-3 grid gap-1.5 sm:grid-cols-2">
         {review.verdicts.map((verdict) => <div key={verdict.label} className={`flex items-center justify-between rounded-lg px-3 py-2 text-xs ${verdict.hit ? "bg-win/10 text-win" : "bg-pl-850/70 text-pl-text-dim"}`}><span className="font-semibold">{verdict.hit ? "✓" : "×"} {verdict.label}</span><span><span className="text-pl-text-faint">{verdict.prediction}</span><span className="mx-1">→</span><span>{verdict.actual}</span></span></div>)}
       </div>
-      {review.provenance === "reconstructed" && <p className="mt-2 text-[11px] text-pl-text-faint">Rebuilt after the match from saved inputs where available. Shown for reference; not counted in the hit rate.</p>}
+      {review.provenance === "reconstructed" && <p className="mt-2 text-xs text-pl-text-faint">Rebuilt after the match from saved inputs where available. Shown for reference; not counted in the hit rate.</p>}
     </section>
   );
 }
@@ -96,7 +96,7 @@ function PreMatchValueBets({ bets }: { bets: FixtureValueBetSnapshot[] }) {
     <section>
       <div className="mb-2 flex flex-wrap items-end justify-between gap-1">
         <h3 className="text-sm font-semibold text-pl-text-dim">Pre-match value bets</h3>
-        <p className="text-[11px] text-pl-text-faint">Saved when first flagged; prices and edges never change afterwards.</p>
+        <p className="text-xs text-pl-text-faint">Saved when first flagged; prices and edges never change afterwards.</p>
       </div>
       <div className="grid gap-2 sm:grid-cols-2">
         {bets.map((bet) => {
@@ -105,13 +105,13 @@ function PreMatchValueBets({ bets }: { bets: FixtureValueBetSnapshot[] }) {
           return (
             <div key={bet.market} className={`rounded-xl border p-3 ${bet.won === true ? "border-win/30 bg-win/5" : bet.won === false ? "border-loss/25 bg-loss/5" : "border-pl-cyan/30 bg-pl-cyan/5"}`}>
               <div className="flex items-center justify-between gap-2">
-                <div><span className="font-semibold text-pl-text">{MARKET_LABELS[bet.market] ?? bet.market}</span><span className="ml-2 text-[10px] font-semibold uppercase text-pl-text-faint">{marketType(bet.market)}</span></div>
-                <span className={`rounded px-2 py-1 text-[10px] font-semibold uppercase ${statusClass}`}>{status}</span>
+                <div><span className="font-semibold text-pl-text">{MARKET_LABELS[bet.market] ?? bet.market}</span><span className="ml-2 text-xs font-semibold uppercase text-pl-text-faint">{marketType(bet.market)}</span></div>
+                <span className={`rounded px-2 py-1 text-xs font-semibold uppercase ${statusClass}`}>{status}</span>
               </div>
               <p className="mt-1 text-xs text-pl-text-dim">
                 {americanOdds(bet.price)}{bet.bookmaker ? ` at ${bet.bookmaker}` : ""}, model {(bet.probability * 100).toFixed(1)}% vs market {(bet.implied_probability * 100).toFixed(1)}%
               </p>
-              <div className="mt-2 flex items-center justify-between text-[11px]">
+              <div className="mt-2 flex items-center justify-between text-xs">
                 <span className="font-semibold text-pl-cyan">+{(bet.edge * 100).toFixed(1)}% edge</span>
                 {bet.clv_pct !== null && (
                   <span className={`font-semibold ${bet.clv_pct >= 0 ? "text-win" : "text-loss"}`} title={GLOSSARY.clv}>
@@ -137,14 +137,14 @@ function PlayerCallReview({ review, loading, error }: { review: FixturePlayerRev
     const hit = state !== "miss";
     const tone = state === "hit" ? "bg-win/10" : state === "miss" ? "bg-loss/10" : "bg-pl-blue/10";
     const signal = `${(player.review_probability * 100).toFixed(0)}% ${player.review_market} chance`;
-    return <div key={`${player.team}-${player.name}`} className={`flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-xs ${tone}`}><span className="min-w-0 font-semibold text-pl-text">{state === "hit" ? "✓" : state === "miss" ? "×" : "↑"} {player.name} <span className="font-normal text-pl-text-faint">{player.team}</span>{player.is_recommended && <span className="ml-2 rounded bg-pl-pink/20 px-1.5 py-0.5 text-[10px] font-semibold text-pl-pink">Recommended</span>}</span><span className={`shrink-0 text-right ${hit ? state === "longShot" ? "text-pl-blue" : "text-win" : "text-pl-text-dim"}`}><span className="block">{hit ? outcome(player) : "No goal involvement"}</span><span className="text-pl-text-faint">{signal}</span></span></div>;
+    return <div key={`${player.team}-${player.name}`} className={`flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-xs ${tone}`}><span className="min-w-0 font-semibold text-pl-text">{state === "hit" ? "✓" : state === "miss" ? "×" : "↑"} {player.name} <span className="font-normal text-pl-text-faint">{player.team}</span>{player.is_recommended && <span className="ml-2 rounded bg-pl-pink/20 px-1.5 py-0.5 text-xs font-semibold text-pl-pink">Recommended</span>}</span><span className={`shrink-0 text-right ${hit ? state === "longShot" ? "text-pl-blue" : "text-win" : "text-pl-text-dim"}`}><span className="block">{hit ? outcome(player) : "No goal involvement"}</span><span className="text-pl-text-faint">{signal}</span></span></div>;
   });
   return <section className="rounded-xl border border-pl-border bg-pl-850/50 p-4">
-    <div className="flex items-center justify-between gap-2"><h3 className="text-sm font-semibold text-pl-text">Player call review</h3>{review && <span className="text-[10px] font-semibold uppercase text-pl-text-faint">{review.provenance === "snapshot" ? "Pre-match snapshot" : "Rebuilt after kickoff"}</span>}</div>
+    <div className="flex items-center justify-between gap-2"><h3 className="text-sm font-semibold text-pl-text">Player call review</h3>{review && <span className="text-xs font-semibold uppercase text-pl-text-faint">{review.provenance === "snapshot" ? "Pre-match snapshot" : "Rebuilt after kickoff"}</span>}</div>
     {loading && <p className="mt-2 text-xs text-pl-text-faint">Reconstructing confirmed player calls…</p>}
     {error && <p className="mt-2 text-xs text-loss">{error}</p>}
     {!loading && !error && !review && <p className="mt-2 text-xs text-pl-text-faint">Official player outcomes are not available for this fixture yet.</p>}
-    {review && <div className="mt-3 grid gap-3 xl:grid-cols-3"><div><p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-pl-text-faint">Correct calls</p><div className="flex flex-col gap-1">{review.correct.length ? rows(review.correct, "hit") : <p className="rounded-lg bg-pl-900/50 px-3 py-2 text-xs text-pl-text-faint">No tiered call recorded a goal involvement.</p>}</div></div><div><p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-pl-text-faint">Confident calls that missed</p><div className="flex flex-col gap-1">{review.missed.length ? rows(review.missed, "miss") : <p className="rounded-lg bg-pl-900/50 px-3 py-2 text-xs text-pl-text-faint">No confident calls missed.</p>}</div></div><div><p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-pl-text-faint">Overperformers</p><div className="flex flex-col gap-1">{review.overperformed.length ? rows(review.overperformed, "longShot") : <p className="rounded-lg bg-pl-900/50 px-3 py-2 text-xs text-pl-text-faint">No low-probability player outperformed the thresholds.</p>}</div></div></div>}
+    {review && <div className="mt-3 grid gap-3 xl:grid-cols-3"><div><p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">Correct calls</p><div className="flex flex-col gap-1">{review.correct.length ? rows(review.correct, "hit") : <p className="rounded-lg bg-pl-900/50 px-3 py-2 text-xs text-pl-text-faint">No tiered call recorded a goal involvement.</p>}</div></div><div><p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">Confident calls that missed</p><div className="flex flex-col gap-1">{review.missed.length ? rows(review.missed, "miss") : <p className="rounded-lg bg-pl-900/50 px-3 py-2 text-xs text-pl-text-faint">No confident calls missed.</p>}</div></div><div><p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">Overperformers</p><div className="flex flex-col gap-1">{review.overperformed.length ? rows(review.overperformed, "longShot") : <p className="rounded-lg bg-pl-900/50 px-3 py-2 text-xs text-pl-text-faint">No low-probability player outperformed the thresholds.</p>}</div></div></div>}
   </section>;
 }
 
@@ -235,7 +235,7 @@ export function FixtureModal({ eventId, onClose }: Props) {
                     {new Date(detail.commence_time).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}
                   </span>
                   {detail.post_match ? (
-                    <><span className="text-[10px] font-semibold uppercase tracking-wide text-pl-text-faint">Final</span><span className="font-display text-3xl font-semibold tracking-wide text-pl-text">{detail.post_match.final_score.replace("-", "–")}</span></>
+                    <><span className="text-xs font-semibold uppercase tracking-wide text-pl-text-faint">Final</span><span className="font-display text-3xl font-semibold tracking-wide text-pl-text">{detail.post_match.final_score.replace("-", "–")}</span></>
                   ) : <span className="font-display text-2xl font-semibold tracking-wide text-pl-text-faint">vs</span>}
                   <span className="text-xs text-pl-text-faint">
                     {new Date(detail.commence_time).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
@@ -297,7 +297,7 @@ export function FixtureModal({ eventId, onClose }: Props) {
                   </div>
                 )}
                 {!(detail.post_match && !detail.actual_stats) && (
-                  <p className="mt-2 text-[11px] text-pl-text-faint">{detail.actual_stats ? "Final team totals reported by the match-data feed. Possession is shown whenever the source provides it." : "Rest is fixture congestion; the other rows are each team&apos;s rolling per-match profile, not live betting lines."}</p>
+                  <p className="mt-2 text-xs text-pl-text-faint">{detail.actual_stats ? "Final team totals reported by the match-data feed. Possession is shown whenever the source provides it." : "Rest is fixture congestion; the other rows are each team&apos;s rolling per-match profile, not live betting lines."}</p>
                 )}
               </section>
 
@@ -353,7 +353,7 @@ export function FixtureModal({ eventId, onClose }: Props) {
                       <InfoTooltip text={GLOSSARY.edge} align="right" />
                       {detail.draw_signal && (
                         <span
-                          className="rounded-full bg-pl-cyan/10 px-2 py-0.5 text-[10px] font-semibold normal-case tracking-normal text-pl-cyan"
+                          className="rounded-full bg-pl-cyan/10 px-2 py-0.5 text-xs font-semibold normal-case tracking-normal text-pl-cyan"
                           title="The scoreline model's top pick and the win/draw/loss percentages both lean draw. Informational only — not used to score accuracy."
                         >
                           Model leans draw
@@ -473,7 +473,7 @@ export function FixtureModal({ eventId, onClose }: Props) {
                             : "Live match-result and goals odds have not loaded yet, so a value bet cannot be calculated."}
                       </p>
                     )}
-                    <p className="mt-2 text-[11px] text-pl-text-faint">Corners/cards/shots are match-context signals (for example, a high Over chance suggests a busier game), not verified betting edges.</p>
+                    <p className="mt-2 text-xs text-pl-text-faint">Corners/cards/shots are match-context signals (for example, a high Over chance suggests a busier game), not verified betting edges.</p>
                   </section>
                 </div>
               </div>

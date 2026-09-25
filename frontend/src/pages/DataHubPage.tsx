@@ -94,7 +94,7 @@ export function DataHubPage() {
             <button
               key={item}
               onClick={() => setTab(item)}
-              className={`rounded-md px-4 py-2 text-sm font-semibold transition ${tab === item ? "bg-pl-pink text-white" : "text-pl-text-dim hover:text-pl-text"}`}
+              className={`rounded-md px-4 py-2 text-sm font-semibold transition ${tab === item ? "bg-pl-pink text-pr-accent-ink" : "text-pl-text-dim hover:text-pl-text"}`}
             >
               {item}
             </button>

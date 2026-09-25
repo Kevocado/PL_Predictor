@@ -10,7 +10,7 @@ import { GLOSSARY } from "../lib/glossary";
 function StatCard({ label, value, info }: { label: string; value: string; info?: string }) {
   return (
     <div className="clip-corner rounded-xl border border-pl-border bg-pl-850/70 p-4">
-      <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-pl-text-faint">
+      <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">
         {label}
         {info && <InfoTooltip text={info} align="left" />}
       </div>
@@ -165,7 +165,7 @@ export function TrackRecordPanel({ data }: { data: TrackRecordResponse }) {
               </span>
             </h3>
             {group.pct_correct !== null && group.pct_correct_by_market && (
-              <p className="mb-2 text-[11px] text-pl-text-faint">
+              <p className="mb-2 text-xs text-pl-text-faint">
                 Exact score {pct(group.pct_correct_by_market.exact_score)} &middot; Goals O/U 2.5{" "}
                 {pct(group.pct_correct_by_market.over_under_2_5)} &middot; BTTS {pct(group.pct_correct_by_market.btts)}
               </p>
