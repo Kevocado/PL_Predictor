@@ -26,3 +26,15 @@ describe("index.css", () => {
     for (const value of legacy) expect(value).toMatch(/^var\(--color-pr-/);
   });
 });
+
+describe("accent in inline styles and portals", () => {
+  it("sets the PL sport on <html>, so :root aliases and body portals resolve to PL magenta", async () => {
+    const { readFileSync } = await import("node:fs");
+    const html = readFileSync(resolve(__dirname, "../index.html"), "utf8");
+    expect(html).toMatch(/<html[^>]*data-sport="pl"/);
+  });
+  it("keeps the second chart colour distinct from text white", () => {
+    expect(css).toMatch(/--color-pl-cyan:\s*var\(--color-pr-lean\)/);
+    for (const name of ["pl-blue", "pl-accent"]) expect(css).toMatch(new RegExp(`--color-${name}:\\s*var\\(--color-pr-`));
+  });
+});

@@ -29,13 +29,11 @@ export function ScorelineHeatmap({ grid, homeTeam, awayTeam, topScorelines }: Pr
     }
   }
 
+  // One hue: the raised panel blending into the PL accent as the chance
+  // rises, so the ramp follows the family tokens.
   const cellColor = (v: number) => {
     const t = max > 0 ? v / max : 0;
-    // interpolate pl-850 -> pl-pink across the intensity range
-    const r = Math.round(35 + t * (233 - 35));
-    const g = Math.round(15 + t * (0 - 15));
-    const b = Math.round(61 + t * (82 - 61));
-    return `rgb(${r}, ${g}, ${b})`;
+    return `color-mix(in srgb, var(--color-pr-accent) ${Math.round(8 + t * 82)}%, var(--color-pr-panel-2))`;
   };
 
   return (
@@ -60,11 +58,13 @@ export function ScorelineHeatmap({ grid, homeTeam, awayTeam, topScorelines }: Pr
               <div className="grid flex-1 gap-1" style={{ gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))` }}>
                 {row.map((v, a) => {
                   const isPeak = h === peakH && a === peakA;
+                  // Dark ink once the cell is mostly accent; light text below.
+                  const ink = max > 0 && v / max > 0.55 ? "text-pr-accent-ink" : "text-pr-text";
                   return (
                     <div
                       key={a}
-                      className={`flex aspect-square flex-col items-center justify-center rounded-md text-xs font-semibold text-white ${
-                        isPeak ? "ring-2 ring-white/80" : ""
+                      className={`flex aspect-square flex-col items-center justify-center rounded-md text-xs font-semibold ${ink} ${
+                        isPeak ? "ring-2 ring-pr-text/80" : ""
                       }`}
                       style={{ background: cellColor(v) }}
                       title={`${homeTeam} ${h}-${a} ${awayTeam}: ${(v * 100).toFixed(1)}%`}

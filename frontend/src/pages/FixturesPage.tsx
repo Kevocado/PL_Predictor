@@ -10,6 +10,9 @@ export function FixturesPage() {
   const [gameweek, setGameweek] = useState<CurrentGameweekResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // An admin refresh failing is not the gameweek failing to load: keep the
+  // two apart so each says what went wrong and retries the right thing.
+  const [actionError, setActionError] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   // undefined = "current gameweek" (server decides); once the user
@@ -38,11 +41,12 @@ export function FixturesPage() {
 
   const runAction = async (key: string, fn: () => Promise<unknown>) => {
     setBusy(key);
+    setActionError(null);
     try {
       await fn();
       load(viewGameweek);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setActionError(`That refresh failed: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setBusy(null);
     }
@@ -73,9 +77,18 @@ export function FixturesPage() {
         </div>
       )}
 
+      {actionError && (
+        <p role="alert" className="mb-4 rounded-pr border border-pr-loss/50 bg-pr-panel px-4 py-3 text-sm text-pr-text">
+          {actionError}
+        </p>
+      )}
+
       {error && (
         <div className="mb-4">
-          <ErrorState message="We couldn't load this gameweek. Check your connection and try again." onRetry={() => load(viewGameweek)} />
+          <ErrorState
+            message={gameweek ? "We couldn't load that gameweek, so the one below is the last that loaded. Check your connection and try again." : "We couldn't load this gameweek. Check your connection and try again."}
+            onRetry={() => load(viewGameweek)}
+          />
         </div>
       )}
 

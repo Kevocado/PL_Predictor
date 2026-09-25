@@ -12,7 +12,9 @@
 /* Legacy pl-* names, kept so PL's own components (crests, hero, heatmap,
    FPL pitch) adopt the family palette without a rewrite. Inline, so each
    utility keeps the var() and follows the page's data-sport accent (PL
-   magenta). New code uses the pr-* tokens. */
+   magenta). index.html also sets data-sport="pl" on <html>, so inline
+   styles and portalled tooltips that read these from :root get magenta,
+   not the Hub's white. New code uses the pr-* tokens. */
 @theme inline {
   --color-pl-950: var(--color-pr-stage);
   --color-pl-900: var(--color-pr-stage);
@@ -24,7 +26,10 @@
   --color-pl-border: var(--color-pr-rule);
   --color-pl-pink: var(--color-pr-accent);
   --color-pl-pink-soft: var(--color-pr-accent);
-  --color-pl-cyan: var(--color-pr-text);
+  /* Second chart hue (e.g. "pushes down" against the accent's "pushes up"). */
+  --color-pl-cyan: var(--color-pr-lean);
+  --color-pl-blue: var(--color-pr-lean);
+  --color-pl-accent: var(--color-pr-accent);
   --color-pl-text: var(--color-pr-text);
   --color-pl-text-dim: var(--color-pr-text-dim);
   --color-pl-text-faint: var(--color-pr-text-faint);
