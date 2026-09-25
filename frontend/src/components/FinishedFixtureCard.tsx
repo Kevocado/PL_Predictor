@@ -66,7 +66,7 @@ export function FinishedFixtureCard({
       tabIndex={0}
       onKeyDown={(e) => e.key === "Enter" && onClick()}
       title={draw_signal ? "The scoreline model also leaned towards a draw." : undefined}
-      className="clip-corner flex cursor-pointer flex-col gap-3 rounded-xl border border-win/30 bg-pl-850/70 p-4 transition hover:border-pl-pink/40"
+      className={`clip-corner flex cursor-pointer flex-col gap-3 rounded-xl border bg-pl-850/70 ${backfilled ? "border-pl-border" : hit ? "border-win/30" : "border-loss/30"} p-4 transition hover:border-pl-pink/40`}
     >
       <div className="flex flex-wrap items-center justify-between gap-1.5 text-xs font-medium uppercase tracking-wide text-pl-text-faint">
         <span>
@@ -81,7 +81,10 @@ export function FinishedFixtureCard({
               Rebuilt after kickoff
             </span>
           )}
-          <span className={`text-xs font-semibold ${hit ? "text-win" : "text-loss"}`}>{hit ? "Called it ✓" : "Missed ✗"}</span>
+          {/* A rebuilt pick is shown, never judged: one badge, not two. */}
+          {!backfilled && (
+            <span className={`text-xs font-semibold ${hit ? "text-win" : "text-loss"}`}>{hit ? "Called it ✓" : "Missed ✗"}</span>
+          )}
         </div>
       </div>
       <div className="flex items-center justify-between gap-2">

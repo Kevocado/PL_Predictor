@@ -28,4 +28,10 @@ describe("FinishedFixtureCard", () => {
     expect(screen.queryByText(/BACKFILLED/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Refreshing official scorers/)).not.toBeInTheDocument();
   });
+  it("never judges a rebuilt pick: one badge, no Called it or Missed", () => {
+    render(<FinishedFixtureCard {...base} backfilled />);
+    expect(screen.getByText("Rebuilt after kickoff")).toBeInTheDocument();
+    expect(screen.queryByText("Called it ✓")).not.toBeInTheDocument();
+    expect(screen.queryByText("Missed ✗")).not.toBeInTheDocument();
+  });
 });
