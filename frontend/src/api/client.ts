@@ -1,4 +1,5 @@
 import { PUBLIC_MODE } from "../lib/publicMode";
+import type { Explanation } from "../predictor-ui";
 import type {
   BacktestResponse,
   CalibrationResponse,
@@ -128,6 +129,13 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
 
 export const api = {
   fixtures: () => get<FixtureSummary[]>("/fixtures"),
+  // The plain-English summary. Same-origin, and proxied to the explainer by
+  // this site's own FastAPI (see api/routes.py::explain_proxy), which is what
+  // PL's Caddy reverse-proxies to. On the family's 15 s read timeout, and
+  // deliberately uncached: the panel's footer states how long ago the summary
+  // was written, so a cached copy would show a stale age beside fresh
+  // numbers. The service caches by the facts it was given.
+  explain: (sport: string, id: string) => get<Explanation>(`/explain/${sport}/${encodeURIComponent(id)}`, false),
   currentGameweek: (gameweek?: number) =>
     get<CurrentGameweekResponse>(gameweek ? `/fixtures/gameweek?gameweek=${gameweek}` : "/fixtures/gameweek"),
   fixtureDetail: (eventId: string) => get<FixtureDetail>(`/fixtures/${eventId}`),
