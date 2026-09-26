@@ -344,6 +344,72 @@ def test_started_fixture_omits_pick_won_for_a_backfilled_card(api, monkeypatch):
     Facts(**body)
 
 
+def test_started_fixture_quotes_no_post_match_totals_or_btts(api, monkeypatch):
+    started = _card(
+        commence_time="2026-11-01T14:00:00Z", finished=True,
+        actual_goals_home=2, actual_goals_away=1,
+        predicted_home_win=0.57, predicted_draw=0.23, predicted_away_win=0.20,
+    )
+    # The recomputed detail carries post-match totals: after Sunderland won 2-1
+    # it now says 0.35 total goals and 1% both-teams-to-score. Those are the
+    # result, not a prediction, and must never be quoted beside pick_won.
+    detail = _detail(
+        commence_time="2026-11-01T14:00:00Z",
+        predicted_total_goals=0.35,
+        btts_yes_prob=0.01,
+        over_2_5={"prob": 0.02, "implied": None, "edge": None},
+        under_2_5={"prob": 0.98, "implied": None, "edge": None},
+    )
+    monkeypatch.setattr(facts_mod, "_snapshot", lambda: _snapshot(detail=detail, cards=[started]))
+
+    body = api.get(f"/facts/{EVENT_ID}").json()
+
+    assert [m["market"] for m in body["markets"]] == ["result"]
+    assert "0.35" not in str(body["markets"])
+    assert "0.01" not in str(body["markets"])
+    assert "total_goals" not in str(body)
+    Facts(**body)
+
+
+def test_started_fixture_carries_no_recent_form_driver(api, monkeypatch):
+    started = _card(
+        commence_time="2026-11-01T14:00:00Z", finished=True,
+        actual_goals_home=2, actual_goals_away=1,
+        predicted_home_win=0.57, predicted_draw=0.23, predicted_away_win=0.20,
+    )
+    # The detail's recent form is "most recent first" and is computed from
+    # results-so-far, so for a finished fixture its first letter IS that
+    # fixture. Presenting it as the pre-match reason is the outcome in disguise.
+    detail = _detail(
+        commence_time="2026-11-01T14:00:00Z",
+        home_recent_form=["W", "D", "L"],
+        away_recent_form=["L", "W", "W"],
+    )
+    monkeypatch.setattr(facts_mod, "_snapshot", lambda: _snapshot(detail=detail, cards=[started]))
+
+    body = api.get(f"/facts/{EVENT_ID}").json()
+
+    assert body["drivers"] == []
+
+
+def test_started_fixture_omits_live_odds_and_edge(api, monkeypatch):
+    started = _card(
+        commence_time="2026-11-01T14:00:00Z", finished=True,
+        actual_goals_home=2, actual_goals_away=1,
+    )
+    detail = _detail(
+        commence_time="2026-11-01T14:00:00Z", has_live_odds=True,
+        home_win={"prob": 0.57, "implied": 0.60, "edge": -0.03},
+    )
+    monkeypatch.setattr(facts_mod, "_snapshot", lambda: _snapshot(detail=detail, cards=[started]))
+
+    body = api.get(f"/facts/{EVENT_ID}").json()
+    result_market = next(m for m in body["markets"] if m["market"] == "result")
+
+    assert "implied" not in result_market
+    assert "edge" not in result_market
+
+
 def test_started_fixture_with_no_card_has_no_pick_and_no_verdict(api, monkeypatch):
     monkeypatch.setattr(
         facts_mod, "_snapshot",

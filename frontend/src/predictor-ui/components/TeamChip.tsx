@@ -1,4 +1,4 @@
-// Synced from predictor-ui@797bbd0ef9a8. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@5cfbec69fb05. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 import { readableChip } from "../contrast";
 
 // Team identity without logos: the team colour with its code set in ink
