@@ -363,9 +363,11 @@ def get_facts(event_id: str) -> dict:
     else:
         pick_timing = "pre_kickoff"
 
-    # A started fixture with no stored card has no honest pick, so no markets
-    # are quoted from the recomputed detail either.
-    markets = [] if (started and card is None) else _markets(detail, probs, team_home, team_away)
+    # Once a fixture has started, the detail (totals, BTTS, odds, form) and
+    # the player block are post-kickoff rebuilds — form can even include this
+    # match. Only the stored card's result probabilities may be quoted.
+    pre_start = None if started else detail
+    markets = [] if (started and card is None) else _markets(pre_start, probs, team_home, team_away)
 
     return {
         "sport": "pl",
@@ -376,9 +378,9 @@ def get_facts(event_id: str) -> dict:
         "pick_timing": pick_timing,
         "pick": pick,
         "markets": markets,
-        "drivers": _drivers(detail),
+        "drivers": _drivers(pre_start),
         "context": {"gameweek": _current_gameweek()} if _current_gameweek() else {},
-        "players": _players_out(_players(event_id), team_home, team_away),
+        "players": [] if started else _players_out(_players(event_id), team_home, team_away),
         "record": _record(),
         "result": _result(card, status, pick_timing, pick["side"] if pick else None),
     }

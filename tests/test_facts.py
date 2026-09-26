@@ -386,3 +386,25 @@ def test_upcoming_lists_only_fixtures_inside_the_window(api, monkeypatch):
 
 def test_unknown_event_id_is_404(api):
     assert api.get("/facts/does-not-exist").status_code == 404
+
+
+def test_started_fixture_quotes_nothing_from_the_recomputed_detail(api, monkeypatch):
+    # The detail (totals, BTTS, odds, recent form) and the player block are
+    # rebuilt after kickoff; only the stored card is pre-kickoff. Recent form
+    # after the match can even include the match itself.
+    started = _card(commence_time="2026-11-01T14:00:00Z", finished=True,
+                    actual_goals_home=2, actual_goals_away=1)
+    detail = _detail(commence_time="2026-11-01T14:00:00Z", predicted_total_goals=3.7, btts_yes_prob=0.83,
+                     has_live_odds=True, home_win={"prob": 0.30, "implied": 0.44, "edge": 0.09},
+                     home_recent_form=["W", "W", "W", "W", "W"])
+    monkeypatch.setattr(facts_mod, "_snapshot", lambda: _snapshot(detail=detail, cards=[started]))
+
+    body = api.get(f"/facts/{EVENT_ID}").json()
+
+    assert [m["market"] for m in body["markets"]] == ["result"]
+    assert set(body["markets"][0]) == {"market", "model"}  # no post-kickoff implied/edge
+    assert body["drivers"] == []
+    assert body["players"] == []
+    for leaked in ("3.7", "0.83", "0.44", "0.09"):
+        assert leaked not in str(body)
+    Facts(**body)
