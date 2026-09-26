@@ -361,8 +361,12 @@ def get_facts(event_id: str) -> dict:
     if card is None and detail is None:
         raise HTTPException(status_code=404, detail=f"No fixture with event_id={event_id}")
 
-    team_home = (card or detail).get("team_home")
-    team_away = (card or detail).get("team_away")
+    # Read through _field, and prefer the card: when the tracking store has no
+    # row for this fixture -- an id from FPL's own id space via a team lookup,
+    # or one the tracking tick has not seen yet -- detail is a pydantic model
+    # and .get() on it 500'd the endpoint for exactly that class of ids.
+    team_home = _field(card, "team_home") or _field(detail, "team_home")
+    team_away = _field(card, "team_away") or _field(detail, "team_away")
     status = _status(card, detail, now)
     started = status in ("live", "final")
 
@@ -384,7 +388,7 @@ def get_facts(event_id: str) -> dict:
 
     if pick is None:
         pick_timing = "none"
-    elif (card or {}).get("backfilled"):
+    elif _field(card, "backfilled"):
         pick_timing = "rebuilt"
     else:
         pick_timing = "pre_kickoff"
@@ -399,7 +403,7 @@ def get_facts(event_id: str) -> dict:
         "sport": "pl",
         "id": str(event_id),
         "title": f"{team_away} at {team_home}",
-        "starts_at": _iso_utc((card or detail).get("commence_time")),
+        "starts_at": _iso_utc(_field(card, "commence_time") or _field(detail, "commence_time")),
         "status": status,
         "pick_timing": pick_timing,
         "pick": pick,

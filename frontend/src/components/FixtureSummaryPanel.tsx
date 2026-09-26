@@ -23,7 +23,9 @@ export function FixtureSummaryPanel({
   className?: string;
 }) {
   const [data, setData] = useState<Explanation | null>(null);
-  const [loading, setLoading] = useState(false);
+  // True from the first paint when a fetcher exists, so there is no frame of
+  // empty wrapper before the loading Skeleton appears.
+  const [loading, setLoading] = useState(Boolean(fetcher));
   const [error, setError] = useState(false);
 
   const load = useCallback(() => {

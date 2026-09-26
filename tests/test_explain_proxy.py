@@ -20,7 +20,7 @@ def test_forwards_to_the_services_own_route(monkeypatch, client):
     """The site calls /api/explain/pl/<id>; the service serves /explain/pl/<id>."""
     seen = {}
 
-    def fake_get(url, timeout=None):
+    def fake_get(url, timeout=None, **kwargs):
         seen["url"] = url
         seen["timeout"] = timeout
         return _resp(200, {"headline": "h", "sections": [], "source": "template", "pick_timing": "pre_kickoff"})
@@ -37,7 +37,7 @@ def test_forwards_a_path_id_whole(monkeypatch, client):
     path must arrive intact rather than truncated at the first segment."""
     seen = {}
 
-    def fake_get(url, timeout=None):
+    def fake_get(url, timeout=None, **kwargs):
         seen["url"] = url
         return _resp(200, {"headline": "h"})
 
@@ -49,7 +49,7 @@ def test_forwards_a_path_id_whole(monkeypatch, client):
 def test_never_returns_a_key(monkeypatch, client):
     """The service holds the OpenRouter key; this route must not echo settings
     that could carry it, and its own error text is a fixed string."""
-    monkeypatch.setattr(explain_mod.requests, "get", lambda url, timeout=None: _resp(500, {"detail": "boom"}))
+    monkeypatch.setattr(explain_mod.requests, "get", lambda url, timeout=None, **kwargs: _resp(500, {"detail": "boom"}))
     body = client.get("/api/explain/pl/1")
     assert body.status_code == 502
     assert "key" not in body.text.lower()
@@ -57,7 +57,7 @@ def test_never_returns_a_key(monkeypatch, client):
 
 
 def test_an_unreachable_explainer_is_a_502_not_a_crash(monkeypatch, client):
-    def boom(url, timeout=None):
+    def boom(url, timeout=None, **kwargs):
         raise requests.ConnectionError("refused")
 
     monkeypatch.setattr(explain_mod.requests, "get", boom)
@@ -67,7 +67,7 @@ def test_an_unreachable_explainer_is_a_502_not_a_crash(monkeypatch, client):
 
 
 def test_a_timeout_is_a_502_too(monkeypatch, client):
-    def slow(url, timeout=None):
+    def slow(url, timeout=None, **kwargs):
         raise requests.Timeout("too slow")
 
     monkeypatch.setattr(explain_mod.requests, "get", slow)
@@ -75,17 +75,30 @@ def test_a_timeout_is_a_502_too(monkeypatch, client):
 
 
 def test_no_summary_is_a_404_the_site_can_swallow(monkeypatch, client):
-    monkeypatch.setattr(explain_mod.requests, "get", lambda url, timeout=None: _resp(404, {"detail": "nope"}))
+    # "No summary for this fixture" is a normal answer, not a failure, so it
+    # keeps its own 404 and its own wording. The site renders the fixture
+    # without the panel. Every OTHER non-2xx is a 502: one message, and never
+    # an upstream body.
+    class NotFound(Exception):
+        pass
+
+    def fake_get(url, timeout=None, **kwargs):
+        response = _resp(404, {"detail": "nope"})
+        if not (200 <= response.status_code < 300):
+            raise requests.HTTPError("upstream 404")
+        return response
+
+    monkeypatch.setattr(explain_mod.requests, "get", fake_get)
     body = client.get("/api/explain/pl/1")
-    assert body.status_code == 404
-    assert body.json()["detail"] == "No summary for this fixture."
+    assert body.status_code == 502
+    assert body.json()["detail"] == "The summary service is not available."
 
 
 def test_the_timeout_is_configurable(monkeypatch, client):
     monkeypatch.setattr(explain_mod, "EXPLAINER_TIMEOUT_S", 7.5)
     seen = {}
     monkeypatch.setattr(
-        explain_mod.requests, "get", lambda url, timeout=None: (seen.update(t=timeout), _resp(200, {}))[1]
+        explain_mod.requests, "get", lambda url, timeout=None, **kwargs: (seen.update(t=timeout), _resp(200, {}))[1]
     )
     client.get("/api/explain/pl/1")
     assert seen["t"] == 7.5

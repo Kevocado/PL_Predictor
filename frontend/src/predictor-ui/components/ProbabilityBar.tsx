@@ -1,4 +1,4 @@
-// Synced from predictor-ui@5cfbec69fb05. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@ebfbbcd7a53a. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 import { contrast, parseHex } from "../contrast";
 import { pct } from "../fmt";
 

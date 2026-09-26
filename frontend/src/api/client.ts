@@ -130,12 +130,20 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
 export const api = {
   fixtures: () => get<FixtureSummary[]>("/fixtures"),
   // The plain-English summary. Same-origin, and proxied to the explainer by
-  // this site's own FastAPI (see api/routes.py::explain_proxy), which is what
-  // PL's Caddy reverse-proxies to. On the family's 15 s read timeout, and
-  // deliberately uncached: the panel's footer states how long ago the summary
-  // was written, so a cached copy would show a stale age beside fresh
-  // numbers. The service caches by the facts it was given.
-  explain: (sport: string, id: string) => get<Explanation>(`/explain/${sport}/${encodeURIComponent(id)}`, false),
+  // this site's own FastAPI (see api/explain.py), which is what PL's Caddy
+  // reverse-proxies to.
+  //
+  // `get`'s second argument is `force`, not a cache switch, so this call IS
+  // memoised in readCache for READ_CACHE_TTL_MS (45 s) like every other read.
+  // That is deliberate and better than the alternative: it collapses React's
+  // StrictMode double-invoke to one request, and the panel's own "N min ago"
+  // age is a statement about when the summary was WRITTEN, not about this
+  // fetch, so a 45 s memo cannot make it wrong.
+  //
+  // The timeout is this site's READ_TIMEOUT_MS (20 s), not the family's 15 s,
+  // and fetchRead retries once on a non-ApiError. The proxy answers 502 for a
+  // missing or slow explainer, so the retry lands on an ApiError and stops.
+  explain: (sport: string, id: string) => get<Explanation>(`/explain/${sport}/${encodeURIComponent(id)}`),
   currentGameweek: (gameweek?: number) =>
     get<CurrentGameweekResponse>(gameweek ? `/fixtures/gameweek?gameweek=${gameweek}` : "/fixtures/gameweek"),
   fixtureDetail: (eventId: string) => get<FixtureDetail>(`/fixtures/${eventId}`),
