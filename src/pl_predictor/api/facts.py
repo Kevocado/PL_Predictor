@@ -83,12 +83,8 @@ def _prob_field(detail: dict, key: str) -> float | None:
 
 
 def _iso_utc(value: Any) -> str:
-    if not value:
-        return ""
-    stamp = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
-    if stamp.tzinfo is None:
-        stamp = stamp.replace(tzinfo=timezone.utc)
-    return stamp.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    stamp = _as_utc(value)
+    return "" if stamp is None else stamp.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _as_utc(value: Any) -> datetime | None:
@@ -174,14 +170,14 @@ def _markets(detail: dict | None, probs: tuple[float, float, float] | None, team
         }
         if detail and detail.get("has_live_odds"):
             implied = {
-                team_home: _prob_field(detail, "home_win") if _implied(detail, "home_win") is None else _implied(detail, "home_win"),
+                team_home: _implied(detail, "home_win"),
                 team_away: _implied(detail, "away_win"),
             }
             edge = {
                 team_home: _edge(detail, "home_win"),
                 team_away: _edge(detail, "away_win"),
             }
-            if implied[team_away] is not None:
+            if implied[team_home] is not None or implied[team_away] is not None:
                 market["implied"] = implied
             if edge[team_home] is not None or edge[team_away] is not None:
                 market["edge"] = edge
