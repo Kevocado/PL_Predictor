@@ -1,66 +1,55 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Oswald:wght@500;600;700&display=swap');
+@import "./predictor-ui/fonts.css";
 @import "tailwindcss";
+@import "./predictor-ui/tokens.css";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  /* Condensed, scoreboard-flavored display face — reserved for scorelines,
-     headline numbers and page titles, never body copy. Distinct enough from
-     Inter to carry its own personality without needing a second body font. */
-  --font-display: "Oswald", "Inter", ui-sans-serif, system-ui, sans-serif;
-
-  /* Premier League "Purple Power" (#3D195B) as the base, extended into a
-     tonal ramp for backgrounds/surfaces/borders. */
-  --color-pl-950: #0f0619;
-  --color-pl-900: #1a0a2e;
-  --color-pl-850: #230f3d;
-  --color-pl-800: #2c1249;
-  --color-pl-700: #3d195b;
-  --color-pl-600: #4f2277;
-  --color-pl-500: #6b32a0;
-  --color-pl-border: #3a2352;
-
-  /* Magenta/pink accent, homage to the PL rebrand's neon accent family. */
-  --color-pl-pink: #e90052;
-  --color-pl-pink-soft: #ff2d78;
-  --color-pl-cyan: #05f0d1;
-
-  --color-pl-text: #f4f1f9;
-  --color-pl-text-dim: #b8aecb;
-  --color-pl-text-faint: #8577a3;
-
-  --color-win: #22c55e;
-  --color-draw: #eab308;
-  --color-loss: #ef4444;
+  /* The family faces (see predictor-ui/tokens.css): Barlow for text, Barlow
+     Condensed for scorelines, headline numbers and titles. */
+  --font-sans: var(--font-pr-body);
+  --font-display: var(--font-pr-display);
 }
 
-html {
-  color-scheme: dark;
+/* Legacy pl-* names, kept so PL's own components (crests, hero, heatmap,
+   FPL pitch) adopt the family palette without a rewrite. Inline, so each
+   utility keeps the var() and follows the page's data-sport accent (PL
+   magenta). index.html also sets data-sport="pl" on <html>, so inline
+   styles and portalled tooltips that read these from :root get magenta,
+   not the Hub's white. New code uses the pr-* tokens. */
+@theme inline {
+  --color-pl-950: var(--color-pr-stage);
+  --color-pl-900: var(--color-pr-stage);
+  --color-pl-850: var(--color-pr-panel);
+  --color-pl-800: var(--color-pr-panel-2);
+  --color-pl-700: var(--color-pr-panel-2);
+  --color-pl-600: var(--color-pr-rule);
+  --color-pl-500: var(--color-pr-rule);
+  --color-pl-border: var(--color-pr-rule);
+  --color-pl-pink: var(--color-pr-accent);
+  --color-pl-pink-soft: var(--color-pr-accent);
+  /* Second chart hue (e.g. "pushes down" against the accent's "pushes up"). */
+  --color-pl-cyan: var(--color-pr-lean);
+  --color-pl-blue: var(--color-pr-lean);
+  --color-pl-accent: var(--color-pr-accent);
+  --color-pl-text: var(--color-pr-text);
+  --color-pl-text-dim: var(--color-pr-text-dim);
+  --color-pl-text-faint: var(--color-pr-text-faint);
+  --color-win: var(--color-pr-win);
+  --color-draw: var(--color-pr-lean);
+  --color-loss: var(--color-pr-loss);
 }
 
 body {
   margin: 0;
-  background:
-    radial-gradient(circle at 15% -10%, var(--color-pl-700) 0%, transparent 45%),
-    radial-gradient(circle at 100% 0%, var(--color-pl-600) 0%, transparent 35%),
-    var(--color-pl-950);
   min-height: 100vh;
-  color: var(--color-pl-text);
-  font-family: var(--font-sans);
+  background: var(--color-pr-stage);
+  color: var(--color-pr-text);
+  font-family: var(--font-pr-body);
 }
 
-::selection {
-  background: var(--color-pl-pink);
-  color: white;
-}
-
-/* One clipped corner on cards — a small angular nod to the PL's fragmented
-   shield mark, applied as a utility rather than baked into every component. */
-.clip-corner {
-  clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 0 100%);
-}
-
+/* Legacy names for the family notch. */
+.clip-corner,
 .clip-corner-lg {
-  clip-path: polygon(0 0, calc(100% - 28px) 0, 100% 28px, 100% 100%, 0 100%);
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
 }
 
 @keyframes modal-in {
@@ -73,7 +62,8 @@ body {
     transform: scale(1) translateY(0);
   }
 }
-
-.animate-modal-in {
-  animation: modal-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+@media (prefers-reduced-motion: no-preference) {
+  .animate-modal-in {
+    animation: modal-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  }
 }

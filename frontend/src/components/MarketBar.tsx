@@ -43,7 +43,7 @@ export function MarketBar({ label, prob, marketProb, highlight, valueBet, detail
         <span className="flex items-center gap-1.5 text-pl-text-dim">
           {label}
           {valueBet && (
-            <span className="rounded bg-pl-pink/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-pl-pink">
+            <span className="rounded bg-pl-pink/20 px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-pl-pink">
               Value
             </span>
           )}

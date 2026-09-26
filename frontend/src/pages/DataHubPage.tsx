@@ -89,24 +89,26 @@ export function DataHubPage() {
     <div>
       {refreshError && <p className="mb-3 rounded-lg border border-loss/40 bg-loss/10 px-3 py-2 text-sm text-loss">{refreshError}</p>}
       <div className="mb-6 flex items-center justify-between gap-3">
-        <div className="flex gap-1 rounded-lg border border-pl-border bg-pl-850/50 p-1 w-fit">
+        <div className="flex w-fit max-w-full gap-1 overflow-x-auto rounded-lg border border-pl-border bg-pl-850/50 p-1">
           {TABS.map((item) => (
             <button
               key={item}
               onClick={() => setTab(item)}
-              className={`rounded-md px-4 py-2 text-sm font-semibold transition ${tab === item ? "bg-pl-pink text-white" : "text-pl-text-dim hover:text-pl-text"}`}
+              className={`whitespace-nowrap rounded-md px-4 py-2 text-sm font-semibold transition ${tab === item ? "bg-pl-pink text-pr-accent-ink" : "text-pl-text-dim hover:text-pl-text"}`}
             >
               {item}
             </button>
           ))}
         </div>
-        <button
-          onClick={() => { void refresh(); }}
-          disabled={refreshing}
-          className="rounded-lg border border-pl-border bg-pl-850/50 px-3 py-2 text-xs font-semibold text-pl-text-dim transition hover:text-pl-text disabled:opacity-50"
-        >
-          {refreshing ? "Refreshing…" : "Refresh live data"}
-        </button>
+        {!PUBLIC_MODE && (
+          <button
+            onClick={() => { void refresh(); }}
+            disabled={refreshing}
+            className="rounded-lg border border-pl-border bg-pl-850/50 px-3 py-2 text-xs font-semibold text-pl-text-dim transition hover:text-pl-text disabled:opacity-50"
+          >
+            {refreshing ? "Refreshing…" : "Refresh live data"}
+          </button>
+        )}
       </div>
 
       {tab === "Team Hub" && <section><h2 className="mb-3 text-lg font-semibold text-pl-text">Team Hub</h2>{errors.teamHub ? <PanelUnavailable message={errors.teamHub} onRetry={() => { void load(true); }} /> : teamHub ? <TeamHub data={teamHub} /> : <p className="py-10 text-center text-sm text-pl-text-faint">Loading team analytics…</p>}</section>}

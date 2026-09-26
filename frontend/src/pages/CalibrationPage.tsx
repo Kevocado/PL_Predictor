@@ -76,7 +76,7 @@ export function CalibrationPage() {
           onClick={retrain}
           disabled={busy}
           title={loading && !retraining ? "Still loading the current numbers — hang on a moment" : undefined}
-          className="rounded-lg bg-pl-pink px-4 py-2 text-sm font-semibold text-white transition hover:bg-pl-pink-soft disabled:opacity-50"
+          className="rounded-lg bg-pl-pink px-4 py-2 text-sm font-semibold text-pr-accent-ink transition hover:bg-pl-pink-soft disabled:opacity-50"
         >
           {retraining ? "Retraining… (~1-2 min)" : loading ? "Loading…" : "Retrain models"}
         </button>
@@ -135,7 +135,7 @@ export function CalibrationPage() {
                       <td className="py-2 pr-4 font-medium text-pl-text">
                         {label}
                         {chosen && (
-                          <span className="ml-2 rounded bg-pl-pink px-1.5 py-0.5 text-[10px] font-semibold uppercase text-white">
+                          <span className="ml-2 rounded bg-pl-pink px-1.5 py-0.5 text-xs font-semibold uppercase text-pr-accent-ink">
                             in use
                           </span>
                         )}
@@ -257,7 +257,7 @@ function ScorerTrackRecord({ data }: { data: ScorerAccuracyResponse }) {
           </>}
         </div>)}
       </div>
-      <p className="mt-2 text-[11px] text-pl-text-faint">Reconstructed rows were created after the fixture and stay separate from prospective live evidence.</p>
+      <p className="mt-2 text-xs text-pl-text-faint">Reconstructed rows were created after the fixture and stay separate from prospective live evidence.</p>
     </section>
   );
 }

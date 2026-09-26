@@ -1,14 +1,12 @@
 import type { CurrentGameweekFixture } from "../types";
+import { kickoffParts } from "../lib/kickoffTime";
 import { TeamBadge } from "./TeamBadge";
 import { ProbabilityBar } from "./ProbabilityBar";
 import { FinishedFixtureCard } from "./FinishedFixtureCard";
 
 function formatKickoff(iso: string): { date: string; time: string } {
-  const d = new Date(iso);
-  return {
-    date: d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" }),
-    time: d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }),
-  };
+  const { day, time } = kickoffParts(iso);
+  return { date: day, time };
 }
 
 export function CurrentGameweekCard({ fixture, onClick }: { fixture: CurrentGameweekFixture; onClick: () => void }) {
@@ -25,7 +23,7 @@ export function CurrentGameweekCard({ fixture, onClick }: { fixture: CurrentGame
           fixture.value_bet_flags.length > 0 ? "border-pl-pink/40 ring-1 ring-pl-pink/20" : "border-pl-border"
         }`}
       >
-        <div className="flex flex-wrap items-center justify-between gap-1.5 text-[11px] font-medium uppercase tracking-wide text-pl-text-faint">
+        <div className="flex flex-wrap items-center justify-between gap-1.5 text-xs font-medium uppercase tracking-wide text-pl-text-faint">
           <span>
             {date} &middot; {time}
           </span>
@@ -60,7 +58,7 @@ export function CurrentGameweekCard({ fixture, onClick }: { fixture: CurrentGame
             <span className="text-xs font-semibold leading-tight text-pl-text">{fixture.team_home}</span>
           </div>
           <div className="flex flex-col items-center gap-0.5 px-1">
-            <span className="text-[10px] font-medium uppercase text-pl-text-faint">Likely</span>
+            <span className="text-xs font-medium uppercase text-pl-text-faint">Likely</span>
             <span className="rounded-lg bg-pl-700/50 px-2.5 py-1 font-display text-xl font-semibold tracking-wide text-pl-text">
               {fixture.predicted_scoreline?.replace("-", "–") ?? "?"}
             </span>

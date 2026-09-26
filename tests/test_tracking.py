@@ -333,9 +333,12 @@ def test_backfill_missing_predictions(clean_db):
     home_goals, away_goals = row["predicted_scoreline"].split("-")
     assert int(home_goals) > int(away_goals)
 
+    # A backfilled (rebuilt after kickoff) pick is listed above but never
+    # counted toward the track record's rates.
     record = store.get_track_record()
     assert record["current_gameweek"] is None
-    assert record["pct_correct_overall"] == pytest.approx(1.0)
+    assert record["pct_correct_overall"] is None
+    assert record["n_rebuilt_fixtures"] == 1
 
 
 def test_backfill_missing_gameweeks_repairs_null_gameweek_rows(clean_db):
@@ -561,3 +564,82 @@ def test_by_market_track_record_agrees_with_single_fixture_review_on_every_marke
     assert verdicts["Match result"] is False and by_market["match_result"]["pct_correct"] == 0.0
     assert verdicts["Goals O/U 2.5"] is False and by_market["over_under_2_5"]["pct_correct"] == 0.0
     assert verdicts["BTTS"] is True and by_market["btts"]["pct_correct"] == 1.0
+
+
+def _one_fixture(event_id, home, away, gameweek=1):
+    return pd.DataFrame([{
+        "event_id": event_id, "team_home": home, "team_away": away,
+        "commence_time": pd.Timestamp("2020-01-01T15:00:00Z"), "home_win_prob": 0.6,
+        "draw_prob": 0.25, "away_win_prob": 0.15, "over_2_5_prob": 0.4,
+        "under_2_5_prob": 0.6, "btts_yes_prob": 0.5, "top_scoreline": "1-0", "gameweek": gameweek,
+    }])
+
+
+def test_track_record_leaves_rebuilt_picks_out_of_every_rate(clean_db):
+    store.record_predictions(_one_fixture("live", "Arsenal", "Chelsea"))
+    store.record_predictions(_one_fixture("rebuilt", "Spurs", "Villa"), backfilled=True)
+    store.reconcile_predictions(pd.DataFrame([
+        {"team_home": "Arsenal", "team_away": "Chelsea", "date": pd.Timestamp("2020-01-01"), "goals_home": 0, "goals_away": 1, "ftr": "A"},
+        {"team_home": "Spurs", "team_away": "Villa", "date": pd.Timestamp("2020-01-01"), "goals_home": 2, "goals_away": 0, "ftr": "H"},
+    ]))
+
+    record = store.get_track_record()
+
+    assert record["n_resolved_fixtures"] == 1
+    assert record["n_rebuilt_fixtures"] == 1
+    assert record["pct_correct_overall"] == 0.0  # only the live miss counts; the rebuilt hit does not
+
+
+def test_track_record_with_only_rebuilt_picks_reports_no_rate(clean_db):
+    store.record_predictions(_one_fixture("rebuilt", "Spurs", "Villa"), backfilled=True)
+    store.reconcile_predictions(pd.DataFrame([
+        {"team_home": "Spurs", "team_away": "Villa", "date": pd.Timestamp("2020-01-01"), "goals_home": 2, "goals_away": 0, "ftr": "H"},
+    ]))
+
+    record = store.get_track_record()
+    groups = store.get_results_by_gameweek()
+
+    assert record["pct_correct_overall"] is None
+    assert record["n_resolved_fixtures"] == 0
+    assert record["n_rebuilt_fixtures"] == 1
+    assert groups[0]["pct_correct"] is None
+    assert groups[0]["n_fixtures"] == 0
+    assert groups[0]["n_rebuilt"] == 1
+    assert len(groups[0]["fixtures"]) == 1  # still listed, just not counted
+
+
+def test_current_gameweek_still_tracks_the_latest_gameweek_when_it_is_all_rebuilt(clean_db):
+    """current_gameweek anchors navigation (routes._resolve_current_gameweek,
+    public_snapshot's default view), so rebuilt picks must still move it even
+    though they never count toward a rate."""
+    store.record_predictions(_one_fixture("live", "Arsenal", "Chelsea", gameweek=4))
+    store.record_predictions(_one_fixture("rebuilt", "Spurs", "Villa", gameweek=5), backfilled=True)
+    store.reconcile_predictions(pd.DataFrame([
+        {"team_home": "Arsenal", "team_away": "Chelsea", "date": pd.Timestamp("2020-01-01"), "goals_home": 1, "goals_away": 0, "ftr": "H", "matchday": 4},
+        {"team_home": "Spurs", "team_away": "Villa", "date": pd.Timestamp("2020-01-01"), "goals_home": 2, "goals_away": 0, "ftr": "H", "matchday": 5},
+    ]))
+
+    record = store.get_track_record()
+
+    assert record["current_gameweek"] == 5
+    assert record["pct_correct_current_gameweek"] is None
+    assert record["n_fixtures_current_gameweek"] == 0
+    assert record["pct_correct_overall"] == 1.0
+
+
+def test_current_gameweek_is_set_even_when_every_pick_is_rebuilt(clean_db):
+    store.record_predictions(_one_fixture("rebuilt", "Spurs", "Villa", gameweek=5), backfilled=True)
+    store.reconcile_predictions(pd.DataFrame([
+        {"team_home": "Spurs", "team_away": "Villa", "date": pd.Timestamp("2020-01-01"), "goals_home": 2, "goals_away": 0, "ftr": "H", "matchday": 5},
+    ]))
+
+    assert store.get_track_record()["current_gameweek"] == 5
+
+
+def test_biggest_upsets_leave_out_rebuilt_picks(clean_db):
+    store.record_predictions(_one_fixture("rebuilt", "Spurs", "Villa"), backfilled=True)
+    store.reconcile_predictions(pd.DataFrame([
+        {"team_home": "Spurs", "team_away": "Villa", "date": pd.Timestamp("2020-01-01"), "goals_home": 0, "goals_away": 3, "ftr": "A"},
+    ]))
+
+    assert store.get_biggest_upsets() == []

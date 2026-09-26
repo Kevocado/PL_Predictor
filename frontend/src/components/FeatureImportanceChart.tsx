@@ -63,8 +63,8 @@ export function FeatureImportanceChart({ title, importance, topN = 10 }: Props) 
             <button
               key={m}
               onClick={() => setMetric(m)}
-              className={`rounded px-2 py-0.5 text-[11px] font-medium capitalize transition ${
-                metric === m ? "bg-pl-pink text-white" : "text-pl-text-faint hover:text-pl-text"
+              className={`rounded px-2 py-0.5 text-xs font-medium capitalize transition ${
+                metric === m ? "bg-pl-pink text-pr-accent-ink" : "text-pl-text-faint hover:text-pl-text"
               }`}
             >
               {m}
@@ -96,7 +96,7 @@ export function FeatureImportanceChart({ title, importance, topN = 10 }: Props) 
         </ResponsiveContainer>
       </div>
       {metric === "shap" && (
-        <div className="mt-2 flex items-center gap-4 text-[10px] text-pl-text-faint">
+        <div className="mt-2 flex items-center gap-4 text-xs text-pl-text-faint">
           <span className="flex items-center gap-1">
             <span className="h-2 w-2 rounded-sm" style={{ background: "var(--color-pl-pink)" }} /> pushes prediction up
           </span>

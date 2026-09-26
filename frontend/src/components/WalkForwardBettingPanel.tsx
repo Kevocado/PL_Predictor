@@ -6,7 +6,7 @@ import { InfoTooltip } from "./InfoTooltip";
 function StatCard({ label, value, positive, info }: { label: string; value: string; positive?: boolean; info?: string }) {
   return (
     <div className="clip-corner rounded-xl border border-pl-border bg-pl-850/70 p-4">
-      <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-pl-text-faint">
+      <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">
         {label}
         {info && <InfoTooltip text={info} align="left" />}
       </div>
@@ -21,7 +21,7 @@ function BreakdownTable({ title, rows }: { title: string; rows: BettingValidatio
       <h3 className="text-sm font-semibold text-pl-text">{title}</h3>
       <div className="mt-3 overflow-x-auto">
         <table className="w-full min-w-[340px] text-left text-xs">
-          <thead className="border-b border-pl-border text-[10px] uppercase tracking-wide text-pl-text-faint">
+          <thead className="border-b border-pl-border text-xs uppercase tracking-wide text-pl-text-faint">
             <tr><th className="pb-2 font-semibold">Group</th><th className="pb-2 font-semibold">Bets</th><th className="pb-2 font-semibold">Win rate</th><th className="pb-2 font-semibold">Yield</th></tr>
           </thead>
           <tbody>
@@ -58,7 +58,7 @@ export function WalkForwardBettingPanel() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <p className="max-w-2xl text-xs text-pl-text-faint">Each season is tested only after training on earlier seasons. Yield uses one unit per pick; the 95% interval shows how uncertain the combined historical yield remains. This is a robustness check, not a forecast.</p>
-        <button onClick={run} disabled={loading} className="rounded-lg bg-pl-pink px-4 py-2 text-sm font-semibold text-white transition hover:bg-pl-pink-soft disabled:opacity-50">{loading ? "Testing…" : "Run walk-forward test"}</button>
+        <button onClick={run} disabled={loading} className="rounded-lg bg-pl-pink px-4 py-2 text-sm font-semibold text-pr-accent-ink transition hover:bg-pl-pink-soft disabled:opacity-50">{loading ? "Testing…" : "Run walk-forward test"}</button>
       </div>
       {error && <div className="rounded-lg border border-loss/40 bg-loss/10 px-4 py-3 text-sm text-loss">{error}</div>}
       {data && summary && (

@@ -59,7 +59,7 @@ export function ProjectedTable({ data }: { data: ProjectedTableResponse }) {
       <div className="overflow-x-auto rounded-xl border border-pl-border">
         <table className="w-full min-w-[480px] text-sm">
           <thead>
-            <tr className="border-b border-pl-border bg-pl-850/70 text-left text-[11px] uppercase tracking-wide text-pl-text-faint">
+            <tr className="border-b border-pl-border bg-pl-850/70 text-left text-xs uppercase tracking-wide text-pl-text-faint">
               <th className="px-3 py-2">#</th>
               <th className="px-3 py-2">Team</th>
               <th className="px-3 py-2 text-right">Played</th>
@@ -108,7 +108,7 @@ export function ProjectedTable({ data }: { data: ProjectedTableResponse }) {
           </tbody>
         </table>
       </div>
-      <div className="mt-2 flex gap-4 text-[11px] text-pl-text-faint">
+      <div className="mt-2 flex gap-4 text-xs text-pl-text-faint">
         <span className="flex items-center gap-1">
           <span className="h-2 w-2 rounded-full bg-win" /> Title
         </span>

@@ -1,12 +1,11 @@
 import { TeamBadge } from "./TeamBadge";
+import { kickoffParts } from "../lib/kickoffTime";
 import type { FixturePlayerEvent } from "../types";
+import { matchPick } from "../lib/pick";
 
 function formatKickoff(iso: string): { date: string; time: string } {
-  const d = new Date(iso);
-  return {
-    date: d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" }),
-    time: d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }),
-  };
+  const { day, time } = kickoffParts(iso);
+  return { date: day, time };
 }
 
 interface Props {
@@ -54,10 +53,11 @@ export function FinishedFixtureCard({
   backfilled,
   home_player_events = [],
   away_player_events = [],
-  player_events_pending = false,
   onClick,
 }: Props) {
   const { date, time } = formatKickoff(commence_time);
+  const pick = matchPick(predicted_home_win, predicted_draw, predicted_away_win, team_home, team_away);
+  const pct = (p: number) => `${Math.round(p * 100)}%`;
 
   return (
     <div
@@ -65,30 +65,26 @@ export function FinishedFixtureCard({
       role="button"
       tabIndex={0}
       onKeyDown={(e) => e.key === "Enter" && onClick()}
-      className="clip-corner flex cursor-pointer flex-col gap-3 rounded-xl border border-win/30 bg-pl-850/70 p-4 transition hover:border-pl-pink/40"
+      title={draw_signal ? "The scoreline model also leaned towards a draw." : undefined}
+      className={`clip-corner flex cursor-pointer flex-col gap-3 rounded-xl border bg-pl-850/70 ${backfilled ? "border-pl-border" : hit ? "border-win/30" : "border-loss/30"} p-4 transition hover:border-pl-pink/40`}
     >
-      <div className="flex flex-wrap items-center justify-between gap-1.5 text-[11px] font-medium uppercase tracking-wide text-pl-text-faint">
+      <div className="flex flex-wrap items-center justify-between gap-1.5 text-xs font-medium uppercase tracking-wide text-pl-text-faint">
         <span>
           {date} &middot; {time}
         </span>
         <div className="flex flex-wrap items-center justify-end gap-1.5">
-          {draw_signal && (
-            <span
-              title="The scoreline model's top pick and the win/draw/loss percentages both leaned draw. Informational only — not used to score accuracy."
-              className="rounded bg-pl-cyan/10 px-1.5 py-0.5 text-[9px] font-semibold normal-case tracking-normal text-pl-cyan"
-            >
-              Leaned draw
-            </span>
-          )}
           {backfilled && (
             <span
-              title="This match had already finished before the app started tracking it live — the prediction shown is what the model would have said, computed the same way as any live prediction."
-              className="rounded border border-pl-border px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-pl-text-faint"
+              title="Rebuilt from the model after this match finished. Shown for reference; not counted in the hit rate."
+              className="rounded border border-pl-border px-1.5 py-0.5 text-xs font-semibold normal-case tracking-normal text-pl-text-dim"
             >
-              Backfilled
+              Rebuilt after kickoff
             </span>
           )}
-          <span className={`font-semibold ${hit ? "text-win" : "text-loss"}`}>{hit ? "Called it ✓" : "Missed ✗"}</span>
+          {/* A rebuilt pick is shown, never judged: one badge, not two. */}
+          {!backfilled && (
+            <span className={`text-xs font-semibold ${hit ? "text-win" : "text-loss"}`}>{hit ? "Called it ✓" : "Missed ✗"}</span>
+          )}
         </div>
       </div>
       <div className="flex items-center justify-between gap-2">
@@ -97,7 +93,7 @@ export function FinishedFixtureCard({
           <span className="text-xs font-semibold leading-tight text-pl-text">{team_home}</span>
         </div>
         <div className="flex flex-col items-center gap-0.5 px-1">
-          <span className="text-[10px] font-medium uppercase text-pl-text-faint">Final</span>
+          <span className="text-xs font-medium uppercase text-pl-text-faint">Final</span>
           <span className="rounded-lg bg-pl-700/50 px-2.5 py-1 font-display text-xl font-semibold tracking-wide text-pl-text">
             {actual_goals_home}–{actual_goals_away}
           </span>
@@ -108,21 +104,17 @@ export function FinishedFixtureCard({
         </div>
       </div>
       {(home_player_events.length > 0 || away_player_events.length > 0) && (
-        <div className="grid grid-cols-2 gap-3 border-t border-pl-border/70 pt-2 text-[10px] leading-relaxed text-pl-text-dim">
+        <div className="grid grid-cols-2 gap-3 border-t border-pl-border/70 pt-2 text-xs leading-relaxed text-pl-text-dim">
           <div>{playerSummary(home_player_events, "goals", "Goals") && <p>{playerSummary(home_player_events, "goals", "Goals")}</p>}{playerSummary(home_player_events, "assists", "Assists") && <p>{playerSummary(home_player_events, "assists", "Assists")}</p>}</div>
           <div className="text-right">{playerSummary(away_player_events, "goals", "Goals") && <p>{playerSummary(away_player_events, "goals", "Goals")}</p>}{playerSummary(away_player_events, "assists", "Assists") && <p>{playerSummary(away_player_events, "assists", "Assists")}</p>}</div>
         </div>
       )}
-      {player_events_pending && (
-        <p className="border-t border-pl-border/70 pt-2 text-center text-[10px] text-pl-text-faint">Refreshing official scorers and assists…</p>
-      )}
-      <div className="flex items-center justify-between border-t border-pl-border/70 pt-2.5 text-[11px] text-pl-text-dim">
-        <span>
-          We predicted <span className="font-mono font-semibold text-pl-text">{predicted_scoreline ?? "?"}</span>
-        </span>
-        <span>
-          {(predicted_home_win * 100).toFixed(0)}% / {(predicted_draw * 100).toFixed(0)}% / {(predicted_away_win * 100).toFixed(0)}%
-        </span>
+      <div className="flex flex-col gap-1 border-t border-pl-border/70 pt-2.5 text-xs text-pl-text-dim">
+        <div className="flex items-center justify-between gap-2">
+          <span className="font-semibold text-pl-text">Pick: {pick.label} · {pct(pick.prob)}</span>
+          {predicted_scoreline && <span>Most likely score {predicted_scoreline.replace("-", "–")}</span>}
+        </div>
+        <span>Home {pct(predicted_home_win)} · Draw {pct(predicted_draw)} · Away {pct(predicted_away_win)}</span>
       </div>
     </div>
   );

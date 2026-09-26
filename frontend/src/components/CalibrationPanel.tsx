@@ -6,7 +6,7 @@ import { GLOSSARY } from "../lib/glossary";
 function StatCard({ label, value, sub, info }: { label: string; value: string; sub?: string; info?: string }) {
   return (
     <div className="clip-corner rounded-xl border border-pl-border bg-pl-850/70 p-4">
-      <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-pl-text-faint">
+      <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">
         {label}
         {info && <InfoTooltip text={info} align="left" />}
       </div>

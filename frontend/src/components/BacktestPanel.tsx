@@ -8,7 +8,7 @@ import { GLOSSARY } from "../lib/glossary";
 function StatCard({ label, value, positive, info }: { label: string; value: string; positive?: boolean; info?: string }) {
   return (
     <div className="clip-corner rounded-xl border border-pl-border bg-pl-850/70 p-4">
-      <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-pl-text-faint">
+      <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">
         {label}
         {info && <InfoTooltip text={info} align="left" />}
       </div>
@@ -67,7 +67,7 @@ export function BacktestPanel() {
             <button
               onClick={() => selectStaking("kelly")}
               className={`rounded-md px-2.5 py-1 font-semibold transition ${
-                staking === "kelly" ? "bg-pl-pink text-white" : "text-pl-text-faint hover:text-pl-text"
+                staking === "kelly" ? "bg-pl-pink text-pr-accent-ink" : "text-pl-text-faint hover:text-pl-text"
               }`}
             >
               Kelly stakes
@@ -75,7 +75,7 @@ export function BacktestPanel() {
             <button
               onClick={() => selectStaking("flat")}
               className={`rounded-md px-2.5 py-1 font-semibold transition ${
-                staking === "flat" ? "bg-pl-pink text-white" : "text-pl-text-faint hover:text-pl-text"
+                staking === "flat" ? "bg-pl-pink text-pr-accent-ink" : "text-pl-text-faint hover:text-pl-text"
               }`}
             >
               Flat stakes
@@ -84,14 +84,14 @@ export function BacktestPanel() {
           <button
             onClick={() => run()}
             disabled={loading}
-            className="rounded-lg bg-pl-pink px-4 py-2 text-sm font-semibold text-white transition hover:bg-pl-pink-soft disabled:opacity-50"
+            className="rounded-lg bg-pl-pink px-4 py-2 text-sm font-semibold text-pr-accent-ink transition hover:bg-pl-pink-soft disabled:opacity-50"
           >
             {loading ? "Running…" : "Run historical replay"}
           </button>
         </div>
       </div>
 
-      <p className="text-[11px] text-pl-text-faint">
+      <p className="text-xs text-pl-text-faint">
         {staking === "kelly"
           ? "Kelly stakes size each bet by how confident the model is (a tenth-Kelly fraction — see tooltip), instead of betting the same amount every time. This is the more honest simulation: it reveals how much a real bettor's bankroll would swing if they actually trusted the model's stated probabilities enough to size up on them."
           : "Flat stakes bet the same fixed amount on every qualifying edge, regardless of how confident the model is. Simpler, but it hides how risky following the model's stated confidence would actually be."}
@@ -123,14 +123,14 @@ export function BacktestPanel() {
           <div className="clip-corner rounded-xl border border-pl-border bg-pl-850/70 p-4">
             <div className="flex items-baseline justify-between gap-3">
               <h3 className="text-sm font-semibold text-pl-text">Historical picks</h3>
-              <span className="text-[11px] text-pl-text-faint">{result.season ?? "Held-out season"} · archived Bet365 closing prices</span>
+              <span className="text-xs text-pl-text-faint">{result.season ?? "Held-out season"} · archived Bet365 closing prices</span>
             </div>
             {result.selections.length === 0 ? (
               <p className="mt-3 text-xs text-pl-text-faint">No historical fixture cleared the live value-bet rules.</p>
             ) : (
               <div className="mt-3 max-h-80 overflow-auto">
                 <table className="w-full min-w-[680px] text-left text-xs">
-                  <thead className="sticky top-0 border-b border-pl-border bg-pl-850/95 text-[10px] uppercase tracking-wide text-pl-text-faint">
+                  <thead className="sticky top-0 border-b border-pl-border bg-pl-850/95 text-xs uppercase tracking-wide text-pl-text-faint">
                     <tr>
                       <th className="pb-2 font-semibold">Date / final score</th>
                       <th className="pb-2 font-semibold">Pick</th>

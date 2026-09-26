@@ -25,7 +25,7 @@ const COMPARE_ROW_GRID = "grid-cols-[1rem_1.5rem_minmax(7rem,1fr)_repeat(7,minma
 function StatChip({ label, value: chipValue }: { label: string; value: string }) {
   return (
     <div className="text-center">
-      <p className="text-[9px] font-semibold uppercase tracking-wide text-pl-text-faint">{label}</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-pl-text-faint">{label}</p>
       <p className="text-sm font-semibold tabular-nums text-pl-text">{chipValue}</p>
     </div>
   );
@@ -52,7 +52,7 @@ function TeamDetailPanel({ selected }: { selected: TeamHubTeam }) {
       <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
         {metrics.map(([label, metric]) => (
           <div key={label} className="rounded-lg bg-pl-900/60 px-3 py-2">
-            <p className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-pl-text-faint">{label}{label === "Points / match" && <InfoTooltip text={GLOSSARY.pointsPerMatch} align="left" />}</p>
+            <p className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">{label}{label === "Points / match" && <InfoTooltip text={GLOSSARY.pointsPerMatch} align="left" />}</p>
             <p className="mt-1 text-sm font-semibold text-pl-text">{metric}</p>
           </div>
         ))}
@@ -114,7 +114,7 @@ export function TeamHub({ data }: { data: TeamHubResponse }) {
       <p className="text-sm text-pl-text-dim">Ordered by current league position. Form rank shows where recent PPG suggests each club belongs; select a club for detail and select it again to collapse.</p>
 
       <div className="overflow-x-auto rounded-xl border border-pl-border bg-pl-850/50">
-        <div className={`grid ${COMPARE_ROW_GRID} gap-2 border-b border-pl-border px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-pl-text-faint`}>
+        <div className={`grid ${COMPARE_ROW_GRID} gap-2 border-b border-pl-border px-3 py-2 text-xs font-semibold uppercase tracking-wide text-pl-text-faint`}>
           <span />
           <span />
           <span>Team</span>
@@ -145,7 +145,7 @@ export function TeamHub({ data }: { data: TeamHubResponse }) {
                 <TeamBadge team={team.team} size="sm" />
                 <span className="min-w-0">
                   <span className="block truncate text-xs font-semibold text-pl-text">{team.team}</span>
-                  <span className="flex items-center gap-1 text-[11px] text-pl-text-faint">
+                  <span className="flex items-center gap-1 text-xs text-pl-text-faint">
                     Form {value(team.form_points_per_match)} PPG
                     <span title={FORM_TREND[team.form_trend].label} className={`font-bold ${FORM_TREND[team.form_trend].className}`}>
                       {FORM_TREND[team.form_trend].arrow}

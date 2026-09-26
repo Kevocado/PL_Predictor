@@ -1,16 +1,26 @@
 import type { CurrentGameweekResponse } from "../types";
 import { CurrentGameweekCard } from "./CurrentGameweekCard";
+import { EmptyState, RoundNavigator } from "../predictor-ui";
+import { kickoffZones } from "../lib/kickoffTime";
 import { NextFixtureHero } from "./NextFixtureHero";
 
 interface Props {
   data: CurrentGameweekResponse;
   onSelect: (eventId: string) => void;
-  onNavigate: (gameweek: number) => void;
+  /** A gameweek number, or undefined for "the current gameweek". */
+  onNavigate: (gameweek: number | undefined) => void;
+}
+
+// Only picks captured before kickoff count; ones rebuilt after the match
+// (backfilled) are listed on their cards but never scored here.
+export function prekickoffTally(fixtures: { finished: boolean; hit: boolean | null; backfilled: boolean }[]) {
+  const finished = fixtures.filter((f) => f.finished);
+  const counted = finished.filter((f) => !f.backfilled);
+  return { hits: counted.filter((f) => f.hit).length, settled: counted.length, rebuilt: finished.length - counted.length };
 }
 
 export function CurrentGameweekSection({ data, onSelect, onNavigate }: Props) {
-  const nCompleted = data.fixtures.filter((f) => f.finished).length;
-  const nHit = data.fixtures.filter((f) => f.finished && f.hit).length;
+  const tally = prekickoffTally(data.fixtures);
 
   // Only the current gameweek gets a hero -- browsing a past gameweek via
   // the arrows shouldn't promote one of its (already-played) fixtures, and
@@ -25,43 +35,27 @@ export function CurrentGameweekSection({ data, onSelect, onNavigate }: Props) {
   const canGoPrev = data.gameweek !== null && data.min_gameweek !== null && data.gameweek > data.min_gameweek;
   const canGoNext = data.gameweek !== null && data.max_gameweek !== null && data.gameweek < data.max_gameweek;
 
+  const zones = kickoffZones(data.fixtures.map((f) => f.commence_time));
+
   return (
     <div className="mb-8">
-      <div className="mb-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <button
-            disabled={!canGoPrev}
-            onClick={() => data.gameweek !== null && onNavigate(data.gameweek - 1)}
-            aria-label="Previous gameweek"
-            className="rounded-lg border border-pl-border bg-pl-850/70 px-2.5 py-1.5 text-sm text-pl-text-dim transition hover:text-pl-text disabled:cursor-not-allowed disabled:opacity-30"
-          >
-            ←
-          </button>
-          <h2 className="flex items-baseline gap-2 text-lg font-semibold text-pl-text">
-            {data.gameweek !== null ? `Gameweek ${data.gameweek}` : "No gameweek data yet"}
-            {!data.is_current && (
-              <span className="rounded bg-pl-700/60 px-1.5 py-0.5 text-xs font-normal text-pl-text-dim">
-                not current
-              </span>
-            )}
-          </h2>
-          <button
-            disabled={!canGoNext}
-            onClick={() => data.gameweek !== null && onNavigate(data.gameweek + 1)}
-            aria-label="Next gameweek"
-            className="rounded-lg border border-pl-border bg-pl-850/70 px-2.5 py-1.5 text-sm text-pl-text-dim transition hover:text-pl-text disabled:cursor-not-allowed disabled:opacity-30"
-          >
-            →
-          </button>
-        </div>
-        <span className="text-xs font-normal text-pl-text-faint">
-          {data.fixtures.length} fixture{data.fixtures.length === 1 ? "" : "s"}
-          {nCompleted > 0 && `, ${nHit}/${nCompleted} called correctly so far`}
-        </span>
-      </div>
+      <RoundNavigator
+        label={data.gameweek !== null ? `Gameweek ${data.gameweek}` : "No gameweek data yet"}
+        unit="gameweek"
+        canPrev={canGoPrev}
+        canNext={canGoNext}
+        onPrev={() => data.gameweek !== null && onNavigate(data.gameweek - 1)}
+        onNext={() => data.gameweek !== null && onNavigate(data.gameweek + 1)}
+        onJumpToCurrent={data.is_current ? undefined : () => onNavigate(undefined)}
+        record={tally}
+      />
+      {zones && <p className="-mt-2 mb-4 text-xs text-pl-text-dim">Kickoff times in {zones}</p>}
 
       {data.fixtures.length === 0 ? (
-        <div className="py-16 text-center text-pl-text-faint">No fixtures found for this gameweek.</div>
+        <EmptyState
+          message="No fixtures found for this gameweek."
+          action={canGoNext && data.gameweek !== null ? { label: "Go to next gameweek", onClick: () => onNavigate(data.gameweek! + 1) } : undefined}
+        />
       ) : (
         <>
           {nextFixture && <NextFixtureHero fixture={nextFixture} onClick={() => onSelect(nextFixture.event_id)} />}
