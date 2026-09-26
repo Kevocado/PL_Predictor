@@ -77,9 +77,20 @@ def _num(value: Any) -> float | None:
     return None if number != number else number
 
 
-def _prob_field(detail: dict, key: str) -> float | None:
-    """Detail numbers arrive as bare floats or as {prob, implied, edge}."""
-    return _num(detail.get(key))
+def _prob_field(detail: Any, key: str) -> float | None:
+    """Detail numbers arrive as bare floats or as {prob, implied, edge}.
+
+    `detail` is whatever routes.fixture_detail returned: a pydantic
+    FixtureDetail in normal operation, and a plain dict from an older cached
+    snapshot. Reading it with .get() alone raised AttributeError on the model
+    and 500'd /facts for every real fixture; the explainer could then never
+    read PL's facts at all. Both shapes are supported, and a missing key is
+    None rather than an error.
+    """
+    if detail is None:
+        return None
+    value = detail.get(key) if isinstance(detail, dict) else getattr(detail, key, None)
+    return _num(value)
 
 
 def _iso_utc(value: Any) -> str:
@@ -106,7 +117,7 @@ def _card(event_id: str) -> dict | None:
         snap = _snapshot()
         for week in (snap.get("fixtures_by_gameweek") or {}).values():
             for card in (week or {}).get("fixtures", []):
-                if str(card.get("event_id")) == str(event_id):
+                if str(_field(card, "event_id")) == str(event_id):
                     return card
         return None
     return routes.tracking_store.get_fixture_prediction(event_id)
@@ -133,18 +144,20 @@ def _players(event_id: str) -> list[dict]:
             return []
     out = []
     for side, team_key in (("home_players", "team_home"), ("away_players", "team_away")):
-        for player in block.get(side) or []:
-            out.append({**player, "_team": team_key})
+        # routes.fixture_players returns a pydantic FixturePlayers; an older
+        # cached snapshot yields a dict. Read it the same way as the detail.
+        for player in _field(block, side) or []:
+            out.append({**(player if isinstance(player, dict) else player.model_dump()), "_team": team_key})
     return out
 
 
 # --- bundle assembly ----------------------------------------------------
 
 def _status(card: dict | None, detail: dict | None, now: datetime) -> str:
-    commence = _as_utc((card or {}).get("commence_time") or (detail or {}).get("commence_time"))
-    home_goals = _num((card or {}).get("actual_goals_home"))
-    away_goals = _num((card or {}).get("actual_goals_away"))
-    if (card or {}).get("finished") or (home_goals is not None and away_goals is not None):
+    commence = _as_utc(_field(card, "commence_time") or _field(detail, "commence_time"))
+    home_goals = _num(_field(card, "actual_goals_home"))
+    away_goals = _num(_field(card, "actual_goals_away"))
+    if _field(card, "finished") or (home_goals is not None and away_goals is not None):
         return "final"
     return "live" if commence is not None and commence <= now else "upcoming"
 
@@ -152,9 +165,9 @@ def _status(card: dict | None, detail: dict | None, now: datetime) -> str:
 def _card_probs(card: dict | None) -> tuple[float, float, float] | None:
     if not card:
         return None
-    home = _num(card.get("predicted_home_win"))
-    draw = _num(card.get("predicted_draw"))
-    away = _num(card.get("predicted_away_win"))
+    home = _num(_field(card, "predicted_home_win"))
+    draw = _num(_field(card, "predicted_draw"))
+    away = _num(_field(card, "predicted_away_win"))
     if home is None or draw is None or away is None:
         return None
     return home, draw, away
@@ -168,7 +181,7 @@ def _markets(detail: dict | None, probs: tuple[float, float, float] | None, team
             "market": "result",
             "model": {"home_win": home, "draw": draw, "away_win": away},
         }
-        if detail and detail.get("has_live_odds"):
+        if detail and _field(detail, "has_live_odds"):
             implied = {
                 team_home: _implied(detail, "home_win"),
                 team_away: _implied(detail, "away_win"),
@@ -200,30 +213,44 @@ def _markets(detail: dict | None, probs: tuple[float, float, float] | None, team
     return out
 
 
-def _implied(detail: dict, key: str) -> float | None:
-    value = (detail.get(key) or {}) if isinstance(detail.get(key), dict) else {}
-    return _num(value.get("implied"))
+def _field(detail: Any, key: str, default: Any = None) -> Any:
+    """Read one field from a fixture detail of either shape.
+
+    routes.fixture_detail returns a pydantic FixtureDetail in normal
+    operation; an older cached snapshot yields a plain dict. Every reader in
+    this module goes through here so neither shape raises.
+    """
+    if detail is None:
+        return default
+    if isinstance(detail, dict):
+        return detail.get(key, default)
+    return getattr(detail, key, default)
 
 
-def _edge(detail: dict, key: str) -> float | None:
-    value = (detail.get(key) or {}) if isinstance(detail.get(key), dict) else {}
-    return _num(value.get("edge"))
+def _implied(detail: Any, key: str) -> float | None:
+    value = _field(detail, key)
+    return _num(value.get("implied")) if isinstance(value, dict) else None
 
 
-def _drivers(detail: dict | None) -> list[dict]:
+def _edge(detail: Any, key: str) -> float | None:
+    value = _field(detail, key)
+    return _num(value.get("edge")) if isinstance(value, dict) else None
+
+
+def _drivers(detail: Any) -> list[dict]:
     """Recent form, the one explanatory signal the fixture detail actually
     carries. No feature-contribution block exists on this endpoint, so
     nothing is invented here."""
     drivers: list[dict] = []
     if not detail:
         return drivers
-    home_form = detail.get("home_recent_form")
-    away_form = detail.get("away_recent_form")
+    home_form = _field(detail, "home_recent_form")
+    away_form = _field(detail, "away_recent_form")
     if home_form and away_form:
         points = {"W": 3, "D": 1, "L": 0}
         home_pts = sum(points.get(str(r).upper()[:1], 0) for r in list(home_form)[:5])
         away_pts = sum(points.get(str(r).upper()[:1], 0) for r in list(away_form)[:5])
-        leaders = detail.get("team_home") if home_pts >= away_pts else detail.get("team_away")
+        leaders = _field(detail, "team_home") if home_pts >= away_pts else _field(detail, "team_away")
         drivers.append({
             "name": "Recent form",
             "value": f"{''.join(str(r).upper()[:1] for r in list(home_form)[:5])} v {''.join(str(r).upper()[:1] for r in list(away_form)[:5])}",
@@ -265,11 +292,11 @@ def _record() -> dict | None:
 def _result(card: dict | None, status: str, pick_timing: str, pick_side: str | None) -> dict | None:
     if status != "final" or not card:
         return None
-    home_goals = _num(card.get("actual_goals_home"))
-    away_goals = _num(card.get("actual_goals_away"))
+    home_goals = _num(_field(card, "actual_goals_home"))
+    away_goals = _num(_field(card, "actual_goals_away"))
     if home_goals is None or away_goals is None:
         return None
-    result: dict[str, Any] = {"score": f"{card.get('team_home')} {home_goals:.0f}-{away_goals:.0f}"}
+    result: dict[str, Any] = {"score": f"{_field(card, 'team_home')} {home_goals:.0f}-{away_goals:.0f}"}
     if pick_timing != "pre_kickoff" or pick_side is None:
         return result
     actual = "home_win" if home_goals > away_goals else ("away_win" if away_goals > home_goals else "draw")
@@ -289,12 +316,12 @@ def get_facts_upcoming(hours: int = 72) -> dict:
         snap = _snapshot()
         for week in (snap.get("fixtures_by_gameweek") or {}).values():
             for card in (week or {}).get("fixtures", []):
-                if card.get("finished"):
+                if _field(card, "finished"):
                     continue
-                commence = _as_utc(card.get("commence_time"))
+                commence = _as_utc(_field(card, "commence_time"))
                 if commence is None or commence <= now or commence > cutoff:
                     continue
-                event_id = card.get("event_id")
+                event_id = _field(card, "event_id")
                 if event_id is not None and str(event_id) not in ids:
                     ids.append(str(event_id))
     else:
@@ -314,12 +341,15 @@ def _live_upcoming() -> list[tuple[str, datetime]]:
         logger.info("live fixtures unavailable for /facts/upcoming")
         return []
     out = []
+    # payload["fixtures"] holds pydantic cards in normal operation and dicts
+    # from an older cached snapshot; read both shapes.
     for card in payload.get("fixtures", []) or []:
-        if card.get("finished"):
+        if _field(card, "finished"):
             continue
-        commence = _as_utc(card.get("commence_time"))
-        if card.get("event_id") is not None and commence is not None:
-            out.append((str(card["event_id"]), commence))
+        commence = _as_utc(_field(card, "commence_time"))
+        event_id = _field(card, "event_id")
+        if event_id is not None and commence is not None:
+            out.append((str(event_id), commence))
     return out
 
 
@@ -331,8 +361,12 @@ def get_facts(event_id: str) -> dict:
     if card is None and detail is None:
         raise HTTPException(status_code=404, detail=f"No fixture with event_id={event_id}")
 
-    team_home = (card or detail).get("team_home")
-    team_away = (card or detail).get("team_away")
+    # Read through _field, and prefer the card: when the tracking store has no
+    # row for this fixture -- an id from FPL's own id space via a team lookup,
+    # or one the tracking tick has not seen yet -- detail is a pydantic model
+    # and .get() on it 500'd the endpoint for exactly that class of ids.
+    team_home = _field(card, "team_home") or _field(detail, "team_home")
+    team_away = _field(card, "team_away") or _field(detail, "team_away")
     status = _status(card, detail, now)
     started = status in ("live", "final")
 
@@ -354,7 +388,7 @@ def get_facts(event_id: str) -> dict:
 
     if pick is None:
         pick_timing = "none"
-    elif (card or {}).get("backfilled"):
+    elif _field(card, "backfilled"):
         pick_timing = "rebuilt"
     else:
         pick_timing = "pre_kickoff"
@@ -369,7 +403,7 @@ def get_facts(event_id: str) -> dict:
         "sport": "pl",
         "id": str(event_id),
         "title": f"{team_away} at {team_home}",
-        "starts_at": _iso_utc((card or detail).get("commence_time")),
+        "starts_at": _iso_utc(_field(card, "commence_time") or _field(detail, "commence_time")),
         "status": status,
         "pick_timing": pick_timing,
         "pick": pick,

@@ -5,6 +5,7 @@ import { InfoTooltip } from "./InfoTooltip";
 import { MissesTable } from "./MissesTable";
 import { GameweekResultsGrid } from "./GameweekResultsGrid";
 import { FixtureModal } from "./FixtureModal";
+import { api } from "../api/client";
 import { GLOSSARY } from "../lib/glossary";
 
 function StatCard({ label, value, info }: { label: string; value: string; info?: string }) {
@@ -175,7 +176,7 @@ export function TrackRecordPanel({ data }: { data: TrackRecordResponse }) {
         ))}
       </div>
 
-      {selected && <FixtureModal eventId={selected} onClose={() => setSelected(null)} />}
+      {selected && <FixtureModal eventId={selected} onClose={() => setSelected(null)} explain={api.explain} />}
     </div>
   );
 }

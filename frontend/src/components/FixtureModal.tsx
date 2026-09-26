@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
+import type { Explanation } from "../predictor-ui";
 import type { FixtureDetail, FixturePlayerReview, FixturePlayers, FixturePostMatch, FixtureValueBetSnapshot } from "../types";
 import { api } from "../api/client";
+import { FixtureSummaryPanel } from "./FixtureSummaryPanel";
 import { TeamBadge } from "./TeamBadge";
 import { ScorelineHeatmap } from "./ScorelineHeatmap";
 import { FormStrip } from "./FormStrip";
@@ -13,6 +15,11 @@ import { isModelCall } from "../lib/modelCall";
 interface Props {
   eventId: string;
   onClose: () => void;
+  // Fetches the plain-English summary. Optional on purpose: a fixture the
+  // explainer has nothing for, or a site deployed before the service exists,
+  // must still open this modal and show everything else in it.
+  explain?: (sport: string, id: string) => Promise<Explanation>;
+  sport?: string;
 }
 
 const MARKET_LABELS: Record<string, string> = {
@@ -148,7 +155,7 @@ function PlayerCallReview({ review, loading, error }: { review: FixturePlayerRev
   </section>;
 }
 
-export function FixtureModal({ eventId, onClose }: Props) {
+export function FixtureModal({ eventId, onClose, explain, sport = "pl" }: Props) {
   const [detail, setDetail] = useState<FixtureDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [players, setPlayers] = useState<FixturePlayers | null>(null);
@@ -216,6 +223,11 @@ export function FixtureModal({ eventId, onClose }: Props) {
         </div>
 
         <div className="overflow-y-auto px-6 py-6">
+          {/* In plain English, first: it is the one-screen answer the rest of
+              this modal is the evidence for. It fetches on its own and never
+              gates the fixture detail below. */}
+          <FixtureSummaryPanel eventId={eventId} fetcher={explain} sport={sport} className={detail ? "mb-6" : ""} />
+
           {error && <div className="text-sm text-loss">{error}</div>}
           {!detail && !error && <div className="flex h-64 items-center justify-center text-pl-text-faint">Loading…</div>}
 
