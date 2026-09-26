@@ -1,4 +1,4 @@
-// Synced from predictor-ui@ebfbbcd7a53a. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@5dbb8f5982bd. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 import { Fragment, useState, type ReactNode } from "react";
 
 export type Column<T> = {
