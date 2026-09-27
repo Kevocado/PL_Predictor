@@ -29,3 +29,8 @@ dev = ["jupyter", "pytest"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+markers = [
+  "network: needs a live upstream API or a gitignored data/cache fetch; deselect with '-m \"not network\"'",
+]
