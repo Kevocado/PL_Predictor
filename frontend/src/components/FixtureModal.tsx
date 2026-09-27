@@ -226,7 +226,7 @@ export function FixtureModal({ eventId, onClose, explain, sport = "pl" }: Props)
           {/* In plain English, first: it is the one-screen answer the rest of
               this modal is the evidence for. It fetches on its own and never
               gates the fixture detail below. */}
-          <FixtureSummaryPanel eventId={eventId} fetcher={explain} sport={sport} className={detail ? "mb-6" : ""} />
+          <FixtureSummaryPanel eventId={eventId} fetcher={explain} sport={sport} fixture={detail} className={detail ? "mb-6" : ""} />
 
           {error && <div className="text-sm text-loss">{error}</div>}
           {!detail && !error && <div className="flex h-64 items-center justify-center text-pl-text-faint">Loading…</div>}
