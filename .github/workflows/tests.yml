@@ -24,21 +24,45 @@ jobs:
           cache: pip
           cache-dependency-path: pyproject.toml
 
+      - name: Restore upstream caches
+        # `data/cache/` is gitignored, so without this every run re-downloads
+        # seasons of FPL player-gameweek history, ClubElo and football-data.co.uk.
+        uses: actions/cache@v4
+        with:
+          path: data/cache
+          key: pl-upstream-caches-${{ github.run_id }}
+          restore-keys: pl-upstream-caches-
+
       - name: Install
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[dev]" || pip install -e . pytest pytest-mock ruff
 
-      - name: Offline tests
-        # Network-marked tests are deselected: they hit live upstream APIs and
-        # would make CI depend on nflverse/CFBD being up and on metered quota.
+      - name: Gating suite
+        # CORRECTION 2026-09-27. This repo previously ran `pytest -m "not
+        # network"` and claimed the suite was offline. That was false, and it was
+        # false in a way that would have shipped: `data/cache/` is gitignored
+        # (only `.gitkeep` is tracked), so a fresh checkout has no FPL player-
+        # gameweek archive, no ClubElo ratings and no football-data.co.uk CSVs.
+        # `load_player_gw_history` and friends fetch them, so **this suite needs
+        # the network**, and `-m "not network"` was deselecting nothing because
+        # no test in this repo carries the marker.
+        #
+        # The marker is now registered so tests that genuinely must not touch the
+        # network can be marked, and the split below becomes real rather than
+        # decorative. Until tests are actually marked, both halves run the same
+        # tests and the honest description is: one suite, network required.
+        #
+        # The caches are restored below so repeat runs are not re-fetching several
+        # seasons of FPL history every time.
         env:
           PYTHONPATH: ${{ github.workspace }}/src
         run: pytest tests/ -q -m "not network"
 
-      - name: Network tests (live upstreams)
-        # Informational, not gating. A failure here usually means a schema change
-        # upstream, which is worth seeing but should not block a source PR.
+      - name: Network-marked tests (live upstreams)
+        # Informational, not gating: a failure here usually means an upstream
+        # schema change, which is worth seeing but should not block a source PR.
+        # Currently selects nothing -- see the note above.
         if: github.event_name == 'workflow_dispatch'
         env:
           PYTHONPATH: ${{ github.workspace }}/src
