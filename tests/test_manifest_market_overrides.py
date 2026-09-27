@@ -47,8 +47,25 @@ def test_train_all_includes_covariate_poisson_as_a_fourth_candidate(monkeypatch,
     assert result["scoreline"]["market_overrides"] == manifest.MARKET_MODEL_OVERRIDES
 
 
+def test_market_overrides_are_empty_after_the_2026_09_27_revert():
+    """EXP-2026-16's over_2_5 override was reverted once its evidence decayed.
+
+    The mechanism is kept and still tested (see the two tests below, which
+    re-add an override explicitly to prove resolution + context still work).
+    This test pins the production default so the revert cannot silently
+    regress back to a model the live manifest no longer favours.
+    """
+    assert manifest.MARKET_MODEL_OVERRIDES == {}
+
+
 def test_load_models_resolves_market_override_to_a_loaded_model_with_context(monkeypatch, tmp_path):
     _patch_paths(monkeypatch, tmp_path)
+    # `train_all` reads MARKET_MODEL_OVERRIDES and records the override names
+    # into the manifest, which is what `load_models` later resolves -- so the
+    # override has to be in place *before* training, not just before loading.
+    monkeypatch.setattr(
+        manifest, "MARKET_MODEL_OVERRIDES", {"over_2_5": "covariate_poisson"}
+    )
     manifest.train_all(seasons=TEST_SEASONS, include_current_season=False)
 
     matches_df = football_data.load_training_data(seasons=TEST_SEASONS)
@@ -64,6 +81,9 @@ def test_load_models_resolves_market_override_to_a_loaded_model_with_context(mon
 
 def test_load_models_requires_matches_df_when_an_override_needs_context(monkeypatch, tmp_path):
     _patch_paths(monkeypatch, tmp_path)
+    monkeypatch.setattr(
+        manifest, "MARKET_MODEL_OVERRIDES", {"over_2_5": "covariate_poisson"}
+    )
     manifest.train_all(seasons=TEST_SEASONS, include_current_season=False)
 
     try:

@@ -1340,6 +1340,11 @@ def _rank_fixture_players(
             is_home=is_home, confirmed_starters=confirmed_lineups.get(team),
             confirmed_starter_ids=confirmed_starter_ids,
             player_shots_by_element=player_shots_by_element,
+            # `context` is what `predict_player` reads its `shots_scale` from.
+            # Omitting it left shots_scale at 1.0 on every live call, so
+            # expected_shots / expected_shots_on_target were never scaled by
+            # how much this team's own attack actually generates.
+            context=models.get("context"),
         )
         return [PlayerPrediction(**{k: p[k] for k in PlayerPrediction.model_fields}) for p in ranked]
 

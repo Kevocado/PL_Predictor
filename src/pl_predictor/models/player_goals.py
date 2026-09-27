@@ -147,11 +147,85 @@ def fit_goal_contribution_model(seasons: list[str] | None = None) -> dict:
     calibration_prob = model.predict_proba(X_calibration)[:, 1]
     logits = np.log(np.clip(calibration_prob, 1e-6, 1 - 1e-6) / np.clip(1 - calibration_prob, 1e-6, 1))
     calibrator = LogisticRegression(max_iter=1000).fit(logits.reshape(-1, 1), calibration["goal_contribution"])
-    return {"model": model, "calibrator": calibrator, "columns": columns, "features": all_features}
+    calibrated = calibrator.predict_proba(logits.reshape(-1, 1))[:, 1]
+
+    # Fit the direct-vs-union mixture share on the same held-out calibration
+    # season, so both components are compared on data neither was fitted on.
+    # The Poisson union is built from the same pre-match rate and minutes
+    # columns the research harness uses, then Platt-calibrated on the same
+    # slice so neither side of the mixture is privileged.
+    blend_weight = _fit_blend_weight(calibration, calibrated)
+
+    return {
+        "model": model,
+        "calibrator": calibrator,
+        "columns": columns,
+        "features": all_features,
+        "blend_weight": blend_weight,
+    }
 
 
-def predict_goal_contribution(rates: dict, start_features: dict, position: str, contribution_model: dict | None) -> float | None:
-    """Return calibrated direct P(goal or assist), or None without a fit."""
+def _fit_blend_weight(calibration: pd.DataFrame, direct_probability: np.ndarray) -> float | None:
+    """Grid-search the direct-model share that minimises calibration Brier.
+
+    Returns None when the Poisson union cannot be built for this slice (the
+    columns it needs are absent for early seasons, or the target is
+    single-class), in which case serving falls back to the direct model alone.
+    """
+    from sklearn.metrics import brier_score_loss
+
+    from ..evaluate.goal_contribution_research import _apply_platt, _fit_platt, _poisson_union
+
+    required = ["goals_per90_last10", "assists_per90_last10", "expected_minutes_pre_match"]
+    if any(column not in calibration.columns for column in required):
+        return None
+    actual = calibration["goal_contribution"].to_numpy()
+    if len(np.unique(actual)) < 2 or len(actual) < 100:
+        return None
+
+    union_raw = _poisson_union(calibration)
+    union = _apply_platt(_fit_platt(union_raw, actual), union_raw)
+
+    best_weight, best_score = 1.0, float("inf")
+    for weight in np.linspace(0.0, 1.0, 21):
+        score = brier_score_loss(actual, weight * direct_probability + (1.0 - weight) * union)
+        if score < best_score:
+            best_score, best_weight = score, float(weight)
+    return best_weight
+
+
+def predict_goal_contribution(
+    rates: dict,
+    start_features: dict,
+    position: str,
+    contribution_model: dict | None,
+    is_home: bool = False,
+) -> float | None:
+    """Return calibrated direct P(goal or assist), or None without a fit.
+
+    `was_home` is in the fitted feature set (`BASE_FEATURES`) and is populated
+    from the FPL archive at training time, but neither
+    `features.player_form.blended_current_form` nor `current_start_features`
+    emits that key at serving time. Without the explicit branch below, the
+    `or 0.0` default silently scored every home player with
+    `was_home = 0.0`, so the fitted home-advantage coefficient contributed a
+    constant offset rather than an effect and the served model was not the
+    model that had been validated. `predict_player` already special-cased the
+    same key for its position-rate models; this is the same fix for the direct
+    G+A model.
+
+    `is_home` deliberately wins over any `was_home` already present in
+    `rates`/`start_features`, which is the opposite precedence to
+    `predict_player`'s `dict.get` default. The reason is provenance, not
+    convenience: `is_home` describes *the fixture this call is predicting*,
+    which is known exactly, whereas any `was_home` reachable through the
+    feature dicts was built by `blended_current_form` from the player's own
+    *historical* rows and therefore describes some past match. Substituting a
+    past match's venue for the one being priced would be a train/serve skew of
+    exactly the kind this function's docstring above is fixing. The two
+    functions differ on precedence deliberately, and
+    `test_was_home_argument_overrides_a_conflicting_rates_value` pins it.
+    """
     if not contribution_model:
         return None
     values = {
@@ -159,12 +233,43 @@ def predict_goal_contribution(rates: dict, start_features: dict, position: str, 
         for feature in contribution_model["features"]
         if feature != "position"
     }
+    if "was_home" in values:
+        values["was_home"] = 1.0 if is_home else 0.0
     values["position"] = position
     matrix = pd.get_dummies(pd.DataFrame([values]), columns=["position"], dtype=float)
     matrix = matrix.reindex(columns=contribution_model["columns"], fill_value=0.0)
     raw_probability = float(contribution_model["model"].predict_proba(matrix)[:, 1][0])
     logit = math.log(np.clip(raw_probability, 1e-6, 1 - 1e-6) / np.clip(1 - raw_probability, 1e-6, 1))
     return float(contribution_model["calibrator"].predict_proba(np.array([[logit]]))[:, 1][0])
+
+
+def blend_contribution(
+    direct_probability: float | None,
+    union_probability: float,
+    weight: float | None,
+) -> float:
+    """Combine the direct G+A classifier with the Poisson union.
+
+    `weight` is the share given to the direct classifier, fitted on the
+    held-out calibration season (see `fit_goal_contribution_model`). `None`
+    means no weight was fitted, in which case the direct model is used alone
+    when available and the union otherwise.
+
+    This replaces a previous `max(direct, anytime_goal, anytime_assist)`. A
+    max of separately-calibrated estimators is not a calibrated estimator of
+    anything, and because `max(a, b) >= (a + b) / 2` it biased every
+    probability upward by an amount that grew with the disagreement between
+    the two models -- that is, it shrank least toward the base rate exactly
+    for the players both models were least sure about. A fitted convex
+    mixture has no such order-statistic bias, and it is free to land below
+    either component, which is information about which model to trust where.
+    """
+    if direct_probability is None:
+        return float(union_probability)
+    if weight is None:
+        return float(direct_probability)
+    share = min(max(float(weight), 0.0), 1.0)
+    return float(share * direct_probability + (1.0 - share) * union_probability)
 
 
 def fit_lineup_model(seasons: list[str] | None = None):
@@ -370,6 +475,7 @@ def rank_team_players(
     confirmed_starters: list[str] | None = None,
     confirmed_starter_ids: set[int] | None = None,
     player_shots_by_element: dict[int, pd.DataFrame] | None = None,
+    context: object | None = None,
 ) -> list[dict]:
     """Ranked (by anytime-goal probability) list of a team's players for one
     fixture, given that fixture's team expected goals from the scoreline
@@ -463,15 +569,16 @@ def rank_team_players(
             rates, team_goal_expectation, availability, reliability_coeffs,
             expected_minutes=lineup["expected_minutes"], position=position, is_home=is_home,
             position_rate_models=position_rate_models, is_penalty_taker=is_penalty_taker,
-            is_set_piece_taker=is_set_piece_taker,
+            is_set_piece_taker=is_set_piece_taker, context=context,
         )
-        direct_contribution = predict_goal_contribution(rates, start_features, position, contribution_model)
-        if direct_contribution is not None:
-            pred["anytime_goal_contribution_prob"] = max(
-                direct_contribution,
-                pred["anytime_goal_prob"],
-                pred["anytime_assist_prob"],
-            )
+        direct_contribution = predict_goal_contribution(
+            rates, start_features, position, contribution_model, is_home=is_home
+        )
+        pred["anytime_goal_contribution_prob"] = blend_contribution(
+            direct_contribution,
+            pred["anytime_goal_contribution_prob"],
+            (contribution_model or {}).get("blend_weight"),
+        )
 
         results.append(
             {
