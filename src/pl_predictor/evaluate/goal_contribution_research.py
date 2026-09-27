@@ -19,7 +19,7 @@ from sklearn.preprocessing import StandardScaler
 
 from ..data import fpl_history
 from ..data import football_data
-from ..features import player_form
+from ..features import opponent_defence, player_form
 from ..features.build import build_training_frame
 from ..models import market_models, ml_scoreline
 from ..models.manifest import chronological_split
@@ -37,20 +37,32 @@ ENHANCED_FEATURES = [
     "expected_goal_involvements_per90_last10",
 ]
 
+# How leaky the opponent has been, over prior matches only. This is the first
+# genuine team-context term the G+A classifier has ever had: every other
+# feature describes the player, so a four-goal haul against a relegated side
+# and one against the league leaders are recorded identically. See
+# `features/opponent_defence` for the derivation and the leakage guards.
+OPPONENT_FEATURES = [
+    "opponent_defence_last3", "opponent_defence_last5", "opponent_defence_last10",
+]
+
 
 def build_goal_contribution_frame(seasons: list[str] | None = None) -> tuple[pd.DataFrame, list[str]]:
     """Return one pre-match feature row per player-fixture and its G+A target."""
     raw = fpl_history.load_player_gw_history(seasons=seasons).sort_values(["season", "element", "kickoff_time"])
     starts, start_features = player_form.build_historical_start_features(raw)
     played, form_features = player_form.build_historical_player_form(raw)
+    opponent_features, opponent_cols = opponent_defence.build_opponent_defence_features(raw)
 
     # ``played`` contains only positive-minute rows, while the lineup frame
     # keeps bench rows. Joining by original row index retains those legitimate
     # zero-contribution cases without using their realised minutes as a feature.
     rows = starts.join(played[form_features], how="left")
+    for column in opponent_cols:
+        rows[column] = opponent_features[column]
     rows["goal_contribution"] = ((rows["goals_scored"] + rows["assists"]) > 0).astype(int)
     rows["position"] = rows["position"].fillna("UNK")
-    numeric_features = [feature for feature in BASE_FEATURES + ENHANCED_FEATURES if feature in rows]
+    numeric_features = [feature for feature in BASE_FEATURES + ENHANCED_FEATURES + OPPONENT_FEATURES if feature in rows]
     rows[numeric_features] = rows[numeric_features].replace([np.inf, -np.inf], np.nan).fillna(0.0)
     rows["expected_minutes_pre_match"] = rows["minutes_ema"].clip(lower=0, upper=90).fillna(0.0)
     return rows, numeric_features + ["position"]
@@ -124,7 +136,9 @@ def _evaluate_fold(frame: pd.DataFrame, train_seasons: list[str], test_season: s
     union_test = _apply_platt(_fit_platt(union_calibration, y_calibration), _poisson_union(test))
     rows.append({"fold": test_season, "model": "poisson_union_calibrated", "n_test": len(test), **_metrics(y_test, union_test)})
 
-    for name, features in (("direct_base", BASE_FEATURES), ("direct_enhanced", BASE_FEATURES + ENHANCED_FEATURES)):
+    for name, features in (("direct_base", BASE_FEATURES),
+                           ("direct_enhanced", BASE_FEATURES + ENHANCED_FEATURES),
+                           ("direct_enhanced_opponent", BASE_FEATURES + ENHANCED_FEATURES + OPPONENT_FEATURES)):
         available = [feature for feature in features if feature in frame]
         feature_names = available + ["position"]
         X_fit, columns = _design_matrix(fit, feature_names)
@@ -135,9 +149,11 @@ def _evaluate_fold(frame: pd.DataFrame, train_seasons: list[str], test_season: s
         calibration_prob = model.predict_proba(X_calibration)[:, 1]
         test_prob = _apply_platt(_fit_platt(calibration_prob, y_calibration), model.predict_proba(X_test)[:, 1])
         rows.append({"fold": test_season, "model": name, "n_test": len(test), **_metrics(y_test, test_prob)})
-        if name == "direct_enhanced":
+        if name in {"direct_enhanced", "direct_enhanced_opponent"}:
             coefficients = model[-1].coef_[0]
-            importance = pd.DataFrame({"feature": columns, "coefficient": coefficients, "abs_coefficient": np.abs(coefficients)}).sort_values("abs_coefficient", ascending=False)
+            arm = pd.DataFrame({"arm": name, "feature": columns, "coefficient": coefficients,
+                                "abs_coefficient": np.abs(coefficients)}).sort_values("abs_coefficient", ascending=False)
+            importance = arm if importance.empty else pd.concat([importance, arm], ignore_index=True)
 
     return rows, importance
 
@@ -160,7 +176,7 @@ def evaluate_goal_contribution_models(seasons: list[str] | None = None, min_trai
             importances.append(importance)
     metrics = pd.DataFrame(all_rows)
     summary = metrics.groupby("model", as_index=False)[["brier", "log_loss", "average_precision", "ece"]].mean() if not metrics.empty else pd.DataFrame()
-    feature_importance = pd.concat(importances, ignore_index=True) if importances else pd.DataFrame(columns=["feature", "coefficient", "abs_coefficient", "fold"])
+    feature_importance = pd.concat(importances, ignore_index=True) if importances else pd.DataFrame(columns=["arm", "feature", "coefficient", "abs_coefficient", "fold"])
     return {"metrics": metrics, "summary": summary, "feature_importance": feature_importance}
 
 

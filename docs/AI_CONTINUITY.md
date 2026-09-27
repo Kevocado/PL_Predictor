@@ -1631,6 +1631,262 @@ experiment; negative evidence prevents repeated work.
   `test_team_hub_uses_official_live_results_for_the_current_table`, and
   `test_warm_caches_prioritises_calibration_before_noncritical_payloads`.
 
+## EXP-2026-24 — G+A combination: fitted mixture vs the `max(...)` composite it replaced
+
+**Numbering note:** `main` last used EXP-2026-21. EXP-2026-22 exists only in the
+`worktree-weather-and-manager-tenure-experiments` worktree (weather, rejected) and
+collides with a plan doc; EXP-2026-23 is reserved by the unbuilt manager-tenure plan
+(`plans/2026-08-30-manager-tenure-feature.md`). This entry takes 24 to avoid both.
+**Fix the numbering collision separately — a ledger with a reused ID is not
+auditable.**
+
+### Hypothesis
+
+`player_goals.py` combined the direct G+A classifier and the Poisson union with
+
+    max(direct_contribution, anytime_goal_prob, anytime_assist_prob)
+
+Three objections, all structural rather than empirical:
+
+1. It mixes an *event* with two of its own *components*, so `G+A >= max(goal,
+   assist)` holds by construction rather than by modelling.
+2. `max(a, b) = (a+b)/2 + |a-b|/2`, so the upward bias is **half the inter-model
+   disagreement**. It shrinks least toward the base rate exactly for the players
+   both models are least sure about — regression-to-the-mean failure in reverse.
+3. It has no fitted parameter, so nothing about it was ever validated.
+
+Replaced with a convex mixture whose share is grid-searched on held-out data.
+
+### Method
+
+`evaluate/blend_validation.py` (new, 8 tests in `tests/test_blend_validation.py`).
+A **separate module** rather than an edit to `goal_contribution_research.py`, so
+that module's already-reported numbers stay reproducible.
+
+Three deliberate design points:
+
+- **The incumbent `max(...)` is a scored arm**, reproducing production's formula
+  verbatim including the raw uncalibrated Poisson components `predict_player`
+  serves. A comparison against the union alone cannot answer the question.
+- **The blend weight is fitted on data it is not scored on.** The calibration
+  season is split chronologically in half: both Platt calibrators on the first
+  half, the weight grid-searched on the second, scoring only on the untouched
+  test season. Production's `_fit_blend_weight` fits the union's calibrator, the
+  weight, *and* the Brier score on one slice — three fits, no further holdout —
+  so this harness is stricter than the code it validates.
+- Fold chronology is identical to `goal_contribution_research._evaluate_fold`, so
+  `direct_enhanced` here is directly comparable to that module's number.
+
+### Result — 2 folds, the hard maximum
+
+| fold | arm | brier | log loss | ECE |
+|---|---|---|---|---|
+| 2024-25 | prevalence | 0.059312 | 0.236013 | 0.000353 |
+| 2024-25 | poisson_union_calibrated | 0.051533 | 0.187708 | 0.009417 |
+| 2024-25 | direct_enhanced | 0.050270 | 0.174188 | 0.013450 |
+| 2024-25 | **incumbent_max** | 0.050585 | 0.174343 | 0.014641 |
+| 2024-25 | **blend_mixture** | **0.049486** | **0.172419** | 0.011536 |
+| 2025-26 | prevalence | 0.053932 | 0.219409 | 0.006059 |
+| 2025-26 | poisson_union_calibrated | 0.048255 | 0.180103 | 0.007643 |
+| 2025-26 | direct_enhanced | 0.046697 | **0.162825** | 0.009629 |
+| 2025-26 | **incumbent_max** | 0.047238 | 0.163659 | 0.011613 |
+| 2025-26 | **blend_mixture** | **0.046453** | 0.163928 | **0.007532** |
+
+Walk-forward mean: blend brier **0.047969** / log loss **0.168174** / average
+precision **0.286966** / ECE 0.009534, against incumbent 0.048912 / 0.169001 /
+0.277357 / 0.013127. Fitted weights: 0.70 (2024-25), 0.65 (2025-26) — stable, and
+well inside the grid, so the optimum is not a boundary artefact.
+
+### Two-gate verdict
+
+- **Gate 1 (walk-forward mean must improve): PASS.** Better than the incumbent on
+  all four metrics, and in **2 of 2 folds** on brier, log loss, and average
+  precision. ECE improves 27% (0.013127 -> 0.009534).
+- **Gate 2 (most recent season must hold): mixed.** 2025-26 wins brier
+  (0.046453 vs 0.047238), average precision, and ECE (0.007532 vs 0.011613, a 35%
+  improvement), but **loses log loss by 0.000269** (0.163928 vs 0.163659).
+
+### Decision: NOT promoted to a validated change. Shipped as a correctness fix, flagged as under-evaluated.
+
+**The structural argument stands on its own** — a `max` of separately-calibrated
+estimators is not a calibrated estimator of anything, and its bias is provably
+largest where the models are least reliable. The change is also behaviour-preserving
+when the direct model is unavailable: `blend_contribution(None, union, None)` returns
+the union, exactly as before.
+
+But the evidence is **directionally positive and structurally underpowered**, and that
+distinction matters:
+
+- **Only 2 folds exist.** `build_goal_contribution_frame` yields 4 seasons
+  (2022-23 .. 2025-26) because FPL's `expected_goals` / `expected_assists` /
+  `expected_goal_involvements` only exist from 2022-23. The match model's
+  walk-forward gets 5 folds over 8 seasons; the G+A model can get **2**. Gate 2 is
+  one of those 2, so it is not independent of gate 1. **A 2-fold mean is not the
+  evidence standard this project set for itself**, and this project has already
+  had three separate tunings that improved a mean and regressed the newest season.
+- The one gate-2 metric it loses is log loss, and by 0.000269 — small, but the
+  rule does not carve out per-metric exceptions, and inventing one now would be
+  exactly the "widen the bar to fit the result" move that let EXP-2026-16 through
+  in the first place.
+
+**This is not a rejection.** It is a *cannot-yet-confirm*, with a named unblocking
+condition: more seasons of FPL xG/xA coverage, or a genuine prospective track. Until
+then the change should be described as a correctness fix with a favourable but
+underpowered evaluation, not as a validated improvement.
+
+### Corollaries
+
+- `poisson_union_calibrated` has the best ECE of the non-degenerate arms (0.008530)
+  but is much worse on brier, log loss, and average precision, so it is not a
+  candidate. `prevalence`'s ECE of 0.003206 is meaningless without discrimination —
+  a reminder not to read ECE in isolation.
+- The direct model is **dark in production**: 0 of 160 live GW6 rows come from it,
+  because `_get_ready_goal_contribution_model()` returns `None` until the 24h
+  warm-up completes. Its per-fold numbers were never transcribed into this ledger
+  before now; they are above.
+- The blend is **not** an argument for the direct model over the union: `union`
+  alone scores 0.049894 brier against the blend's 0.047969, so most of the blend's
+  value is inherited from `direct_enhanced` (0.048484), not from the mixing.
+
+### Reproduce
+
+```bash
+PYTHONPATH=src .venv/bin/python -m pl_predictor.evaluate.blend_validation
+```
+
+## EXP-2026-25 — opponent defensive strength: the first team-context term the G+A classifier has had
+
+### Claim under test
+
+Every player-rate feature in `features/player_form.py` is **opponent-blind**. A
+striker who scores four against a relegated side is recorded identically to one
+who scores four against the league leaders, so the model cannot learn that the
+two performances mean different things. The only context feature in
+`BASE_FEATURES` is `was_home`.
+
+Verified before building, rather than assumed: `opponent_team` exists in the
+vaastav archive and is referenced **once** in all of `src/` — as a *validation*
+check in `data/fpl_api.py:235`, never as a model input. The claim held.
+
+**Why the earlier rejections do not transfer.** EXP-2026-03 and EXP-2026-21
+rejected player aggregates as *match-level* inputs, where 234 collinear form
+columns left no room for anything else. The G+A classifier has 29 standardised
+features on ~10^4–10^5 rows and no team-level term at all. Different problem.
+
+### Method
+
+New module `features/opponent_defence.py` (12 tests, all mutation-verified).
+For each player-fixture it supplies `opponent_defence_last{3,5,10}`: the
+opponent's own goals conceded minus its own goals scored over **prior** matches
+only. Normalising against the team's own attack keeps the scale
+league-relative without a league mean, so promoted sides are not flattered for a
+weak attack.
+
+**Everything is derived from the FPL archive's own fixture results.** This is a
+deliberate departure from the obvious route of joining football-data.co.uk team
+names via `data/team_names.py::to_canonical`. The archive already ships
+`team_h_score` / `team_a_score` on every player row, always from the fixture's
+own perspective, so `was_home` attributes them to the right club with no second
+source and therefore no cross-source name mapping to get wrong. Measured on
+2024-25: 760 team-fixture keys (exactly 2 × 380), **zero** conflicting score
+pairs.
+
+`opponent_team` is a season-local integer that appears in the archive *only* as
+somebody's opponent, so it is recovered offline: every club meets every other
+once per season, hence the club an id names is the one club that never meets it.
+Verified a complete, unambiguous bijection on **all 6 completed seasons**
+(2020-21 … 2025-26). Seasons where the rule is not uniquely satisfied, or where
+the result is not one club per id, are **dropped whole** — a partial map is
+indistinguishable from a correct one until it quietly mis-rates players.
+
+### Leakage guards
+
+Two tests, both mutation-verified by removing `shift(1)` and watching them fail:
+
+- rewriting the result of the very fixture being rated (0-6, 9-0) must not move
+  the rating;
+- adding whole fixtures *after* the one being rated must not move it either.
+
+Two more earn their place by having been vacuous first:
+
+- the synthetic seasons are **complete round-robins**, because a 2-team fixture
+  cannot resolve the id map, so every row comes back NaN and a leakage test over
+  all-NaN asserts nothing;
+- `test_the_feature_is_actually_populated_on_real_history` guards the join
+  itself. Measured: **97.8% populated over 113,592 rows**, mean ≈ 0, sd ≈ 1.2.
+  A silently all-NaN join passes every leakage test above and ships a feature
+  that does nothing — the same failure mode as the CFB team/player
+  reconciliation, so it is asserted rather than assumed.
+
+### Result — 4 folds, the widest the G+A harness has ever had
+
+Six seasons (`2020-21` … `2025-26`) give 4 walk-forward folds. This is the first
+G+A experiment here with more than the 2 folds EXP-2026-24 was limited to,
+because the feature needs no `expected_goals` coverage.
+
+| fold | `direct_enhanced` | `+opponent` | Δ log loss |
+|---|---|---|---|
+| 2022-23 | 0.192208 | **0.191584** | −0.000624 |
+| 2023-24 | 0.188242 | **0.186827** | −0.001415 |
+| 2024-25 | 0.175250 | **0.174551** | −0.000699 |
+| 2025-26 | 0.163033 | **0.162624** | −0.000409 |
+| **mean** | 0.179683 | **0.178896** | **−0.000787** |
+
+Brier improves on **4 of 4** folds too (e.g. 2025-26 0.046885 → 0.046775).
+`opponent_defence_last10` ranks ~20th of 36 features by standardised coefficient
+— real weight, not a rounding artefact, but not dominant either.
+
+### Two-gate verdict
+
+- **Gate 1 (walk-forward mean must improve): PASS.** −0.000787 log loss, and the
+  arm wins **4 of 4 folds**, where the rejected bivariate_poisson override
+  (EXP-2026-24/7b) won only 2 of 5.
+- **Gate 2 (most recent season must hold): PASS.** 2025-26 0.162624 vs 0.163033.
+
+**Both gates pass, on 4 folds, on two metrics.** This is the strongest evidence any
+player-model experiment in this ledger has produced.
+
+### Decision: NOT promoted. The evaluative gates are not the blocker; the serving path is.
+
+Both gates passing is necessary, not sufficient. Promotion means the model serves
+this feature, and today it cannot:
+
+- `_rank_fixture_players(event_id, home, away, ...)` in `api/routes.py:1311`
+  **does** have both clubs, so `opponent = away if team == home else home` is
+  trivially available. That part is cheap.
+- The expensive part is the *derivation*. Training builds the rating from the FPL
+  archive's own fixture scores. At serving time the equivalent live source is the
+  team-level match frame (`features/rolling_form.py::to_team_perspective`).
+  **That is two implementations of one feature.**
+- Two implementations is precisely the defect class fixed in NFL `0628c6d`,
+  where two tests in the same suite came to assert 82 and 81.5 for the same
+  player and the same week. Doing it naively here would recreate that bug in the
+  one place this project has just finished repairing it.
+
+**Unblocking condition:** refactor `opponent_defence` so the rating is computed
+by one function over a generic `(date, team, goals_for, goals_against)` frame,
+with two thin adapters — the FPL archive for fitting, `to_team_perspective` for
+serving — plus a test asserting the two adapters agree. Until that exists, the
+honest description is *evaluated and positive, not servable*.
+
+### Production state: unchanged, and verified so
+
+`build_goal_contribution_frame` now emits the three columns, and
+`goal_contribution_research` scores the `direct_enhanced_opponent` arm. But
+`player_goals.fit_goal_contribution_model` iterates `BASE_FEATURES +
+ENHANCED_FEATURES` only, so the fitted production model is untouched. Asserted
+rather than assumed: the fitted model has **34 columns and 0 of them name an
+opponent feature**. Nothing about live output changes with this commit.
+
+### Reproduce
+
+```bash
+PYTHONPATH=src .venv/bin/python -c "
+from pl_predictor.evaluate.goal_contribution_research import evaluate_goal_contribution_models
+r = evaluate_goal_contribution_models(seasons=['2020-21','2021-22','2022-23','2023-24','2024-25','2025-26'])
+print(r['metrics'].pivot_table(index='fold', columns='model', values='log_loss'))"
+```
+
 ## Change checklist for future agents
 
 - Read this file, `README.md`, and relevant tests before editing.
