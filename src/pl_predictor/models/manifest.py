@@ -52,15 +52,31 @@ COVARIATE_POISSON_PATH = MODELS_DIR / "covariate_poisson.pkl"
 # EXP-2026-16 (docs/AI_CONTINUITY.md) found the covariate-Poisson model
 # beats ml_scoreline on Over/Under 2.5 goals on the walk-forward average
 # AND the single most recent completed season — clearing this project's
-# two-part bar on paper. Be aware the margin is thin (<0.001 log-loss and
-# Brier on both checks) and NOT monotonic: it wins 3 of 5 folds
-# (2021-22, 2022-23, 2025-26) but loses 2023-24 and 2024-25 by a
-# comparable-or-larger margin than it wins by elsewhere. Kept live as a
-# deliberate, informed call despite the thin margin — revisit if a
-# stronger, more consistent result appears, or tighten the promotion bar
-# (e.g. a minimum-margin/CI requirement) before adding any further
-# market override on evidence this equivocal.
-MARKET_MODEL_OVERRIDES = {"over_2_5": "covariate_poisson"}
+# two-part bar on paper. The margin was thin (<0.001 log-loss and Brier on
+# both checks) and NOT monotonic: it won 3 of 5 folds (2021-22, 2022-23,
+# 2025-26) but lost 2023-24 and 2024-25 by a comparable-or-larger margin
+# than it won by elsewhere.
+#
+# REVERTED 2026-09-27. The evidence that put it there has decayed. On the
+# live 2026-09-14 production manifest the two models are:
+#
+#     covariate_poisson  over_2_5_log_loss 0.689638   brier 0.248153
+#     ml_scoreline       over_2_5_log_loss 0.689441   brier 0.248157
+#
+# so covariate_poisson is now marginally WORSE on log loss — the reverse of
+# the EXP-2026-16 ordering — and better only by 0.000004 on Brier, which is
+# noise at n=380. This override already failed the spirit of the two-gate
+# rule even when it was promoted ("clears the letter of the bar, not a
+# strong version of it"); a second retrain later failing the direction of
+# the original evidence is exactly the condition the comment above said to
+# revisit on. The chosen scoreline model now serves every market.
+#
+# The per-market override mechanism itself stays in place and stays tested —
+# it is the durable value of EXP-2026-16, and this dict is now the single
+# place a future override is added. Re-adding one requires a walk-forward
+# mean win AND a most-recent-season win with a margin clear of the noise
+# floor demonstrated here, not a decimal-place difference.
+MARKET_MODEL_OVERRIDES: dict[str, str] = {}
 
 RESULT_CODE = {"H": 0, "D": 1, "A": 2}
 
