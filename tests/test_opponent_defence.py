@@ -13,7 +13,10 @@ from pl_predictor.data.fpl_history import default_completed_seasons, load_player
 from pl_predictor.features.opponent_defence import (
     build_opponent_defence_features,
     build_team_match_history,
+    rate_opponents,
+    rate_team_matches,
     solve_team_id_names,
+    team_matches_from_matches_df,
 )
 
 KICKOFF_ORIGIN = pd.Timestamp("2024-08-17T14:00")
@@ -222,3 +225,128 @@ def test_a_frame_without_the_needed_columns_produces_nothing_rather_than_raising
     assert list(features.columns) == cols
     assert len(features) == 1
     assert features.isna().all().all()
+
+
+# --- serving adapter -------------------------------------------------------
+#
+# The rating is computed in exactly one place (`_rate_team_matches`) and reached
+# from two directions: the FPL archive when fitting, and `to_team_perspective`
+# when serving. The tests below are what make promoting that safe. A second
+# implementation is not a style preference here -- it is how NFL ended up with
+# two tests asserting 82 and 81.5 for the same player and the same week.
+
+
+def _generic_team_matches(history: pd.DataFrame) -> pd.DataFrame:
+    """The archive in the generic team-match shape `rate_team_matches` takes.
+
+    The same shape `team_matches_from_matches_df` produces on the serving side.
+    """
+    matches = build_team_match_history(history)
+    return matches.rename(columns={"kickoff_time": "date"})[
+        ["season", "team", "date", "goals_for", "goals_against"]
+    ]
+
+
+def test_the_serving_path_agrees_with_the_training_path_on_synthetic_data():
+    """Same numbers whether a rating is asked for as a player feature (fitting)
+    or as a fixture feature (serving). With a shared `_rate_team_matches` this
+    should hold exactly; if it ever stops holding, the two definitions have
+    drifted and every number produced here is suspect."""
+    history = _round_robin()
+    team_matches = _generic_team_matches(history)
+    combined = pd.concat([history, _fixture("Fulham", "Leaky", 90)], ignore_index=True)
+    training, _ = build_opponent_defence_features(combined)
+
+    trained = training.loc[(combined["team"] == "Fulham").values, "opponent_defence_last3"].iloc[-1]
+    assert trained == trained, "sanity: the training path produced a real number"
+
+    # The same fixture, asked for the other way round.
+    fixtures = _history([{
+        "season": "2024-25", "opponent": "Leaky",
+        "kickoff_time": KICKOFF_ORIGIN + pd.Timedelta(days=7 * 90),
+    }]).rename(columns={"kickoff_time": "date"})
+    served = rate_opponents(team_matches, fixtures)["opponent_defence_last3"].iloc[0]
+    assert served == pytest.approx(trained)
+
+
+def test_a_clubs_first_upcoming_fixture_has_no_rating_through_the_serving_path():
+    """The serving path must not invent a rating for a defence that has not
+    played. Requesting one appends a placeholder row, and a placeholder with no
+    prior matches has nothing behind it."""
+    history = _round_robin()
+    team_matches = _generic_team_matches(history)
+    first_date = history["kickoff_time"].min()
+    fixtures = _history([{"season": "2024-25", "opponent": "Leaky", "kickoff_time": first_date}]).rename(
+        columns={"kickoff_time": "date"})
+    rated = rate_opponents(team_matches, fixtures)["opponent_defence_last3"]
+    assert rated.iloc[0] != rated.iloc[0], "Leaky's opening fixture must not be rated"
+
+
+def test_a_placeholder_fixture_does_not_leak_into_later_ratings():
+    """The serving path appends placeholder rows, so a later rating must not see
+    them. If it did, asking about an upcoming match would change the answer to a
+    question about a different upcoming match."""
+    history = _round_robin()
+    team_matches = _generic_team_matches(history)
+    one = _history([{"season": "2024-25", "opponent": "Leaky",
+                     "kickoff_time": KICKOFF_ORIGIN + pd.Timedelta(days=7 * 50)}]).rename(columns={"kickoff_time": "date"})
+    two = pd.concat([one, _history([{"season": "2024-25", "opponent": "Leaky",
+                                      "kickoff_time": KICKOFF_ORIGIN + pd.Timedelta(days=7 * 60)}]
+                                    ).rename(columns={"kickoff_time": "date"})], ignore_index=True)
+    alone = rate_opponents(team_matches, one)["opponent_defence_last3"].iloc[0]
+    together = rate_opponents(team_matches, two)["opponent_defence_last3"].iloc[0]
+    assert alone == pytest.approx(together), "an extra placeholder moved an existing rating"
+
+
+def _per_team_mean_rating(team_matches: pd.DataFrame, window: int = 5) -> pd.Series:
+    """Mean rating per club, from either source, computed the same way both times."""
+    rated = team_matches.copy()
+    rated[f"opponent_defence_last{window}"] = rate_team_matches(team_matches, windows=(window,))[
+        f"opponent_defence_last{window}"]
+    return rated.groupby("team")[f"opponent_defence_last{window}"].mean().dropna()
+
+
+def test_the_serving_adapter_agrees_with_the_training_adapter_on_real_data():
+    """The load-bearing test for promotion. The fitting path reads the FPL
+    archive; the serving path reads football-data.co.uk via `to_team_perspective`.
+    They are different files describing the same matches, so the ratings should
+    agree. If they do not, promoting the feature would train on one definition of
+    "defence" and serve another -- the failure mode of NFL `0628c6d`."""
+    from pl_predictor.data import football_data
+    from pl_predictor.data.team_names import to_canonical
+
+    season = "2024-25"
+    history = load_player_gw_history(seasons=[season])
+    matches_df = football_data.load_training_data(seasons=[season])
+
+    # Training side: the archive, via `build_team_match_history`.
+    trained = _per_team_mean_rating(_generic_team_matches(history))
+    trained.index = [to_canonical(str(name), "fpl_api") for name in trained.index]
+
+    # Serving side: football-data.co.uk, via `to_team_perspective`.
+    served = _per_team_mean_rating(team_matches_from_matches_df(matches_df))
+
+    comparison = pd.DataFrame({"serving": served, "training": trained}).dropna()
+
+    # Only 18 of 20 clubs land here, and the two that drop out are Man Utd and
+    # Tottenham -- both `to_canonical` misses on the FPL side. That is the whole
+    # argument for building the fitting path out of the archive alone: a name
+    # mapping that loses two clubs quietly costs the feature for every player who
+    # faces them. Here the loss is visible; in the model it would not be.
+    assert len(comparison) == 18, (
+        f"expected 18 comparable clubs, got {len(comparison)}; the two name spaces "
+        f"have drifted apart: {sorted(set(trained.index) ^ set(served.index))}")
+
+    # The two sources agree exactly on 2024-25 -- measured max per-club
+    # difference 0.0000 goals/match, correlation 1.0000. The tolerances are set
+    # just above what a couple of *corrected* scorelines would move them (one
+    # correction shifts a club's 38-match mean by ~0.026) and far below what a
+    # definitional difference produces (~0.3+), so this test fails on a drifted
+    # definition rather than merely warning about it.
+    assert comparison["serving"].corr(comparison["training"]) > 0.99, (
+        f"the two adapters disagree about which defences are leaky:\n{comparison.round(3)}")
+    worst = (comparison["serving"] - comparison["training"]).abs().max()
+    assert worst < 0.15, (
+        f"worst per-club disagreement is {worst:.3f} goals/match, too large to train on one "
+        f"definition and serve another:\n"
+        f"{(comparison['serving'] - comparison['training']).abs().sort_values(ascending=False).head(5).round(3)}")

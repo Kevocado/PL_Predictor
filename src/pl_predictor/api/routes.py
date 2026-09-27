@@ -55,7 +55,7 @@ from ..evaluate import backtest as backtest_lib
 from ..evaluate import betting_validation
 from ..evaluate import calibration as calibration_lib
 from ..evaluate import odds_benchmark
-from ..features import head_to_head, player_form, ratings as ratings_mod, rolling_form, squad_change
+from ..features import head_to_head, opponent_defence, player_form, ratings as ratings_mod, rolling_form, squad_change
 from ..features.build import build_features_for_fixtures, build_training_frame
 from ..models import manifest as manifest_lib
 from ..models import fpl as fpl_model, player_goals, power_rankings as power_rankings_mod, projected_table, scoreline
@@ -1309,6 +1309,58 @@ def _resolve_fixture_kickoff(event_id: str):
     return pd.to_datetime(recorded["commence_time"]) if recorded is not None else None
 
 
+def _opponent_defence_for_fixture(home: str, away: str, kickoff) -> dict[str, dict[str, float]]:
+    """Rate each club's defence as it stands *before* this fixture kicks off.
+
+    Returns `{team: {feature: value}}` — the rating of the defence that team's
+    players are about to face, since the G+A model is now fitted on
+    `opponent_defence_last*` (EXP-2026-25). Both sides come from a single call so
+    the two clubs are rated from an identical frame.
+
+    Grouped by season on both the fitting and serving side, deliberately: a
+    gameweek-1 fixture has an unrated opponent on both, and that is what the
+    fitted model was calibrated against. Grouping by club alone would give the
+    first weeks of a season a rating carried in from the previous one — a small,
+    plausible, entirely invisible train/serve skew. The season is taken from the
+    fixture's own kickoff date for the same reason.
+
+    Any failure yields `{}`, which serves the league-average prior (0.0). A
+    feature that is worth ~0.0008 log loss must not be able to take down player
+    predictions, so this is a deliberate guard rather than a swallowed error.
+    """
+    if kickoff is None:
+        return {}
+    try:
+        team_matches = opponent_defence.team_matches_from_matches_df(_get_matches_df())
+        if team_matches.empty:
+            return {}
+        # The season comes from the *kickoff date*, not from the newest season
+        # present in the data. Both coincide in production, but deriving it from
+        # the data would rate a fixture for a season that has not started yet out
+        # of the previous season's matches -- the precise skew this grouping
+        # exists to prevent, and invisible because the number is plausible.
+        kickoff_at = pd.to_datetime(kickoff)
+        season = football_data.season_str(kickoff_at.year if kickoff_at.month >= 7 else kickoff_at.year - 1)
+        # `season_str` is the right format here even though `_get_matches_df`
+        # mixes both conventions: completed seasons come from the raw CSVs as
+        # "2024-25", but `fetch_current_season_partial` labels the in-progress one
+        # "2026-2027", and the in-progress season is the one being predicted.
+        fixtures = pd.DataFrame({
+            "season": [season, season],
+            # The defence `home` faces is `away`'s, and vice versa.
+            "opponent": [away, home],
+            "date": [pd.to_datetime(kickoff), pd.to_datetime(kickoff)],
+        })
+        rated = opponent_defence.rate_opponents(team_matches, fixtures)
+    except Exception:
+        return {}
+
+    return {
+        home: rated.iloc[0].dropna().to_dict(),
+        away: rated.iloc[1].dropna().to_dict(),
+    }
+
+
 def _rank_fixture_players(
     event_id: str,
     home: str,
@@ -1325,7 +1377,9 @@ def _rank_fixture_players(
     current_event = fpl_api.get_current_event(bootstrap)
     position_priors = _get_position_priors()
     reliability_coeffs = _get_player_reliability_coeffs()
-    confirmed_lineups = confirmed_lineups if confirmed_lineups is not None else espn.fetch_confirmed_lineups(home, away, _resolve_fixture_kickoff(event_id))
+    kickoff = _resolve_fixture_kickoff(event_id)
+    confirmed_lineups = confirmed_lineups if confirmed_lineups is not None else espn.fetch_confirmed_lineups(home, away, kickoff)
+    opponent_defence_by_team = _opponent_defence_for_fixture(home, away, kickoff)
 
     lineup_model = _get_lineup_model()
     position_rate_models = _get_position_rate_models()
@@ -1345,6 +1399,8 @@ def _rank_fixture_players(
             # expected_shots / expected_shots_on_target were never scaled by
             # how much this team's own attack actually generates.
             context=models.get("context"),
+            # EXP-2026-25: the defence this team is about to face.
+            opponent_defence=opponent_defence_by_team.get(team),
         )
         return [PlayerPrediction(**{k: p[k] for k in PlayerPrediction.model_fields}) for p in ranked]
 

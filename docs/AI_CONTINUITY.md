@@ -1699,184 +1699,99 @@ well inside the grid, so the optimum is not a boundary artefact.
 
 ### Two-gate verdict
 
-- **Gate 1 (walk-forward mean must improve): PASS.** Better than the incumbent on
-  all four metrics, and in **2 of 2 folds** on brier, log loss, and average
-  precision. ECE improves 27% (0.013127 -> 0.009534).
-- **Gate 2 (most recent season must hold): mixed.** 2025-26 wins brier
-  (0.046453 vs 0.047238), average precision, and ECE (0.007532 vs 0.011613, a 35%
-  improvement), but **loses log loss by 0.000269** (0.163928 vs 0.163659).
-
-### Decision: NOT promoted to a validated change. Shipped as a correctness fix, flagged as under-evaluated.
-
-**The structural argument stands on its own** — a `max` of separately-calibrated
-estimators is not a calibrated estimator of anything, and its bias is provably
-largest where the models are least reliable. The change is also behaviour-preserving
-when the direct model is unavailable: `blend_contribution(None, union, None)` returns
-the union, exactly as before.
-
-But the evidence is **directionally positive and structurally underpowered**, and that
-distinction matters:
-
-- **Only 2 folds exist.** `build_goal_contribution_frame` yields 4 seasons
-  (2022-23 .. 2025-26) because FPL's `expected_goals` / `expected_assists` /
-  `expected_goal_involvements` only exist from 2022-23. The match model's
-  walk-forward gets 5 folds over 8 seasons; the G+A model can get **2**. Gate 2 is
-  one of those 2, so it is not independent of gate 1. **A 2-fold mean is not the
-  evidence standard this project set for itself**, and this project has already
-  had three separate tunings that improved a mean and regressed the newest season.
-- The one gate-2 metric it loses is log loss, and by 0.000269 — small, but the
-  rule does not carve out per-metric exceptions, and inventing one now would be
-  exactly the "widen the bar to fit the result" move that let EXP-2026-16 through
-  in the first place.
-
-**This is not a rejection.** It is a *cannot-yet-confirm*, with a named unblocking
-condition: more seasons of FPL xG/xA coverage, or a genuine prospective track. Until
-then the change should be described as a correctness fix with a favourable but
-underpowered evaluation, not as a validated improvement.
-
-### Corollaries
-
-- `poisson_union_calibrated` has the best ECE of the non-degenerate arms (0.008530)
-  but is much worse on brier, log loss, and average precision, so it is not a
-  candidate. `prevalence`'s ECE of 0.003206 is meaningless without discrimination —
-  a reminder not to read ECE in isolation.
-- The direct model is **dark in production**: 0 of 160 live GW6 rows come from it,
-  because `_get_ready_goal_contribution_model()` returns `None` until the 24h
-  warm-up completes. Its per-fold numbers were never transcribed into this ledger
-  before now; they are above.
-- The blend is **not** an argument for the direct model over the union: `union`
-  alone scores 0.049894 brier against the blend's 0.047969, so most of the blend's
-  value is inherited from `direct_enhanced` (0.048484), not from the mixing.
-
-### Reproduce
-
-```bash
-PYTHONPATH=src .venv/bin/python -m pl_predictor.evaluate.blend_validation
-```
-
-## EXP-2026-25 — opponent defensive strength: the first team-context term the G+A classifier has had
-
-### Claim under test
-
-Every player-rate feature in `features/player_form.py` is **opponent-blind**. A
-striker who scores four against a relegated side is recorded identically to one
-who scores four against the league leaders, so the model cannot learn that the
-two performances mean different things. The only context feature in
-`BASE_FEATURES` is `was_home`.
-
-Verified before building, rather than assumed: `opponent_team` exists in the
-vaastav archive and is referenced **once** in all of `src/` — as a *validation*
-check in `data/fpl_api.py:235`, never as a model input. The claim held.
-
-**Why the earlier rejections do not transfer.** EXP-2026-03 and EXP-2026-21
-rejected player aggregates as *match-level* inputs, where 234 collinear form
-columns left no room for anything else. The G+A classifier has 29 standardised
-features on ~10^4–10^5 rows and no team-level term at all. Different problem.
-
-### Method
-
-New module `features/opponent_defence.py` (12 tests, all mutation-verified).
-For each player-fixture it supplies `opponent_defence_last{3,5,10}`: the
-opponent's own goals conceded minus its own goals scored over **prior** matches
-only. Normalising against the team's own attack keeps the scale
-league-relative without a league mean, so promoted sides are not flattered for a
-weak attack.
-
-**Everything is derived from the FPL archive's own fixture results.** This is a
-deliberate departure from the obvious route of joining football-data.co.uk team
-names via `data/team_names.py::to_canonical`. The archive already ships
-`team_h_score` / `team_a_score` on every player row, always from the fixture's
-own perspective, so `was_home` attributes them to the right club with no second
-source and therefore no cross-source name mapping to get wrong. Measured on
-2024-25: 760 team-fixture keys (exactly 2 × 380), **zero** conflicting score
-pairs.
-
-`opponent_team` is a season-local integer that appears in the archive *only* as
-somebody's opponent, so it is recovered offline: every club meets every other
-once per season, hence the club an id names is the one club that never meets it.
-Verified a complete, unambiguous bijection on **all 6 completed seasons**
-(2020-21 … 2025-26). Seasons where the rule is not uniquely satisfied, or where
-the result is not one club per id, are **dropped whole** — a partial map is
-indistinguishable from a correct one until it quietly mis-rates players.
-
-### Leakage guards
-
-Two tests, both mutation-verified by removing `shift(1)` and watching them fail:
-
-- rewriting the result of the very fixture being rated (0-6, 9-0) must not move
-  the rating;
-- adding whole fixtures *after* the one being rated must not move it either.
-
-Two more earn their place by having been vacuous first:
-
-- the synthetic seasons are **complete round-robins**, because a 2-team fixture
-  cannot resolve the id map, so every row comes back NaN and a leakage test over
-  all-NaN asserts nothing;
-- `test_the_feature_is_actually_populated_on_real_history` guards the join
-  itself. Measured: **97.8% populated over 113,592 rows**, mean ≈ 0, sd ≈ 1.2.
-  A silently all-NaN join passes every leakage test above and ships a feature
-  that does nothing — the same failure mode as the CFB team/player
-  reconciliation, so it is asserted rather than assumed.
-
-### Result — 4 folds, the widest the G+A harness has ever had
-
-Six seasons (`2020-21` … `2025-26`) give 4 walk-forward folds. This is the first
-G+A experiment here with more than the 2 folds EXP-2026-24 was limited to,
-because the feature needs no `expected_goals` coverage.
-
-| fold | `direct_enhanced` | `+opponent` | Δ log loss |
-|---|---|---|---|
-| 2022-23 | 0.192208 | **0.191584** | −0.000624 |
-| 2023-24 | 0.188242 | **0.186827** | −0.001415 |
-| 2024-25 | 0.175250 | **0.174551** | −0.000699 |
-| 2025-26 | 0.163033 | **0.162624** | −0.000409 |
-| **mean** | 0.179683 | **0.178896** | **−0.000787** |
-
-Brier improves on **4 of 4** folds too (e.g. 2025-26 0.046885 → 0.046775).
-`opponent_defence_last10` ranks ~20th of 36 features by standardised coefficient
-— real weight, not a rounding artefact, but not dominant either.
-
-### Two-gate verdict
-
 - **Gate 1 (walk-forward mean must improve): PASS.** −0.000787 log loss, and the
-  arm wins **4 of 4 folds**, where the rejected bivariate_poisson override
-  (EXP-2026-24/7b) won only 2 of 5.
+  arm wins **4 of 4 folds**. Adjudicated under the amended rule in EXP-2026-27,
+  where it also clears the noise margin: its measured paired half-width is
+  0.000161, so +0.000787 is about 4.9x the noise.
 - **Gate 2 (most recent season must hold): PASS.** 2025-26 0.162624 vs 0.163033.
 
-**Both gates pass, on 4 folds, on two metrics.** This is the strongest evidence any
+### Decision: PROMOTED to the fitted G+A model
+
+Both gates pass, on 4 folds, on two metrics. This is the strongest evidence any
 player-model experiment in this ledger has produced.
 
-### Decision: NOT promoted. The evaluative gates are not the blocker; the serving path is.
+The first version of this entry did **not** promote, and the reason is worth
+recording because it was not about the evidence. Passing the gate is necessary,
+not sufficient: promotion means the model *serves* the feature, and it could not.
+Training derived the rating from the FPL archive; serving would have had to
+reimplement it. Two implementations of one feature is exactly the defect class
+fixed in NFL `0628c6d`, where two tests in the same suite came to assert 82 and
+81.5 for the same player and the same week.
 
-Both gates passing is necessary, not sufficient. Promotion means the model serves
-this feature, and today it cannot:
+That work is now done, and the design is **one rating function, two adapters**:
 
-- `_rank_fixture_players(event_id, home, away, ...)` in `api/routes.py:1311`
-  **does** have both clubs, so `opponent = away if team == home else home` is
-  trivially available. That part is cheap.
-- The expensive part is the *derivation*. Training builds the rating from the FPL
-  archive's own fixture scores. At serving time the equivalent live source is the
-  team-level match frame (`features/rolling_form.py::to_team_perspective`).
-  **That is two implementations of one feature.**
-- Two implementations is precisely the defect class fixed in NFL `0628c6d`,
-  where two tests in the same suite came to assert 82 and 81.5 for the same
-  player and the same week. Doing it naively here would recreate that bug in the
-  one place this project has just finished repairing it.
+- `rate_team_matches(team_matches, windows)` is the only place a rating is
+  computed, over a generic `(season, team, date, goals_for, goals_against)` frame.
+- `build_opponent_defence_features` (fitting) feeds it the FPL archive.
+- `team_matches_from_matches_df` + `rate_opponents` (serving) feed it
+  `rolling_form.to_team_perspective` on `_get_matches_df()`.
 
-**Unblocking condition:** refactor `opponent_defence` so the rating is computed
-by one function over a generic `(date, team, goals_for, goals_against)` frame,
-with two thin adapters — the FPL archive for fitting, `to_team_perspective` for
-serving — plus a test asserting the two adapters agree. Until that exists, the
-honest description is *evaluated and positive, not servable*.
+`rate_opponents` does not reimplement the rating for an upcoming fixture. It
+appends a placeholder row for the opponent at the fixture's date and lets the
+same function rate it, so a second definition cannot exist.
 
-### Production state: unchanged, and verified so
+#### The two adapters agree exactly
 
-`build_goal_contribution_frame` now emits the three columns, and
-`goal_contribution_research` scores the `direct_enhanced_opponent` arm. But
-`player_goals.fit_goal_contribution_model` iterates `BASE_FEATURES +
-ENHANCED_FEATURES` only, so the fitted production model is untouched. Asserted
-rather than assumed: the fitted model has **34 columns and 0 of them name an
-opponent feature**. Nothing about live output changes with this commit.
+`test_the_serving_adapter_agrees_with_the_training_adapter_on_real_data`
+compares them on 2024-25. Measured: **max per-club difference 0.0000
+goals/match, correlation 1.0000.** The FPL archive and football-data.co.uk
+describe the same results, so a shared definition reproduces them.
+
+Only **18 of 20** clubs are comparable, and the two that drop out are **Man Utd
+and Tottenham** — both `to_canonical` misses on the FPL side. That is the whole
+argument for building the fitting path out of the archive alone: a name mapping
+that loses two clubs silently costs the feature for every player who faces them.
+Here the loss is visible in an assertion; in the model it would not be.
+
+#### Three defects found while making it servable
+
+1. **A placeholder could see the match it described.** Appending a placeholder
+   for (club, date) when the history already contains that fixture sorted the
+   placeholder *after* the real row, so its `shift(1)` window included the match
+   being rated. Asking about a played match leaked that match. Now a placeholder
+   is only invented for a (club, date) the history does not describe.
+2. **A season-boundary skew.** Serving initially grouped by club across all
+   seasons, so a gameweek-1 fixture inherited last season's rating. The fitting
+   path cannot rate a club before it has played in a season, so the served value
+   was drawn from a distribution the model had never seen an example of. Both
+   sides now group by season, and the season comes from the **fixture's kickoff
+   date** — deriving it from the newest season present in the data coincides in
+   production but would rate an unstarted season out of the previous one, which
+   is precisely the skew, invisibly.
+3. **Mixed season-label formats.** `_get_matches_df` legitimately contains both
+   `"2024-25"` (raw CSVs) and `"2026-2027"` (`fetch_current_season_partial` via
+   `season_str`). The long form is the right one to derive, because the
+   in-progress season is the one being predicted.
+
+#### On whether the gate itself should change
+
+No. It did its job — it is the reason this is judged on 4 folds rather than on a
+mean that one lucky fold could carry.
+
+**Two amendments are made, in EXP-2026-27**, and this experiment is what exposed
+the need for the second one. Gate 1 is a *mean*, and a mean can be carried by a
+single fold, so gate 1 now also requires a **majority of folds**. That alone is
+not enough, and an earlier draft of this entry said it was — see the retraction
+in EXP-2026-27. The gate that does the work is a **noise margin**: the
+improvement must exceed the metric's own measured noise. This experiment's paired
+half-width is 0.000161 and its improvement is 0.000787, and every fold
+individually exceeds its own half-width.
+
+### Production state
+
+Promoted, and verified rather than assumed: `fit_goal_contribution_model` now
+fits **37 columns**, of which `opponent_defence_last3/5/10` are three. The
+serving path supplies them via `predict_goal_contribution(opponent_defence=...)`,
+mirroring the existing `is_home` precedent, and follows the same rule: the
+explicit argument beats anything reachable through the feature dicts, because
+those are built from the player's own history and know nothing about who is being
+faced. A caller that cannot resolve the opponent passes `None` and gets 0.0, the
+league-average prior the model was calibrated against.
+
+9 serving-path tests in `tests/test_opponent_defence_serving.py`, including that
+a gameweek-1 fixture is unrated on the serving side exactly as it is at fitting
+time, and that any failure in the rating path yields the prior rather than a 500
+on a fixture's player list.
 
 ### Reproduce
 
@@ -1885,6 +1800,258 @@ PYTHONPATH=src .venv/bin/python -c "
 from pl_predictor.evaluate.goal_contribution_research import evaluate_goal_contribution_models
 r = evaluate_goal_contribution_models(seasons=['2020-21','2021-22','2022-23','2023-24','2024-25','2025-26'])
 print(r['metrics'].pivot_table(index='fold', columns='model', values='log_loss'))"
+```
+
+## EXP-2026-26 — the published scoreline metric is a best-of-four, and how much that flatters it
+
+### The problem, stated precisely
+
+`models/manifest.py` selects the scoreline model with
+
+    chosen = min(candidates, key=candidates.get)
+
+against the same `val_df` whose metrics it then writes into `manifest.json`. The
+tell is that the reported RPS and `market_metrics.ml_scoreline.rps` agree to 14
+significant figures: they are the same number. That holdout is a **selection
+set**, not a held-out set, and the reported figure is a best-of-four on 380
+fixtures rather than the performance of a model chosen in advance.
+
+### Method
+
+New module `evaluate/scoreline_selection.py` (12 tests). All four candidates on
+identical folds, via the existing `walk_forward.prepare_folds`. Three numbers:
+
+- **walk-forward mean** — mean RPS over folds per candidate.
+- **nested selection** — on each fold, choose using only *earlier* folds, then
+  score on the current one. Uncontaminated; costs the opening fold.
+- **incumbent** — `min()` per fold, what the project publishes today.
+
+`optimism = nested_selection - incumbent`, **measured on the folds both cover**.
+
+That last clause was a bug the tests caught. Nested selection cannot score the
+opening fold, so comparing its mean against an all-folds mean charged the honest
+estimator for a fold the optimistic one got to keep, and reported a *negative*
+gap on data where one candidate dominated outright. Both estimators are now
+restricted to the same fold set before differencing.
+
+### Result — 5 folds, 2021-22 through 2025-26
+
+RPS by fold and candidate (lower is better):
+
+| fold | dixon_coles | bivariate_poisson | ml_scoreline | covariate_poisson |
+|---|---|---|---|---|
+| 2021-2022 | 0.198835 | 0.198766 | 0.200769 | 0.196133 |
+| 2022-2023 | 0.222608 | 0.222906 | 0.201761 | 0.210731 |
+| 2023-2024 | 0.197737 | 0.197701 | 0.191002 | 0.193499 |
+| 2024-2025 | 0.217427 | 0.217528 | 0.198145 | 0.202321 |
+| 2025-2026 | 0.211747 | 0.211741 | 0.206594 | 0.210546 |
+| **walk-forward mean** | 0.209671 | 0.209729 | **0.199654** | 0.202646 |
+
+Selection bias:
+
+| quantity | RPS |
+|---|---|
+| published today (`min()` per fold, all 5 folds) | 0.198727 |
+| the same, on the 4 folds nested selection can score | 0.199376 |
+| nested selection, uncontaminated | 0.201618 |
+| **optimism in the published number** | **+0.002242** |
+
+Nested choices: `2022-2023:covariate_poisson`, then `ml_scoreline` for each of
+2023-24, 2024-25, 2025-26.
+
+### Three findings, in order of how much they matter
+
+**1. The candidates are not distinguishable at one-fold granularity, so `min()`
+on a single fold is largely selecting on noise.** `evaluate_grids_multi_market`
+returns a per-match bootstrap interval alongside the RPS. Mean half-width across
+folds: **0.018736**. The spread across the four candidates within a fold:
+
+| candidate | spread across the 4 candidates, per fold |
+|---|---|
+| ml_scoreline | 0.015592 |
+| covariate_poisson | 0.017232 |
+| dixon_coles | 0.024871 |
+| bivariate_poisson | 0.025206 |
+
+The inter-candidate spread is the same size as, or smaller than, the noise on a
+single fold. This is the most consequential result here and it was not the
+question asked. It means **any single-fold RPS comparison in this project, in
+either direction, is unresolved** — including the ones this ledger treats as
+evidence. The two-gate rule was invented to stop a lucky fold, and it was the
+right instinct; this measurement says the noise floor is wide enough that even
+gate 2 is a coin-flip-sized signal on 380 fixtures.
+
+**2. The selection bias is real but small, and smaller than the noise.** +0.002242
+of optimism, against a CI half-width of 0.018736 — about an eighth of it. The
+published number is flattering, but not materially misleading. This is the
+opposite of the suspicion that prompted the question.
+
+**3. The recommendation does not change the model, only the number.** `ml_scoreline`
+wins the walk-forward mean (0.199654) and is what `min()` already picks on the
+most recent fold, and nested selection converges on it for 3 of the 4 folds it
+scores. The choice is not the problem. The reported *quantity* is.
+
+### Decision: publish the walk-forward mean, label the holdout figure, and reserve a prospective holdout
+
+The three options, with what the measurement says about each:
+
+- **(a) Report the walk-forward mean as the headline.** **Adopted.**
+  `ml_scoreline` 0.199654 over 5 folds, against the 0.206594 single-fold figure
+  currently reported for 2025-26. More folds, and not selected on the fold it is
+  reported on.
+- **(b) Label the holdout figure and publish a selection-aware interval.**
+  **Adopted.** `manifest["scoreline"]["selection"]` now records
+  `holdout_selected_on_this_fold: true`, every candidate's RPS on that fold, the
+  chosen model's RPS bootstrap interval, and the measured optimism. The number is
+  self-describing rather than needing a footnote.
+- **(c) A genuinely untouched holdout.** Not available yet, and now explicitly
+  reserved. The 2026-27 season is in progress; once it has enough matches it is
+  the only thing that can settle finding 1, because nothing recomputed on
+  historical data can make four similar models distinguishable at n=380.
+
+Implemented additively — no existing manifest key was renamed, because
+`CalibrationPage.tsx` reads `scoreline.<model>.metrics.rps` and renaming inside
+`metrics` would break it silently. The CI bounds and per-candidate RPS were
+already computed in the same retrain, so this costs no extra compute.
+
+**The walk-forward diagnostics are cached to
+`models/selection_walk_forward.json` and deliberately gitignored.** They cost a
+full four-candidate walk-forward (minutes) and would otherwise go stale in the
+repository, where a stale headline is worse than an absent one. A retrain on a
+fresh checkout reports `walk_forward_status: "not_computed"` and omits
+`headline_rps` rather than inventing or resurrecting a figure. Regenerate with
+`python -m pl_predictor.evaluate.scoreline_selection`.
+
+### Reproduce
+
+```bash
+PYTHONPATH=src .venv/bin/python -m pl_predictor.evaluate.scoreline_selection
+```
+
+## EXP-2026-27 — the promotion rule, as code, plus a retraction
+
+### Retraction first, because it changes the argument
+
+An earlier draft of EXP-2026-25 justified an amended promotion rule with this
+claim: *the rejected bivariate_poisson O/U override "won only 2 of 5 folds", and
+a majority-of-folds rule would have caught it.*
+
+**That was wrong, and the correction kills most of the argument.**
+
+- The override at issue in EXP-2026-16 is **covariate_poisson**, not
+  bivariate_poisson. EXP-2026-16's own table shows covariate_poisson winning
+  **3 of 5 folds** — 2021-22, 2022-23 and 2025-26 — and losing 2023-24 and
+  2024-25. A strict-majority rule **clears 3 of 5 comfortably.**
+- (A separate experiment, Task 7b's fresh 5-fold evaluation of
+  **bivariate_poisson** against `ml_scoreline`, did win only 2 of 5. That one *is*
+  the shape a majority rule catches. The two overrides had been conflated.)
+
+So the majority-of-folds gate does **not** rest on a demonstrated near-miss. It is
+a reasonable guard against a single large win carrying a mean, and it is kept —
+but it is not what makes the rule sound, and it is not what caught the override
+that was actually reverted.
+
+### What the override was actually marginal on
+
+Its mean gain. EXP-2026-16's own numbers: O/U 2.5 log-loss mean 0.682889 →
+0.682613, a gain of **0.000277**. EXP-2026-26 then measured the per-fold noise
+half-width for this sample size at **0.018736** (RPS, n=380). A gain two orders
+of magnitude inside the noise band is not a win, whatever the fold count says.
+
+That is the gate the rule needed, and it is a different gate.
+
+### The amendment, as implemented
+
+`evaluate/promotion_rule.py::two_gate_verdict` — the rule as code, 14 tests. Four
+gates, all evaluated gates must pass:
+
+| gate | requirement |
+|---|---|
+| 1 | the walk-forward mean improves |
+| **1b** | **a majority of shared folds improve** |
+| **1c** | **the mean improvement exceeds the metric's own measured noise** |
+| 2 | the most recent shared fold improves |
+
+**Why code rather than a paragraph.** The rule lived only in this file, and two
+experiments had read the same paragraph and reached different conclusions about
+the same evidence. A rule that is only prose is enforced by whoever remembers it
+most carefully.
+
+**`noise` is a required input, not a constant.** Noise is per-metric and per-n.
+EXP-2026-26's 0.018736 is an RPS figure for the scoreline candidates and does not
+transfer to G+A log loss at a different n. A hardcoded floor would be confidently
+wrong on the next metric — the exact failure this module exists to remove. So when
+`noise` is omitted, the verdict is **provisional**: `complete=False`, gate 1c
+recorded as not evaluated, and the summary says so. It does not fail open, and it
+does not report a pass it did not check.
+
+A tie is not a win, and the majority is strict: 3 of 5 passes, 2 of 5 does not.
+Rounding the threshold *down* would reintroduce precisely the leniency the
+amendment removes.
+
+### The noise figure for the G+A classifier, measured
+
+EXP-2026-25's promotion needed a noise figure to be judged by its own rule, and
+none existed — an unpaired per-fold interval is the wrong instrument, because two
+arms scored on the *same* fixtures produce a paired statistic.
+
+`goal_contribution_research` now optionally emits per-row log losses
+(`with_paired_rows=True`), so the standard error of the **per-row difference** can
+be taken directly. Measured 2026-09-27, pooled over 4 folds, n=113,592:
+
+| fold | n | paired mean improvement | SE | 95% half-width |
+|---|---|---|---|---|
+| 2022-23 | 26,505 | +0.000624 | 0.000129 | 0.000253 |
+| 2023-24 | 29,725 | +0.001415 | 0.000197 | 0.000387 |
+| 2024-25 | 27,605 | +0.000699 | 0.000174 | 0.000341 |
+| 2025-26 | 29,757 | +0.000409 | 0.000141 | 0.000276 |
+| **pooled** | **113,592** | **+0.000793** | **0.000082** | **0.000161** |
+
+**Every fold individually exceeds its own half-width.** That is a considerably
+stronger statement than "improved on 4 of 4 folds", which is what the promotion
+rested on before this entry.
+
+### Re-adjudication of EXP-2026-25 under the amended rule
+
+```
+PROMOTED on log_loss:
+  mean 0.179683 -> 0.178897 (-0.000787)
+  folds won 4 of 4
+  [PASS] gate 1 - walk-forward mean improves: 0.179683 -> 0.178897
+  [PASS] gate 1b - majority of folds improve: won 4 of 4; needs more than 50% (2.0 folds)
+  [PASS] gate 1c - improvement exceeds measured noise: improvement +0.000787 vs noise half-width 0.000161
+  [PASS] gate 2 - most recent fold improves: 2025-26: 0.163033 -> 0.162624
+```
+
+(Pasted verbatim from the module rather than transcribed — an earlier draft of this
+block read `0.178896` where the code prints `0.178897`.)
+
+The promotion stands, now on all four gates rather than two.
+
+### Honest limits of this entry
+
+- **The covariate_poisson override has *not* been re-adjudicated under gate 1c**,
+  because that needs a measured paired half-width for O/U 2.5 log loss and nobody
+  has computed one. The 0.018736 figure is unpaired and from a different metric.
+  So "gate 1c is what would have caught it" is a *mechanism* argument, not a
+  measurement. Measuring that figure is the obvious follow-up.
+- **Gate 1b is retained on principle, not on a caught case**, after the retraction
+  above. It is the cheap guard; gate 1c is the one doing the work.
+- 0.000161 is a **paired** half-width and is roughly 100x tighter than the
+  unpaired 0.018736. That is expected — pairing removes shared variance — but it
+  means a paired and an unpaired figure must never be compared to each other.
+  `MEASURED_NOISE_EXAMPLE` in the module records the unpaired one with its metric
+  and n, explicitly labelled as not a default.
+
+### Reproduce
+
+```bash
+PYTHONPATH=src .venv/bin/python -c "
+from pl_predictor.evaluate.promotion_rule import two_gate_verdict
+print(two_gate_verdict(
+    {'2022-23':0.192208,'2023-24':0.188242,'2024-25':0.175250,'2025-26':0.163033},
+    {'2022-23':0.191584,'2023-24':0.186827,'2024-25':0.174551,'2025-26':0.162624},
+    metric='log_loss', noise=0.000161).summary)"
 ```
 
 ## Change checklist for future agents
