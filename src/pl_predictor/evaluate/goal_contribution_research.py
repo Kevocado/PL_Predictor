@@ -113,7 +113,12 @@ def _poisson_union(frame: pd.DataFrame) -> np.ndarray:
     return 1 - np.exp(-np.clip(rate * minutes / 90, 0, None))
 
 
-def _evaluate_fold(frame: pd.DataFrame, train_seasons: list[str], test_season: str) -> tuple[list[dict], pd.DataFrame]:
+def _evaluate_fold(
+    frame: pd.DataFrame,
+    train_seasons: list[str],
+    test_season: str,
+    paired_rows: list[pd.DataFrame] | None = None,
+) -> tuple[list[dict], pd.DataFrame]:
     train = frame[frame["season"].isin(train_seasons)]
     test = frame[frame["season"] == test_season]
     calibration_season = train_seasons[-1]
@@ -136,6 +141,7 @@ def _evaluate_fold(frame: pd.DataFrame, train_seasons: list[str], test_season: s
     union_test = _apply_platt(_fit_platt(union_calibration, y_calibration), _poisson_union(test))
     rows.append({"fold": test_season, "model": "poisson_union_calibrated", "n_test": len(test), **_metrics(y_test, union_test)})
 
+    enhanced_test_prob = opponent_test_prob = None
     for name, features in (("direct_base", BASE_FEATURES),
                            ("direct_enhanced", BASE_FEATURES + ENHANCED_FEATURES),
                            ("direct_enhanced_opponent", BASE_FEATURES + ENHANCED_FEATURES + OPPONENT_FEATURES)):
@@ -149,16 +155,38 @@ def _evaluate_fold(frame: pd.DataFrame, train_seasons: list[str], test_season: s
         calibration_prob = model.predict_proba(X_calibration)[:, 1]
         test_prob = _apply_platt(_fit_platt(calibration_prob, y_calibration), model.predict_proba(X_test)[:, 1])
         rows.append({"fold": test_season, "model": name, "n_test": len(test), **_metrics(y_test, test_prob)})
+        if name == "direct_enhanced":
+            enhanced_test_prob = test_prob
+        elif name == "direct_enhanced_opponent":
+            opponent_test_prob = test_prob
         if name in {"direct_enhanced", "direct_enhanced_opponent"}:
             coefficients = model[-1].coef_[0]
             arm = pd.DataFrame({"arm": name, "feature": columns, "coefficient": coefficients,
                                 "abs_coefficient": np.abs(coefficients)}).sort_values("abs_coefficient", ascending=False)
             importance = arm if importance.empty else pd.concat([importance, arm], ignore_index=True)
 
+    # Paired per-row log losses for the two arms the promotion decision actually
+    # compares. A difference between two models scored on the *same* fixtures is a
+    # paired statistic, so its standard error is the standard error of the per-row
+    # differences -- far tighter than the ~0.019 unpaired half-width that
+    # EXP-2026-26 measured for the scoreline candidates, and it is the number
+    # `promotion_rule`'s gate 1c needs. Emitted only when asked for, because it
+    # is O(rows) and nothing in the summary needs it.
+    if paired_rows is not None:
+        for name, probability in (("direct_enhanced", enhanced_test_prob),
+                                  ("direct_enhanced_opponent", opponent_test_prob)):
+            probability = np.clip(probability, 1e-15, 1 - 1e-15)
+            per_row = -(y_test * np.log(probability) + (1 - y_test) * np.log(1 - probability))
+            paired_rows.append(pd.DataFrame({"fold": test_season, "model": name, "y": y_test, "log_loss": per_row}))
+
     return rows, importance
 
 
-def evaluate_goal_contribution_models(seasons: list[str] | None = None, min_train_seasons: int = 2) -> dict:
+def evaluate_goal_contribution_models(
+    seasons: list[str] | None = None,
+    min_train_seasons: int = 2,
+    with_paired_rows: bool = False,
+) -> dict:
     """Walk forward through seasons and compare calibrated G+A approaches.
 
     The return value is deliberately report-shaped rather than a fitted model:
@@ -168,8 +196,12 @@ def evaluate_goal_contribution_models(seasons: list[str] | None = None, min_trai
     available_seasons = sorted(frame["season"].unique())
     all_rows: list[dict] = []
     importances: list[pd.DataFrame] = []
+    paired: list[pd.DataFrame] = []
     for index in range(min_train_seasons, len(available_seasons)):
-        rows, importance = _evaluate_fold(frame, available_seasons[:index], available_seasons[index])
+        rows, importance = _evaluate_fold(
+            frame, available_seasons[:index], available_seasons[index],
+            paired_rows=paired if with_paired_rows else None,
+        )
         all_rows.extend(rows)
         if not importance.empty:
             importance["fold"] = available_seasons[index]
@@ -177,7 +209,10 @@ def evaluate_goal_contribution_models(seasons: list[str] | None = None, min_trai
     metrics = pd.DataFrame(all_rows)
     summary = metrics.groupby("model", as_index=False)[["brier", "log_loss", "average_precision", "ece"]].mean() if not metrics.empty else pd.DataFrame()
     feature_importance = pd.concat(importances, ignore_index=True) if importances else pd.DataFrame(columns=["arm", "feature", "coefficient", "abs_coefficient", "fold"])
-    return {"metrics": metrics, "summary": summary, "feature_importance": feature_importance}
+    result = {"metrics": metrics, "summary": summary, "feature_importance": feature_importance}
+    if with_paired_rows:
+        result["paired_rows"] = pd.concat(paired, ignore_index=True) if paired else pd.DataFrame()
+    return result
 
 
 def _column(rows: pd.DataFrame, name: str) -> pd.Series:

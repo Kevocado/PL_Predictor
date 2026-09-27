@@ -14,3 +14,11 @@ build/
 dist/
 .pytest_cache/
 .worktrees/
+
+# Regenerable diagnostics from `evaluate/scoreline_selection.py`. Deliberately
+# not tracked: `models/manifest.json` embeds its content, so this file is only a
+# transport. Committing it would let a stale copy ship as though it were current
+# -- and a stale headline is worse than an absent one, which is why a retrain on
+# a fresh checkout reports `walk_forward_status: not_computed` rather than
+# inventing a figure.
+models/selection_walk_forward.json

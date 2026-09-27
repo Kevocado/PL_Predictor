@@ -27,6 +27,12 @@ from ..features.build import FixtureFeatureContext, build_training_frame
 from . import covariate_poisson, market_models, ml_scoreline, scoreline
 
 MANIFEST_PATH = MODELS_DIR / "manifest.json"
+# Written by `evaluate/scoreline_selection.py`, read here. Kept separate from
+# `manifest.json` because computing it costs a full four-candidate walk-forward
+# (minutes) and the manifest is rewritten on every retrain; see
+# SELECTION_WALK_FORWARD_PATH's own entry in `manifest["scoreline"]["selection"]`
+# for why the published number needs it at all.
+SELECTION_WALK_FORWARD_PATH = MODELS_DIR / "selection_walk_forward.json"
 MANIFEST_HISTORY_PATH = MODELS_DIR / "manifest_history.jsonl"
 CORNERS_MODEL_PATH = MODELS_DIR / "corners_xgb.json"
 CARDS_MODEL_PATH = MODELS_DIR / "cards_xgb.json"
@@ -124,6 +130,49 @@ def _score_outcome_probs(model, val_df: pd.DataFrame) -> tuple[np.ndarray, float
     probs = np.array([[p["home_win"], p["draw"], p["away_win"]] for p in preds])
     fallback_rate = float(np.mean([p["fallback"] for p in preds]))
     return probs, fallback_rate
+
+
+def _selection_block(candidates: dict, chosen_market_metrics: dict) -> dict:
+    """Everything a reader needs to not over-trust the reported holdout RPS.
+
+    The reported holdout figure is a best-of-four *on the fold it is reported on*:
+    `chosen = min(candidates, key=candidates.get)` runs against this same
+    `val_df`. That is a selection set, not a held-out one. The size of the
+    resulting flattering is measured rather than asserted, in
+    `evaluate/scoreline_selection.py` and the EXP-2026-26 ledger entry.
+
+    The walk-forward diagnostics live in a cache file rather than being recomputed
+    here, because they cost a full four-candidate walk-forward and this function
+    runs on every retrain. When the cache is absent or unreadable the block says
+    `not_computed` -- it never falls back to a stale figure, because a stale
+    headline presented as current is worse than no headline.
+    """
+    walk_forward = None
+    if SELECTION_WALK_FORWARD_PATH.exists():
+        try:
+            cached = json.loads(SELECTION_WALK_FORWARD_PATH.read_text())
+            if isinstance(cached, dict) and "walk_forward_mean" in cached:
+                walk_forward = cached
+        except (json.JSONDecodeError, OSError):
+            walk_forward = None
+
+    selection = {
+        # Explicit, so no reader can mistake the holdout figure for an
+        # out-of-sample estimate.
+        "holdout_selected_on_this_fold": True,
+        "candidates_on_this_holdout": candidates,
+        "rps_ci": [
+            chosen_market_metrics.get("rps_ci_low"),
+            chosen_market_metrics.get("rps_ci_high"),
+        ],
+        "recommended_headline": "walk_forward_mean_rps",
+        "walk_forward": walk_forward,
+        "walk_forward_status": "cached" if walk_forward else "not_computed",
+    }
+    if walk_forward:
+        means = walk_forward.get("walk_forward_mean") or {}
+        selection["headline_rps"] = means.get(walk_forward.get("best_by_walk_forward_mean"))
+    return selection
 
 
 def _evaluate_scoreline_model(model, val_df: pd.DataFrame) -> dict:
@@ -371,6 +420,8 @@ def train_all(seasons: list[str] | None = None, include_current_season: bool = T
     market_models.save_regressor(home_sot_model, HOME_SHOTS_ON_TARGET_MODEL_PATH)
     market_models.save_regressor(away_sot_model, AWAY_SHOTS_ON_TARGET_MODEL_PATH)
 
+    selection = _selection_block(candidates, market_metrics.get(chosen, {}))
+
     manifest = {
         "trained_at": datetime.now(timezone.utc).isoformat(),
         "seasons": sorted(df["season"].unique().tolist()),
@@ -383,6 +434,7 @@ def train_all(seasons: list[str] | None = None, include_current_season: bool = T
             "chosen_model": chosen,
             "market_overrides": market_overrides,
             "market_metrics": market_metrics,
+            "selection": selection,
             "dixon_coles": {"path": DIXON_COLES_PATH.name, "metrics": dc_metrics},
             "bivariate_poisson": {"path": BIVARIATE_POISSON_PATH.name, "metrics": bp_metrics},
             "ml_scoreline": {

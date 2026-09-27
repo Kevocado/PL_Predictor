@@ -76,6 +76,13 @@ RATE_FEATURES = [
 STARTER_MINUTES = 82.9
 SUBSTITUTE_MINUTES = 39.9
 
+# Mirrors `OPPONENT_FEATURES` in evaluate.goal_contribution_research, which owns
+# the fitted set. Duplicated rather than imported because that module imports
+# this one for the frame builder, and a runtime import here would be circular.
+_OPPONENT_DEFENCE_FEATURES = (
+    "opponent_defence_last3", "opponent_defence_last5", "opponent_defence_last10",
+)
+
 
 def fit_reliability_coefficients(seasons: list[str] | None = None) -> dict:
     """Fits the two small linear regressions `evaluate/
@@ -121,10 +128,15 @@ def fit_goal_contribution_model(seasons: list[str] | None = None) -> dict:
     from sklearn.pipeline import make_pipeline
     from sklearn.preprocessing import StandardScaler
 
-    from ..evaluate.goal_contribution_research import BASE_FEATURES, ENHANCED_FEATURES, build_goal_contribution_frame
+    from ..evaluate.goal_contribution_research import (
+        BASE_FEATURES,
+        ENHANCED_FEATURES,
+        OPPONENT_FEATURES,
+        build_goal_contribution_frame,
+    )
 
     frame, _ = build_goal_contribution_frame(seasons)
-    all_features = [feature for feature in BASE_FEATURES + ENHANCED_FEATURES if feature in frame] + ["position"]
+    all_features = [feature for feature in BASE_FEATURES + ENHANCED_FEATURES + OPPONENT_FEATURES if feature in frame] + ["position"]
     available_seasons = sorted(frame["season"].unique())
     if len(available_seasons) < 2:
         return {}
@@ -200,6 +212,7 @@ def predict_goal_contribution(
     position: str,
     contribution_model: dict | None,
     is_home: bool = False,
+    opponent_defence: dict | None = None,
 ) -> float | None:
     """Return calibrated direct P(goal or assist), or None without a fit.
 
@@ -225,6 +238,14 @@ def predict_goal_contribution(
     exactly the kind this function's docstring above is fixing. The two
     functions differ on precedence deliberately, and
     `test_was_home_argument_overrides_a_conflicting_rates_value` pins it.
+
+    `opponent_defence` does the same job for the three `opponent_defence_last*`
+    terms (EXP-2026-25), for the same reason and with the same precedence: they
+    describe *the fixture being priced*, and nothing reachable through
+    `blended_current_form` describes it -- that function rolls the player's own
+    history, which has no notion of who is being faced. A caller that cannot
+    resolve the opponent passes `None` and gets 0.0, which is the league-average
+    prior the fitted model was calibrated against, not a missing feature.
     """
     if not contribution_model:
         return None
@@ -235,6 +256,10 @@ def predict_goal_contribution(
     }
     if "was_home" in values:
         values["was_home"] = 1.0 if is_home else 0.0
+    for feature in _OPPONENT_DEFENCE_FEATURES:
+        if feature in values:
+            supplied = (opponent_defence or {}).get(feature)
+            values[feature] = float(supplied) if supplied is not None else 0.0
     values["position"] = position
     matrix = pd.get_dummies(pd.DataFrame([values]), columns=["position"], dtype=float)
     matrix = matrix.reindex(columns=contribution_model["columns"], fill_value=0.0)
@@ -371,6 +396,7 @@ def predict_player(
     is_penalty_taker: bool = False,
     is_set_piece_taker: bool = False,
     context: object | None = None,
+    opponent_defence: dict | None = None,
 ) -> dict:
     """`rates` is `features.player_form.blended_current_form`'s output.
     `reliability_coeffs` (from `fit_reliability_coefficients`) is optional —
@@ -476,6 +502,7 @@ def rank_team_players(
     confirmed_starter_ids: set[int] | None = None,
     player_shots_by_element: dict[int, pd.DataFrame] | None = None,
     context: object | None = None,
+    opponent_defence: dict | None = None,
 ) -> list[dict]:
     """Ranked (by anytime-goal probability) list of a team's players for one
     fixture, given that fixture's team expected goals from the scoreline
@@ -570,9 +597,11 @@ def rank_team_players(
             expected_minutes=lineup["expected_minutes"], position=position, is_home=is_home,
             position_rate_models=position_rate_models, is_penalty_taker=is_penalty_taker,
             is_set_piece_taker=is_set_piece_taker, context=context,
+            opponent_defence=opponent_defence,
         )
         direct_contribution = predict_goal_contribution(
-            rates, start_features, position, contribution_model, is_home=is_home
+            rates, start_features, position, contribution_model, is_home=is_home,
+            opponent_defence=opponent_defence,
         )
         pred["anytime_goal_contribution_prob"] = blend_contribution(
             direct_contribution,
