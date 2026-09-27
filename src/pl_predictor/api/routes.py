@@ -189,6 +189,27 @@ def get_health():
     return {"status": "ok", "cache_warmup": dict(_warmup_status)}
 
 
+@router.get("/snapshot-meta")
+def get_snapshot_meta() -> dict:
+    """When the data this site serves was actually produced.
+
+    The snapshot carries generated_at at its top level, but every route that
+    reads it (/api/fixtures, the hub routes) returns a payload with no
+    timestamp, so no other endpoint can answer "how old are these numbers?".
+    The hub needs to say that on the card, and this is also the honest
+    answer for anyone tracking how fresh a deployment is.
+
+    Empty dict when no snapshot has been generated yet -- a public deploy
+    before its first snapshot -- so this reports source "live" rather than
+    raising. That is the real state, not a failure.
+    """
+    snap = _public_snapshot()
+    return {
+        "generated_at": snap.get("generated_at"),
+        "source": "public_snapshot" if snap else "live",
+    }
+
+
 def _refresh_player_outcomes_in_background(gameweek: int) -> None:
     """Refresh missing player events without making fixture cards wait."""
     if not _player_outcome_backfill_lock.acquire(blocking=False):
