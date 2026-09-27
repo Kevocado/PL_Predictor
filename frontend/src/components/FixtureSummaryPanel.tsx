@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ExplainerPanel, type Explanation } from "../predictor-ui";
-import { panelFacts } from "../lib/panelFacts";
+import { barPick, panelFacts } from "../lib/panelFacts";
 import type { FixtureSummary } from "../types";
 
 /**
@@ -57,11 +57,33 @@ export function FixtureSummaryPanel({
   // on every keystroke anywhere above.
   const panel = useMemo(() => panelFacts(fixture), [fixture]);
 
+  // The answer's pick, restated in the vocabulary the bar above is drawn in.
+  //
+  // The panel reads the pick off `data` itself — there is no `pick` prop to
+  // pass — so this is the only place the site's own labelling and the service's
+  // can be reconciled. PL's facts name the pick "Arsenal win" while this site's
+  // segments are labelled "Arsenal", and the bar joins the two **by label**. Left
+  // alone that is a fixture with a pick rendering a bar with nothing accented:
+  // green build, green tests, and a panel that contradicts the verdict printed
+  // directly above it. See `barPick` for why only the string moves and never the
+  // pick itself.
+  //
+  // `pick_timing` and the rest are carried through untouched, and a v1 body has
+  // no `pick` to reconcile, so both arms pass straight through.
+  //
+  // The key is rewritten only when there IS a pick, which keeps it **absent**
+  // rather than `null` when there is not: the contract states "no pick" by
+  // omission, so that it stays one question with one answer.
+  const wired = useMemo(() => {
+    if (!data || !("factors" in data) || !data.pick) return data;
+    return { ...data, pick: barPick(data.pick, panel.segments) };
+  }, [data, panel.segments]);
+
   if (!fetcher) return null;
   return (
     <div className={className}>
       <ExplainerPanel
-        data={data}
+        data={wired}
         loading={loading}
         error={error}
         onRetry={() => load()}

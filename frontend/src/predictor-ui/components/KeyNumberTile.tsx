@@ -1,4 +1,4 @@
-// Synced from predictor-ui@d167633be70a. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@52a31840951f. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 import type { ReactNode } from "react";
 
 /**
@@ -18,10 +18,16 @@ import type { ReactNode } from "react";
  */
 export type MarketTile = {
   /** The facts' own `market` key. A factor's `key` refers to this, which is what
-   *  makes the §13c highlight a lookup rather than a second naming scheme. */
+   *  makes the §13c highlight a lookup rather than a second naming scheme. It is
+   *  an identifier, and it is used for the `data-testid` and the highlight only —
+   *  never as something to read. */
   market: string;
+  /** The words for this market, for a reader. Never a key: `btts` is what the
+   *  facts call it, "Both teams score" is what a reader needs. */
   label: string;
   value: string;
+  /** The market's own line beneath the figure, when the facts carry one. It
+   *  stands in for `label` when present, so it has to read as a phrase too. */
   sub?: ReactNode;
   /** A colour for the market's own identity, where one exists. */
   tint?: string;
@@ -44,7 +50,16 @@ export function KeyNumberTile({ tile, highlighted }: { tile: MarketTile; highlig
       >
         {value}
       </dd>
-      <dt className="text-xs leading-snug text-pr-text-dim">{sub ?? market}</dt>
+      {/* `sub` when the site gave one, otherwise the market's LABEL — never
+       *  `market`. That fallback was the defect: `market` is the key the facts
+       *  use to join on ("btts", "total_goals", "moneyline"), so a tile that
+       *  carried a label and no sub line showed the reader a machine key in the
+       *  one slot on the tile reserved for words — and it did it silently,
+       *  because `label` was required, was accepted, and was never rendered
+       *  anywhere. A key printed where a label belongs is the general shape of
+       *  this bug; the words are the fix and they come from the caller's
+       *  `label`, which is what that field is for. */}
+      <dt className="text-xs leading-snug text-pr-text-dim">{sub ?? tile.label}</dt>
     </dl>
   );
 }

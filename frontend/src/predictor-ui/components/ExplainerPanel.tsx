@@ -1,4 +1,4 @@
-// Synced from predictor-ui@d167633be70a. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@52a31840951f. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 import { useEffect, useId, useState } from "react";
 import { ErrorState, Skeleton } from "./States";
 import { StatusBadge, type Moment } from "./StatusBadge";
@@ -6,11 +6,14 @@ import { BandChip, PanelHeading, type Band } from "./ExplainerVerdict";
 import { KeyNumberTile, type MarketTile } from "./KeyNumberTile";
 import { FactorList, type Factor } from "./FactorList";
 import { RecordStrip } from "./RecordStrip";
-import { ProbabilityBar, type Segment } from "./ProbabilityBar";
+import { ProbabilityBar, type PickRef, type Segment } from "./ProbabilityBar";
 
 /** What a v2 answer looks like: a verdict, a computed band, and factors that
- *  *reference* a market by key rather than carrying a figure. */
-export type Verdict = { verdict: string; band: Band; factors: Factor[] };
+ *  *reference* a market by key rather than carrying a figure.
+ *
+ *  `pick` is absent when there is no pick, which is the case the panel has to
+ *  honour twice: no bar segment is accented, and nothing says "for the pick". */
+export type Verdict = { verdict: string; band: Band; factors: Factor[]; pick?: PickRef };
 
 /** The shape v1 returned. Still accepted, and removed in v2 phase 4.
  *
@@ -25,7 +28,11 @@ export type LegacyExplanation = {
   sections: { market: string; title: string; text: string }[];
 };
 
-type Common = {
+/** Everything both shapes of answer carry. Exported so a caller that *builds* an
+ *  answer can name the v2 arm (`Common & Verdict`) rather than the union: on
+ *  the union, `.factors` does not exist, which is a type error at every call
+ *  site that legitimately has a v2 answer in hand. */
+export type Common = {
   /** "llm" means a model wrote these words; "template" means the site's own
    *  copy did, from the same numbers. The panel never blurs the two. */
   source: "llm" | "template";
@@ -102,6 +109,7 @@ export function ExplainerPanel({
   tiles = [],
   segments,
   legend,
+  expandable = false,
   record,
   players,
 }: {
@@ -120,6 +128,11 @@ export function ExplainerPanel({
   /** The market's own split, rendered only when it covers every outcome
    *  `segments` has (§13b). */
   legend?: Segment[];
+  /** For a surface that can be too narrow for a row of figures — the market
+   *  row's labels collapse behind a real `aria-expanded` button, the same shape
+   *  `FactorList` uses for a clamped sentence. Off by default, so a wide panel
+   *  never hides text behind a control that adds nothing. */
+  expandable?: boolean;
   record?: { label: string; hits: number | null; settled: number };
   /** NFL's top player projections (§6). A list the facts already carry, so it
    *  costs the panel nothing to show. */
@@ -174,7 +187,18 @@ export function ExplainerPanel({
         <p className="min-w-0 max-w-[70ch] text-lg font-medium leading-snug text-pr-text">
           {v2 ? data.verdict : data.headline}
         </p>
-        {v2 && <BandChip band={data.band} />}
+        {/* A rebuilt pick shows NO band (spec §13e), and the decision is this one
+            line. The band is still computed by `band_for` and still in the
+            response — withholding a value the panel cannot act on is a rendering
+            decision, and keeping it computed keeps it available to whatever reads
+            the row next. It is withheld rather than softened because the number it
+            describes came from a model asked after the event began: it had seen
+            the score, so the band measures confidence in a number produced with
+            the answer already known, and the panel is telling the reader two lines
+            below not to count or grade it. "STRONG" beside that asks the reader to
+            resolve a contradiction this panel created. Hiding it fails closed,
+            which is the direction the footer already fails in. */}
+        {v2 && !rebuilt && <BandChip band={data.band} />}
       </div>
 
       {rebuilt && (
@@ -211,6 +235,10 @@ export function ExplainerPanel({
               segments={segments}
               legend={legend}
               minSegmentPx={2}
+              expandable={expandable}
+              // The answer's pick, never worked out here. Absent, the bar accents
+              // nothing, which is the honest rendering of a bar with no pick.
+              pick={v2 ? data.pick : null}
               highlightKey={highlighted}
               onSegmentFocus={(_, market) => market && setHighlighted(market)}
             />

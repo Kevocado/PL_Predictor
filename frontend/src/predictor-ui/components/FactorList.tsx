@@ -1,4 +1,4 @@
-// Synced from predictor-ui@d167633be70a. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@52a31840951f. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 import { useState } from "react";
 
 /**
@@ -10,7 +10,9 @@ import { useState } from "react";
  * 1. **The direction is never carried by colour.** A drawn triangle and a word —
  *    "for the pick" / "against it" — so the meaning survives with no colour
  *    perception, no greyscale print and no stylesheet. The triangle is
- *    `aria-hidden` and the words are the accessible truth.
+ *    `aria-hidden` and the words are the accessible truth. A `neutral` factor
+ *    draws neither: there is no direction to draw, and a mark in either
+ *    direction would be one.
  * 2. **The marks are drawn, not borrowed.** The §7a mock uses ▲ and ▼, which are
  *    unicode characters standing in for an icon system: they render at the
  *    viewer's font, at the viewer's weight, and they are not a consistent set.
@@ -22,7 +24,11 @@ import { useState } from "react";
  */
 export type Factor = {
   key: string;
-  direction: "up" | "down";
+  /** Relative to the pick, per spec §5a: `up` argues for it, `down` against,
+   *  and `neutral` neither — a statement about the game (the total, both teams
+   *  to score) or about the record. With no pick every factor is `neutral`,
+   *  because there is nothing to be for or against. */
+  direction: "up" | "down" | "neutral";
   headline: string;
   text: string;
 };
@@ -41,9 +47,41 @@ const TRIANGLE = (up: boolean) => (
   </svg>
 );
 
+/** The mark a direction is allowed, keyed by direction rather than derived from
+ *  it. `direction === "up"` used to decide, which reads a neutral row as "not
+ *  up" and so paints it as a down triangle in the loss colour — turning a row
+ *  that claims nothing into a claim that the case is against the pick. A table
+ *  keyed by the whole union cannot do that: there is no default branch to fall
+ *  into, so a fourth direction fails to compile rather than to render as a
+ *  verdict. `neutral` has no mark at all. */
+const MARK: Record<Factor["direction"], "up" | "down" | null> = {
+  up: "up",
+  down: "down",
+  neutral: null,
+};
+
+/** The colour a mark is allowed. Green means "for" and red means "against", so
+ *  a neutral row wears neither: the panel's own faint text token, which is the
+ *  same one its direction words are already set in. */
+const TONE: Record<Factor["direction"], string> = {
+  up: "text-pr-win",
+  down: "text-pr-loss",
+  neutral: "text-pr-text-faint",
+};
+
 const WORDS: Record<Factor["direction"], string> = {
   up: "for the pick",
   down: "against it",
+  // A label, not a direction, because that is what the row now is: a statement
+  // about the game, the record, or how little there is to weigh up. It must not
+  // name a pick — with no pick there is none to name — and it must not read as a
+  // verdict. Rejected: "neutral", which in this product's copy means "no edge",
+  // i.e. a claim about the pick; "not for or against", which is accurate and
+  // re-names the pick in exactly the state that has none; "either way", which
+  // claims the row cancels itself out when it does not; and "for reference",
+  // which the panel already uses to mean "shown but not counted" and would blur
+  // two different warnings into one word.
+  neutral: "context",
 };
 
 export function FactorList({
@@ -73,12 +111,16 @@ export function FactorList({
   return (
     <ul className="flex flex-col gap-3">
       {factors.map((factor, i) => {
-        const up = factor.direction === "up";
+        const mark = MARK[factor.direction];
         const open = isOpen(i);
         return (
           <li key={`${factor.key}-${i}`} className="flex min-w-0 flex-col gap-1">
             <div className="flex items-start gap-2">
-              <span className={up ? "mt-0.5 text-pr-win" : "mt-0.5 text-pr-loss"}>{TRIANGLE(up)}</span>
+              {/* The gutter stays whatever the mark is, so a neutral row's words
+                  line up with the rows above and below it. */}
+              <span className={`mt-0.5 w-[14px] shrink-0 ${TONE[factor.direction]}`}>
+                {mark && TRIANGLE(mark === "up")}
+              </span>
               {onSelect ? (
                 <button
                   type="button"

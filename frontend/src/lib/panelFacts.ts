@@ -17,7 +17,7 @@
  *  nobody has checked.
  */
 import { pct, stat } from "../predictor-ui";
-import type { MarketTile, Segment } from "../predictor-ui";
+import type { MarketTile, PickRef, Segment } from "../predictor-ui";
 import type { FixtureSummary } from "../types";
 
 /** A probability is only a probability if it is one. A missing field is not 0. */
@@ -81,4 +81,46 @@ export function panelFacts(fixture: FixtureSummary | null | undefined) {
   }
 
   return { tiles, segments, legend };
+}
+
+/** What PL's `/facts` calls the two sides. `match_pick` in the PL API's facts
+ *  module words the pick `"<team> win"` and the draw `"Draw"` — the draw needs no
+ *  suffix, which is exactly why a draw pick has always matched this site's bar
+ *  and a side pick never has. */
+const WIN_SUFFIX = " win";
+
+/** The answer's pick, in the vocabulary THIS site's bar is drawn in.
+ *
+ *  The bar joins the pick to a segment **by label** (`pickIndex` in
+ *  `ProbabilityBar`, which is spec §5b: the service derives the pick and the
+ *  renderer follows it). This site labels its segments with the bare team names,
+ *  because "Arsenal 48%" is what a reader wants and "Arsenal win 48%" is not —
+ *  and PL's facts say "Arsenal win". So a home or away pick matched nothing, and
+ *  a bar with nothing matched is the panel's correct rendering of a bundle with
+ *  **no pick** and a completely wrong one for a fixture that has one. It fails
+ *  silently: the build is green, every test passes, and the reader is told which
+ *  side was picked by a verdict sentence above a bar that declines to agree.
+ *
+ *  Only the STRING is translated. The pick's identity — which side, and at what
+ *  probability — is the service's, derived server-side from the validated facts,
+ *  and it is never re-derived here from this site's own numbers: a site that
+ *  worked the pick out for itself would reintroduce the exact defect the field
+ *  exists to remove, and would accent whichever segment happened to be widest.
+ *
+ *  A label that cannot be placed is returned **unchanged**, so the bar fails
+ *  closed — nothing accented — rather than accenting the nearest segment to a
+ *  claim nobody made.
+ *
+ *  Takes a pick rather than a pick-or-nothing on purpose. The contract states
+ *  "no pick" by OMITTING the key and never as `null` ("`is there a pick` stays
+ *  one question with one answer"), so whether there is a pick is the caller's
+ *  question to ask before it gets here; this function only ever translates one
+ *  that exists, and cannot turn a real pick into `null` on the way through.
+ */
+export function barPick(pick: PickRef, segments: Segment[]): PickRef {
+  if (segments.some((s) => s.label === pick.label)) return pick;
+  if (!pick.label.endsWith(WIN_SUFFIX)) return pick;
+  const bare = pick.label.slice(0, -WIN_SUFFIX.length);
+  const match = segments.find((s) => s.label === bare);
+  return match ? { ...pick, label: match.label } : pick;
 }

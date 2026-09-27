@@ -1,4 +1,4 @@
-/* Synced from predictor-ui@d167633be70a. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs. */
+/* Synced from predictor-ui@52a31840951f. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs. */
 /* Predictor family tokens. Synced into each site; import in this order:
      @import "./predictor-ui/fonts.css";
      @import "tailwindcss";
@@ -18,6 +18,17 @@
   --color-pr-text: #f3f5f8;
   --color-pr-text-dim: #b4bdca;
   --color-pr-text-faint: #909aa8;
+
+  /* A FILL tone only, and the last rung below the text scale. The split bar
+     paints its non-pick segments in a neutral ramp, and a three-way bar needs
+     three steps of it; the accent is spoken for (it means "this is the pick"),
+     text-dim and text-faint are the top two, and this is the third.
+     Deliberately NOT a text colour: it sits below the 4.5:1 bar, so the name
+     says what it paints. `--color-pr-text` cannot serve instead — a near-white
+     segment beside two greys reads as a highlight, which is the claim this tone
+     exists to avoid — and `--color-pr-rule` / `--color-pr-panel-2` are under the
+     1.6:1 fill floor (1.4:1 and 1.1:1 on the panel). */
+  --color-pr-fill-mute: #5e6775;
 
   /* Status, always paired with words (Called it / Missed / Leans). */
   --color-pr-win: #3ddc84;

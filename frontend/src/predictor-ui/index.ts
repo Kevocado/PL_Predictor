@@ -1,13 +1,13 @@
-// Synced from predictor-ui@d167633be70a. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@52a31840951f. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 export * from "./fmt";
 export { contrast, inkFor, luminance } from "./contrast";
 export { AppFrame, type SiteLink, type Sport, type Tab } from "./components/AppFrame";
 export { MatchCard, type Side } from "./components/MatchCard";
-export { ProbabilityBar, type Segment } from "./components/ProbabilityBar";
+export { ProbabilityBar, type PickRef, type Segment } from "./components/ProbabilityBar";
 export { RoundNavigator } from "./components/RoundNavigator";
 export { StatTile } from "./components/StatTile";
 export { EmptyState, ErrorState, Skeleton } from "./components/States";
-export { ExplainerPanel, type Explanation, type Verdict, type LegacyExplanation } from "./components/ExplainerPanel";
+export { ExplainerPanel, type Explanation, type Verdict, type LegacyExplanation, type Common } from "./components/ExplainerPanel";
 export { BandChip, PanelHeading, type Band } from "./components/ExplainerVerdict";
 export { KeyNumberTile, type MarketTile } from "./components/KeyNumberTile";
 export { FactorList, type Factor } from "./components/FactorList";

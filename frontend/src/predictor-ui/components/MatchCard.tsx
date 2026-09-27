@@ -1,4 +1,4 @@
-// Synced from predictor-ui@d167633be70a. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@52a31840951f. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 import type { ReactNode } from "react";
 import { pct } from "../fmt";
 import { ProbabilityBar, type Segment } from "./ProbabilityBar";
@@ -85,7 +85,16 @@ export function MatchCard({ left, right, centre, status, pick, when, meta, bar, 
         <span data-testid="pick-section" className="flex w-full flex-col gap-2 border-t border-pr-rule pt-2.5">
           <Sep />
           {pickLine && <span className={`text-sm font-semibold ${pick ? "text-pr-text" : "text-pr-text-dim"}`}>{pickLine}</span>}
-          {bar && <ProbabilityBar segments={bar} />}
+          {/* No `onSegmentFocus`, which is what keeps the bar's segment labels as
+              text rather than buttons: a button inside this card's own `<button>`
+              is invalid HTML, and a browser is entitled not to make the inner one
+              interactive at all. It would also be a control with nothing to
+              report to — §13c's other half is a factor list, and a card has no
+              factors, so there is no highlight for a focused segment to join and
+              nothing for it to dim. The card's own surface is the affordance here,
+              and the figures stay visible either way. Passing a handler on this
+              line is what puts the nesting back. */}
+          {bar && <ProbabilityBar segments={bar} pick={pick ? { label: pick.label } : null} />}
           {meta && (
             <>
               <Sep />
