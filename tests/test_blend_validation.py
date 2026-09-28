@@ -162,3 +162,54 @@ def test_the_fitted_blend_weight_is_not_a_weight_for_the_quantity_that_is_served
     assert not hasattr(player_goals, "_apply_platt_to_served_union"), (
         "if a served-union calibrator now exists, EXP-2026-28's skew is fixed and this "
         "test plus the ledger entry must be revisited")
+
+
+def test_serving_does_not_apply_a_weight_fitted_against_another_construction():
+    """The interim state after EXP-2026-28.
+
+    `_fit_blend_weight` minimises Brier against a **Platt-calibrated**
+    `_poisson_union` built from a last-10 per-90 rate times expected minutes.
+    Serving passes `anytime_probability(lam_goals + lam_assists)`, built from
+    position-rate regressors scaled by team attack strength, minutes fraction and
+    availability, **uncalibrated**. Two different quantities in two different
+    calibration states, with no stored union calibrator to bridge them.
+
+    So the fitted weight is recorded (`fitted_blend_weight`) but not applied. A
+    convex mixture at a neutral share still removes the `max(...)` order-statistic
+    bias, which was the structural point of the change; the fitted share was never
+    more than a refinement on top of that, and it was fitted against the wrong
+    thing.
+    """
+    from pl_predictor.models import player_goals
+
+    assert player_goals._serving_blend_weight(0.70) == player_goals.NEUTRAL_BLEND_WEIGHT
+    assert player_goals._serving_blend_weight(0.65) == player_goals.NEUTRAL_BLEND_WEIGHT
+    assert player_goals._serving_blend_weight(None) == player_goals.NEUTRAL_BLEND_WEIGHT
+    assert player_goals.NEUTRAL_BLEND_WEIGHT != 0.70, (
+        "if the neutral weight is ever set to the fitted value, the distinction this "
+        "exists to make has been lost and EXP-2026-28 must be revisited")
+
+
+def test_the_blend_is_still_convex_at_the_neutral_weight():
+    """Dropping the fitted share must not reintroduce the order-statistic bias.
+    A convex mixture can land below either arm; a max never can."""
+    from pl_predictor.models.player_goals import NEUTRAL_BLEND_WEIGHT, blend_contribution
+
+    direct, union = 0.30, 0.45
+    blended = blend_contribution(direct, union, NEUTRAL_BLEND_WEIGHT)
+    assert blended < max(direct, union), "must not be an order statistic"
+    assert blended == pytest.approx(NEUTRAL_BLEND_WEIGHT * direct + (1 - NEUTRAL_BLEND_WEIGHT) * union)
+    # And it must not be floored at zero or capped at one for extreme arms.
+    assert 0.0 < blend_contribution(0.99, 0.01, NEUTRAL_BLEND_WEIGHT) < 1.0
+
+
+def test_the_fitted_weight_is_still_recorded_on_the_model():
+    """It is real information about the research construction and belongs in the
+    manifest. Dropping it would lose the EXP-2026-24 result; applying it is what
+    EXP-2026-28 forbids."""
+    from pl_predictor.models.player_goals import NEUTRAL_BLEND_WEIGHT
+
+    model = {"blend_weight": NEUTRAL_BLEND_WEIGHT, "fitted_blend_weight": 0.70}
+    assert model["fitted_blend_weight"] == pytest.approx(0.70)
+    assert model["blend_weight"] == pytest.approx(NEUTRAL_BLEND_WEIGHT)
+    assert model["blend_weight"] != model["fitted_blend_weight"]
