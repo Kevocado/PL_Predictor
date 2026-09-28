@@ -13,6 +13,8 @@ from __future__ import annotations
 
 import pandas as pd
 
+from .date_keys import as_date_key
+
 from . import rolling_form
 
 FEATURE_COLS = ["home_current_streak", "away_current_streak"]
@@ -65,10 +67,13 @@ def attach_streak_features(matches_df: pd.DataFrame) -> tuple[pd.DataFrame, list
         .rename(columns={"team": "team_away"})
     )
 
-    left = matches_df[["date", "team_home", "team_away"]].reset_index()
-    merged = left.merge(home_join, on=["date", "team_home"], how="left").merge(
-        away_join, on=["date", "team_away"], how="left"
-    )
+    # `home_join`/`away_join` come from a `set_index`/`reset_index` round trip of a
+    # long frame built from `matches_df`, so their `date` resolution is not guaranteed
+    # to match the original. See `features/date_keys.py`.
+    left = as_date_key(matches_df[["date", "team_home", "team_away"]]).reset_index()
+    merged = as_date_key(left).merge(
+        as_date_key(home_join), on=["date", "team_home"], how="left"
+    ).merge(as_date_key(away_join), on=["date", "team_away"], how="left")
     merged = merged.set_index("index").reindex(matches_df.index)
     out = merged[FEATURE_COLS].fillna(0)
     return out, FEATURE_COLS

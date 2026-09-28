@@ -9,7 +9,14 @@ description = "Premier League match outcome, scoreline, and betting-market predi
 requires-python = ">=3.10"
 dependencies = [
     "penaltyblog>=1.12.0",
-    "pandas",
+    # A floor, deliberately not a pin. The date-resolution bug that CI found was
+    # fixed in code (`features/date_keys.py`), because a pin would only make this
+    # machine and CI agree and leave the next cache written by a different version
+    # free to disagree again. So correctness no longer depends on the version -- but
+    # a floor is still worth having, because datetime *resolution inference*
+    # (`s` vs `us` vs `ns`) only exists from pandas 2.0, and an unbounded
+    # `pandas` will happily install a 1.x that behaves differently again.
+    "pandas>=2.0",
     "numpy",
     "scipy",
     "xgboost",
