@@ -203,8 +203,14 @@ def test_an_improvement_well_inside_the_noise_does_not_promote():
 
 def test_a_real_promotion_passes_once_the_noise_is_measured():
     """EXP-2026-25 re-adjudicated with its own measured paired half-width of
-    0.000161. The mean improvement is +0.000787, about 4.9x the noise, and it
-    wins every fold."""
+    0.000161. The mean improvement is +0.000787 and it wins every fold.
+
+    The margin quoted here used to be "about 4.9x the noise", which is the ratio to the
+    *raw* half-width. The code divides a per-fold figure by sqrt(folds) before comparing,
+    because the gated quantity is a mean over folds -- so the ratio the gate actually
+    applies is +0.000787 against a threshold of 0.000081, which is **9.8x**. The verdict
+    passed either way; the ledger was reporting its own headline rule as twice as strict
+    as it is, in the one section a future reader is told to trust."""
     verdict = two_gate_verdict(
         {"2022-23": 0.192208, "2023-24": 0.188242, "2024-25": 0.175250, "2025-26": 0.163033},
         {"2022-23": 0.191584, "2023-24": 0.186827, "2024-25": 0.174551, "2025-26": 0.162624},

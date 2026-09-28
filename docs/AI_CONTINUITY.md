@@ -1702,7 +1702,11 @@ well inside the grid, so the optimum is not a boundary artefact.
 - **Gate 1 (walk-forward mean must improve): PASS.** −0.000787 log loss, and the
   arm wins **4 of 4 folds**. Adjudicated under the amended rule in EXP-2026-27,
   where it also clears the noise margin: its measured paired half-width is
-  0.000161, so +0.000787 is about 4.9x the noise.
+  0.000161. Note the margin: +0.000787 is 4.9x the *raw* half-width, but the code
+  divides a per-fold figure by sqrt(folds) because the gated quantity is a mean over
+  folds -- so the threshold applied is 0.000081 and the effective margin is **9.8x**.
+  An earlier version of this line quoted only the 4.9x, understating the rule's own
+  strictness by a factor of two.
 - **Gate 2 (most recent season must hold): PASS.** 2025-26 0.162624 vs 0.163033.
 
 ### Decision: PROMOTED to the fitted G+A model
