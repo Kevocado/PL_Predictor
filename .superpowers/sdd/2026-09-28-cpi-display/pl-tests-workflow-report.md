@@ -1,7 +1,7 @@
 # PL: the test gate — was it missing, and should it be required
 
 **Date:** 2026-09-28
-**PR:** [#14](https://github.com/Kevocado/PL_Predictor/pull/14) — **open, not merged**
+**PR:** [#16](https://github.com/Kevocado/PL_Predictor/pull/16) — **open, not merged**
 
 ---
 
