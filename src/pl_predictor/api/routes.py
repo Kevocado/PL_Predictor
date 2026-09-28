@@ -25,6 +25,7 @@ frontend.
 
 
 import json
+import logging
 import time
 from datetime import datetime, timezone
 from threading import Lock, Thread
@@ -55,7 +56,8 @@ from ..evaluate import backtest as backtest_lib
 from ..evaluate import betting_validation
 from ..evaluate import calibration as calibration_lib
 from ..evaluate import odds_benchmark
-from ..features import head_to_head, player_form, ratings as ratings_mod, rolling_form, squad_change
+from ..evaluate import scoreline_selection
+from ..features import head_to_head, opponent_defence, player_form, ratings as ratings_mod, rolling_form, squad_change
 from ..features.build import build_features_for_fixtures, build_training_frame
 from ..models import manifest as manifest_lib
 from ..models import fpl as fpl_model, player_goals, power_rankings as power_rankings_mod, projected_table, scoreline
@@ -463,6 +465,8 @@ def refresh_sportsbook_odds_in_background() -> None:
     role for the player-predictions cache."""
     _get_odds_df(force=True)
     _clear_cache("fixtures_df", "value_bet_table")
+
+logger = logging.getLogger(__name__)
 
 
 # The short-TTL (`_LIVE_CACHE_TTL_SECONDS`, 5 minutes) live-serving caches --
@@ -1309,6 +1313,64 @@ def _resolve_fixture_kickoff(event_id: str):
     return pd.to_datetime(recorded["commence_time"]) if recorded is not None else None
 
 
+def _opponent_defence_for_fixture(home: str, away: str, kickoff) -> dict[str, dict[str, float]]:
+    """Rate each club's defence as it stands *before* this fixture kicks off.
+
+    Returns `{team: {feature: value}}` — the rating of the defence that team's
+    players are about to face, since the G+A model is now fitted on
+    `opponent_defence_last*` (EXP-2026-25). Both sides come from a single call so
+    the two clubs are rated from an identical frame.
+
+    Grouped by season on both the fitting and serving side, deliberately: a
+    gameweek-1 fixture has an unrated opponent on both, and that is what the
+    fitted model was calibrated against. Grouping by club alone would give the
+    first weeks of a season a rating carried in from the previous one — a small,
+    plausible, entirely invisible train/serve skew. The season is taken from the
+    fixture's own kickoff date for the same reason.
+
+    Any failure yields `{}`, which serves the league-average prior (0.0). A
+    feature that is worth ~0.0008 log loss must not be able to take down player
+    predictions, so this is a deliberate guard rather than a swallowed error.
+    """
+    if kickoff is None:
+        return {}
+    try:
+        team_matches = opponent_defence.team_matches_from_matches_df(_get_matches_df())
+        if team_matches.empty:
+            return {}
+        # The season comes from the *kickoff date*, not from the newest season
+        # present in the data. Both coincide in production, but deriving it from
+        # the data would rate a fixture for a season that has not started yet out
+        # of the previous season's matches -- the precise skew this grouping
+        # exists to prevent, and invisible because the number is plausible.
+        kickoff_at = pd.to_datetime(kickoff)
+        season = football_data.season_str(kickoff_at.year if kickoff_at.month >= 7 else kickoff_at.year - 1)
+        # `season_str` is the single producer of season labels: `fetch_season` does
+        # `df["season"] = season` from `default_completed_seasons()`, and
+        # `fetch_current_season_partial` uses the same helper. The manifest confirms
+        # it -- `seasons` is uniformly long form ("2018-2019" ... "2026-2027").
+        fixtures = pd.DataFrame({
+            "season": [season, season],
+            # The defence `home` faces is `away`'s, and vice versa.
+            "opponent": [away, home],
+            "date": [pd.to_datetime(kickoff), pd.to_datetime(kickoff)],
+        })
+        rated = opponent_defence.rate_opponents(team_matches, fixtures)
+    except Exception:
+        # Logged, not swallowed. This guard is right -- a feature worth ~0.0008 log
+        # loss must not take down a fixture's player list -- but silently returning
+        # `{}` means a column rename upstream, or a duplicate key, degrades the
+        # feature to the league prior on *every* fixture indefinitely with nothing
+        # in any log to say so.
+        logger.exception("opponent_defence unavailable; serving the league-average prior")
+        return {}
+
+    return {
+        home: rated.iloc[0].dropna().to_dict(),
+        away: rated.iloc[1].dropna().to_dict(),
+    }
+
+
 def _rank_fixture_players(
     event_id: str,
     home: str,
@@ -1325,7 +1387,9 @@ def _rank_fixture_players(
     current_event = fpl_api.get_current_event(bootstrap)
     position_priors = _get_position_priors()
     reliability_coeffs = _get_player_reliability_coeffs()
-    confirmed_lineups = confirmed_lineups if confirmed_lineups is not None else espn.fetch_confirmed_lineups(home, away, _resolve_fixture_kickoff(event_id))
+    kickoff = _resolve_fixture_kickoff(event_id)
+    confirmed_lineups = confirmed_lineups if confirmed_lineups is not None else espn.fetch_confirmed_lineups(home, away, kickoff)
+    opponent_defence_by_team = _opponent_defence_for_fixture(home, away, kickoff)
 
     lineup_model = _get_lineup_model()
     position_rate_models = _get_position_rate_models()
@@ -1340,6 +1404,13 @@ def _rank_fixture_players(
             is_home=is_home, confirmed_starters=confirmed_lineups.get(team),
             confirmed_starter_ids=confirmed_starter_ids,
             player_shots_by_element=player_shots_by_element,
+            # `context` is what `predict_player` reads its `shots_scale` from.
+            # Omitting it left shots_scale at 1.0 on every live call, so
+            # expected_shots / expected_shots_on_target were never scaled by
+            # how much this team's own attack actually generates.
+            context=models.get("context"),
+            # EXP-2026-25: the defence this team is about to face.
+            opponent_defence=opponent_defence_by_team.get(team),
         )
         return [PlayerPrediction(**{k: p[k] for k in PlayerPrediction.model_fields}) for p in ranked]
 
@@ -1891,7 +1962,30 @@ def get_value_bet_track_record(staking: str = "kelly"):
 
 
 @router.post("/retrain", dependencies=[Depends(_admin_only)])
-def retrain():
+def retrain(include_selection: bool = False):
+    """Refit every model.
+
+    `include_selection=true` additionally recomputes the scoreline-selection
+    diagnostics, which is what puts a `walk_forward_mean_rps` headline into
+    `manifest.json`. It is opt-in because it is a full four-candidate walk-forward
+    -- minutes on top of an already-slow retrain -- and because the diagnostics
+    change rarely: they describe the *decision procedure's* selection bias, not
+    this week's data.
+
+    It runs **before** `train_all` because the manifest is written by `train_all`
+    and reads the cache while doing so. Running it afterwards would leave the
+    manifest reporting `not_computed` for a retrain that had just produced the
+    numbers.
+
+    Without the flag the manifest reports `walk_forward_status: "not_computed"`
+    and omits `headline_rps`. That is the honest default -- a stale headline is
+    worse than an absent one -- but it does mean the published walk-forward mean
+    only appears once this has been run at least once per data window.
+    """
+    if include_selection:
+        seasons = manifest_lib.default_scoreline_seasons()
+        result = scoreline_selection.run(seasons=seasons)
+        scoreline_selection.write_cache(result, seasons=result.get("seasons"))
     manifest = manifest_lib.train_all()
     _clear_cache("models", "value_bet_table")
     return manifest

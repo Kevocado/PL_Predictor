@@ -1,0 +1,138 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pytest:
+    # `pip install -e .` silently no-ops the editable install on some runners
+    # here, so every job exports PYTHONPATH instead of relying on it.
+    runs-on: ubuntu-latest
+    # This suite needs the network -- see the note on the gating step -- so without
+    # a timeout a slow or hanging upstream leaves the gate pending for GitHub's
+    # 6-hour default, which is worse than a red gate: it reads as "in progress"
+    # rather than "broken".
+    #
+    # The value is 60, and the reason it is not smaller is a deadlock I walked into
+    # measuring it. A warm run is ~13 minutes. The *first* run of this workflow is
+    # cold -- no cache exists, so it re-fetches several seasons of FPL history -- and
+    # it does not finish in 30. I set 30, the job was killed at 30m14s, and the step
+    # list shows `Post Restore upstream caches` **skipped**: a job that fails does
+    # not save its cache.
+    #
+    # So the failure and the cold start feed each other. The cache never populates,
+    # so every run is cold, so every run times out, so the cache never populates.
+    # A timeout on a cache-warming gate is not automatically a safety improvement; if
+    # it is set below the cold-run cost it is the opposite.
+    #
+    # 60 accommodates the cold run with margin so the first success populates the
+    # cache, after which warm runs are ~13 and this becomes pure insurance against a
+    # hung upstream. If a future run fails at 60m, the cache *is* the thing to look at
+    # first, not the tests.
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Stamp the day
+        # The upstream caches are keyed by date, not by run. See below.
+        id: date
+        run: echo "stamp=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore upstream caches
+        # `data/cache/` is gitignored, so without this every run re-downloads
+        # seasons of FPL player-gameweek history, ClubElo and football-data.co.uk.
+        #
+        # The key used to be `pl-upstream-caches-${{ github.run_id }}`, which is
+        # unique per run. A cache entry is immutable once written, so that pattern
+        # never *updates* anything: every run restores the newest prefix match and
+        # then writes a fresh full copy under its own key. It works, and it also
+        # fills the 10GB repository cache limit with near-duplicate copies of the
+        # same ~100MB until eviction starts dropping entries unpredictably.
+        #
+        # Keying on the UTC date gives one shared entry per day, refreshed daily --
+        # which is the right cadence for upstream data that changes on matchdays.
+        uses: actions/cache@v4
+        with:
+          path: data/cache
+          key: pl-upstream-caches-${{ steps.date.outputs.stamp }}
+          restore-keys: pl-upstream-caches-
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]" || pip install -e . pytest pytest-mock ruff
+
+      - name: Gating suite
+        # KNOWN LIMITATION, unresolved: this gate depends on three third parties
+        # (FPL, ClubElo, football-data.co.uk). An upstream outage therefore turns
+        # this repo's gate red for a reason that has nothing to do with the change
+        # under review, and a slow one now fails it at the 30-minute timeout.
+        # `timeout-minutes` makes that failure fast and legible; it does not make
+        # it correct. The real fix is to mark the network-dependent tests so the
+        # `-m "not network"` split below stops selecting nothing, which needs each
+        # such test identified individually -- deliberately not done blind here.
+        #
+        # CORRECTION 2026-09-27. This repo previously ran `pytest -m "not
+        # network"` and claimed the suite was offline. That was false, and it was
+        # false in a way that would have shipped: `data/cache/` is gitignored
+        # (only `.gitkeep` is tracked), so a fresh checkout has no FPL player-
+        # gameweek archive, no ClubElo ratings and no football-data.co.uk CSVs.
+        # `load_player_gw_history` and friends fetch them, so **this suite needs
+        # the network**, and `-m "not network"` was deselecting nothing because
+        # no test in this repo carries the marker.
+        #
+        # The marker is now registered so tests that genuinely must not touch the
+        # network can be marked, and the split below becomes real rather than
+        # decorative. Until tests are actually marked, both halves run the same
+        # tests and the honest description is: one suite, network required.
+        #
+        # The caches are restored below so repeat runs are not re-fetching several
+        # seasons of FPL history every time.
+        env:
+          PYTHONPATH: ${{ github.workspace }}/src
+        run: pytest tests/ -q -m "not network"
+
+      - name: Network-marked tests (live upstreams)
+        # Informational, not gating: a failure here usually means an upstream
+        # schema change, which is worth seeing but should not block a source PR.
+        # Currently selects nothing -- see the note above.
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          PYTHONPATH: ${{ github.workspace }}/src
+        run: pytest tests/ -q -m network
+
+      - name: Lint
+        env:
+          PYTHONPATH: ${{ github.workspace }}/src
+        run: |
+          ruff check src tests --select E9,F63,F7,F82 || \
+            (echo "::error::ruff found blocking errors"; exit 1)
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build

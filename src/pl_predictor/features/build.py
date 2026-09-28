@@ -27,6 +27,7 @@ from . import (
     table_context,
     xg_form,
 )
+from .date_keys import as_date_key, drop_unmatchable
 
 # Targets / raw-outcome columns that must never appear in the feature list
 # (that would be leaking the match's own result into its own features).
@@ -88,8 +89,15 @@ def build_training_frame(
         .rename(columns={"team": "team_away"})
     )
 
-    df = matches_df.merge(home_join, on=["date", "team_home"], how="left")
-    df = df.merge(away_join, on=["date", "team_away"], how="left")
+    # Left side keeps its rows (a match with an unreadable date still appears, with
+    # missing features); right side drops them, because `NaT` matches `NaT` and
+    # duplicate `(NaT, team)` keys would fan out and break one-row-per-match.
+    df = as_date_key(matches_df).merge(
+        drop_unmatchable(as_date_key(home_join)), on=["date", "team_home"], how="left"
+    )
+    df = df.merge(
+        drop_unmatchable(as_date_key(away_join)), on=["date", "team_away"], how="left"
+    )
 
     # EXP-2026-18 (docs/AI_CONTINUITY.md): off-season squad continuity —
     # keyed by (season, team), not row-position like the rolling-form/Elo

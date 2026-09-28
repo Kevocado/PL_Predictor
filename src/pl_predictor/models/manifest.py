@@ -27,6 +27,12 @@ from ..features.build import FixtureFeatureContext, build_training_frame
 from . import covariate_poisson, market_models, ml_scoreline, scoreline
 
 MANIFEST_PATH = MODELS_DIR / "manifest.json"
+# Written by `evaluate/scoreline_selection.py`, read here. Kept separate from
+# `manifest.json` because computing it costs a full four-candidate walk-forward
+# (minutes) and the manifest is rewritten on every retrain; see
+# SELECTION_WALK_FORWARD_PATH's own entry in `manifest["scoreline"]["selection"]`
+# for why the published number needs it at all.
+SELECTION_WALK_FORWARD_PATH = MODELS_DIR / "selection_walk_forward.json"
 MANIFEST_HISTORY_PATH = MODELS_DIR / "manifest_history.jsonl"
 CORNERS_MODEL_PATH = MODELS_DIR / "corners_xgb.json"
 CARDS_MODEL_PATH = MODELS_DIR / "cards_xgb.json"
@@ -52,15 +58,31 @@ COVARIATE_POISSON_PATH = MODELS_DIR / "covariate_poisson.pkl"
 # EXP-2026-16 (docs/AI_CONTINUITY.md) found the covariate-Poisson model
 # beats ml_scoreline on Over/Under 2.5 goals on the walk-forward average
 # AND the single most recent completed season — clearing this project's
-# two-part bar on paper. Be aware the margin is thin (<0.001 log-loss and
-# Brier on both checks) and NOT monotonic: it wins 3 of 5 folds
-# (2021-22, 2022-23, 2025-26) but loses 2023-24 and 2024-25 by a
-# comparable-or-larger margin than it wins by elsewhere. Kept live as a
-# deliberate, informed call despite the thin margin — revisit if a
-# stronger, more consistent result appears, or tighten the promotion bar
-# (e.g. a minimum-margin/CI requirement) before adding any further
-# market override on evidence this equivocal.
-MARKET_MODEL_OVERRIDES = {"over_2_5": "covariate_poisson"}
+# two-part bar on paper. The margin was thin (<0.001 log-loss and Brier on
+# both checks) and NOT monotonic: it won 3 of 5 folds (2021-22, 2022-23,
+# 2025-26) but lost 2023-24 and 2024-25 by a comparable-or-larger margin
+# than it won by elsewhere.
+#
+# REVERTED 2026-09-27. The evidence that put it there has decayed. On the
+# live 2026-09-14 production manifest the two models are:
+#
+#     covariate_poisson  over_2_5_log_loss 0.689638   brier 0.248153
+#     ml_scoreline       over_2_5_log_loss 0.689441   brier 0.248157
+#
+# so covariate_poisson is now marginally WORSE on log loss — the reverse of
+# the EXP-2026-16 ordering — and better only by 0.000004 on Brier, which is
+# noise at n=380. This override already failed the spirit of the two-gate
+# rule even when it was promoted ("clears the letter of the bar, not a
+# strong version of it"); a second retrain later failing the direction of
+# the original evidence is exactly the condition the comment above said to
+# revisit on. The chosen scoreline model now serves every market.
+#
+# The per-market override mechanism itself stays in place and stays tested —
+# it is the durable value of EXP-2026-16, and this dict is now the single
+# place a future override is added. Re-adding one requires a walk-forward
+# mean win AND a most-recent-season win with a margin clear of the noise
+# floor demonstrated here, not a decimal-place difference.
+MARKET_MODEL_OVERRIDES: dict[str, str] = {}
 
 RESULT_CODE = {"H": 0, "D": 1, "A": 2}
 
@@ -108,6 +130,100 @@ def _score_outcome_probs(model, val_df: pd.DataFrame) -> tuple[np.ndarray, float
     probs = np.array([[p["home_win"], p["draw"], p["away_win"]] for p in preds])
     fallback_rate = float(np.mean([p["fallback"] for p in preds]))
     return probs, fallback_rate
+
+
+def _selection_block(candidates: dict, chosen_market_metrics: dict, manifest_seasons: list[str] | None = None) -> dict:
+    """Everything a reader needs to not over-trust the reported holdout RPS.
+
+    The reported holdout figure is a best-of-four *on the fold it is reported on*:
+    `chosen = min(candidates, key=candidates.get)` runs against this same
+    `val_df`. That is a selection set, not a held-out one. The size of the
+    resulting flattering is measured rather than asserted, in
+    `evaluate/scoreline_selection.py` and the EXP-2026-26 ledger entry.
+
+    The walk-forward diagnostics live in a cache file rather than being recomputed
+    here, because they cost a full four-candidate walk-forward and this function
+    runs on every retrain. So the cache must be checked for **provenance**, not
+    merely for readability: a file that parses is not a file that is current. It
+    records the seasons it was computed over, and a mismatch is reported as
+    `stale` with no `headline_rps` -- because a stale headline presented as
+    current is worse than an absent one, which is the whole reason this block
+    exists.
+
+    Non-finite values are coerced to `None` on the way through. JSON has no NaN,
+    `json.dumps` will write the token anyway, and starlette's `JSONResponse`
+    renders with `allow_nan=False` -- so one NaN here is a 500 on
+    `GET /api/manifest`.
+    """
+    walk_forward = None
+    status = "not_computed"
+    if SELECTION_WALK_FORWARD_PATH.exists():
+        try:
+            cached = json.loads(SELECTION_WALK_FORWARD_PATH.read_text())
+        except (json.JSONDecodeError, OSError):
+            cached = None
+        if isinstance(cached, dict) and cached.get("walk_forward_mean"):
+            cached_seasons = cached.get("seasons")
+            # A subset test, not equality: the walk-forward is run over completed
+            # seasons, while the manifest's window also folds in the in-progress
+            # one, so the two are never equal. What must hold is that the
+            # diagnostics were computed over seasons this manifest also knows --
+            # a cache generated against a different data window is the case worth
+            # catching, because its headline does not describe this model.
+            #
+            # This does NOT catch a cache that is merely old. `computed_at` is
+            # published alongside so a reader can see it; refusing to compare
+            # wall-clock against a data window would need a clock this manifest
+            # does not otherwise keep.
+            fresh = bool(
+                cached_seasons
+                and manifest_seasons
+                and set(cached_seasons) <= set(manifest_seasons)
+            )
+            status = "cached" if fresh else "stale"
+            if fresh:
+                walk_forward = cached
+
+    selection = {
+        # Explicit, so no reader can mistake the holdout figure for an
+        # out-of-sample estimate.
+        "holdout_selected_on_this_fold": True,
+        "candidates_on_this_holdout": candidates,
+        "rps_ci": [
+            chosen_market_metrics.get("rps_ci_low"),
+            chosen_market_metrics.get("rps_ci_high"),
+        ],
+        "recommended_headline": "walk_forward_mean_rps",
+        "walk_forward": _json_safe(walk_forward),
+        "walk_forward_status": status,
+        "walk_forward_computed_at": (walk_forward or {}).get("computed_at") if walk_forward else None,
+    }
+    if walk_forward is not None:
+        means = walk_forward.get("walk_forward_mean") or {}
+        best = walk_forward.get("best_by_walk_forward_mean")
+        value = means.get(best) if best in means else None
+        # `recommended_headline` is set unconditionally, so `headline_rps` is only
+        # meaningful when there is a number to put beside it.
+        selection["headline_rps"] = _json_safe(value)
+    return selection
+
+
+def _json_safe(value):
+    """Recursively replace non-finite floats with None.
+
+    `json.dumps` writes `NaN` by default and starlette refuses to read it back, so
+    a single non-finite anywhere in the manifest becomes a 500 on the API rather
+    than a visible null.
+    """
+    import math
+
+    if isinstance(value, float):
+        return value if math.isfinite(value) else None
+    if isinstance(value, dict):
+        return {k: _json_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(v) for v in value]
+    return value
 
 
 def _evaluate_scoreline_model(model, val_df: pd.DataFrame) -> dict:
@@ -179,6 +295,18 @@ def _build_frame(seasons: list[str], current_partial: pd.DataFrame | None) -> tu
     return df, feature_cols, train_df, val_df, n_current_season_matches
 
 
+def default_scoreline_seasons() -> list[str]:
+    """The completed seasons the scoreline model is fitted on.
+
+    Exposed so `api.routes.retrain(include_selection=True)` can run the selection
+    diagnostics over exactly the window `train_all` will use. Defined here because
+    the window is a decision about the scoreline model; a caller that re-derived it
+    would silently drift the two apart, and the manifest's staleness check compares
+    the diagnostics' seasons against its own.
+    """
+    return football_data.default_completed_seasons(n=MARKET_TRAINING_WINDOWS["scoreline"])
+
+
 def train_all(seasons: list[str] | None = None, include_current_season: bool = True) -> Dict:
     """`include_current_season=True` (default) is what makes this an
     *updating* model rather than a fixed one refit on the same completed
@@ -199,7 +327,7 @@ def train_all(seasons: list[str] | None = None, include_current_season: bool = T
     so each market gets its own window length."""
     MODELS_DIR.mkdir(exist_ok=True, parents=True)
 
-    default_seasons = seasons or football_data.default_completed_seasons(n=MARKET_TRAINING_WINDOWS["scoreline"])
+    default_seasons = seasons or default_scoreline_seasons()
     corners_seasons = seasons or football_data.default_completed_seasons(n=MARKET_TRAINING_WINDOWS["corners"])
 
     current_partial = football_data.fetch_current_season_partial() if include_current_season else None
@@ -355,6 +483,11 @@ def train_all(seasons: list[str] | None = None, include_current_season: bool = T
     market_models.save_regressor(home_sot_model, HOME_SHOTS_ON_TARGET_MODEL_PATH)
     market_models.save_regressor(away_sot_model, AWAY_SHOTS_ON_TARGET_MODEL_PATH)
 
+    selection = _selection_block(
+        candidates, market_metrics.get(chosen, {}),
+        manifest_seasons=sorted(df["season"].unique().tolist()),
+    )
+
     manifest = {
         "trained_at": datetime.now(timezone.utc).isoformat(),
         "seasons": sorted(df["season"].unique().tolist()),
@@ -367,6 +500,7 @@ def train_all(seasons: list[str] | None = None, include_current_season: bool = T
             "chosen_model": chosen,
             "market_overrides": market_overrides,
             "market_metrics": market_metrics,
+            "selection": selection,
             "dixon_coles": {"path": DIXON_COLES_PATH.name, "metrics": dc_metrics},
             "bivariate_poisson": {"path": BIVARIATE_POISSON_PATH.name, "metrics": bp_metrics},
             "ml_scoreline": {
@@ -415,7 +549,11 @@ def train_all(seasons: list[str] | None = None, include_current_season: bool = T
             "away_importance": away_sot_importance,
         },
     }
-    MANIFEST_PATH.write_text(json.dumps(manifest, indent=2))
+    # `allow_nan=False`: a non-finite anywhere in the manifest would otherwise be
+    # written as the token `NaN`, which starlette's JSONResponse refuses to render
+    # (`allow_nan=False` on its side too) -- a 500 on GET /api/manifest rather
+    # than a visible null. Fail here instead, where the traceback points at the cause.
+    MANIFEST_PATH.write_text(json.dumps(manifest, indent=2, allow_nan=False))
     _append_history(manifest)
     return manifest
 

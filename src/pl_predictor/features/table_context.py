@@ -22,6 +22,8 @@ from __future__ import annotations
 
 import pandas as pd
 
+from pl_predictor.features.date_keys import as_asof_key
+
 from . import rolling_form
 
 FEATURE_COLS = [
@@ -88,10 +90,13 @@ def attach_table_context_features(matches_df: pd.DataFrame) -> tuple[pd.DataFram
     roster = _season_team_roster(matches_df)
     checkpoints = matches_df[["season", "date"]].drop_duplicates()
 
-    snapshot = checkpoints.merge(roster, on="season").sort_values("date")
+    # Same dtype requirement as the rolling-form and Understat joins; see
+    # `features/date_keys.py`. `cum` is built by a cumulative helper and `checkpoints`
+    # straight off `matches_df`, so the two are not guaranteed to agree.
+    snapshot = as_asof_key(checkpoints.merge(roster, on="season")).sort_values("date")
     snapshot = pd.merge_asof(
         snapshot,
-        cum[["season", "team", "date", "cum_points", "cum_played", "cum_goal_diff"]],
+        as_asof_key(cum[["season", "team", "date", "cum_points", "cum_played", "cum_goal_diff"]]),
         on="date",
         by=["season", "team"],
         direction="backward",

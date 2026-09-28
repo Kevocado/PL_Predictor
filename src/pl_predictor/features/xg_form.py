@@ -13,6 +13,8 @@ from __future__ import annotations
 
 import pandas as pd
 
+from .date_keys import as_asof_key
+
 WINDOWS = (5, 10)
 
 
@@ -120,13 +122,16 @@ def attach_xg_features(matches_df: pd.DataFrame, understat_df: pd.DataFrame, win
 
     long_df, base_cols = build_rolling_xg(understat_df, windows)
 
-    left = matches_df[["date", "team_home", "team_away"]].reset_index().sort_values("date")
+    # `matches_df` dates and the upstream dates are parsed by different loaders, so
+    # their resolutions can differ; `merge_asof` needs one dtype exactly as a `merge`
+    # does. See `features/date_keys.py` for why this is not hypothetical.
+    left = as_asof_key(matches_df[["date", "team_home", "team_away"]]).reset_index().sort_values("date")
 
     def _asof_join(team_col: str, prefix: str) -> pd.DataFrame:
-        right = long_df.rename(columns={"team": team_col}).sort_values("date")
+        right = as_asof_key(long_df.rename(columns={"team": team_col})).sort_values("date")
         merged = pd.merge_asof(
-            left[["index", "date", team_col]].sort_values("date"),
-            right[["date", team_col] + base_cols],
+            as_asof_key(left[["index", "date", team_col]]).sort_values("date"),
+            as_asof_key(right[["date", team_col] + base_cols]),
             on="date",
             by=team_col,
             direction="backward",

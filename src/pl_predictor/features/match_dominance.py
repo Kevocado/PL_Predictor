@@ -13,6 +13,8 @@ from __future__ import annotations
 
 import pandas as pd
 
+from pl_predictor.features.date_keys import as_asof_key
+
 WINDOWS = (5, 10)
 
 _STATS = (
@@ -104,13 +106,17 @@ def attach_dominance_features(
 
     long_df, base_cols = build_rolling_dominance(dominance_df, windows)
 
-    left = matches_df[["date", "team_home", "team_away"]].reset_index().sort_values("date")
+    # `matches_df` dates come from football-data.co.uk and `dominance_df` dates from
+    # Understat -- two loaders, parsed independently, so their `date` columns can and
+    # do land on different resolutions. `merge_asof` needs one dtype exactly as a
+    # `merge` does, and the two sources are the reason this is not theoretical.
+    left = as_asof_key(matches_df[["date", "team_home", "team_away"]]).reset_index().sort_values("date")
 
     def _asof_join(team_col: str, prefix: str) -> pd.DataFrame:
-        right = long_df.rename(columns={"team": team_col}).sort_values("date")
+        right = as_asof_key(long_df.rename(columns={"team": team_col})).sort_values("date")
         merged = pd.merge_asof(
-            left[["index", "date", team_col]].sort_values("date"),
-            right[["date", team_col] + base_cols],
+            as_asof_key(left[["index", "date", team_col]]).sort_values("date"),
+            as_asof_key(right[["date", team_col] + base_cols]),
             on="date",
             by=team_col,
             direction="backward",

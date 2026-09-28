@@ -43,6 +43,7 @@ jobs:
           docker push ghcr.io/kevocado/pl-predictor:latest
 
       - name: Log in to Azure
+        if: vars.DEPLOY_AZURE != 'false'
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -50,8 +51,27 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Deploy new image to Container App
+        if: vars.DEPLOY_AZURE != 'false'
         run: |
           az containerapp update \
             --name pl-predictor \
             --resource-group predictor-hub-rg \
             --image ghcr.io/kevocado/pl-predictor:${{ github.sha }}
+
+  # Deploys the image built above to the VPS stack (/opt/stack; see the
+  # vps-stack README). Switched on by the VPS_HOST repo variable.
+  vps:
+    needs: deploy
+    if: vars.VPS_HOST != ''
+    runs-on: ubuntu-latest
+    concurrency: vps-deploy-pl
+    steps:
+      - name: Deploy to VPS
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          ssh deploy@${{ vars.VPS_HOST }} deploy pl ${{ github.sha }}
