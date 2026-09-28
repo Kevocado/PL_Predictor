@@ -200,19 +200,28 @@ def check_credential(text: str) -> None:
     """The GHCR login must use a credential this repository can actually push with.
 
     `GITHUB_TOKEN` is the target state: a PAT is a credential that outlives the
-    repo and has to be rotated by hand. It is only usable because the package is
-    LINKED to this repo, which is a fact about GitHub's package settings and not
-    something CI can see:
+    repo and has to be rotated by hand. It is ALSO the thing that does not
+    currently work, and the reason is worth stating because the first guess at it
+    was wrong and cost a deploy.
+
+    The first version of this check claimed GITHUB_TOKEN works because the package
+    is LINKED to this repo, and cited:
 
         gh api /user/packages/container/pl-predictor --jq '.repository.full_name'
         -> "Kevocado/PL_Predictor"
 
-    An unlinked (user-scoped) package rejects GITHUB_TOKEN with
-    `denied: permission_denied: write_package` after a clean build, which is
-    indistinguishable from a permissions problem and is not one -- NFL and CFB
-    both lost their first deploy to it. If that command comes back `null`, the
-    answer is `secrets.GHCR_PAT` (already a secret here), and this check has to
-    change in the same commit. See the module docstring.
+    That command really does return this repo, and GITHUB_TOKEN is still rejected
+    with `denied: permission_denied: write_package` after a clean build. **A linked
+    repository and the access grant GITHUB_TOKEN needs are two different things.**
+    Linking records where the package came from; the grant is a separate permission
+    in package settings, and only the hub's package has one. NFL and CFB lost their
+    first deploy to the unlinked variant of the same error, so three repos have now
+    been bitten by an error that reads like a permissions problem and is not one.
+
+    So both credentials are accepted, and the grant is the thing to make if the
+    policy is to be honoured. It is package-settings UI with no API, so it cannot
+    be done from CI. `GHCR_PAT` is already a secret here and is what these images
+    have always been pushed with.
     """
     body = jobs(text)["build"]
     # Matched on the `password:` field, not on the name appearing anywhere in
@@ -224,14 +233,17 @@ def check_credential(text: str) -> None:
     # evaluates a plain assert's message expression EAGERLY, before the
     # condition, so a message naming a local assigned on the line above raises
     # NameError instead of reporting the thing it is about.
-    if passwords != ["GITHUB_TOKEN"]:
+    if sorted(passwords) != ["GHCR_PAT"]:
         raise AssertionError(
-            f"GHCR login must use secrets.GITHUB_TOKEN, and only it, while the package is linked "
-            f"to this repo; found {passwords}. If it is not linked (`gh api "
-            f"/user/packages/container/pl-predictor --jq '.repository.full_name'` returns null), "
-            f"switch to secrets.GHCR_PAT and rewrite this check to expect that, in the same "
-            f"commit. Silently, a GITHUB_TOKEN push fails with `denied: permission_denied: "
-            f"write_package` after the image has already built and tagged."
+            f"GHCR login must use exactly one credential, and on this repo that is "
+            f"secrets.GHCR_PAT; found {passwords}. secrets.GITHUB_TOKEN is the POLICY "
+            f"preference and does not work: the package is linked to this repo but not "
+            f"GRANTED to it, and those are two different things. Do not 'fix' this by "
+            f"switching to GITHUB_TOKEN -- a linked repository is not an access grant, and "
+            f"the push fails with `denied: permission_denied: write_package` after the image "
+            f"has already built and tagged. If the grant is ever made in package settings, "
+            f"switch the workflow to GITHUB_TOKEN and tighten this to expect only that, in "
+            f"the same commit."
         )
 
 
@@ -436,7 +448,16 @@ def test_each_check_can_fail():
     broken = {
         "triggers": ("workflow_dispatch:", "workflow_DISABLED:"),
         # A third credential, neither of the two the linkage check can accept.
-        "credential": ("secrets.GITHUB_TOKEN", "secrets.REGISTRY_TOKEN"),
+        # A third credential. Anchored on the one actually in the file:
+        # secrets.GITHUB_TOKEN appears zero times now, and a mutation whose anchor
+        # is absent breaks nothing -- the vacuity this meta-test exists to catch.
+        # Anchored on the password LINE, not the credential name: the name now appears
+        # twice (the line, and the comment explaining why), and a mutation that is not
+        # unique breaks one copy and leaves the check satisfied by the other.
+        "credential": (
+            "password: ${{ secrets.GHCR_PAT }}",
+            "password: ${{ secrets.REGISTRY_TOKEN }}",
+        ),
         # Retag the image the `build` line produces. Unique: the `push` lines
         # carry the same tag but not the same prefix.
         "image": (
@@ -445,9 +466,13 @@ def test_each_check_can_fail():
         ),
         "vps": (f"deploy {SERVICE} ${{{{ github.sha }}}}", f"deploy {SERVICE}"),
         "azure": (GATE_AZURE, "vars.DEPLOY_AZURE != 'false'"),
-        # Lower-cased, so check_no_secret_material's UPPER_CASE rule fires. Anchored
-        # on a credential that appears exactly once.
-        "secrets": ("secrets.GITHUB_TOKEN", "secrets.github_token"),
+        # Lower-cased, so check_no_secret_material's UPPER_CASE rule fires. Anchored on
+        # the password line and the credential actually in the file, for the same two
+        # reasons as the "credential" mutation above.
+        "secrets": (
+            "password: ${{ secrets.GHCR_PAT }}",
+            "password: ${{ secrets.ghcr_pat }}",
+        ),
         # A unique anchor: `concurrency: vps-deploy-pl` appears once.
         "shape": (
             f"concurrency: vps-deploy-{SERVICE}",

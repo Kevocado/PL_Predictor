@@ -38,9 +38,16 @@ on:
 
 permissions:
   contents: read
-  # To push the image to GHCR as the repo's own actor, using GITHUB_TOKEN. A
-  # personal access token would be a credential that outlives the repo and has
-  # to be rotated by hand.
+  # GHCR_PAT, not GITHUB_TOKEN, and this was measured rather than assumed.
+  # GITHUB_TOKEN is the preference -- a PAT outlives the repo and is rotated by
+  # hand -- and this package IS linked to PL_Predictor, which is not the problem.
+  # The problem is that a linked repository and the access grant GITHUB_TOKEN
+  # needs are two different things: this package has the link and no grant, so the
+  # push died with `denied: permission_denied: write_package` after building and
+  # tagging cleanly. The grant is package-settings UI with no API, so it cannot be
+  # fixed from a workflow. GHCR_PAT is already a secret here and is the credential
+  # these images have always been pushed with.
+  # If the grant is ever made, switch back to GITHUB_TOKEN and delete this note.
   packages: write
   # Only the Azure job uses this, and only when DEPLOY_AZURE is set.
   id-token: write
@@ -74,7 +81,7 @@ jobs:
           # already exists on this repo. tests/test_deploy_workflow.py pins which of
           # the two this workflow must use, and says which way to re-check.
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.GHCR_PAT }}
 
       - name: Build and push PL Predictor image
         run: |
