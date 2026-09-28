@@ -25,6 +25,7 @@ frontend.
 
 
 import json
+import logging
 import time
 from datetime import datetime, timezone
 from threading import Lock, Thread
@@ -463,6 +464,8 @@ def refresh_sportsbook_odds_in_background() -> None:
     role for the player-predictions cache."""
     _get_odds_df(force=True)
     _clear_cache("fixtures_df", "value_bet_table")
+
+logger = logging.getLogger(__name__)
 
 
 # The short-TTL (`_LIVE_CACHE_TTL_SECONDS`, 5 minutes) live-serving caches --
@@ -1341,10 +1344,10 @@ def _opponent_defence_for_fixture(home: str, away: str, kickoff) -> dict[str, di
         # exists to prevent, and invisible because the number is plausible.
         kickoff_at = pd.to_datetime(kickoff)
         season = football_data.season_str(kickoff_at.year if kickoff_at.month >= 7 else kickoff_at.year - 1)
-        # `season_str` is the right format here even though `_get_matches_df`
-        # mixes both conventions: completed seasons come from the raw CSVs as
-        # "2024-25", but `fetch_current_season_partial` labels the in-progress one
-        # "2026-2027", and the in-progress season is the one being predicted.
+        # `season_str` is the single producer of season labels: `fetch_season` does
+        # `df["season"] = season` from `default_completed_seasons()`, and
+        # `fetch_current_season_partial` uses the same helper. The manifest confirms
+        # it -- `seasons` is uniformly long form ("2018-2019" ... "2026-2027").
         fixtures = pd.DataFrame({
             "season": [season, season],
             # The defence `home` faces is `away`'s, and vice versa.
@@ -1353,6 +1356,12 @@ def _opponent_defence_for_fixture(home: str, away: str, kickoff) -> dict[str, di
         })
         rated = opponent_defence.rate_opponents(team_matches, fixtures)
     except Exception:
+        # Logged, not swallowed. This guard is right -- a feature worth ~0.0008 log
+        # loss must not take down a fixture's player list -- but silently returning
+        # `{}` means a column rename upstream, or a duplicate key, degrades the
+        # feature to the league prior on *every* fixture indefinitely with nothing
+        # in any log to say so.
+        logger.exception("opponent_defence unavailable; serving the league-average prior")
         return {}
 
     return {

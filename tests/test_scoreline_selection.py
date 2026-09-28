@@ -133,7 +133,7 @@ def test_the_manifest_block_is_absent_when_no_diagnostics_have_been_computed(tmp
     from pl_predictor.models import manifest as manifest_lib
 
     monkeypatch.setattr(manifest_lib, "SELECTION_WALK_FORWARD_PATH", tmp_path / "absent.json")
-    selection = manifest_lib._selection_block({}, {"rps_ci_low": 0.1, "rps_ci_high": 0.3})
+    selection = manifest_lib._selection_block({}, {"rps_ci_low": 0.1, "rps_ci_high": 0.3}, manifest_seasons=["2025-2026"])
     assert selection["walk_forward_status"] == "not_computed"
     assert selection["walk_forward"] is None
     assert "headline_rps" not in selection, "no headline may be invented without a walk-forward"
@@ -145,7 +145,7 @@ def test_a_corrupt_diagnostics_file_does_not_fail_a_retrain(tmp_path, monkeypatc
     corrupt = tmp_path / "selection_walk_forward.json"
     corrupt.write_text("{not json")
     monkeypatch.setattr(manifest_lib, "SELECTION_WALK_FORWARD_PATH", corrupt)
-    selection = manifest_lib._selection_block({}, {})
+    selection = manifest_lib._selection_block({}, {}, manifest_seasons=["2025-2026"])
     assert selection["walk_forward_status"] == "not_computed"
 
 
@@ -165,11 +165,100 @@ def test_the_manifest_headline_is_the_walk_forward_mean_of_the_named_model(tmp_p
 
     cache = tmp_path / "selection_walk_forward.json"
     cache.write_text(
-        '{"walk_forward_mean": {"ml_scoreline": 0.199654, "covariate_poisson": 0.202646},'
+        '{"computed_at": "2026-09-27T00:00:00+00:00", "seasons": ["2025-2026"],'
+        ' "walk_forward_mean": {"ml_scoreline": 0.199654, "covariate_poisson": 0.202646},'
         ' "best_by_walk_forward_mean": "ml_scoreline", "optimism": 0.002242}'
     )
     monkeypatch.setattr(manifest_lib, "SELECTION_WALK_FORWARD_PATH", cache)
-    selection = manifest_lib._selection_block({}, {})
+    selection = manifest_lib._selection_block({}, {}, manifest_seasons=["2025-2026"])
     assert selection["walk_forward_status"] == "cached"
     assert selection["headline_rps"] == pytest.approx(0.199654)
     assert selection["walk_forward"]["optimism"] == pytest.approx(0.002242)
+
+
+# --- staleness: a cache that parses is not a cache that is current --------------
+
+
+def test_a_cache_from_different_seasons_is_reported_stale_not_cached(tmp_path, monkeypatch):
+    """The cache used to carry no provenance at all, so a walk-forward computed
+    over three seasons a year ago was republished inside a freshly written
+    manifest as `walk_forward_status: "cached"` with a `headline_rps` attached --
+    the exact failure `_selection_block`'s docstring claimed could not happen."""
+    from pl_predictor.models import manifest as manifest_lib
+
+    cache = tmp_path / "selection_walk_forward.json"
+    cache.write_text(
+        '{"computed_at": "2024-01-01T00:00:00+00:00", "seasons": ["2019-2020"],'
+        ' "walk_forward_mean": {"ml_scoreline": 0.19},'
+        ' "best_by_walk_forward_mean": "ml_scoreline"}'
+    )
+    monkeypatch.setattr(manifest_lib, "SELECTION_WALK_FORWARD_PATH", cache)
+
+    selection = manifest_lib._selection_block({}, {}, manifest_seasons=["2025-2026", "2024-2025"])
+    assert selection["walk_forward_status"] == "stale"
+    assert "headline_rps" not in selection, "a stale cache must not publish a headline"
+    assert selection["walk_forward"] is None
+
+
+def test_a_matching_season_list_is_reported_cached(tmp_path, monkeypatch):
+    from pl_predictor.models import manifest as manifest_lib
+
+    cache = tmp_path / "selection_walk_forward.json"
+    cache.write_text(
+        '{"computed_at": "2026-09-27T00:00:00+00:00", "seasons": ["2025-2026", "2024-2025"],'
+        ' "walk_forward_mean": {"ml_scoreline": 0.199654},'
+        ' "best_by_walk_forward_mean": "ml_scoreline"}'
+    )
+    monkeypatch.setattr(manifest_lib, "SELECTION_WALK_FORWARD_PATH", cache)
+    selection = manifest_lib._selection_block({}, {}, manifest_seasons=["2024-2025", "2025-2026"])
+    assert selection["walk_forward_status"] == "cached"
+    assert selection["headline_rps"] == pytest.approx(0.199654)
+
+
+def test_a_cache_with_no_provenance_is_stale_however_old_it_looks(tmp_path, monkeypatch):
+    """An older cache format, or one hand-written, has no `seasons`. Treating that
+    as current is the failure mode; treating it as stale is the safe default."""
+    from pl_predictor.models import manifest as manifest_lib
+
+    cache = tmp_path / "selection_walk_forward.json"
+    cache.write_text('{"walk_forward_mean": {"ml_scoreline": 0.19}, "best_by_walk_forward_mean": "ml_scoreline"}')
+    monkeypatch.setattr(manifest_lib, "SELECTION_WALK_FORWARD_PATH", cache)
+    selection = manifest_lib._selection_block({}, {}, manifest_seasons=["2025-2026"])
+    assert selection["walk_forward_status"] == "stale"
+    assert "headline_rps" not in selection
+
+
+def test_non_finite_values_never_reach_the_manifest():
+    """`summarise` returns NaN legitimately (a single fold). `json.dumps` writes the
+    token `NaN`, which starlette's JSONResponse refuses to render -- so one NaN in
+    the manifest is a 500 on GET /api/manifest rather than a visible null."""
+    from pl_predictor.models import manifest as manifest_lib
+
+    import json
+
+    assert manifest_lib._json_safe(float("nan")) is None
+    assert manifest_lib._json_safe(float("inf")) is None
+    assert manifest_lib._json_safe({"a": [1.0, float("nan")]}) == {"a": [1.0, None]}
+    json.dumps({"x": manifest_lib._json_safe(float("nan"))}, allow_nan=False)
+
+
+def test_the_written_cache_is_finite_only(tmp_path):
+    """`to_record` coerces, and the write uses `allow_nan=False` so a regression is
+    loud here rather than a 500 much later."""
+    import json as _json
+
+    from pl_predictor.evaluate.scoreline_selection import to_record, write_cache
+
+    result = {
+        "n_folds": 1, "n_scored_by_nested": 0,
+        "walk_forward_mean": {"ml_scoreline": 0.19},
+        "best_by_walk_forward_mean": "ml_scoreline",
+        "incumbent_min_on_fold": 0.19, "incumbent_min_on_fold_shared": float("nan"),
+        "nested_selection": float("nan"), "optimism": float("nan"),
+        "nested_choices": [],
+    }
+    record = to_record(result, seasons=["2025-2026"])
+    assert record["optimism"] is None
+    assert record["seasons"] == ["2025-2026"] and record["computed_at"]
+    path = write_cache(result, path=tmp_path / "c.json", seasons=["2025-2026"])
+    _json.loads(path.read_text(), parse_constant=lambda c: (_ for _ in ()).throw(ValueError(c)))

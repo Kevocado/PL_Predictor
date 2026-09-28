@@ -36,8 +36,12 @@ one until it quietly corrupts a feature.
 
 from __future__ import annotations
 
+import logging
+
 import numpy as np
 import pandas as pd
+
+logger = logging.getLogger(__name__)
 
 WINDOWS = (3, 5, 10)
 
@@ -121,7 +125,15 @@ def team_matches_from_matches_df(matches_df: pd.DataFrame) -> pd.DataFrame:
         keep = ["season"] + keep
     out = long_df[keep].copy()
     out["date"] = pd.to_datetime(out["date"], errors="coerce")
-    return out.dropna(subset=["date", "team"])
+    out = out.dropna(subset=["date", "team"])
+    # Dedupe, mirroring `build_team_match_history`. Without this the serving
+    # adapter is strictly less defended than the fitting one against the same
+    # input, and `rate_opponents` raises "cannot handle a non-unique multi-index"
+    # on the duplicated key -- which `routes._opponent_defence_for_fixture` then
+    # swallows, so every fixture silently gets the league prior.
+    if "season" in out.columns:
+        return out.drop_duplicates(["season", "team", "date"], keep="first").reset_index(drop=True)
+    return out.drop_duplicates(["team", "date"], keep="first").reset_index(drop=True)
 
 
 def rate_opponents(
@@ -145,14 +157,46 @@ def rate_opponents(
     if fixtures.empty or team_matches.empty:
         return pd.DataFrame(index=fixtures.index, columns=names, dtype=float)
 
-    has_season = "season" in team_matches.columns and "season" in fixtures.columns
+    if "season" in team_matches.columns and "season" not in fixtures.columns:
+        # Not an `and`. With a one-sided `and`, fixtures lacking `season` made the
+        # placeholders season-NaN, so `pd.concat` gave them no season and
+        # `rate_team_matches` grouped them as singletons with no history -- every
+        # rating came back NaN, i.e. the league prior, with no error. A silent
+        # no-op is worse than a refusal.
+        raise ValueError(
+            "fixtures must carry `season` when team_matches does, otherwise the "
+            "placeholder rows cannot be grouped with the club's real history and "
+            "every rating silently comes back NaN"
+        )
+
+    dates = pd.to_datetime(fixtures["date"], errors="coerce")
+    if dates.isna().any():
+        # `rate_team_matches` sorts with pandas' default `na_position="last"`, so a
+        # NaT placeholder sorts to the END of its club and its `shift(1)` window
+        # becomes the club's *entire* history -- including matches played after the
+        # fixture being priced. Measured: a club conceding 1,1,1,1 then 0,0,0,0
+        # returns an honest 1.0 for a real date and a leaked 0.0 for a NaT one.
+        # `na_position="first"` is not the fix: that would return the rating as of
+        # the season start, a different wrong answer. Refuse instead.
+        return pd.DataFrame(np.nan, index=fixtures.index, columns=names, dtype=float)
+
+    has_season = "season" in team_matches.columns
     key_columns = (["season"] if has_season else []) + ["team", "date"]
     real = team_matches.copy()
     real["date"] = pd.to_datetime(real["date"], errors="coerce")
+    # Defence in depth: `team_matches_from_matches_df` already dedupes, but this is
+    # public API and a caller can hand it anything. `set_index(...).reindex(...)`
+    # raises "cannot handle a non-unique multi-index" on a duplicated
+    # (club, date), and at the one production call site that raise is swallowed --
+    # so an un-deduped frame meant every fixture silently got the league prior.
+    before = len(real)
+    real = real.drop_duplicates(group_keys_real := ((["season"] if has_season else []) + ["team", "date"]))
+    if len(real) != before:
+        logger.warning("dropped %d duplicate (team, date) rows from team_matches", before - len(real))
 
     wanted = pd.DataFrame({
         "team": fixtures["opponent"].to_numpy(),
-        "date": pd.to_datetime(fixtures["date"], errors="coerce").to_numpy(),
+        "date": dates.to_numpy(),
     })
     if has_season:
         wanted["season"] = fixtures["season"].to_numpy()
@@ -208,6 +252,15 @@ def solve_team_id_names(df: pd.DataFrame) -> dict[str, dict[str, str]]:
     uniquely true for every id, or where two ids land on the same club, is
     omitted: a partial map would look like a complete one and only reveal itself
     as a silent feature failure.
+
+    **The two checks are belt and braces, and the first is provably redundant.**
+    If any id has two or more candidate clubs then the total number of candidates
+    exceeds the number of clubs, so by pigeonhole two ids name the same club and
+    the bijectivity check below rejects the season regardless. Relaxing
+    `len(never_met) != 1` to `not never_met` therefore changes no observable
+    behaviour, which is why no test distinguishes the two -- a property of the
+    logic, not a coverage gap. The per-id check is kept because it names the
+    actual failure (an incomplete meeting graph) and fails at the right place.
     """
     rows = _require_archive_columns(df)
     mapping: dict[str, dict[str, str]] = {}

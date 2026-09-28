@@ -350,3 +350,91 @@ def test_the_serving_adapter_agrees_with_the_training_adapter_on_real_data():
         f"worst per-club disagreement is {worst:.3f} goals/match, too large to train on one "
         f"definition and serve another:\n"
         f"{(comparison['serving'] - comparison['training']).abs().sort_values(ascending=False).head(5).round(3)}")
+
+
+# --- review findings: leak, missing contract, and the adapter asymmetry ------
+
+
+def test_an_unparseable_fixture_date_rates_nothing_rather_than_leaking():
+    """`rate_team_matches` sorts with pandas' default `na_position="last"`, so a
+    NaT placeholder sorts to the END of the club and its `shift(1)` window becomes
+    the club's *entire* history -- including matches played after the fixture being
+    priced. Measured: a club conceding 1,1,1,1 then 0,0,0,0 returns an honest 1.0
+    for a real date and a leaked 0.0 for a NaT one. `na_position="first"` is not the
+    fix; that would return the rating as of the season start, a different wrong
+    answer. So an unparseable date rates nothing."""
+    history = _history([
+        {"season": "2024-25", "team": "Leaky", "opponent_team": "1", "kickoff_time": f"2024-09-{10 + d:02d}T14:00",
+         "was_home": "True", "team_h_score": 0, "team_a_score": 1 if d < 4 else 0}
+        for d in range(8)
+    ])
+    team_matches = _generic_team_matches(history)
+
+    honest = rate_opponents(team_matches, pd.DataFrame({
+        "season": ["2024-25"], "opponent": ["Leaky"], "date": [pd.Timestamp("2024-09-14")],
+    }))["opponent_defence_last3"].iloc[0]
+    assert honest == pytest.approx(1.0), "prior four matches all conceded 1"
+
+    unparseable = rate_opponents(team_matches, pd.DataFrame({
+        "season": ["2024-25"], "opponent": ["Leaky"], "date": ["not-a-date"],
+    }))["opponent_defence_last3"].iloc[0]
+    assert unparseable != unparseable, (
+        "an unparseable fixture date must rate nothing, not leak the club's future matches")
+
+
+def test_fixtures_must_carry_a_season_when_the_history_does():
+    """With a one-sided `and`, fixtures lacking `season` gave the placeholders no
+    season, `pd.concat` filled NaN, and `rate_team_matches` grouped each as a
+    singleton with no history -- so every rating came back NaN, i.e. the league
+    prior, with no error at all."""
+    history = _round_robin()
+    team_matches = _generic_team_matches(history)
+    with pytest.raises(ValueError, match="must carry `season`"):
+        rate_opponents(team_matches, pd.DataFrame({
+            "opponent": ["Leaky"], "date": [KICKOFF_ORIGIN + pd.Timedelta(days=7 * 90)],
+        }))
+
+
+def test_a_duplicated_team_match_is_dropped_rather_than_raising():
+    """`set_index(...).reindex(...)` raises "cannot handle a non-unique
+    multi-index" on a duplicated (club, date), and the one production call site
+    swallows that -- so an un-deduped frame meant every fixture silently got the
+    league prior. `build_team_match_history` already defended the fitting side;
+    the serving side did not."""
+    history = _round_robin()
+    team_matches = _generic_team_matches(history)
+    duplicated = pd.concat([team_matches, team_matches.iloc[[0]]], ignore_index=True)
+    fixtures = pd.DataFrame({
+        "season": ["2024-25"], "opponent": ["Leaky"],
+        "date": [KICKOFF_ORIGIN + pd.Timedelta(days=7 * 90)],
+    })
+    rated = rate_opponents(duplicated, fixtures)["opponent_defence_last3"].iloc[0]
+    clean = rate_opponents(team_matches, fixtures)["opponent_defence_last3"].iloc[0]
+    assert rated == pytest.approx(clean), "a duplicate row must not change the answer"
+
+
+def test_an_incomplete_meeting_graph_drops_the_whole_season():
+    """Everton never meets Tight, so Tight's id has two candidate clubs.
+
+    This cannot isolate the *ambiguity* guard (`len(never_met) != 1`) from the
+    *bijectivity* guard, and no test can: if any id has two candidates then the
+    candidate counts exceed the club count, so by pigeonhole two ids name the same
+    club and the bijectivity check rejects the season anyway. The `!= 1` mutant
+    survives here and in every other test in this file, which is a property of the
+    logic rather than a coverage gap -- see the note in `solve_team_id_names`.
+    What this pins is the behaviour that matters: an incomplete meeting graph
+    never yields a partial map."""
+    pairs = [(a, b) for i, a in enumerate(TEAMS) for b in TEAMS[i + 1:]]
+    rows = []
+    for slot, (home, away) in enumerate(pairs):
+        if {home, away} == {"Everton", "Tight"}:
+            continue
+        when = KICKOFF_ORIGIN + pd.Timedelta(days=7 * slot)
+        rows += [
+            {"season": "2024-25", "team": home, "opponent_team": _team_id(away), "kickoff_time": when,
+             "was_home": "True", "team_h_score": 1, "team_a_score": 0},
+            {"season": "2024-25", "team": away, "opponent_team": _team_id(home), "kickoff_time": when,
+             "was_home": "False", "team_h_score": 1, "team_a_score": 0},
+        ]
+    assert solve_team_id_names(_history(rows)) == {}, (
+        "a season that is not a complete round-robin must yield no map at all")

@@ -33,6 +33,8 @@ cover*, which is the number that says whether any of this matters.
 from __future__ import annotations
 
 import json
+import math
+from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
@@ -158,32 +160,60 @@ def run(seasons: list[str] | None = None, min_train_seasons: int = 3) -> dict:
     """Prepare folds, evaluate all four candidates on each, and summarise."""
     folds = prepare_folds(seasons=seasons, min_train_seasons=min_train_seasons)
     metrics = evaluate_candidates(folds)
-    return {"metrics": metrics, "per_fold": per_fold_rps(metrics), **summarise(metrics)}
+    used = sorted({str(fold["val_season"]) for fold in folds} | {str(s) for s in (seasons or [])})
+    return {"metrics": metrics, "per_fold": per_fold_rps(metrics), "seasons": used, **summarise(metrics)}
 
 
-def to_record(result: dict) -> dict:
+def _finite(value) -> float | None:
+    """JSON has no NaN or Infinity, and neither does starlette.
+
+    `json.dumps` defaults to `allow_nan=True` and will happily write the token
+    `NaN`, which `json.loads` accepts but starlette's `JSONResponse.render` does
+    not (`allow_nan=False`) -- so a NaN in here becomes a 500 on
+    `GET /api/manifest`. `summarise` returns NaN legitimately: for a single fold,
+    and for any candidate that is NaN on a nested-scored fold.
+    """
+    number = float(value)
+    return number if math.isfinite(number) else None
+
+
+def to_record(result: dict, seasons: list[str] | None = None) -> dict:
     """The JSON-serialisable subset `models/manifest.py` embeds.
 
-    Only summary figures: the manifest is read by the API on every request, and
-    a per-fold per-candidate table would be several hundred rows of numbers
-    nothing displays. The per-fold table stays available from `run()`.
+    Only summary figures: the manifest is read by the API on every request, and a
+    per-fold per-candidate table would be several hundred rows of numbers nothing
+    displays. The per-fold table stays available from `run()`.
+
+    Carries **provenance** -- the seasons it was computed over, and when -- because
+    without it a cache is indistinguishable from a current measurement, and
+    `models/manifest.py` would republish a year-old walk-forward as `cached`
+    inside a freshly written manifest. That is the exact failure the consumer's
+    docstring claims cannot happen.
     """
     return {
+        "computed_at": datetime.now(timezone.utc).isoformat(),
+        "seasons": sorted(seasons or []),
         "n_folds": result["n_folds"],
         "n_scored_by_nested": result["n_scored_by_nested"],
-        "walk_forward_mean": {k: float(v) for k, v in result["walk_forward_mean"].items()},
+        "walk_forward_mean": {k: _finite(v) for k, v in result["walk_forward_mean"].items()},
         "best_by_walk_forward_mean": result["best_by_walk_forward_mean"],
-        "incumbent_min_on_fold": result["incumbent_min_on_fold"],
-        "incumbent_min_on_fold_shared": result["incumbent_min_on_fold_shared"],
-        "nested_selection": result["nested_selection"],
-        "optimism": result["optimism"],
+        "incumbent_min_on_fold": _finite(result["incumbent_min_on_fold"]),
+        "incumbent_min_on_fold_shared": _finite(result["incumbent_min_on_fold_shared"]),
+        "nested_selection": _finite(result["nested_selection"]),
+        "optimism": _finite(result["optimism"]),
         "nested_choices": list(result["nested_choices"]),
     }
 
 
-def write_cache(result: dict, path: Path = SELECTION_WALK_FORWARD_PATH) -> Path:
+def write_cache(
+    result: dict,
+    path: Path = SELECTION_WALK_FORWARD_PATH,
+    seasons: list[str] | None = None,
+) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(to_record(result), indent=2, sort_keys=True))
+    # `allow_nan=False` so a non-finite slipping through `to_record` fails loudly
+    # here rather than as a 500 on the API much later.
+    path.write_text(json.dumps(to_record(result, seasons), indent=2, sort_keys=True, allow_nan=False))
     return path
 
 
@@ -201,7 +231,7 @@ def main(seasons: list[str] | None = None, min_train_seasons: int = 3) -> None:
     print(f"  nested selection, uncontaminated                    : {result['nested_selection']:.6f}")
     print(f"  OPTIMISM in the published number                     : {result['optimism']:+.6f}")
     print(f"  nested choices: {', '.join(result['nested_choices'])}")
-    print(f"\n  wrote {write_cache(result)}")
+    print(f"\n  wrote {write_cache(result, seasons=result.get('seasons'))}")
 
 
 if __name__ == "__main__":

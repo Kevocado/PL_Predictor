@@ -15,16 +15,20 @@ one-lucky-fold shape. It is a real but *weak* guard, and it is worth being exact
 about how weak.
 
 *Gate 1c — the improvement must exceed the metric's own measured noise.* This is
-the gate that does the work, and it exists because of a correction. The
-bivariate_poisson O/U override was previously described in this project as having
-"won only 2 of 5 folds" and as the example the majority rule would have caught.
-**That was wrong, and is retracted here.** EXP-2026-16's own table shows
-covariate_poisson winning **3 of 5** folds (2021-22, 2022-23, 2025-26) and losing
-2 (2023-24, 2024-25) — which *clears* a majority-of-folds rule comfortably. The
-override was marginal for a different reason: its mean gain was under 0.0003
-log-loss while EXP-2026-26 measured the per-fold noise half-width at **0.018736**
-for this sample size. A 3-of-5 record with margins of 0.0003 is what noise
-produces roughly half the time, so the fold count was never the tell.
+the gate that does the work, and it exists because of a correction. An earlier
+note cited "the bivariate_poisson override won only 2 of 5 folds" as the example
+a majority rule would have caught, and the override behind that argument was
+**covariate_poisson** — which won **3 of 5** (2021-22, 2022-23, 2025-26; losing
+2023-24 and 2024-25) and therefore *clears* a majority rule comfortably.
+
+To be precise about what was and was not wrong: the **2-of-5 count was true of
+bivariate_poisson** (Task 7b's fresh 5-fold evaluation, 2 of 5). The error was
+conflating the two overrides. So the majority gate has no demonstrated near-miss
+to point at; it is kept as a cheap guard against a single large win carrying a
+mean, not because it caught something. What the reverted override actually failed
+on was its **margin**: a mean gain of 0.000277 log-loss against a measured noise
+half-width of 0.018736. A 3-of-5 record with margins of 0.0003 is roughly what
+noise produces half the time, so the fold count was never the tell.
 
 Hence a noise margin, and hence `noise` being a required input rather than a
 constant: **noise is per-metric and per-n**. EXP-2026-26's 0.018736 is an RPS
@@ -42,6 +46,7 @@ the same code as this one, and cannot quietly adopt a friendlier reading.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 
 # A change must win at least this fraction of shared folds, not merely the mean.
@@ -80,15 +85,18 @@ class TwoGateVerdict:
     def summary(self) -> str:
         if self.incumbent_mean is None or self.candidate_mean is None:
             return "NOT PROMOTED - no comparable folds."
-        headline = "PROMOTED" if self.promoted else "NOT PROMOTED"
-        if self.promoted and not self.complete:
-            headline = "PROMOTED PROVISIONALLY"
-        lines = [f"{headline} on {self.metric}:"]
+        # No "provisional" branch: `promoted` requires every gate to have passed,
+        # and the noise gate is hard-coded not-passed when no noise was supplied,
+        # so `promoted and not complete` is unreachable. `complete` is reported on
+        # its own line instead, where it is actually informative.
+        lines = [f"{'PROMOTED' if self.promoted else 'NOT PROMOTED'} on {self.metric}:"]
         lines.append(
             f"  mean {self.incumbent_mean:.6f} -> {self.candidate_mean:.6f} "
             f"({self.candidate_mean - self.incumbent_mean:+.6f})"
         )
         lines.append(f"  folds won {self.folds_won} of {self.folds_compared}")
+        if not self.complete:
+            lines.append("  INCOMPLETE - a required gate could not be evaluated (see below)")
         lines.extend(f"  [{'PASS' if gate.passed else 'FAIL'}] {gate.name}: {gate.detail}" for gate in self.gates)
         return "\n".join(lines)
 
@@ -107,6 +115,7 @@ def two_gate_verdict(
     lower_is_better: bool = True,
     majority: float = DEFAULT_MAJORITY,
     noise: float | None = None,
+    noise_basis: str = "per_fold",
 ) -> TwoGateVerdict:
     """Judge a change by the project's amended two-gate rule.
 
@@ -130,7 +139,12 @@ def two_gate_verdict(
     `noise` is the measured noise half-width **for this metric at this n** — a
     bootstrap CI half-width, or the half-width of a paired per-fold difference
     interval, which is tighter and the right choice when both arms are scored on
-    the same fixtures. It is deliberately not defaulted. A caller that does not
+    the same fixtures. It is deliberately not defaulted.
+
+    `noise_basis` says which scale `noise` is on, because the thing being gated is
+    a mean over folds and the two are not interchangeable: a per-fold half-width
+    must be divided by sqrt(folds) to be compared against a fold mean. Default
+    `"per_fold"`, which is what every measurement in this project has produced. A caller that does not
     measure it gets `complete=False` and a verdict that says gate 1c was not
     evaluated, because "we did not check" and "it passed" must not look alike.
     """
@@ -158,10 +172,24 @@ def two_gate_verdict(
     if noise is None:
         noise_gate = Gate("gate 1c - improvement exceeds measured noise", False,
                           "NOT EVALUATED - no noise figure supplied for this metric and n")
+        threshold = float("nan")
     else:
+        # The quantity gated is a mean over `len(shared)` folds, whose standard
+        # error is roughly the per-fold SE over sqrt(F). Comparing a per-fold
+        # half-width against a fold mean is therefore about sqrt(F) too strict --
+        # conservative, but it would reject a real improvement and read as
+        # evidence, which is the failure this module exists to prevent. The caller
+        # declares which scale it measured.
+        if noise_basis == "per_fold":
+            threshold = noise / math.sqrt(len(shared))
+        elif noise_basis == "fold_mean":
+            threshold = noise
+        else:
+            raise ValueError(f"noise_basis must be 'per_fold' or 'fold_mean', got {noise_basis!r}")
         noise_gate = Gate("gate 1c - improvement exceeds measured noise",
-                          improvement > noise,
-                          f"improvement {improvement:+.6f} vs noise half-width {noise:.6f}")
+                          improvement > threshold,
+                          f"improvement {improvement:+.6f} vs threshold {threshold:.6f} "
+                          f"({noise:.6f} {noise_basis}, {len(shared)} folds)")
 
     gates = (
         Gate("gate 1 - walk-forward mean improves",
