@@ -15,6 +15,13 @@ jobs:
     # `pip install -e .` silently no-ops the editable install on some runners
     # here, so every job exports PYTHONPATH instead of relying on it.
     runs-on: ubuntu-latest
+    # This suite needs the network -- see the note on the gating step -- so without
+    # a timeout a slow or hanging upstream leaves the gate pending for GitHub's
+    # 6-hour default, which is worse than a red gate: it reads as "in progress"
+    # rather than "broken". A cold first run legitimately takes ~13 minutes
+    # (it re-fetches several seasons of FPL history); 30 is generous for a warm
+    # one and still bounded.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -24,13 +31,28 @@ jobs:
           cache: pip
           cache-dependency-path: pyproject.toml
 
+      - name: Stamp the day
+        # The upstream caches are keyed by date, not by run. See below.
+        id: date
+        run: echo "stamp=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
       - name: Restore upstream caches
         # `data/cache/` is gitignored, so without this every run re-downloads
         # seasons of FPL player-gameweek history, ClubElo and football-data.co.uk.
+        #
+        # The key used to be `pl-upstream-caches-${{ github.run_id }}`, which is
+        # unique per run. A cache entry is immutable once written, so that pattern
+        # never *updates* anything: every run restores the newest prefix match and
+        # then writes a fresh full copy under its own key. It works, and it also
+        # fills the 10GB repository cache limit with near-duplicate copies of the
+        # same ~100MB until eviction starts dropping entries unpredictably.
+        #
+        # Keying on the UTC date gives one shared entry per day, refreshed daily --
+        # which is the right cadence for upstream data that changes on matchdays.
         uses: actions/cache@v4
         with:
           path: data/cache
-          key: pl-upstream-caches-${{ github.run_id }}
+          key: pl-upstream-caches-${{ steps.date.outputs.stamp }}
           restore-keys: pl-upstream-caches-
 
       - name: Install
@@ -39,6 +61,15 @@ jobs:
           pip install -e ".[dev]" || pip install -e . pytest pytest-mock ruff
 
       - name: Gating suite
+        # KNOWN LIMITATION, unresolved: this gate depends on three third parties
+        # (FPL, ClubElo, football-data.co.uk). An upstream outage therefore turns
+        # this repo's gate red for a reason that has nothing to do with the change
+        # under review, and a slow one now fails it at the 30-minute timeout.
+        # `timeout-minutes` makes that failure fast and legible; it does not make
+        # it correct. The real fix is to mark the network-dependent tests so the
+        # `-m "not network"` split below stops selecting nothing, which needs each
+        # such test identified individually -- deliberately not done blind here.
+        #
         # CORRECTION 2026-09-27. This repo previously ran `pytest -m "not
         # network"` and claimed the suite was offline. That was false, and it was
         # false in a way that would have shipped: `data/cache/` is gitignored
