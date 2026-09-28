@@ -33,6 +33,7 @@ import pandas as pd
 import requests
 
 from ..config import CLUBELO_BASE_URL, CLUBELO_CACHE_DIR
+from .network_blocked import NetworkBlockedError
 from .team_names import to_canonical
 
 
@@ -41,6 +42,12 @@ def _fetch_with_retry(fn, attempts: int = 3, backoff: float = 2.0):
     for attempt in range(attempts):
         try:
             return fn()
+        except NetworkBlockedError:
+            # The test network guard's refusal is a known state, not a
+            # transient failure -- retrying it only spends sleeps on a
+            # condition waiting cannot resolve. Re-raise immediately so the
+            # guard's own why+remedy reaches the test unwrapped.
+            raise
         except Exception as exc:  # noqa: BLE001 - retry on any transient fetch failure
             last_err = exc
             if attempt < attempts - 1:

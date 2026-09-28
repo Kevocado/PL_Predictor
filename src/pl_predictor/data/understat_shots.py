@@ -29,6 +29,7 @@ import pandas as pd
 import penaltyblog as pb
 
 from ..config import UNDERSTAT_SHOTS_CACHE_DIR
+from .network_blocked import NetworkBlockedError
 from .team_names import to_canonical
 from .understat import UNDERSTAT_TIMEOUT_SECONDS, COMPETITION
 
@@ -157,6 +158,12 @@ def _fetch_with_retry(fn, *args, attempts: int = 3, backoff: float = 2.0):
             with ThreadPoolExecutor(max_workers=1) as pool:
                 future = pool.submit(fn, *args)
                 return future.result(timeout=UNDERSTAT_TIMEOUT_SECONDS)
+        except NetworkBlockedError:
+            # The test network guard's refusal is a known state, not a
+            # transient failure -- retrying it only spends sleeps on a
+            # condition waiting cannot resolve. Re-raise immediately so the
+            # guard's own why+remedy reaches the test unwrapped.
+            raise
         except Exception as exc:  # noqa: BLE001 - retry on any transient fetch failure, including our own timeout
             last_err = exc
             if attempt < attempts - 1:

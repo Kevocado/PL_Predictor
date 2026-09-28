@@ -14,6 +14,7 @@ import pandas as pd
 import penaltyblog as pb
 
 from ..config import COMPETITION, FOOTBALL_DATA_CACHE_DIR
+from .network_blocked import NetworkBlockedError
 
 CURRENT_SEASON_START_YEAR = 2026  # 2026-27 season; bump each August
 
@@ -38,6 +39,12 @@ def _fetch_with_retry(season: str, attempts: int = 3, backoff: float = 2.0) -> p
         try:
             scraper = pb.scrapers.FootballData(COMPETITION, season)
             return scraper.get_fixtures()
+        except NetworkBlockedError:
+            # The test network guard's refusal is a known state, not a
+            # transient failure -- retrying it only spends sleeps on a
+            # condition waiting cannot resolve. Re-raise immediately so the
+            # guard's own why+remedy reaches the test unwrapped.
+            raise
         except Exception as exc:  # noqa: BLE001 - retry on any transient fetch failure
             last_err = exc
             if attempt < attempts - 1:
