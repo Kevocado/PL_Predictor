@@ -207,6 +207,102 @@ pl_predictor.evaluate.tune_hyperparams` runs an Optuna search against
 overfitting the hyperparameters the same way a feature can overfit) and
 resumes from where a previous run left off.
 
+## The test gate
+
+### Which workflow runs the tests (read this first)
+
+**`.github/workflows/tests.yml` ("tests") runs the suite on every push to
+`main` and every pull request. It is advisory: `main` has no branch protection
+and no rulesets, so nothing about a red `tests` run blocks a merge.**
+
+That is a decision, not an accident, and the reason is in the next section.
+The test that says so is `tests/test_tests_workflow.py`; it is not enforced
+from the workflow file, because "is this a required status check" is a fact
+about the server rather than about the repository, and nothing in the tree can
+see it.
+
+**Check it yourself in one command**, rather than trusting the paragraph above:
+
+```bash
+gh workflow list --repo Kevocado/PL_Predictor
+
+# the last few runs of the gate, and what each concluded
+gh api "repos/Kevocado/PL_Predictor/actions/workflows/tests.yml/runs?per_page=5" \
+  --jq '.workflow_runs[] | {id, event, conclusion, created_at}'
+
+# whether `main` is actually protected, and whether `tests` is required.
+# 404 / "Branch not protected"  -> advisory, which is what this section claims.
+# `[]`                          -> no rulesets either.
+gh api repos/Kevocado/PL_Predictor/branches/main/protection
+gh api repos/Kevocado/PL_Predictor/rulesets
+```
+
+(The deploy section above lists its runs with a different `gh` subcommand.
+`test_deploy_workflow.py` mutates that one to prove its own README guard can
+fail, and the mutation is only meaningful while the string it anchors on appears
+exactly once in this file — which it enforced, correctly, the first time this
+section duplicated it.)
+
+### The suite needs the network, and that is why the gate is advisory
+
+`data/cache/` is **gitignored** — only `.gitkeep` is tracked — so a fresh
+clone has no FPL player-gameweek archive, no ClubElo ratings and no
+football-data.co.uk CSVs. 20 of the tests read that data.
+
+Measured on this machine, 2026-09-28, against `origin/main` at `4975f22`
+(540 tests then; the suite is 567 as of `6dcdb95`, and the 20 are the same
+ones):
+
+| | wall | result |
+|---|---|---|
+| warm cache, network blocked | **669.66s** (11m09s) | 513 passed, 27 skipped |
+| cold cache, network blocked | 148.21s (2m28s) | **20 failed**, 493 passed — fast and legible |
+| cold cache, network allowed | 4926.07s (1h22m) | fills the cache: 4,723 files, 87MB |
+
+The middle row is the design working, not a problem: `tests/conftest.py` blocks
+outbound connections, so a test that wants data it does not have fails in
+seconds and names the command that warms it, instead of spending twelve
+minutes being paced by a third party's rate limit.
+
+`tests.yml` handles this in two steps rather than one. A **warm** step runs
+first with `PL_ALLOW_NETWORK=1` to populate the cache, and the **gating** step
+then runs the same tests with the network blocked. That split is the point: if
+one step did both, a test that reached the network would pass and the guard
+would be checking nothing on a run that looked green. The warm step is skipped
+entirely when a cache was restored, so a CI runner is a cold clone on its
+*first* run, not on every one.
+
+The consequence is the thing worth knowing. Because the suite reads FPL,
+ClubElo and football-data.co.uk, **an upstream outage can still turn the gate
+red for a reason that has nothing to do with the change under review** — if the
+warm step cannot reach an upstream, the gating step has no cache to read. That
+is the whole argument against making it a required check. A required check
+that intermittently goes red for reasons outside the diff is a check people
+learn to re-run rather than read.
+
+### One test is marked `network`
+
+`tests/test_current_season_check.py::test_evaluate_count_market_arms_on_current_season_flags_low_power`
+is the only test that needs the per-match understat shot archive — 4,649
+files, one HTTP request per match, with a 0.3s delay between uncached ones.
+Marking it `@pytest.mark.network` is what stops the warm step paying for it
+(70 of that 82 minutes), and it is also what makes `-m "not network"` select
+something: before this was marked the split deselected nothing and ran the whole
+suite on both halves. The marker is registered in `pyproject.toml`.
+
+### Two things about the gate that will surprise you
+
+- **The suite dirties tracked files.** It rewrites four `models/*.json`
+  (XGBoost models) on every run. A `git diff --exit-code` step added to
+  `tests.yml` would fail on an untouched tree.
+- **`timeout-minutes: 90` is set by the 4926.07s cold measurement, not the
+  669.66s warm one.** A timeout below the cold cost is not a safety
+  improvement: the job is killed before `actions/cache`'s post step runs, so
+  it saves no cache, so the next run is cold too. This file shipped at 60
+  against a 4926.07s cold run — 3600s, below the very cost it was commenting
+  on. `tests/test_tests_workflow.py` holds the setting to the duration the
+  comment claims, so the two cannot drift apart again.
+
 ## Run the dashboard
 
 One command starts both the API and the web app (Ctrl+C stops both):

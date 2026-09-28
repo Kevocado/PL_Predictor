@@ -5,6 +5,14 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  # Nightly, so the `network` half below is covered by something automatic.
+  # It used to run only on `workflow_dispatch`, which meant the only test that
+  # needs the live upstreams was verified when a human remembered to ask --
+  # i.e. rarely, and never on the commit that broke it. Off the hour and away
+  # from the top of the day, because `refresh-public-snapshot.yml` also runs on
+  # a 20-minute schedule and the two have no reason to collide.
+  schedule:
+    - cron: "37 4 * * *"
 
 concurrency:
   group: tests-${{ github.ref }}
@@ -20,23 +28,26 @@ jobs:
     # 6-hour default, which is worse than a red gate: it reads as "in progress"
     # rather than "broken".
     #
-    # The value is 60, and the reason it is not smaller is a deadlock I walked into
-    # measuring it. A warm run is ~13 minutes. The *first* run of this workflow is
-    # cold -- no cache exists, so it re-fetches several seasons of FPL history -- and
-    # it does not finish in 30. I set 30, the job was killed at 30m14s, and the step
-    # list shows `Post Restore upstream caches` **skipped**: a job that fails does
-    # not save its cache.
+    # The value is 90, and the reason it is not smaller is a deadlock this file
+    # walked into twice. The reasoning used to read "a warm run is ~13 minutes,
+    # the first run is cold and does not finish in 30, so 30 was too tight and
+    # 60 is generous". The cold duration was then measured, on this machine, on
+    # 2026-09-28, and it is **4926.07s -- 1h22m**:
     #
-    # So the failure and the cold start feed each other. The cache never populates,
-    # so every run is cold, so every run times out, so the cache never populates.
-    # A timeout on a cache-warming gate is not automatically a safety improvement; if
-    # it is set below the cold-run cost it is the opposite.
+    #     cold + network allowed     4926.07s (1:22:06)  4,723 cache files, 87MB
+    #     cold + network, gate half  2594.15s (0:43:14)
+    #     warm + guard                669.66s (0:11:09)
     #
-    # 60 accommodates the cold run with margin so the first success populates the
-    # cache, after which warm runs are ~13 and this becomes pure insurance against a
-    # hung upstream. If a future run fails at 60m, the cache *is* the thing to look at
-    # first, not the tests.
-    timeout-minutes: 60
+    # 60 minutes is 3600s, which is *less than the cold cost*. The job is killed
+    # before `actions/cache`'s post step runs, so it saves no cache, so the next
+    # run is cold too, so it times out again. The warm step and the cold start
+    # feed each other, and no timeout below 4926.07s fixes that -- it makes it
+    # permanent. `tests/test_tests_workflow.py` asserts the setting is at least
+    # the duration this comment claims, so the two cannot drift apart again.
+    #
+    # If a future run fails at 90m, the cache is the first thing to look at, not
+    # the tests.
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
 
@@ -60,10 +71,17 @@ jobs:
         # never *updates* anything: every run restores the newest prefix match and
         # then writes a fresh full copy under its own key. It works, and it also
         # fills the 10GB repository cache limit with near-duplicate copies of the
-        # same ~100MB until eviction starts dropping entries unpredictably.
+        # same ~10MB until eviction starts dropping entries unpredictably.
         #
         # Keying on the UTC date gives one shared entry per day, refreshed daily --
         # which is the right cadence for upstream data that changes on matchdays.
+        #
+        # The `id` is load-bearing: the warm step below is skipped when a cache
+        # was actually restored. Without it every run pays the warm step's cost
+        # even when there is nothing to warm, which doubles the gate's wall time
+        # for no reason. A CI runner is a cold clone on its *first* run, not on
+        # every run, and this is what makes the second one cheap.
+        id: cache
         uses: actions/cache@v4
         with:
           path: data/cache
@@ -88,16 +106,35 @@ jobs:
         #     cache. So a test that reaches the network anyway is still caught. Warming
         #     and gating are separate steps for exactly that reason.
         #
-        # The post-job cache step persists `data/cache`, so this is a once-per-cache-key
-        # cost rather than a per-run one.
+        # Skipped when the cache above was restored, because there is then nothing
+        # to warm. A cache-hit on the prefix but a miss on the exact key still
+        # counts as warm: `cache-matched-key` is the output that says "some entry
+        # was restored", which is what this step's question actually is.
+        if: steps.cache.outputs.cache-matched-key == ''
         env:
           PYTHONPATH: ${{ github.workspace }}/src
           PL_ALLOW_NETWORK: "1"
         # `continue-on-error` because a warm failure must not masquerade as a gate
         # failure: the gating suite below re-runs the same tests with the guard ON and
         # will fail properly, with a better message, if the cache is still cold.
+        #
+        # This step used to be `pytest tests/ -q 2>&1 | tail -20`. The pipe made the
+        # step's exit status `tail`'s, which is always zero, so `continue-on-error`
+        # was never reached and a cold-cache failure was reported as a step that
+        # "succeeded". Two corrections:
+        #   - `--ignore=tests/test_network_guard.py`, because those three tests
+        #     assert the network block is in place and so *fail* when
+        #     `PL_ALLOW_NETWORK=1` disables it. They are the guard working, not a
+        #     warm failure, and the gating step below runs them properly.
+        #   - `-m "not network"`, which deselects the one test that needs the
+        #     4,649-file per-match understat archive. That is 70 of the 82 minutes
+        #     above, for a test the gate does not run.
+        # With the pipe gone the step has a real exit status, and
+        # `continue-on-error` is doing the job its comment describes.
         continue-on-error: true
-        run: pytest tests/ -q 2>&1 | tail -20
+        run: >-
+          pytest tests/ -q -m "not network"
+          --ignore=tests/test_network_guard.py
 
       - name: Gating suite
         # The gate runs with the network guard ON, against the cache warmed by the
@@ -133,8 +170,12 @@ jobs:
       - name: Network-marked tests (live upstreams)
         # Informational, not gating: a failure here usually means an upstream
         # schema change, which is worth seeing but should not block a source PR.
-        # Currently selects nothing -- see the note above.
-        if: github.event_name == 'workflow_dispatch'
+        #
+        # Selects 2 of 567. It selected 0 until 2026-09-28, which is what made
+        # the `-m not network` gating split above decorative -- a marker
+        # nothing carries deselects nothing, and the gating step was running the
+        # whole suite on both halves rather than dividing it.
+        if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
         env:
           PYTHONPATH: ${{ github.workspace }}/src
         run: pytest tests/ -q -m network
