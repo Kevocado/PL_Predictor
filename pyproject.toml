@@ -29,3 +29,14 @@ dev = ["jupyter", "pytest"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+# Registered so `@pytest.mark.network` does not warn, and so the guard in
+# tests/conftest.py has a marker to look for. No test carries it yet -- see
+# the note in tests/conftest.py -- so this is the opt-in, not a description of
+# the current split. Unregistered markers are silently collected as unknown, and
+# a marker that only appears in a conftest is a marker nothing can be selected
+# by from the command line.
+markers = [
+  "network: needs live network access; blocked by default, opt in explicitly",
+]
