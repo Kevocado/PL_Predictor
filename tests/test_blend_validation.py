@@ -27,6 +27,8 @@ from pl_predictor.evaluate.blend_validation import (
     _fit_blend_weight_on,
     _poisson_components,
 )
+from pl_predictor.evaluate import goal_contribution_research
+from pl_predictor.models import player_goals
 
 
 def _frame(goals_per90, assists_per90, minutes) -> pd.DataFrame:
@@ -37,6 +39,83 @@ def _frame(goals_per90, assists_per90, minutes) -> pd.DataFrame:
             "expected_minutes_pre_match": minutes,
         }
     )
+
+
+# The next three tests need the dict `fit_goal_contribution_model` *really*
+# returns, not a dict this file writes itself. Everything the tripwire asserts
+# has to be observable on production's own output, or it is not a tripwire.
+#
+# The previous version of this file asserted against a literal defined two
+# lines above the assertion (`model = {"blend_weight": 0.7, ...}`), so
+# `assert "union_calibrator" not in model` was a tautology -- it could not fail
+# for any edit to any source file. The sibling `hasattr` check named
+# `_apply_platt_to_served_union`, an identifier that appears nowhere in the
+# tree, so it was false and would have stayed false. Both are gone.
+#
+# `fit_goal_contribution_model` reaches its data through
+# `build_goal_contribution_frame`, which it imports *inside* the function body.
+# Patching that module attribute therefore substitutes the data layer without
+# touching the fitting code, which is what has to run for real here.
+_MODEL_FEATURES = list(
+    goal_contribution_research.BASE_FEATURES
+    + goal_contribution_research.ENHANCED_FEATURES
+    + goal_contribution_research.OPPONENT_FEATURES
+)
+
+# The manifest keys `fit_goal_contribution_model` is contracted to return. The
+# tripwire asserts the real key set, so *any* new key fires it -- which is the
+# point: unifying the two union constructions cannot be done from what is
+# already stored, so it has to add something, and a union calibrator is the
+# obvious candidate.
+_MANIFEST_KEYS = {"model", "calibrator", "columns", "features", "blend_weight", "fitted_blend_weight"}
+
+
+def _contribution_frame(calibration_rows: int = 120, seed: int = 0) -> pd.DataFrame:
+    """Two seasons of synthetic player-fixture rows shaped like the real frame.
+
+    `calibration_rows` is exposed because it selects which arm of
+    `_fit_blend_weight` runs: under 100 rows that function returns None, which
+    is the reachable `None` path that `blend_contribution`'s docstring wrongly
+    describes. 120 keeps the fitted arm.
+    """
+    rng = np.random.default_rng(seed)
+
+    def block(rows: int, season: str) -> pd.DataFrame:
+        data = {feature: rng.random(rows) for feature in _MODEL_FEATURES}
+        data["position"] = rng.choice(["FWD", "MID", "DEF"], rows)
+        data["goal_contribution"] = (rng.random(rows) < 0.35).astype(int)
+        # The three columns `_poisson_union` reads, on their own scale.
+        data["goals_per90_last10"] = rng.random(rows) * 0.9
+        data["assists_per90_last10"] = rng.random(rows) * 0.7
+        data["expected_minutes_pre_match"] = 20.0 + rng.random(rows) * 70.0
+        data["season"] = season
+        return pd.DataFrame(data)
+
+    return pd.concat(
+        [block(150, "2023-2024"), block(calibration_rows, "2024-2025")],
+        ignore_index=True,
+    )
+
+
+def _fit_manifest(calibration_rows: int = 120) -> dict:
+    """Run the real `fit_goal_contribution_model` over the synthetic frame."""
+    frame = _contribution_frame(calibration_rows)
+    patch = pytest.MonkeyPatch()
+    patch.setattr(
+        goal_contribution_research,
+        "build_goal_contribution_frame",
+        lambda seasons=None: (frame, _MODEL_FEATURES + ["position"]),
+    )
+    try:
+        return player_goals.fit_goal_contribution_model()
+    finally:
+        patch.undo()
+
+
+@pytest.fixture(scope="module")
+def fitted_manifest() -> dict:
+    """`fit_goal_contribution_model`'s actual return value, data layer stubbed."""
+    return _fit_manifest()
 
 
 def test_poisson_components_match_the_predict_player_formula():
@@ -121,7 +200,9 @@ def test_incumbent_max_arm_is_at_least_every_component():
     )
 
 
-def test_the_fitted_blend_weight_is_not_a_weight_for_the_quantity_that_is_served():
+def test_the_fitted_blend_weight_is_not_a_weight_for_the_quantity_that_is_served(
+    fitted_manifest,
+):
     """A known, asserted defect — not an endorsement. See EXP-2026-28.
 
     `_fit_blend_weight` grid-searches `w` to minimise Brier of
@@ -148,20 +229,38 @@ def test_the_fitted_blend_weight_is_not_a_weight_for_the_quantity_that_is_served
     a one-line change, and changing only the fit target would be a different
     unvalidated change.
 
-    The assertion below is the tripwire: it fails the moment someone stores a union
-    calibrator or unifies the constructions, at which point the ledger entry must be
-    updated rather than deleted.
-    """
-    from pl_predictor.models import player_goals
+    **This is the tripwire, and it is now bound to production.** It reads the dict
+    `fit_goal_contribution_model` actually returns. The previous version asserted
+    against a dict literal defined in the test and a `hasattr` for a name absent
+    from the tree, so no edit to any source file could have made it fail.
 
-    model = {
-        "features": [], "columns": [], "model": None, "calibrator": None,
-        "blend_weight": 0.7,
-    }
-    assert "union_calibrator" not in model
-    assert not hasattr(player_goals, "_apply_platt_to_served_union"), (
-        "if a served-union calibrator now exists, EXP-2026-28's skew is fixed and this "
-        "test plus the ledger entry must be revisited")
+    It fires on either of the two things unification has to do:
+
+    - it **stores** the missing bridge, which is a new manifest key, so the
+      key-set assertion goes red; or
+    - it starts **applying** the fitted weight, so the manifest's served share
+      stops equalling `NEUTRAL_BLEND_WEIGHT`.
+
+    Either way the ledger entry must be updated rather than deleted.
+    """
+    manifest = fitted_manifest
+
+    # Only `calibrator` may exist, and it is the *direct* model's. A second
+    # calibrator, or any other new key, is the shape unification takes.
+    assert set(manifest) == _MANIFEST_KEYS, (
+        "the manifest grew a key; if that is a union calibrator, EXP-2026-28's skew "
+        "is fixed and this test plus the ledger entry must be revisited")
+
+    # The share that actually gets served is the neutral one, whatever was
+    # fitted. Asserted through the production function on the production input,
+    # so it holds for every fitted value rather than for one chosen number.
+    assert manifest["blend_weight"] == player_goals.NEUTRAL_BLEND_WEIGHT
+    assert (
+        player_goals._serving_blend_weight(manifest["fitted_blend_weight"])
+        == player_goals.NEUTRAL_BLEND_WEIGHT
+    ), (
+        "if a fitted weight can now reach serving, the two constructions must have "
+        "been unified and EXP-2026-28 must be revisited")
 
 
 def test_serving_does_not_apply_a_weight_fitted_against_another_construction():
@@ -192,8 +291,24 @@ def test_serving_does_not_apply_a_weight_fitted_against_another_construction():
 
 def test_the_blend_is_still_convex_at_the_neutral_weight():
     """Dropping the fitted share must not reintroduce the order-statistic bias.
-    A convex mixture can land below either arm; a max never can."""
+    A convex mixture can land below either arm; a max never can.
+
+    The `0.0 < NEUTRAL < 1.0` bound is the one assertion here that is not
+    obviously implied by the algebra, so it is stated explicitly. Verified by
+    mutation: setting `NEUTRAL_BLEND_WEIGHT = 1.0` makes `blend_contribution`
+    return the direct arm unchanged, which silently reverts serving to the
+    direct-model-alone semantics that the two docstrings above still describe as
+    the `None` fallback. Every other assertion in this file passed under that
+    mutant -- `blended < max(direct, union)` holds at weight 1.0 whenever
+    `direct < union`, and the linear-identity assertion holds by definition --
+    so without this bound the blend could be switched off and the suite would
+    stay green.
+    """
     from pl_predictor.models.player_goals import NEUTRAL_BLEND_WEIGHT, blend_contribution
+
+    assert 0.0 < NEUTRAL_BLEND_WEIGHT < 1.0, (
+        "at 1.0 the blend is the direct model alone and at 0.0 it is the union "
+        "alone; either silently changes what serving returns")
 
     direct, union = 0.30, 0.45
     blended = blend_contribution(direct, union, NEUTRAL_BLEND_WEIGHT)
@@ -203,13 +318,100 @@ def test_the_blend_is_still_convex_at_the_neutral_weight():
     assert 0.0 < blend_contribution(0.99, 0.01, NEUTRAL_BLEND_WEIGHT) < 1.0
 
 
-def test_the_fitted_weight_is_still_recorded_on_the_model():
+def test_the_fitted_weight_is_still_recorded_on_the_model(fitted_manifest):
     """It is real information about the research construction and belongs in the
     manifest. Dropping it would lose the EXP-2026-24 result; applying it is what
-    EXP-2026-28 forbids."""
-    from pl_predictor.models.player_goals import NEUTRAL_BLEND_WEIGHT
+    EXP-2026-28 forbids.
 
-    model = {"blend_weight": NEUTRAL_BLEND_WEIGHT, "fitted_blend_weight": 0.70}
-    assert model["fitted_blend_weight"] == pytest.approx(0.70)
-    assert model["blend_weight"] == pytest.approx(NEUTRAL_BLEND_WEIGHT)
-    assert model["blend_weight"] != model["fitted_blend_weight"]
+    Bound to the dict `fit_goal_contribution_model` really returns. The previous
+    version built `model = {"blend_weight": ..., "fitted_blend_weight": 0.70}`
+    as a literal two lines above the assertion, so the three `assert`s read a
+    value the test itself had just written and could not fail for any change to
+    any source file. In particular, deleting the `fitted_blend_weight` entry from
+    `fit_goal_contribution_model`'s return dict left this test green.
+
+    The invariant is deliberately stated as a *range* rather than a specific
+    fitted number: what matters is that the key is present and carries a
+    plausible share, not which grid point the search happened to land on. That
+    also keeps it from pinning a value to this synthetic frame.
+    """
+    manifest = fitted_manifest
+
+    assert "fitted_blend_weight" in manifest, (
+        "the fitted weight is real information about the research construction "
+        "(EXP-2026-24); dropping it from the manifest loses that result")
+    fitted = manifest["fitted_blend_weight"]
+    assert fitted is not None, (
+        "this frame is 120 calibration rows, well over `_fit_blend_weight`'s "
+        "100-row floor, so it must have produced a weight")
+    assert 0.0 <= fitted <= 1.0
+
+    # The recorded value and the served value are two different things, and both
+    # are on the real manifest. The grid is multiples of 0.05, so a tie at the
+    # neutral share is possible in principle; the property that must hold either
+    # way is that serving ignores the fitted number.
+    assert manifest["blend_weight"] == player_goals.NEUTRAL_BLEND_WEIGHT
+    assert player_goals._serving_blend_weight(fitted) == player_goals.NEUTRAL_BLEND_WEIGHT
+
+
+def test_serving_uses_the_neutral_share_even_when_no_weight_was_fitted():
+    """The documented `None` fallback is not the path serving takes.
+
+    `_fit_blend_weight` documents that it returns `None` "in which case serving
+    falls back to the direct model alone". It does not. `None` reaches
+    `_serving_blend_weight`, which ignores it and returns the neutral share, so
+    the manifest carries `0.5` and `blend_contribution` blends 50/50 against the
+    uncalibrated union.
+
+    `blend_contribution` *does* implement a direct-alone fallback for a `None`
+    weight, and that branch is correct. It is just not reached from production:
+    the only production caller passes `(contribution_model or {}).get(
+    "blend_weight")`, and the manifest never stores `None` there. The two
+    functions disagree about what an unfitted weight means.
+
+    The `None` is reachable, which is the part that makes the wrong docstring
+    matter rather than merely stale. All three triggers were confirmed by
+    calling the real `_fit_blend_weight`: a missing required column, a
+    single-class target, and -- the undocumented one, and the one with no
+    counterpart in the caller, which has already rejected empty and
+    single-class slices -- a calibration slice under 100 rows. That last is a
+    row-count floor nothing upstream shares, so a short or partial final season
+    lands on it.
+
+    This test drives the manifest, so it pins what serving actually serves
+    rather than what a helper does with a hand-passed `None`.
+
+    **No behaviour is changed here.** 0.5 versus direct-alone has different
+    accuracy consequences, and the neutral share is what removed the
+    order-statistic bias the change was made for. Choosing between them is a
+    modelling decision for the model owner, not a documentation fix, so the
+    current behaviour is pinned and flagged rather than altered. The tripwire for
+    a future decision is that this assertion goes red.
+
+    Verified by mutation:
+      - `_serving_blend_weight(None)` returning `1.0` (direct alone) -- red.
+      - the 100-row floor removed from `_fit_blend_weight`, so a 40-row
+        calibration slice stops returning `None` -- red, via the
+        `fitted_blend_weight is None` assertion on the manifest.
+    """
+    manifest = _fit_manifest(calibration_rows=40)
+
+    # 40 rows is under `_fit_blend_weight`'s 100-row floor, so the fit really
+    # did fail -- asserted on the real manifest, not assumed from the row count.
+    assert manifest["fitted_blend_weight"] is None, (
+        "premise: a 40-row calibration slice cannot produce a fitted weight")
+
+    # And yet the served share is the neutral one, not the direct model alone.
+    assert manifest["blend_weight"] == player_goals.NEUTRAL_BLEND_WEIGHT
+
+    direct, union = 0.30, 0.45
+    served = player_goals.blend_contribution(direct, union, manifest["blend_weight"])
+    assert served == pytest.approx(0.5 * direct + 0.5 * union)
+    assert served != direct, "the direct model alone is *not* what the docstring claims"
+    assert served == pytest.approx(0.375)
+
+    # The dormant branch, shown to work and shown to be a different answer. If a
+    # future change makes serving pass `None` through, this is the value that
+    # would start being returned -- recorded here so that change is visible as a
+    # change in served probabilities rather than a silent one.
+    assert player_goals.blend_contribution(direct, union, None) == pytest.approx(direct)
