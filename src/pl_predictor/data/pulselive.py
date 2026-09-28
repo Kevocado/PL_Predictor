@@ -42,6 +42,7 @@ import requests
 
 from ..config import PULSELIVE_BASE_URL, PULSELIVE_CACHE_DIR, PULSELIVE_COMPETITION_ID
 from .football_data import CURRENT_SEASON_START_YEAR, season_str
+from .network_blocked import NetworkBlockedError
 from .team_names import to_canonical
 
 _STAT_MAP = {
@@ -60,6 +61,12 @@ def _fetch_with_retry(fn, attempts: int = 3, backoff: float = 2.0):
     for attempt in range(attempts):
         try:
             return fn()
+        except NetworkBlockedError:
+            # The test network guard's refusal is a known state, not a
+            # transient failure -- retrying it only spends sleeps on a
+            # condition waiting cannot resolve. Re-raise immediately so the
+            # guard's own why+remedy reaches the test unwrapped.
+            raise
         except Exception as exc:  # noqa: BLE001 - retry on any transient fetch failure
             last_err = exc
             if attempt < attempts - 1:

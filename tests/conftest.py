@@ -50,6 +50,7 @@ import socket
 import pytest
 
 from pl_predictor.data import fpl_api
+from pl_predictor.data.network_blocked import NetworkBlockedError
 
 WARM_CACHE_HINT = """\
 This test reached the network, and the suite blocks it so that runtime does not
@@ -89,10 +90,10 @@ def _block_network(request):
     original_create = socket.create_connection
 
     def blocked(self, address, *args, **kwargs):
-        raise RuntimeError(f"outbound network blocked in tests: {address!r}\n{WARM_CACHE_HINT}")
+        raise NetworkBlockedError(f"outbound network blocked in tests: {address!r}\n{WARM_CACHE_HINT}")
 
     def blocked_create(address, *args, **kwargs):
-        raise RuntimeError(f"outbound network blocked in tests: {address!r}\n{WARM_CACHE_HINT}")
+        raise NetworkBlockedError(f"outbound network blocked in tests: {address!r}\n{WARM_CACHE_HINT}")
 
     socket.socket.connect = blocked
     socket.create_connection = blocked_create

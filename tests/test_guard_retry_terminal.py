@@ -130,7 +130,7 @@ def test_guard_refusal_is_attempted_exactly_once(module_path, monkeypatch):
     Would fail pre-fix as attempts == 3 with sleeps == [2.0, 4.0]: the
     `except Exception` retry loop treats the refusal like a flaky upstream.
     """
-    sleeps, calls, excinfo = _terminal_case(module_path, monkeypatch)
+    sleeps, calls, _excinfo = _terminal_case(module_path, monkeypatch)
     assert calls["n"] == 1, (
         f"{module_path} retried a guard refusal {calls['n']}x -- "
         "a blocked network never resolves by waiting"
@@ -166,11 +166,11 @@ def _retry_case(module_path, monkeypatch):
     state = {"calls": 0}
     fetch = _flaky_fetch(state, sentinel)
     if module_path in FN_WRAPPERS:
-        mod, sleeps, calls, counting = _drive_fn_wrapper(monkeypatch, module_path, fetch)
+        mod, sleeps, _calls, counting = _drive_fn_wrapper(monkeypatch, module_path, fetch)
         result = mod._fetch_with_retry(counting)
     else:
         attr = dict(SCRAPER_WRAPPERS)[module_path]
-        mod, sleeps, calls = _drive_scraper_wrapper(monkeypatch, module_path, attr, fetch)
+        mod, sleeps, _calls = _drive_scraper_wrapper(monkeypatch, module_path, attr, fetch)
         result = mod._fetch_with_retry("2023")
     return result, sentinel, state, sleeps
 
