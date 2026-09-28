@@ -643,3 +643,61 @@ def test_biggest_upsets_leave_out_rebuilt_picks(clean_db):
     ]))
 
     assert store.get_biggest_upsets() == []
+
+
+def test_overall_pct_can_never_disagree_with_the_match_result_market(clean_db, tmp_path):
+    """`pct_correct_overall` and `by_market["match_result"]` are the same
+    quantity computed twice: the first is `fixtures["hit"].mean()`, the second
+    `_market_reliability(fixtures, "hit")`. They are rendered side by side as
+    "Correct overall" and the "Match result" market card, so a reader compares
+    them directly -- and a past report conflated the overall figure with the
+    unrelated `confirmed_win_rate` and read the pair as a rounding bug.
+
+    Nothing pinned them to each other, so any future edit that changes one
+    aggregate's filter (e.g. a NaN guard added to only one of them) would ship
+    two contradicting percentages with no test failing. This is the invariant
+    that makes such an edit impossible to merge silently, and it is asserted
+    over a mixed fixture set: two live picks (one hit, one miss) and two
+    rebuilt picks, so the rebuilt exclusion is exercised rather than incidental.
+    """
+    store.record_predictions(_one_fixture("live-hit", "Arsenal", "Chelsea"))
+    store.record_predictions(_one_fixture("live-miss", "Spurs", "Villa"))
+    store.record_predictions(_one_fixture("rebuilt-hit", "Everton", "Ipswich"), backfilled=True)
+    store.record_predictions(_one_fixture("rebuilt-miss", "Brighton", "Arsenal"), backfilled=True)
+    store.reconcile_predictions(pd.DataFrame([
+        {"team_home": "Arsenal", "team_away": "Chelsea", "date": pd.Timestamp("2020-01-01"), "goals_home": 1, "goals_away": 0, "ftr": "H"},
+        {"team_home": "Spurs", "team_away": "Villa", "date": pd.Timestamp("2020-01-01"), "goals_home": 0, "goals_away": 2, "ftr": "A"},
+        {"team_home": "Everton", "team_away": "Ipswich", "date": pd.Timestamp("2020-01-01"), "goals_home": 2, "goals_away": 0, "ftr": "H"},
+        {"team_home": "Brighton", "team_away": "Arsenal", "date": pd.Timestamp("2020-01-01"), "goals_home": 0, "goals_away": 1, "ftr": "A"},
+    ]))
+
+    record = store.get_track_record()
+    match_result = record["by_market"]["match_result"]
+
+    # The mixed set actually exercises the rule: rebuilt picks are present,
+    # resolved, and would each move the average if they were counted.
+    assert record["n_rebuilt_fixtures"] == 2
+    assert record["n_resolved_fixtures"] == 2
+    assert record["pct_correct_overall"] == pytest.approx(0.5)  # 1 hit of 2 live
+    assert match_result["n_resolved"] == record["n_resolved_fixtures"]
+    assert match_result["pct_correct"] == pytest.approx(record["pct_correct_overall"])
+
+    # And when there is nothing live to count, both must go empty together
+    # rather than one reporting a rate the other denies exists. A separate
+    # store, because the two live picks above are still in this one.
+    rebuilt_only = tmp_path / "rebuilt_only.db"
+    original_db = store.TRACKING_DB_PATH
+    store.TRACKING_DB_PATH = rebuilt_only
+    try:
+        store.record_predictions(_one_fixture("rebuilt-only", "Leeds", "Palace"), backfilled=True)
+        store.reconcile_predictions(pd.DataFrame([
+            {"team_home": "Leeds", "team_away": "Palace", "date": pd.Timestamp("2020-01-01"), "goals_home": 1, "goals_away": 1, "ftr": "D"},
+        ]))
+
+        empty = store.get_track_record()
+    finally:
+        store.TRACKING_DB_PATH = original_db
+
+    assert empty["pct_correct_overall"] is None
+    assert empty["by_market"]["match_result"]["pct_correct"] is None
+    assert empty["by_market"]["match_result"]["n_resolved"] == 0

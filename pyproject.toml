@@ -9,14 +9,7 @@ description = "Premier League match outcome, scoreline, and betting-market predi
 requires-python = ">=3.10"
 dependencies = [
     "penaltyblog>=1.12.0",
-    # A floor, deliberately not a pin. The date-resolution bug that CI found was
-    # fixed in code (`features/date_keys.py`), because a pin would only make this
-    # machine and CI agree and leave the next cache written by a different version
-    # free to disagree again. So correctness no longer depends on the version -- but
-    # a floor is still worth having, because datetime *resolution inference*
-    # (`s` vs `us` vs `ns`) only exists from pandas 2.0, and an unbounded
-    # `pandas` will happily install a 1.x that behaves differently again.
-    "pandas>=2.0",
+    "pandas",
     "numpy",
     "scipy",
     "xgboost",
@@ -32,12 +25,18 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["jupyter", "pytest", "ruff"]
+dev = ["jupyter", "pytest"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.pytest.ini_options]
+# Registered so `@pytest.mark.network` does not warn, and so the guard in
+# tests/conftest.py has a marker to look for. No test carries it yet -- see
+# the note in tests/conftest.py -- so this is the opt-in, not a description of
+# the current split. Unregistered markers are silently collected as unknown, and
+# a marker that only appears in a conftest is a marker nothing can be selected
+# by from the command line.
 markers = [
-  "network: needs a live upstream API or a gitignored data/cache fetch; deselect with '-m \"not network\"'",
+  "network: needs live network access; blocked by default, opt in explicitly",
 ]
