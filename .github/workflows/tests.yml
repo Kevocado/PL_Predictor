@@ -18,10 +18,25 @@ jobs:
     # This suite needs the network -- see the note on the gating step -- so without
     # a timeout a slow or hanging upstream leaves the gate pending for GitHub's
     # 6-hour default, which is worse than a red gate: it reads as "in progress"
-    # rather than "broken". A cold first run legitimately takes ~13 minutes
-    # (it re-fetches several seasons of FPL history); 30 is generous for a warm
-    # one and still bounded.
-    timeout-minutes: 30
+    # rather than "broken".
+    #
+    # The value is 60, and the reason it is not smaller is a deadlock I walked into
+    # measuring it. A warm run is ~13 minutes. The *first* run of this workflow is
+    # cold -- no cache exists, so it re-fetches several seasons of FPL history -- and
+    # it does not finish in 30. I set 30, the job was killed at 30m14s, and the step
+    # list shows `Post Restore upstream caches` **skipped**: a job that fails does
+    # not save its cache.
+    #
+    # So the failure and the cold start feed each other. The cache never populates,
+    # so every run is cold, so every run times out, so the cache never populates.
+    # A timeout on a cache-warming gate is not automatically a safety improvement; if
+    # it is set below the cold-run cost it is the opposite.
+    #
+    # 60 accommodates the cold run with margin so the first success populates the
+    # cache, after which warm runs are ~13 and this becomes pure insurance against a
+    # hung upstream. If a future run fails at 60m, the cache *is* the thing to look at
+    # first, not the tests.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 
