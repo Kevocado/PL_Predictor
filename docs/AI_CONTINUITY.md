@@ -2119,13 +2119,37 @@ still, not more.
 served-union calibrator is stored or the constructions are unified, so the day
 this is fixed the ledger entry gets revisited rather than quietly deleted.
 
-### Top item for the next PL task
+### Interim change, same day: the fitted weight is recorded but no longer applied
+
+`fit_goal_contribution_model` now stores the fitted value as
+**`fitted_blend_weight`** and serves `blend_weight = NEUTRAL_BLEND_WEIGHT` (0.5),
+via `_serving_blend_weight` — the single place to change when the constructions are
+unified.
+
+The reasoning is narrow and worth stating precisely, because it looks like a
+regression and is not. The blend's structural claim — that a convex mixture of two
+estimates is better than `max(...)` of them — holds at **any** weight, including
+0.5, because the order-statistic bias comes from the `max` and not from the share.
+What the fitted `w` added was a refinement, and that refinement was fitted against
+a quantity serving never computes. Applying it means mixing a calibrated
+probability with an uncalibrated one at a share chosen to suit the calibrated one —
+the same objection that disqualified the `max(...)` this replaced.
+
+The fitted value is still recorded, because it is real information about the
+research construction and it belongs in `manifest.json`; losing it would lose the
+EXP-2026-24 result. `tests/test_blend_validation.py` pins all three properties: the
+fitted weight is not applied, the blend is still convex and still lands below
+either arm, and `NEUTRAL_BLEND_WEIGHT != 0.70` so the distinction cannot be quietly
+erased.
+
+### Still the top item for the next PL task
 
 Unify `_poisson_union` and the serving `anytime_probability(lam_goals +
 lam_assists)` into one function, used by fitting and serving alike, then
 re-evaluate the blend under the amended two-gate rule with a measured paired noise
-figure. Everything else in Task 8 is lower value than this, because until it is
-done the blend's headline number does not describe the thing being served.
+figure. The neutral weight is a holding position, not a resolution: it removes a
+number that was fitted against the wrong thing, and it leaves the underlying
+incoherence in place.
 
 ## Change checklist for future agents
 

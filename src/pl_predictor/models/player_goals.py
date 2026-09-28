@@ -174,8 +174,47 @@ def fit_goal_contribution_model(seasons: list[str] | None = None) -> dict:
         "calibrator": calibrator,
         "columns": columns,
         "features": all_features,
-        "blend_weight": blend_weight,
+        # NOT `blend_weight`. See `_serving_blend_weight` for why the fitted
+        # number is recorded but not applied.
+        "blend_weight": _serving_blend_weight(blend_weight),
+        "fitted_blend_weight": blend_weight,
     }
+
+
+# The share given to the direct classifier at serving time, when the two arms are
+# not commensurable.
+#
+# `_fit_blend_weight` minimises Brier against
+# `w * p_direct + (1 - w) * apply_platt(_poisson_union(calibration))`, where
+# `_poisson_union` is `1 - exp(-(goals_per90_last10 + assists_per90_last10) *
+# expected_minutes_pre_match / 90)` and is **Platt-calibrated**. Serving passes
+# `predict_player`'s `anytime_probability(lam_goals + lam_assists)`, whose lambdas
+# come from position-rate regressors scaled by the team's attack strength,
+# minutes fraction and availability.
+#
+# Those are two different quantities, in two different calibration states, and no
+# union calibrator is stored — so serving cannot reproduce the quantity the weight
+# was fitted against even in principle. Applying `w` to it is not a small
+# imprecision: the blend's whole point is that a convex combination of a calibrated
+# and an uncalibrated probability is itself uncalibrated, which is the same
+# objection that disqualified the `max(...)` this replaced.
+#
+# So the fitted weight is recorded as `fitted_blend_weight` -- it is real
+# information about the research construction and belongs in the manifest -- and
+# serving uses a neutral share until the two constructions are unified. The
+# structural win is unaffected: a convex mixture with no order-statistic bias is
+# better than `max(...)` at *any* weight, including this one.
+NEUTRAL_BLEND_WEIGHT = 0.5
+
+
+def _serving_blend_weight(fitted: float | None) -> float:
+    """The weight serving may actually use. Always the neutral share.
+
+    Kept as a function rather than a constant at the call site so that when the
+    constructions are unified there is exactly one place to change, and so a test
+    can assert the two are deliberately distinct today.
+    """
+    return NEUTRAL_BLEND_WEIGHT
 
 
 def _fit_blend_weight(calibration: pd.DataFrame, direct_probability: np.ndarray) -> float | None:
