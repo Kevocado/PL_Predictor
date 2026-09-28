@@ -2054,6 +2054,79 @@ print(two_gate_verdict(
     metric='log_loss', noise=0.000161).summary)"
 ```
 
+## EXP-2026-28 — the blend weight is not a weight for the quantity it is applied to
+
+### What an adversarial review found
+
+EXP-2026-24 replaced `max(direct, goal_prob, assist_prob)` with a convex mixture
+whose share is grid-searched on held-out data, and shipped it as a correctness fix
+explicitly *not* promoted. A review of the promotion work found that the fitted
+share does not correspond to the quantity it is applied to.
+
+**Fitted against** (`player_goals._fit_blend_weight`):
+
+    w * p_direct + (1 - w) * apply_platt(fit_platt(_poisson_union(calibration)))
+
+where `_poisson_union(frame)` is
+
+    1 - exp(-(goals_per90_last10 + assists_per90_last10) * expected_minutes_pre_match / 90)
+
+and is **Platt-calibrated** on the calibration season.
+
+**Served with** (`predict_player` -> `rank_team_players` ->
+`blend_contribution`): `anytime_probability(lam_goals + lam_assists)`, where the
+lambdas come from `goals_estimate * strength_multiplier * minutes_fraction *
+availability`.
+
+Two differences, and the second is the serious one:
+
+1. **Different construction.** The fitted union uses a last-10 per-90 rate times
+   expected minutes. The served one uses blended current form scaled by the team's
+   own attack-strength multiplier, availability, and actual minutes fraction. These
+   are not transforms of one another.
+2. **Different calibration state.** The fitted union is Platt-calibrated; the
+   served one is raw. And because **no union calibrator is stored on the model**,
+   serving cannot reproduce the fitted quantity even in principle — there is
+   nothing to apply.
+
+So `w` minimises Brier against a monotone transform of a quantity that is never
+served, and is then applied to the untransformed one. With a fitted `w` around
+0.70 that shifts every served G+A probability in a direction nobody has measured.
+
+This is the same train/serve skew class as NFL `0628c6d` and the CFB week-keyed
+join — in the one change this project labelled a correctness fix, which is what
+makes it worth writing down rather than noting in passing.
+
+### Decision: NOT fixed here, and the blend should not be promoted on this evidence
+
+The fix is to unify the two union constructions, then re-run the two-gate
+evaluation in `evaluate/promotion_rule.py` on the result. That is a modelling
+change with its own evidence requirement, not a patch. Changing only the fit
+target — dropping the Platt step so the scales match — would leave the
+construction mismatch in place and be a *different* unvalidated change, so it is
+deliberately not done.
+
+What this does to EXP-2026-24's verdict: the structural argument for replacing
+`max` still stands on its own (`max` of separately-calibrated estimators is not a
+calibrated estimator, and its bias is provably largest where the models are least
+reliable). But the *empirical* support — a weight fitted on held-out data — is
+weaker than EXP-2026-24 stated, because that weight is fitted against a different
+quantity. EXP-2026-24 already declined to promote on 2 folds with a 0.000269
+log-loss loss on the most recent season; this makes promotion less defensible
+still, not more.
+
+`tests/test_blend_validation.py` now carries a tripwire that fails the moment a
+served-union calibrator is stored or the constructions are unified, so the day
+this is fixed the ledger entry gets revisited rather than quietly deleted.
+
+### Top item for the next PL task
+
+Unify `_poisson_union` and the serving `anytime_probability(lam_goals +
+lam_assists)` into one function, used by fitting and serving alike, then
+re-evaluate the blend under the amended two-gate rule with a measured paired noise
+figure. Everything else in Task 8 is lower value than this, because until it is
+done the blend's headline number does not describe the thing being served.
+
 ## Change checklist for future agents
 
 - Read this file, `README.md`, and relevant tests before editing.

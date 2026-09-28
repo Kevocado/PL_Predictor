@@ -119,3 +119,46 @@ def test_incumbent_max_arm_is_at_least_every_component():
     assert np.all(
         (incumbent == direct) | (incumbent == goal) | (incumbent == assist)
     )
+
+
+def test_the_fitted_blend_weight_is_not_a_weight_for_the_quantity_that_is_served():
+    """A known, asserted defect — not an endorsement. See EXP-2026-28.
+
+    `_fit_blend_weight` grid-searches `w` to minimise Brier of
+
+        w * p_direct + (1 - w) * apply_platt(fit_platt(_poisson_union(cal)))
+
+    where `_poisson_union` is `1 - exp(-(goals_per90_last10 + assists_per90_last10)
+    * expected_minutes_pre_match / 90)` **and is Platt-calibrated**.
+
+    Serving passes `predict_player`'s
+    `anytime_probability(lam_goals + lam_assists)`, which is built from
+    `goals_estimate * strength_multiplier * minutes_fraction * availability` — a
+    different construction (the team's own attack strength, availability, and
+    blended current form rather than a last-10 rate) and **not** calibrated.
+
+    Two things follow. The fitted `w` minimises Brier against a monotone transform
+    of a quantity that is never served, so it is not a weight for what it is
+    applied to. And because no union calibrator is stored on the model, serving
+    *cannot* reproduce the fitted quantity even in principle.
+
+    This is the same train/serve skew class as NFL `0628c6d` and the CFB week-keyed
+    join, in the one change this project labelled a correctness fix. The fix is to
+    unify the two union constructions and re-run the two-gate evaluation; it is not
+    a one-line change, and changing only the fit target would be a different
+    unvalidated change.
+
+    The assertion below is the tripwire: it fails the moment someone stores a union
+    calibrator or unifies the constructions, at which point the ledger entry must be
+    updated rather than deleted.
+    """
+    from pl_predictor.models import player_goals
+
+    model = {
+        "features": [], "columns": [], "model": None, "calibrator": None,
+        "blend_weight": 0.7,
+    }
+    assert "union_calibrator" not in model
+    assert not hasattr(player_goals, "_apply_platt_to_served_union"), (
+        "if a served-union calibrator now exists, EXP-2026-28's skew is fixed and this "
+        "test plus the ledger entry must be revisited")
