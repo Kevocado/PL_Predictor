@@ -10,6 +10,7 @@ loss, and a silently-missing feature scores as a constant offset against a
 fitted coefficient, which is the same class of defect as NFL `0628c6d`.
 """
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -18,7 +19,7 @@ from pl_predictor.models import player_goals
 FEATURES = ("opponent_defence_last3", "opponent_defence_last5", "opponent_defence_last10")
 
 
-def _two_column(values: float, index) -> "np.ndarray":
+def _two_column(values, index) -> np.ndarray:
     """sklearn-shaped output.
 
     A numpy array, not a DataFrame: `predict_proba` is indexed with `[:, 1]`,
@@ -26,8 +27,6 @@ def _two_column(values: float, index) -> "np.ndarray":
     2.x. A DataFrame stub therefore fails with `InvalidIndexError` rather than
     testing anything.
     """
-    import numpy as np
-
     return np.tile(np.array([[1.0 - values, values]]), (len(index), 1))
 
 
