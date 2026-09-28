@@ -1,0 +1,163 @@
+name: Deploy PL Predictor
+
+on:
+# A merge to main deploys. The paths filter is the whole reason this is safe to
+# run automatically: it lists what goes INTO the image, and the output of the
+# scheduled refresh job is deliberately absent, so a data refresh does not
+# redeploy the service. That job runs every 20 minutes through the match window
+# (and daily outside it) -- see .github/workflows/refresh-public-snapshot.yml --
+# so without the exclusion this would redeploy PL a dozen times a day, each one
+# an npm ci plus a pip install.
+#
+# Excluding it is not the same as ignoring it. The snapshot is COPY'd into the
+# image (so a deploy always has data to serve even before the first poll lands),
+# but vps-stack/compose.yml runs `pl` with PUBLIC_MODE=true, and under
+# PUBLIC_MODE api/main.py's lifespan starts refresh_public_snapshot_from_remote
+# on a PUBLIC_SNAPSHOT_POLL_SECONDS (300s) timer, ETag-conditional
+# (src/pl_predictor/api/routes.py). So a new snapshot is picked up within five
+# minutes without a rebuild, and freezing it behind the filter would serve a
+# stale dashboard instead of a slightly slower deploy.
+#
+# The filter is a whitelist, so an exclusion cannot be expressed in it: add
+# `data/**` and every refresh becomes a deploy. tests/test_deploy_workflow.py
+# asserts both halves -- that the image's own inputs are watched, and that the
+# refresh job's output is not -- and it derives what the other workflows commit
+# rather than trusting this list to stay current.
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'frontend/**'
+      - 'models/**'
+      - 'Dockerfile'
+      - 'pyproject.toml'
+      - 'requirements-lock.txt'
+      - '.dockerignore'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  # To push the image to GHCR as the repo's own actor, using GITHUB_TOKEN. A
+  # personal access token would be a credential that outlives the repo and has
+  # to be rotated by hand.
+  packages: write
+  # Only the Azure job uses this, and only when DEPLOY_AZURE is set.
+  id-token: write
+
+jobs:
+  build:
+    name: Build and push the image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          # GITHUB_TOKEN, and it is load-bearing that ghcr.io/kevocado/pl-predictor
+          # is LINKED to this repository. Checked, not assumed:
+          #
+          #   gh api /user/packages/container/pl-predictor \
+          #     --jq '.repository.full_name'
+          #   -> "Kevocado/PL_Predictor"
+          #
+          # GITHUB_TOKEN may only write to packages associated with its own repo, so
+          # an unlinked (user-scoped) package rejects the push with
+          # `denied: permission_denied: write_package` AFTER the image has built and
+          # tagged correctly -- which is indistinguishable from a permissions bug and
+          # is not one. NFL and CFB both lost their first deploy that way. If the
+          # command above ever comes back null, this is a PAT, not a token problem,
+          # and the fix is the one-time "Connect repository" in the package's settings
+          # (there is no API for it) -- or, failing that, secrets.GHCR_PAT, which
+          # already exists on this repo. tests/test_deploy_workflow.py pins which of
+          # the two this workflow must use, and says which way to re-check.
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push PL Predictor image
+        run: |
+          docker build -t ghcr.io/kevocado/pl-predictor:${{ github.sha }} -t ghcr.io/kevocado/pl-predictor:latest .
+          docker push ghcr.io/kevocado/pl-predictor:${{ github.sha }}
+          docker push ghcr.io/kevocado/pl-predictor:latest
+
+  # Legacy. Azure is being cut over to the VPS, so this stays off unless the repo
+  # sets DEPLOY_AZURE=true. Gated on `== 'true'` and not `!= 'false'`: the
+  # failing-open form turns Azure back on for every repo that has not explicitly
+  # set the variable, which is the opposite of the intent.
+  #
+  # Steps lifted from the deploy-azure.yml this file replaces. `azure/login` (OIDC
+  # via `id-token: write` above) rather than the `az login --service-principal`
+  # the NFL sibling uses: PL_Predictor has no AZURE_CLIENT_SECRET, and never did --
+  # the workflow it came from federated too.
+  deploy-azure:
+    name: Deploy to Azure (legacy)
+    needs: build
+    if: vars.DEPLOY_AZURE == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Log in to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Create / Update PL Predictor Container App
+        env:
+          APP_NAME: pl-predictor
+          IMAGE: ghcr.io/kevocado/pl-predictor:${{ github.sha }}
+        run: |
+          # If the app doesn't exist, create it with external ingress on port 8000
+          az containerapp create \
+            --name $APP_NAME \
+            --resource-group predictor-hub-rg \
+            --environment proudbay-f56b8dfa.eastus2 \
+            --image $IMAGE \
+            --target-port 8000 \
+            --ingress external \
+            --min-replicas 0 \
+            --max-replicas 3 \
+            --cpu 0.5 \
+            --memory 1Gi \
+            --env-vars PUBLIC_MODE=true \
+            --query properties.configuration.ingress.fqdn -o tsv 2>/dev/null || true
+
+          # If it already exists, just update the image
+          az containerapp update \
+            --name $APP_NAME \
+            --resource-group predictor-hub-rg \
+            --image $IMAGE \
+            --min-replicas 0 \
+            --max-replicas 3 || true
+          az containerapp ingress enable --name $APP_NAME --resource-group predictor-hub-rg --type external --target-port 8000 || true
+
+  # Pulls the image pushed above on the VPS stack at /opt/stack. `bin/deploy` is
+  # the only thing the CI key can ask for -- a forced command in the deploy
+  # user's authorized_keys -- and it pins the sha in .env, restarts,
+  # health-checks, and rolls back to the previous tag if the new one is unhealthy.
+  # So the service name below must be one of bin/deploy's SERVICES keys: `pl` maps
+  # to "PL_TAG 8000 /api/health". The health check lives there, not here.
+  vps:
+    name: Deploy to the VPS
+    needs: build
+    if: vars.VPS_HOST != ''
+    runs-on: ubuntu-latest
+    # One deploy at a time per service: two repos pushing at once race on
+    # /opt/stack/.env. bin/deploy takes its own lock too; this keeps the queue
+    # off the box.
+    concurrency: vps-deploy-pl
+    steps:
+      - name: Deploy to VPS
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
+          # Written before the first connection, or ssh prompts to confirm the
+          # host key and the job hangs until it times out.
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          ssh deploy@${{ vars.VPS_HOST }} deploy pl ${{ github.sha }}
