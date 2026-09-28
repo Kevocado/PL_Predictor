@@ -120,6 +120,22 @@ because it was larger than the previous one.
 This is also the number `c22a310` said it could not get: *"the cold duration is
 not known precisely because it was killed at 30."* It is 4926.07s.
 
+**And the PR's own CI run then proved it, on a GitHub runner, which is slower
+than the machine I measured on.** Run `36476126694`:
+
+```
+Warm the upstream cache   534 passed, 27 skipped, 1 deselected  in 3249.93s (0:54:09)
+Gating suite              538 passed, 27 skipped, 2 deselected  in 1336.00s (0:22:16)
+Lint                      All checks passed!
+job total                                                              ~77.5 minutes
+```
+
+76m25s of pytest. **`timeout-minutes: 60` kills that job at the 60-minute
+mark** — before `actions/cache`'s post step, which means no cache saved, which
+means the next run is cold too, which means it is killed at 60 minutes again.
+The deadlock is not theoretical; it is precisely what the old value did. 90
+fits, with room.
+
 ### b. The warm step's exit status was `tail`'s
 
 ```yaml
@@ -163,6 +179,30 @@ Those three tests assert the network block is in place, so they fail when
 - **`tests/test_tests_workflow.py` — 13 tests, and the standing finding closed.**
   See below.
 - **A README section**, which the README did not have.
+
+### First run on the PR: green
+
+Run `36476126694` on this branch, conclusion **`success`**, both jobs:
+
+| step | result | wall |
+|---|---|---|
+| Warm the upstream cache | 534 passed, 27 skipped, 1 deselected | 3249.93s (54m09s) |
+| Gating suite | **538 passed, 27 skipped, 2 deselected, 0 failed** | 1336.00s (22m16s) |
+| Lint | All checks passed! | — |
+| frontend | success | 28s |
+
+Two things this establishes that local runs could not:
+
+- **The warm step now exits honestly.** It ran 534 tests with the guard
+  disabled and reported **0 failures** — no `| tail` masking, and
+  `test_network_guard.py` correctly excluded. Under the old command the same
+  step reported success while hiding three failures.
+- **The gating suite is green on a cold runner.** Run `36446591387`, on
+  `main`, before this PR: 20 failed. This run, on a cold cache: 0 failed.
+- **The cache was saved**: `Cache saved with key: pl-upstream-caches-2026-09-28`.
+  So the *next* run on this ref restores it and skips the warm step entirely —
+  which is the "cold clone on the first run, not every run" claim, now
+  demonstrated rather than asserted.
 
 ---
 
@@ -249,7 +289,14 @@ the guard they assert. That is the guard working.
    and the workflow comments both say which commit each number came from.
 
 The final row is the one that matters operationally, and it is against the
-current `main`: **green.**
+current `main`: **green.** The GitHub runner's own numbers in §4 are the
+authoritative ones for "what does this cost in CI": **54m09s to warm a cold
+cache, 22m16s to gate against it, 77.5 minutes total** — against a
+`timeout-minutes` of 90, and a previous value of 60 that would have killed it.
+
+The runner is ~1.5x slower than this machine (1336.00s vs 925.26s for the same
+gating step), so the local figures should be read as a lower bound and the CI
+figures as the budget.
 
 ---
 
@@ -268,7 +315,34 @@ current `main`: **green.**
 
 ---
 
-## 8. Constraints honoured
+## 8. Concerns
+
+- **PR #14 (`ci/warm-gate-split`) is open and overlaps almost exactly.** Another
+  agent is fixing the same fatal defect in the same file, as a two-*job* split
+  (`timeout-minutes: 150` for the warm job, `20` for the gate job) where this PR
+  uses two *steps* in one job at `90`. Both are defensible; they will conflict,
+  and only one should land. The two-job split has a real advantage — the gate
+  job gets a tight, honest timeout of 20 minutes instead of inheriting the warm
+  job's 150 — and a real cost: two jobs means two cache interactions and the
+  ordering dependency between them. This PR's guard
+  (`test_tests_workflow.py`) asserts the warm/gate separation by *step*, so
+  whichever lands, the other PR's guard needs rewriting. **I have not touched
+  #14 and have not closed it; that reconciliation is a human call.**
+- **The `pl-upstream-caches-` cache is per-ref.** It was saved under
+  `refs/pull/16/merge`. GitHub makes a default-branch cache readable by all
+  branches, not the reverse, so until a run lands on `main` every new branch
+  ref is cold and pays 54 minutes. The `push: main` trigger is what fixes this,
+  and it will not happen until this merges.
+- **The 22-minute gate is longer than the 11 minutes I measured locally**, and
+  the gap is the runner, not the change. If the gate becomes load-bearing for a
+  merge, 22 minutes plus a 54-minute cold path is a lot to ask of every PR.
+- **19 tests remain cache-dependent.** The fix here makes them pass; it does not
+  make them hermetic. The gate is still only as good as the warm step reaching
+  three third parties.
+
+---
+
+## 9. Constraints honoured
 
 - **`.env` was never read.** No `cat`, `grep` or read touched it.
 - **The stale local checkout is byte-for-byte unchanged.** All work was in a
