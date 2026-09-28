@@ -11,134 +11,90 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  pytest:
-    # `pip install -e .` silently no-ops the editable install on some runners
-    # here, so every job exports PYTHONPATH instead of relying on it.
+  warm-cache:
+    # Populates data/cache/ from FPL, ClubElo and football-data.co.uk.
+    #
+    # Separate job from the gate because it does not fit the gate's budget: the
+    # understat shot loader fetches one file per match with a 0.3s delay, ~4,600
+    # requests for the full historical window. Measured on CI: killed at 59m15s by a
+    # 60-minute job ceiling, having produced no test output. Own job is also what
+    # keeps the *gate* fast, which is the point of having a gate.
+    #
+    # Once this succeeds the post-job cache step persists data/cache/ and later runs
+    # are cache hits: the gate drops from 60+ minutes to minutes.
     runs-on: ubuntu-latest
-    # This suite needs the network -- see the note on the gating step -- so without
-    # a timeout a slow or hanging upstream leaves the gate pending for GitHub's
-    # 6-hour default, which is worse than a red gate: it reads as "in progress"
-    # rather than "broken".
-    #
-    # The value is 60, and the reason it is not smaller is a deadlock I walked into
-    # measuring it. A warm run is ~13 minutes. The *first* run of this workflow is
-    # cold -- no cache exists, so it re-fetches several seasons of FPL history -- and
-    # it does not finish in 30. I set 30, the job was killed at 30m14s, and the step
-    # list shows `Post Restore upstream caches` **skipped**: a job that fails does
-    # not save its cache.
-    #
-    # So the failure and the cold start feed each other. The cache never populates,
-    # so every run is cold, so every run times out, so the cache never populates.
-    # A timeout on a cache-warming gate is not automatically a safety improvement; if
-    # it is set below the cold-run cost it is the opposite.
-    #
-    # 60 accommodates the cold run with margin so the first success populates the
-    # cache, after which warm runs are ~13 and this becomes pure insurance against a
-    # hung upstream. If a future run fails at 60m, the cache *is* the thing to look at
-    # first, not the tests.
-    timeout-minutes: 60
+    timeout-minutes: 150
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
           cache: pip
           cache-dependency-path: pyproject.toml
-
       - name: Stamp the day
-        # The upstream caches are keyed by date, not by run. See below.
+        # Same key as the gate job, so the gate restores exactly what this saved.
         id: date
         run: echo "stamp=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
-
-      - name: Restore upstream caches
-        # `data/cache/` is gitignored, so without this every run re-downloads
-        # seasons of FPL player-gameweek history, ClubElo and football-data.co.uk.
-        #
-        # The key used to be `pl-upstream-caches-${{ github.run_id }}`, which is
-        # unique per run. A cache entry is immutable once written, so that pattern
-        # never *updates* anything: every run restores the newest prefix match and
-        # then writes a fresh full copy under its own key. It works, and it also
-        # fills the 10GB repository cache limit with near-duplicate copies of the
-        # same ~100MB until eviction starts dropping entries unpredictably.
-        #
-        # Keying on the UTC date gives one shared entry per day, refreshed daily --
-        # which is the right cadence for upstream data that changes on matchdays.
+      - name: Restore any partial upstream cache
+        # So an interrupted warm resumes. Prefix match, not the same key:
+        # actions/cache skips a save when the key already exists.
         uses: actions/cache@v4
         with:
           path: data/cache
           key: pl-upstream-caches-${{ steps.date.outputs.stamp }}
           restore-keys: pl-upstream-caches-
-
       - name: Install
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[dev]" || pip install -e . pytest pytest-mock ruff
-
       - name: Warm the upstream cache
-        # `data/cache/` is gitignored, so a fresh CI runner has none of it, and the
-        # network guard in `tests/conftest.py` (from origin/main) then blocks the
-        # 23-odd tests that read real data. This step is the remedy the guard's own
-        # error message names, promoted into the workflow so nobody has to know it.
-        #
-        # Two things make this safe rather than a hole in the guard:
-        #   - it runs with the guard explicitly disabled and *before* the gated suite,
-        #     so no test that is supposed to be offline can quietly depend on it;
-        #   - the gated suite below still runs with the guard ON, against the warmed
-        #     cache. So a test that reaches the network anyway is still caught. Warming
-        #     and gating are separate steps for exactly that reason.
-        #
-        # The post-job cache step persists `data/cache`, so this is a once-per-cache-key
-        # cost rather than a per-run one.
+        # continue-on-error on the STEP deliberately: a run killed partway has usually
+        # downloaded most of the data, and we want the post-job step to save that
+        # partial cache so the next attempt resumes instead of restarting.
+        continue-on-error: true
         env:
           PYTHONPATH: ${{ github.workspace }}/src
           PL_ALLOW_NETWORK: "1"
-        # `continue-on-error` because a warm failure must not masquerade as a gate
-        # failure: the gating suite below re-runs the same tests with the guard ON and
-        # will fail properly, with a better message, if the cache is still cold.
-        continue-on-error: true
-        run: pytest tests/ -q 2>&1 | tail -20
+        run: pytest tests/ -q 2>&1 | tail -30
 
+  pytest:
+    # The gate. Network guard ON, against the warmed cache, so it does not depend on
+    # any third party being available at gate time.
+    needs: warm-cache
+    # always() so a warm failure still produces a verdict. Without it a failed warm
+    # skips the gate and a broken PR looks green because nothing ran.
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Stamp the day
+        id: date
+        run: echo "stamp=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+      - name: Restore the cache warmed above
+        uses: actions/cache@v4
+        with:
+          path: data/cache
+          key: pl-upstream-caches-${{ steps.date.outputs.stamp }}
+          restore-keys: pl-upstream-caches-
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]" || pip install -e . pytest pytest-mock ruff
       - name: Gating suite
-        # The gate runs with the network guard ON, against the cache warmed by the
-        # step above. So it no longer depends on FPL, ClubElo or football-data.co.uk
-        # being up *at gate time* -- which was the unresolved limitation recorded here,
-        # and which made an upstream outage turn this gate red for reasons unrelated to
-        # the change under review.
-        #
-        # What remains is honest and smaller: if the cache is cold and the warm step
-        # cannot reach an upstream, the gate is still red, and legibly so, because the
-        # warm step is where that failure lands and says so.
-        #
-        # CORRECTION 2026-09-27. This repo previously ran `pytest -m "not
-        # network"` and claimed the suite was offline. That was false, and it was
-        # false in a way that would have shipped: `data/cache/` is gitignored
-        # (only `.gitkeep` is tracked), so a fresh checkout has no FPL player-
-        # gameweek archive, no ClubElo ratings and no football-data.co.uk CSVs.
-        # `load_player_gw_history` and friends fetch them, so **this suite needs
-        # the network**, and `-m "not network"` was deselecting nothing because
-        # no test in this repo carries the marker.
-        #
-        # The marker is now registered so tests that genuinely must not touch the
-        # network can be marked, and the split below becomes real rather than
-        # decorative. Until tests are actually marked, both halves run the same
-        # tests and the honest description is: one suite, network required.
-        #
-        # The caches are restored below so repeat runs are not re-fetching several
-        # seasons of FPL history every time.
         env:
           PYTHONPATH: ${{ github.workspace }}/src
         run: pytest tests/ -q -m "not network"
-
       - name: Network-marked tests (live upstreams)
-        # Informational, not gating: a failure here usually means an upstream
-        # schema change, which is worth seeing but should not block a source PR.
-        # Currently selects nothing -- see the note above.
         if: github.event_name == 'workflow_dispatch'
         env:
           PYTHONPATH: ${{ github.workspace }}/src
         run: pytest tests/ -q -m network
-
       - name: Lint
         env:
           PYTHONPATH: ${{ github.workspace }}/src
