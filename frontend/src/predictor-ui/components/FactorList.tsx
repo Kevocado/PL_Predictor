@@ -1,4 +1,4 @@
-// Synced from predictor-ui@9c14c67d91df. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@2599287e15ef. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 import { useState } from "react";
 
 /**
