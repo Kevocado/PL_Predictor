@@ -16,12 +16,20 @@ jobs:
     #
     # Separate job from the gate because it does not fit the gate's budget: the
     # understat shot loader fetches one file per match with a 0.3s delay, ~4,600
-    # requests for the full historical window. Measured on CI: killed at 59m15s by a
-    # 60-minute job ceiling, having produced no test output. Own job is also what
-    # keeps the *gate* fast, which is the point of having a gate.
+    # requests for the full historical window. Own job is also what keeps the
+    # *gate* fast, which is the point of having a gate.
     #
-    # Once this succeeds the post-job cache step persists data/cache/ and later runs
-    # are cache hits: the gate drops from 60+ minutes to minutes.
+    # The 150-minute ceiling is sized from what the job actually does, not from
+    # the one run that failed. Run 36467464533 (2026-09-28) completed the whole
+    # suite in 5330.00s -- `3 failed, 524 passed, 27 skipped` -- and 1m02s of
+    # setup, i.e. ~90 of the 150 minutes. It was not cut short: the step
+    # `success`, it was not cancelled, and the job's post-step then saved the
+    # cache. (The 3 failures are `test_network_guard.py`, which cannot pass here
+    # by construction: this step sets PL_ALLOW_NETWORK=1, so the guard is off.)
+    # 150 is therefore ~1.67x the observed cost -- honest headroom for a slower
+    # upstream, and a hard bound so a hung fetch cannot hold CI for hours.
+    # `concurrency.cancel-in-progress: true` means a superseded run dies at once,
+    # so the generous ceiling costs nothing on a busy branch.
     runs-on: ubuntu-latest
     timeout-minutes: 150
     steps:
@@ -51,6 +59,11 @@ jobs:
         # continue-on-error on the STEP deliberately: a run killed partway has usually
         # downloaded most of the data, and we want the post-job step to save that
         # partial cache so the next attempt resumes instead of restarting.
+        #
+        # It also means this job cannot go red on a test regression -- it is a
+        # cache warmer, not a check, and the `pytest` job below is the check. The
+        # cost of that is real and accepted deliberately: a genuine failure in
+        # the suite still warms the cache, and the gate is what reports it.
         continue-on-error: true
         env:
           PYTHONPATH: ${{ github.workspace }}/src
@@ -65,7 +78,30 @@ jobs:
     # skips the gate and a broken PR looks green because nothing ran.
     if: always()
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # 45 minutes, sized from the suite's structural cost -- not from the one run
+    # that was cancelled under this job's old 20-minute ceiling.
+    #
+    # The 20 minutes was a guess, and the guess was wrong. What the suite costs:
+    #   * warm, local, full cache, all 553 gating tests: 362.36s (6m02s).
+    #   * the same first 144 tests on a CI runner took 2m15s against 1m06s
+    #     locally, so a CI runner costs roughly 2x this machine on the tests
+    #     that are not waiting on anything.
+    #   * job overhead before pytest starts: ~64s (checkout, setup-python with
+    #     its pip cache, the data/cache restore, `pip install -e .`).
+    # That puts a warm gate at ~14 minutes, so 45 is ~3.2x the number derived
+    # from structure. The extra headroom is deliberate: a gate that cancels is
+    # indistinguishable from a gate that hung, and a false negative on a PR is
+    # worse than a slow PR. It is still a hard bound an order of magnitude under
+    # GitHub's 6-hour default, and `concurrency.cancel-in-progress: true` means a
+    # superseded run is killed immediately, so a generous ceiling does not
+    # accumulate cost on a busy branch.
+    #
+    # What would tighten it: run 36467464533 was NOT warm-fast -- it reached 39%
+    # in 19m16s, and the whole of tests 145-216 took 16m09s of that, against
+    # seconds for the same block locally. That gap is unexplained and is worth
+    # chasing with `--durations` on the runner before trusting a smaller number.
+    # One run is one sample; this ceiling is not derived from it.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
