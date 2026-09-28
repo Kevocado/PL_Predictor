@@ -1,3 +1,16 @@
+# LEGACY. This is NOT the deploy path for PL Predictor.
+#
+# The authoritative workflow is `.github/workflows/deploy.yml`, which runs on a
+# merge to main and deploys to the VPS. This file is workflow_dispatch-only and
+# targets Azure Container Apps, which is being cut over to the VPS, so it does
+# not run on any push or PR. Do not read this file as "how this repo deploys".
+#
+# Note that the Azure job you see reported as `skipped` on a normal deploy run
+# is the `deploy-azure` job inside `deploy.yml`, not this file.
+#
+# To see what is actually deployed:
+#   gh run list --repo Kevocado/PL_Predictor --workflow deploy.yml -L 5
+# See README.md, "Which workflow actually deploys".
 name: Deploy to Azure Container Apps
 
 on:

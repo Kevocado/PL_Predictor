@@ -1,3 +1,21 @@
+# THIS IS THE AUTHORITATIVE DEPLOY PATH for PL Predictor. A merge to main that
+# touches one of the paths below builds the image and deploys it to the VPS.
+# `deploy-azure.yml` is LEGACY: it is workflow_dispatch-only, deploys to Azure
+# Container Apps, and is not what production runs. The `deploy-azure` job
+# inside THIS file is likewise legacy -- it is gated on the DEPLOY_AZURE
+# repository variable, which is unset on this repo, so on a normal run it
+# reports `skipped`. Both are leftovers from the Azure cutover.
+#
+# To see what is actually deployed, rather than inferring it from file names:
+#
+#   gh run list --repo Kevocado/PL_Predictor --workflow deploy.yml -L 5
+#   gh run view <id> --repo Kevocado/PL_Predictor --json jobs \
+#     --jq '.jobs[] | {name, conclusion}'
+#
+# A successful run has `Deploy to the VPS` at `success`. Note the `paths`
+# whitelist below: a commit touching only tests/ or data/ deploys nothing, so
+# `main` can be ahead of production. See README.md, "Which workflow actually
+# deploys".
 name: Deploy PL Predictor
 
 on:

@@ -306,6 +306,49 @@ internet:
 
 ## Deploying a public, read-only version
 
+### Which workflow actually deploys (read this first)
+
+**`.github/workflows/deploy.yml` ("Deploy PL Predictor") is the authoritative
+deploy path. `.github/workflows/deploy-azure.yml` is legacy and does not
+deploy anything on its own.**
+
+This is worth stating up front because the two files look interchangeable and
+an earlier version of this section got it wrong, which is how a reader ends up
+believing Azure is the live path. What each one actually does:
+
+| | `deploy.yml` — **live** | `deploy-azure.yml` — **legacy** |
+|---|---|---|
+| Runs on | **push to `main`** (paths-filtered) + `workflow_dispatch` | `workflow_dispatch` only — never on a push or PR |
+| Deploys to | **the VPS**, via `ssh … deploy pl ${{ github.sha }}` | Azure Container Apps `pl-predictor` (cut over) |
+
+`deploy.yml` has three jobs: `build` (push the image to GHCR), `vps` (the real
+deploy, gated on `vars.VPS_HOST != ''`), and a `deploy-azure` job carried over
+from the old workflow that is gated on `vars.DEPLOY_AZURE == 'true'` and
+therefore reports as `skipped` — that Azure job is a leftover, not the deploy
+path. `tests/test_deploy_workflow.py` pins all of this, including the gates.
+
+**How to check this yourself in one command**, rather than trusting this table
+or the file names:
+
+```bash
+gh workflow list --repo Kevocado/PL_Predictor
+gh run list  --repo Kevocado/PL_Predictor --workflow deploy.yml -L 5
+gh run view <id> --repo Kevocado/PL_Predictor --json jobs \
+  --jq '.jobs[] | {name, conclusion}'
+```
+
+The run whose `conclusion` is `success` with a `Deploy to the VPS` job at
+`success` is what production is actually serving. Note that `deploy.yml` uses
+a **paths whitelist**, so `main` can be ahead of what is deployed: a commit that
+only touches `tests/` or `data/` deploys nothing, and production stays on the
+last sha that changed one of `src/`, `frontend/`, `models/`, `Dockerfile`,
+`pyproject.toml`, `requirements-lock.txt`, `.dockerignore`, or `deploy.yml`
+itself. Do not conclude from "main is at X" that X is deployed.
+
+The rest of this section describes the app's public-mode design, which applies
+to whichever host runs it. The step-by-step below is the original Render setup
+and is kept for reference; it is **not** the current deploy path.
+
 Everything above is the full app — every admin control (retrain, refresh
 fixtures/odds, backtest) live, no login. It's meant to stay that way for
 local/private use only; the backend has no real security beyond that
@@ -338,7 +381,7 @@ snapshot.yml` runs this on a schedule so it happens without you at the
 keyboard. No live external API keys are needed on Render itself; the
 snapshot already has everything baked in.
 
-Setup:
+Setup (the original Render setup — historical, not the current deploy path):
 
 1. Push this repo to GitHub (a new or existing repo).
 2. Create a free [Render](https://render.com) account → "New Web Service" →
@@ -363,13 +406,18 @@ locally) reproduces every current behavior exactly — every admin
 button/endpoint active, live computation as always.
 
 > **Note:** this section (and the `refresh-public-snapshot.yml` comments)
-> still describe the original Render setup. The live public deployment now
-> runs on Azure Container Apps (`.github/workflows/deploy-azure.yml`,
-> auto-deploys on every push to `main`, `paths-ignore:
-> data/public_snapshot.json` so a snapshot-only commit never triggers a
-> rebuild). The steps above (`PUBLIC_MODE=true`, no live API keys needed,
-> the snapshot-poll mechanism) all still apply — just set via Azure
-> Container App env vars/secrets instead of Render's dashboard.
+> still describes the original Render setup, and the numbered steps above are
+> that setup. It is kept because the public-mode design it describes —
+> `PUBLIC_MODE=true`, no live API keys on the host, the snapshot-poll
+> mechanism — is what every host actually does, whatever hosts it.
+>
+> An earlier version of this note was wrong in every clause: it named the live
+> host as Azure rather than the VPS, named the legacy file `deploy-azure.yml`
+> as the deploy path rather than `deploy.yml`, and described a trigger no
+> workflow in this repo has. `deploy.yml` filters with a paths **whitelist**, so
+> the opposite holds — a change to `tests/` or `data/` deploys nothing. That is
+> exactly the kind of error that makes a reader edit the wrong file, so it is
+> pinned by `test_readme_points_at_the_deploy_workflow_that_runs`.
 
 **Public "Refresh odds" button:** any visitor can trigger an odds/value-bet
 refresh from the Fixtures page — it never runs the live pipeline on the
