@@ -59,6 +59,7 @@ import yaml
 REPO = Path(__file__).resolve().parents[1]
 WORKFLOW_DIR = REPO / ".github" / "workflows"
 WORKFLOW = WORKFLOW_DIR / "deploy.yml"
+README = REPO / "README.md"
 
 # Must match `image:` in vps-stack/compose.yml. If either side changes, the
 # deploy pushes a tag the stack never pulls.
@@ -110,9 +111,18 @@ WATCHED_ANYWAY = {
 GATE_AZURE = "vars.DEPLOY_AZURE == 'true'"
 GATE_VPS = "vars.VPS_HOST != ''"
 
+# How far either side of a mention of a workflow file to look for the word that
+# qualifies it. Sized to clear an 80-column line wrap plus the adjacent clause,
+# so a true statement that wraps is not reported as an unqualified one.
+SENTENCE_CHARS = 200
+
 
 def workflow_text() -> str:
     return WORKFLOW.read_text()
+
+
+def readme_text() -> str:
+    return README.read_text()
 
 
 def jobs(text: str) -> dict[str, str]:
@@ -324,6 +334,77 @@ def check_azure_fails_closed(text: str) -> None:
     assert not re.search(r"secrets\.AZURE_CLIENT_SECRET", text), (
         "secrets.AZURE_CLIENT_SECRET is not a secret on this repository; the Azure job must "
         "federate with azure/login (id-token: write), as deploy-azure.yml did."
+    )
+
+
+def check_readme_names_the_live_deploy_workflow(text: str) -> None:
+    """The README is where a reader goes to find out how this deploys. It was wrong.
+
+    It named `deploy-azure.yml` — legacy, `workflow_dispatch`-only, Azure
+    Container Apps — as the live deploy path, and said it auto-deployed on every
+    push to `main`. Both clauses were false, and they are the kind of false
+    that causes an incident rather than a typo: a developer merges, sees no
+    deploy, and goes to edit the file that looks like the deploy path.
+
+    `check_triggers` and friends above are all pinned against `deploy.yml`. None
+    of them can see the README, so the one document a person actually reads was
+    unguarded, which is precisely how it went stale while the workflow it
+    misdescribed was being written and reviewed.
+
+    Both directions are asserted, because either half alone is satisfiable by a
+    README that says nothing: the README must name `deploy.yml` as the
+    authoritative path, must mark `deploy-azure.yml` legacy, and must not attach
+    an automatic trigger to the legacy file anywhere.
+    """
+    assert re.search(r"deploy\.yml\W[^\n]{0,80}?authoritative", text, re.I | re.S), (
+        "the README does not name deploy.yml as the authoritative deploy path. A reader has "
+        "to be told which of the two deploy workflows is live, because the two files are "
+        "named almost identically and only one of them runs on a merge."
+    )
+    # Every mention of the legacy file, not just the first, and each has to sit
+    # in a sentence that marks it legacy. "Somewhere in this document
+    # deploy-azure.yml is called legacy" is not the invariant -- it is satisfied
+    # by a README that corrects itself in a footnote and misleads everywhere
+    # else, which is the shape the original had: a correct table, and a false
+    # claim in the note below it.
+    #
+    # The window is a sentence, not a line, and it is CENTRED on the mention
+    # rather than following it: "the legacy file `deploy-azure.yml`" qualifies
+    # the name before it, and "deploy-azure.yml is legacy" qualifies it after,
+    # and both are the same claim. The README wraps prose at 80 columns, so a
+    # line-local rule reported a true sentence that merely wrapped mid-claim --
+    # and a guard that cries wolf gets deleted rather than fixed.
+    LEGACY_MARKERS = r"legacy|cut over|workflow_dispatch-only|not the deploy"
+    mentions = list(re.finditer(r"deploy-azure\.yml", text))
+    assert mentions, (
+        "the README never mentions deploy-azure.yml. A reader looking for the deploy "
+        "workflow should find the legacy one named and dismissed, not absent."
+    )
+    for m in mentions:
+        start = max(0, m.start() - SENTENCE_CHARS)
+        window = text[start:m.end() + SENTENCE_CHARS]
+        assert re.search(LEGACY_MARKERS, window, re.I), (
+            f"the README names deploy-azure.yml with nothing marking it legacy within "
+            f"{SENTENCE_CHARS} characters either side: {window.strip()[:160]!r}. It is "
+            "workflow_dispatch-only and deploys to Azure, which is being cut over to the VPS; a "
+            "mention that does not say so leaves the reader to assume it is the deploy path."
+        )
+    # Every mention of the legacy file, not just the first. A README can name it
+    # correctly in the table and then reintroduce the false claim in a note
+    # further down, which is where the wrong one lived.
+    for m in re.finditer(r"deploy-azure\.yml", text):
+        window = text[m.end():m.end() + SENTENCE_CHARS]
+        assert "auto-deploy" not in window and "on every push" not in window, (
+            "the README describes deploy-azure.yml as deploying automatically. It is "
+            "workflow_dispatch-only; that claim is what makes a reader believe a merge "
+            "deployed when nothing ran."
+        )
+    # A claim nobody can check is how this rotted in the first place. The README
+    # has to say how to confirm it against the server rather than only assert it.
+    assert "gh run list" in text, (
+        "the README asserts which workflow deploys without saying how to check. The one "
+        "command that settles it (`gh run list --workflow deploy.yml`) belongs next to the "
+        "claim, so a reader can confirm it instead of trusting it."
     )
 
 
@@ -557,6 +638,55 @@ def test_the_workflow_is_valid_yaml():
 
 def test_the_yaml_indentation_is_sane():
     check_yaml_shape(workflow_text())
+
+
+def test_readme_points_at_the_deploy_workflow_that_runs():
+    check_readme_names_the_live_deploy_workflow(readme_text())
+
+
+def test_the_readme_check_can_fail():
+    """The README guard, broken four ways, the way it was actually broken.
+
+    Kept separate from `test_each_check_can_fail` because that one mutates the
+    workflow text, and this reads a different file. The first two mutations are
+    the historical failure verbatim: the README named the legacy file as the
+    live one, and described it as deploying on every push.
+    """
+    good = readme_text()
+    check_readme_names_the_live_deploy_workflow(good)
+    broken = {
+        # The actual defect: the word that names the live one is gone.
+        "authoritative": ("is the authoritative", "is the"),
+        # ...and the legacy one left standing as the live one. The table cell is
+        # rewritten as well, because the check looks at every mention of the
+        # file and the table row marked it legacy independently -- breaking only
+        # the prose leaves the file still correctly described in the table, which
+        # is a different and much milder defect than the one being guarded.
+        "legacy": ("is legacy and does not", "is the one that"),
+        # The claim that made a merge look like it should have deployed, restored
+        # to the legacy file exactly as it read before: on every push to main.
+        # Anchored on the legacy column's trigger cell, which is the sentence the
+        # check reads, rather than anywhere else in the table.
+        "auto-deploy": (
+            "`workflow_dispatch` only — never on a push or PR",
+            "`workflow_dispatch`, auto-deploys on every push to `main`",
+        ),
+        # An unverifiable claim: this one rotted because nobody could check it.
+        "checkable": ("gh run list", "see the Actions tab"),
+    }
+    for name, (old, new) in broken.items():
+        assert good.count(old) == 1, (
+            f"the {name!r} mutation {old!r} appears {good.count(old)} times, so it may not be "
+            "breaking the thing it claims to"
+        )
+        try:
+            check_readme_names_the_live_deploy_workflow(good.replace(old, new, 1))
+        except AssertionError:
+            continue
+        raise AssertionError(
+            f"the README check passed a README with {old!r} broken -- exactly the stale claim "
+            "it exists to prevent"
+        )
 
 
 def committed_paths() -> dict[str, set[str]]:
