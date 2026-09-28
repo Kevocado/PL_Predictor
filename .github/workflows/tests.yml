@@ -75,15 +75,40 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev]" || pip install -e . pytest pytest-mock ruff
 
+      - name: Warm the upstream cache
+        # `data/cache/` is gitignored, so a fresh CI runner has none of it, and the
+        # network guard in `tests/conftest.py` (from origin/main) then blocks the
+        # 23-odd tests that read real data. This step is the remedy the guard's own
+        # error message names, promoted into the workflow so nobody has to know it.
+        #
+        # Two things make this safe rather than a hole in the guard:
+        #   - it runs with the guard explicitly disabled and *before* the gated suite,
+        #     so no test that is supposed to be offline can quietly depend on it;
+        #   - the gated suite below still runs with the guard ON, against the warmed
+        #     cache. So a test that reaches the network anyway is still caught. Warming
+        #     and gating are separate steps for exactly that reason.
+        #
+        # The post-job cache step persists `data/cache`, so this is a once-per-cache-key
+        # cost rather than a per-run one.
+        env:
+          PYTHONPATH: ${{ github.workspace }}/src
+          PL_ALLOW_NETWORK: "1"
+        # `continue-on-error` because a warm failure must not masquerade as a gate
+        # failure: the gating suite below re-runs the same tests with the guard ON and
+        # will fail properly, with a better message, if the cache is still cold.
+        continue-on-error: true
+        run: pytest tests/ -q 2>&1 | tail -20
+
       - name: Gating suite
-        # KNOWN LIMITATION, unresolved: this gate depends on three third parties
-        # (FPL, ClubElo, football-data.co.uk). An upstream outage therefore turns
-        # this repo's gate red for a reason that has nothing to do with the change
-        # under review, and a slow one now fails it at the 30-minute timeout.
-        # `timeout-minutes` makes that failure fast and legible; it does not make
-        # it correct. The real fix is to mark the network-dependent tests so the
-        # `-m "not network"` split below stops selecting nothing, which needs each
-        # such test identified individually -- deliberately not done blind here.
+        # The gate runs with the network guard ON, against the cache warmed by the
+        # step above. So it no longer depends on FPL, ClubElo or football-data.co.uk
+        # being up *at gate time* -- which was the unresolved limitation recorded here,
+        # and which made an upstream outage turn this gate red for reasons unrelated to
+        # the change under review.
+        #
+        # What remains is honest and smaller: if the cache is cold and the warm step
+        # cannot reach an upstream, the gate is still red, and legibly so, because the
+        # warm step is where that failure lands and says so.
         #
         # CORRECTION 2026-09-27. This repo previously ran `pytest -m "not
         # network"` and claimed the suite was offline. That was false, and it was
