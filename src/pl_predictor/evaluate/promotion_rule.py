@@ -75,9 +75,18 @@ class TwoGateVerdict:
     folds_compared: int
     folds_won: int
     majority_required: float
-    # False when a gate could not be evaluated (no noise figure supplied). A
-    # provisional verdict is not a pass, so this carries no default: a caller
-    # that forgets it gets a loud error rather than a silent "complete".
+    # Whether **every gate was actually evaluated**. That is the question, and it has
+    # three answers, not two:
+    #
+    #   True  -- every gate ran and returned a verdict.
+    #   False -- a gate could not run (no noise figure, or no comparable folds at all).
+    #
+    # It used to mean only "a noise figure was supplied", which made a *definitive
+    # rejection* look like an *incomplete check*: one fold with a valid noise figure
+    # printed "INCOMPLETE - a required gate could not be evaluated" when in fact every
+    # gate had run and failed. That is this module's own stated failure mode inverted --
+    # "we did not check" reported where the truth was "we checked and it failed" -- in
+    # the module whose purpose is to stop exactly that conflation.
     complete: bool
     gates: tuple[Gate, ...] = field(default_factory=tuple)
 
@@ -97,6 +106,11 @@ class TwoGateVerdict:
         lines.append(f"  folds won {self.folds_won} of {self.folds_compared}")
         if not self.complete:
             lines.append("  INCOMPLETE - a required gate could not be evaluated (see below)")
+        elif not self.promoted:
+            # The distinction the module exists to preserve, stated explicitly: a
+            # rejection that was fully evaluated is a *worse* outcome than an
+            # incomplete one, and the summary used to blur them.
+            lines.append("  Every gate was evaluated; this is a definitive rejection.")
         lines.extend(f"  [{'PASS' if gate.passed else 'FAIL'}] {gate.name}: {gate.detail}" for gate in self.gates)
         return "\n".join(lines)
 
@@ -128,16 +142,23 @@ def two_gate_verdict(
 
     `incumbent` and `candidate` map fold label -> score. Fold labels must sort
     chronologically; season strings do, which is why they are used. Only folds
-    present in **both** are compared, and only those count toward the mean, the
-    majority, and the most-recent-fold gate — a fold the candidate could not be
-    scored on cannot be evidence for it either way.
+    present in **both** are compared, and only those count toward the mean and the
+    majority — a fold the candidate could not be scored on cannot be evidence for it.
+
+    **Gate 2 is deliberately not restricted to shared folds**, because designing it that
+    way is the bug it was amended to fix: a candidate missing the newest season used to be
+    graded on an older one and promoted. It fails when the *candidate* lacks the newest
+    season either arm saw, and falls back visibly when only the *incumbent* lacks it —
+    an asymmetry, because a stale baseline is a bookkeeping gap while an unscored
+    candidate is evidence about the candidate.
 
     The four gates:
 
     1. the walk-forward mean improves;
     2. a majority of shared folds improve;
     3. the mean improvement exceeds `noise` (the 2026-09-27 amendment's real gate);
-    4. the most recent shared fold improves.
+    4. the most recent season improves — the newest season the candidate was scored on,
+       failing if the candidate skipped it outright.
 
     All evaluated gates must pass. Gate 4 stays separate from gate 2 because a
     change can be broadly better and still break on the newest season, which is
@@ -161,6 +182,23 @@ def two_gate_verdict(
     # one-fold call with a bad `noise_basis` returned a verdict about fold count instead
     # of raising. Being strict about an unknown basis while lenient about a known-bad
     # `noise` was inconsistent as well as wrong.
+    # `majority` is the third caller-supplied knob and it was the one left unvalidated.
+    # `majority=0.0` made gate 1b pass on **one fold of five**, which re-enables
+    # verbatim the one-lucky-fold shape that `MIN_FOLDS_FOR_MAJORITY` was just added to
+    # stop -- defeated by a keyword on the same signature. `majority=-1.0` made it pass
+    # on zero wins. No caller in `src/` passes it today, which is exactly why it
+    # mattered: the module exists so a future experiment "cannot quietly adopt a
+    # friendlier reading", and `majority=0.0` is a friendlier reading, silently accepted.
+    #
+    # 1.0 is excluded too: a strict `>` against `required == len(shared)` would demand
+    # every fold win *and more than all of them*, so 1.0 is a rule that can never pass
+    # rather than one that is merely strict.
+    if not 0.0 < majority <= 1.0:
+        raise ValueError(
+            f"majority must be in (0, 1]; got {majority!r}. A majority of 0 re-enables the "
+            f"one-lucky-fold shape this rule was amended to remove -- gate 1b would pass on a "
+            f"single fold -- and 1.0 can never be satisfied, since the comparison is strict."
+        )
     if noise_basis not in ("per_fold", "fold_mean"):
         raise ValueError(f"noise_basis must be 'per_fold' or 'fold_mean', got {noise_basis!r}")
     if noise is not None and (not math.isfinite(noise) or noise <= 0):
@@ -191,7 +229,11 @@ def two_gate_verdict(
     # fold cannot carry a decision.
     if len(shared) < MIN_FOLDS_FOR_MAJORITY:
         return TwoGateVerdict(
-            promoted=False, complete=False, metric=metric,
+            # The fold count was evaluated and found too small, so this is a
+            # definitive rejection, not an incomplete check -- provided a noise
+            # figure was supplied, which is the one thing that genuinely could not
+            # have been evaluated. It is not used, because nothing is promoted.
+            promoted=False, complete=noise is not None, metric=metric,
             incumbent_mean=incumbent_mean, candidate_mean=candidate_mean,
             folds_compared=len(shared), folds_won=len(won), majority_required=majority,
             gates=(Gate(f"at least {MIN_FOLDS_FOR_MAJORITY} comparable folds", False,
@@ -238,16 +280,41 @@ def two_gate_verdict(
     # the newest season" -- and it was most reachable exactly when it mattered least: a
     # candidate too incomplete to score on the latest data is the one most likely to have
     # a problem there.
-    latest = max(set(shared) | set(candidate) | set(incumbent))
-    if latest in candidate and latest in incumbent:
-        gate_2 = Gate("gate 2 - most recent season improves",
-                      _is_better(candidate[latest], incumbent[latest], lower_is_better),
-                      f"{latest}: {incumbent[latest]:.6f} -> {candidate[latest]:.6f}")
-    else:
-        missing_from = "candidate" if latest not in candidate else "incumbent"
+    # The two sides are **not** symmetric, and treating them as one is its own bug.
+    #
+    # A *candidate* missing the newest season is evidence about the candidate: it is too
+    # incomplete to score on the latest data, which is precisely when it is most likely to
+    # have a problem there. That has to fail.
+    #
+    # An *incumbent* missing the newest season is a bookkeeping gap in the **baseline**,
+    # not evidence about the candidate -- and it is the common shape, not an edge case:
+    # `football_data.default_completed_seasons()` grows by one every year, so any fold table
+    # computed before this season completed is short by exactly one. Failing on that makes
+    # the rule permanently unpassable until someone re-derives the incumbent baseline, and
+    # nothing in the code or docs said so.
+    #
+    # So: gate the candidate on the newest season *it or the incumbent* saw, and only fall
+    # back -- visibly -- when the candidate did cover it and the incumbent did not.
+    # `shared` is a subset of both, so the union is just the two arms -- spelling it
+    # out keeps the asymmetry above readable rather than clever.
+    newest_seen = max(set(candidate) | set(incumbent))
+    if newest_seen not in candidate:
         gate_2 = Gate("gate 2 - most recent season improves", False,
-                      f"no verdict on the most recent season ({latest}): {missing_from} was "
-                      f"not scored on it, so the newest data is unchecked")
+                      f"the candidate was not scored on the most recent season "
+                      f"({newest_seen}), so the newest data is unchecked")
+    elif newest_seen not in incumbent:
+        fallback = max(shared)
+        gate_2 = Gate("gate 2 - most recent season improves",
+                      _is_better(candidate[fallback], incumbent[fallback], lower_is_better),
+                      f"{fallback}: {incumbent[fallback]:.6f} -> {candidate[fallback]:.6f} "
+                      f"(FALLBACK: the incumbent baseline has no {newest_seen}, so gate 2 "
+                      f"graded the newest season they share; re-derive the baseline to close "
+                      f"this gap)")
+    else:
+        gate_2 = Gate("gate 2 - most recent season improves",
+                      _is_better(candidate[newest_seen], incumbent[newest_seen], lower_is_better),
+                      f"{newest_seen}: {incumbent[newest_seen]:.6f} -> "
+                      f"{candidate[newest_seen]:.6f}")
 
     gates = (
         Gate("gate 1 - walk-forward mean improves",

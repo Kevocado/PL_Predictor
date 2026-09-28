@@ -407,3 +407,113 @@ def test_gate_2_uses_the_newest_season_even_when_both_arms_score_on_all_of_them(
     gate_2 = {g.name: g for g in verdict.gates}["gate 2 - most recent season improves"]
     assert gate_2.passed
     assert "2025-26" in gate_2.detail
+
+
+# --- second review round: the fixes above, and what they broke ----------------
+
+def test_an_incumbent_baseline_missing_the_newest_season_does_not_block_a_real_candidate():
+    """The two sides of gate 2 are NOT symmetric, and treating them as one is its own bug.
+
+    The first version of the union-max fix failed whenever *either* arm lacked the newest
+    season. That is wrong for the incumbent, and wrong in the shape it will actually hit:
+    `football_data.default_completed_seasons()` grows by one every year, so any fold table
+    computed before this season completed is short by exactly one. The rule would have been
+    permanently unpassable until someone re-derived the baseline, with nothing saying so.
+
+    Demonstrated before this fix: a candidate winning 4 of 4 by 2x the noise threshold, and
+    scored on the newest season, blocked with "incumbent was not scored on it".
+    """
+    incumbent = {y: 0.20 for y in ("2021-22", "2022-23", "2023-24", "2024-25")}
+    candidate = {y: 0.19 for y in ("2021-22", "2022-23", "2023-24", "2024-25", "2025-26")}
+
+    verdict = two_gate_verdict(incumbent, candidate, noise=0.01, lower_is_better=True)
+
+    gate_2 = {g.name: g for g in verdict.gates}["gate 2 - most recent season improves"]
+    assert gate_2.passed, gate_2.detail
+    assert verdict.promoted
+    # The fallback has to be visible, not silent -- it is grading an older season.
+    assert "FALLBACK" in gate_2.detail
+    assert "2025-26" in gate_2.detail
+
+
+def test_a_candidate_missing_the_newest_season_still_fails_and_names_itself():
+    """The asymmetry must not weaken the side that motivated the fix.
+
+    Before it, a candidate absent from 2025-26 was promoted on a gate 2 quoting 2024-25.
+    """
+    incumbent = {y: 0.20 for y in ("2021-22", "2022-23", "2023-24", "2024-25", "2025-26")}
+    candidate = {y: 0.19 for y in ("2021-22", "2022-23", "2023-24", "2024-25")}
+
+    verdict = two_gate_verdict(incumbent, candidate, noise=0.01, lower_is_better=True)
+
+    gate_2 = {g.name: g for g in verdict.gates}["gate 2 - most recent season improves"]
+    assert not gate_2.passed
+    assert not verdict.promoted
+    assert "candidate was not scored on the most recent season" in gate_2.detail
+    assert "2025-26" in gate_2.detail
+    assert "FALLBACK" not in gate_2.detail
+
+
+def test_the_fallback_and_the_candidate_branch_are_distinguished():
+    """Both sides lacking nothing: no fallback, and the newest season is named."""
+    incumbent = {y: 0.20 for y in ("2023-24", "2024-25", "2025-26")}
+    candidate = {y: 0.19 for y in ("2023-24", "2024-25", "2025-26")}
+
+    gate_2 = {g.name: g for g in two_gate_verdict(
+        incumbent, candidate, noise=0.01, lower_is_better=True).gates
+    }["gate 2 - most recent season improves"]
+
+    assert gate_2.passed
+    assert gate_2.detail.startswith("2025-26")
+    assert "FALLBACK" not in gate_2.detail
+
+
+@pytest.mark.parametrize("majority", [0.0, -1.0, 1.5, 2.0])
+def test_a_majority_outside_the_unit_interval_is_refused(majority):
+    """`majority=0.0` is the `noise=0.0` hole, one gate over.
+
+    It made gate 1b pass on ONE fold of five, re-enabling verbatim the one-lucky-fold
+    shape `MIN_FOLDS_FOR_MAJORITY` was added to stop -- defeated by a keyword on the same
+    signature. `majority=-1.0` made it pass on zero wins. No caller passes it today, which
+    is exactly why it mattered: the module exists so a future experiment "cannot quietly
+    adopt a friendlier reading".
+    """
+    incumbent = {f"s{i}": 0.2 for i in range(1, 6)}
+    candidate = {f"s{i}": (0.19 if i == 1 else 0.2) for i in range(1, 6)}
+
+    with pytest.raises(ValueError, match="majority must be in"):
+        two_gate_verdict(incumbent, candidate, noise=0.01, majority=majority, lower_is_better=True)
+
+
+def test_a_majority_of_exactly_one_is_accepted_but_can_never_pass():
+    """1.0 is in range, and documented as unsatisfiable rather than silently strict.
+
+    The comparison is strict, so `required == len(shared)` demands more folds than exist.
+    """
+    verdict = two_gate_verdict(
+        {f"s{i}": 0.2 for i in range(1, 5)},
+        {f"s{i}": 0.19 for i in range(1, 5)},
+        noise=0.01, majority=1.0, lower_is_better=True,
+    )
+    gate_1b = {g.name: g for g in verdict.gates}["gate 1b - majority of folds improve"]
+    assert not gate_1b.passed
+    assert not verdict.promoted
+
+
+def test_a_too_small_fold_count_is_a_definitive_rejection_not_an_incomplete_check():
+    """`complete` used to mean only "a noise figure was supplied".
+
+    So one fold with a valid noise figure printed "INCOMPLETE - a required gate could not
+    be evaluated" when every gate had in fact run and failed. That is the module's own
+    stated failure mode inverted -- "we did not check" reported where the truth was "we
+    checked and it failed" -- in the module whose purpose is to stop that conflation.
+    """
+    with_noise = two_gate_verdict({"s1": 0.2}, {"s1": 0.19}, noise=0.01, lower_is_better=True)
+    assert with_noise.complete is True, "every gate was evaluated"
+    assert "definitive rejection" in with_noise.summary
+    assert "INCOMPLETE" not in with_noise.summary
+
+    # With no noise figure, gate 1c genuinely could not run, so incomplete is right.
+    without_noise = two_gate_verdict({"s1": 0.2}, {"s1": 0.19}, lower_is_better=True)
+    assert without_noise.complete is False
+    assert "INCOMPLETE" in without_noise.summary

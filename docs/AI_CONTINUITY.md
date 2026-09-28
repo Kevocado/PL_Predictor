@@ -1966,7 +1966,7 @@ That is the gate the rule needed, and it is a different gate.
 
 ### The amendment, as implemented
 
-`evaluate/promotion_rule.py::two_gate_verdict` — the rule as code, 14 tests. Four
+`evaluate/promotion_rule.py::two_gate_verdict` — the rule as code, 31 tests. Four
 gates, all evaluated gates must pass:
 
 | gate | requirement |
@@ -1974,7 +1974,29 @@ gates, all evaluated gates must pass:
 | 1 | the walk-forward mean improves |
 | **1b** | **a majority of shared folds improve** |
 | **1c** | **the mean improvement exceeds the metric's own measured noise** |
-| 2 | the most recent shared fold improves |
+| 2 | the most recent season improves, with a documented fallback when the *incumbent* baseline lacks that season |
+
+**Holes found by adversarial review, 2026-09-28, and closed.** Recorded here because the
+table above is what a future change is judged against, and each of these reached a
+promotion through a path the table does not describe:
+
+- **Gate 2 graded the most recent season *both* arms had.** `shared[-1]` skips any season
+  the candidate is missing, so a candidate that never ran on the newest season was graded
+  on an older one and **promoted**. Gate 2 now fails when the *candidate* lacks the newest
+  season either arm saw. It **falls back visibly** when only the *incumbent* lacks it,
+  because that is a gap in the baseline rather than evidence about the candidate — and it
+  is the common shape, since `default_completed_seasons()` grows by one each year.
+- **`noise=0.0` turned gate 1c into "improved at all"** and promoted on +0.000067, with
+  `complete=True` because 0.0 is not None. Zero, negative, NaN and inf now raise.
+- **`majority=0.0` was the same hole one gate over** and made gate 1b pass on one fold of
+  five, re-enabling the one-lucky-fold shape verbatim. `majority` must be in `(0, 1]`.
+- **One fold satisfied "a majority of folds"**, because `1 > 0.5`. Below
+  `MIN_FOLDS_FOR_MAJORITY = 2` the verdict says so.
+- **Input validation ran after an early return**, so a malformed `noise_basis` was reported
+  as a fold-count verdict instead of raising.
+- **`complete` meant only "a noise figure was supplied"**, which made a *definitive
+  rejection* print as "a required gate could not be evaluated". It now means every gate was
+  evaluated, and a fully-evaluated rejection says so on its own line.
 
 **Why code rather than a paragraph.** The rule lived only in this file, and two
 experiments had read the same paragraph and reached different conclusions about
@@ -2023,8 +2045,8 @@ PROMOTED on log_loss:
   folds won 4 of 4
   [PASS] gate 1 - walk-forward mean improves: 0.179683 -> 0.178897
   [PASS] gate 1b - majority of folds improve: won 4 of 4; needs more than 50% (2.0 folds)
-  [PASS] gate 1c - improvement exceeds measured noise: improvement +0.000787 vs noise half-width 0.000161
-  [PASS] gate 2 - most recent fold improves: 2025-26: 0.163033 -> 0.162624
+  [PASS] gate 1c - improvement exceeds measured noise: improvement +0.000787 vs threshold 0.000081 (0.000161 per_fold, 4 folds)
+  [PASS] gate 2 - most recent season improves: 2025-26: 0.163033 -> 0.162624
 ```
 
 (Pasted verbatim from the module rather than transcribed — an earlier draft of this

@@ -293,7 +293,12 @@ these three didn't.
   most interesting unresolved thread in the project, worth another look
   once more seasons of data accumulate.
 - **The covariate-Poisson model's Over/Under 2.5 edge is thin** (EXP-2026-16)
-  — it wins on average and on the most recent season, but loses 2 of 5
+  — it wins on average and on the most recent season, but wins only 3 of 5
+  (**RETRACTED**: an earlier version of this line said "loses 2 of 5". That count was
+  true of `bivariate_poisson`; it had been conflated with `covariate_poisson`, which wins
+  3 of 5 — so a majority rule resting on that story would have been justified by a
+  misreading of its own evidence. See EXP-2026-16 and the pinned test
+  `test_gate_1b_would_not_have_caught_the_rejected_override`.)
   folds by a bigger margin than it wins by in any single fold. Kept live
   as a deliberate, disclosed judgment call, not a confident win; a future
   refinement (fitting the model's correlation term properly instead of
