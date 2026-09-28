@@ -132,7 +132,7 @@ def _score_outcome_probs(model, val_df: pd.DataFrame) -> tuple[np.ndarray, float
     return probs, fallback_rate
 
 
-def _selection_block(candidates: dict, chosen_market_metrics: dict) -> dict:
+def _selection_block(candidates: dict, chosen_market_metrics: dict, manifest_seasons: list[str] | None = None) -> dict:
     """Everything a reader needs to not over-trust the reported holdout RPS.
 
     The reported holdout figure is a best-of-four *on the fold it is reported on*:
@@ -143,18 +143,35 @@ def _selection_block(candidates: dict, chosen_market_metrics: dict) -> dict:
 
     The walk-forward diagnostics live in a cache file rather than being recomputed
     here, because they cost a full four-candidate walk-forward and this function
-    runs on every retrain. When the cache is absent or unreadable the block says
-    `not_computed` -- it never falls back to a stale figure, because a stale
-    headline presented as current is worse than no headline.
+    runs on every retrain. So the cache must be checked for **provenance**, not
+    merely for readability: a file that parses is not a file that is current. It
+    records the seasons it was computed over, and a mismatch is reported as
+    `stale` with no `headline_rps` -- because a stale headline presented as
+    current is worse than an absent one, which is the whole reason this block
+    exists.
+
+    Non-finite values are coerced to `None` on the way through. JSON has no NaN,
+    `json.dumps` will write the token anyway, and starlette's `JSONResponse`
+    renders with `allow_nan=False` -- so one NaN here is a 500 on
+    `GET /api/manifest`.
     """
     walk_forward = None
+    status = "not_computed"
     if SELECTION_WALK_FORWARD_PATH.exists():
         try:
             cached = json.loads(SELECTION_WALK_FORWARD_PATH.read_text())
-            if isinstance(cached, dict) and "walk_forward_mean" in cached:
-                walk_forward = cached
         except (json.JSONDecodeError, OSError):
-            walk_forward = None
+            cached = None
+        if isinstance(cached, dict) and cached.get("walk_forward_mean"):
+            cached_seasons = cached.get("seasons")
+            fresh = (
+                bool(cached_seasons)
+                and bool(manifest_seasons)
+                and sorted(cached_seasons) == sorted(manifest_seasons)
+            )
+            status = "cached" if fresh else "stale"
+            if fresh:
+                walk_forward = cached
 
     selection = {
         # Explicit, so no reader can mistake the holdout figure for an
@@ -166,13 +183,35 @@ def _selection_block(candidates: dict, chosen_market_metrics: dict) -> dict:
             chosen_market_metrics.get("rps_ci_high"),
         ],
         "recommended_headline": "walk_forward_mean_rps",
-        "walk_forward": walk_forward,
-        "walk_forward_status": "cached" if walk_forward else "not_computed",
+        "walk_forward": _json_safe(walk_forward),
+        "walk_forward_status": status,
     }
-    if walk_forward:
+    if walk_forward is not None:
         means = walk_forward.get("walk_forward_mean") or {}
-        selection["headline_rps"] = means.get(walk_forward.get("best_by_walk_forward_mean"))
+        best = walk_forward.get("best_by_walk_forward_mean")
+        value = means.get(best) if best in means else None
+        # `recommended_headline` is set unconditionally, so `headline_rps` is only
+        # meaningful when there is a number to put beside it.
+        selection["headline_rps"] = _json_safe(value)
     return selection
+
+
+def _json_safe(value):
+    """Recursively replace non-finite floats with None.
+
+    `json.dumps` writes `NaN` by default and starlette refuses to read it back, so
+    a single non-finite anywhere in the manifest becomes a 500 on the API rather
+    than a visible null.
+    """
+    import math
+
+    if isinstance(value, float):
+        return value if math.isfinite(value) else None
+    if isinstance(value, dict):
+        return {k: _json_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(v) for v in value]
+    return value
 
 
 def _evaluate_scoreline_model(model, val_df: pd.DataFrame) -> dict:
@@ -420,7 +459,10 @@ def train_all(seasons: list[str] | None = None, include_current_season: bool = T
     market_models.save_regressor(home_sot_model, HOME_SHOTS_ON_TARGET_MODEL_PATH)
     market_models.save_regressor(away_sot_model, AWAY_SHOTS_ON_TARGET_MODEL_PATH)
 
-    selection = _selection_block(candidates, market_metrics.get(chosen, {}))
+    selection = _selection_block(
+        candidates, market_metrics.get(chosen, {}),
+        manifest_seasons=sorted(df["season"].unique().tolist()),
+    )
 
     manifest = {
         "trained_at": datetime.now(timezone.utc).isoformat(),
@@ -483,7 +525,11 @@ def train_all(seasons: list[str] | None = None, include_current_season: bool = T
             "away_importance": away_sot_importance,
         },
     }
-    MANIFEST_PATH.write_text(json.dumps(manifest, indent=2))
+    # `allow_nan=False`: a non-finite anywhere in the manifest would otherwise be
+    # written as the token `NaN`, which starlette's JSONResponse refuses to render
+    # (`allow_nan=False` on its side too) -- a 500 on GET /api/manifest rather
+    # than a visible null. Fail here instead, where the traceback points at the cause.
+    MANIFEST_PATH.write_text(json.dumps(manifest, indent=2, allow_nan=False))
     _append_history(manifest)
     return manifest
 

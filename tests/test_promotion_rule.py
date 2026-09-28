@@ -230,3 +230,70 @@ def test_gate_1b_would_not_have_caught_the_rejected_override():
     # Only the noise margin rejects it.
     assert not gates["gate 1c - improvement exceeds measured noise"].passed
     assert not verdict.promoted
+
+
+def test_a_strict_majority_at_an_even_fold_count():
+    """`test_a_majority_must_be_strict` only used odd fold counts, where `>` and
+    `>=` are indistinguishable -- 2.5 admits no integer. At n=4 they differ, and
+    `>=` would admit a 2-2 split."""
+    def case(**candidates):
+        return {f"s{i}": {"incumbent": 1.0, "candidate": candidates.get(f"s{i}", 1.0)} for i in range(1, 5)}
+
+    split = _judge(case(s1=0.9, s2=0.9, s3=1.05, s4=1.05))
+    gates = {g.name: g for g in split.gates}
+    assert split.folds_won == 2 and split.folds_compared == 4
+    assert gates["gate 1 - walk-forward mean improves"].passed
+    assert not gates["gate 1b - majority of folds improve"].passed, "2 of 4 is not a majority"
+    assert not split.promoted
+
+    # s4 must win: gate 2 is the most recent fold, and a loss there fails the
+    # verdict for a different reason than the majority rule under test.
+    three_of_four = _judge(case(s1=1.05, s2=0.9, s3=0.9, s4=0.9))
+    assert three_of_four.promoted and three_of_four.folds_won == 3
+
+
+def test_an_improvement_exactly_equal_to_the_noise_does_not_pass():
+    """`improvement > threshold` is strict. `>=` would admit a change whose entire
+    measured margin is inside the noise."""
+    verdict = two_gate_verdict(
+        {"s1": 0.2, "s2": 0.2, "s3": 0.2},
+        {"s1": 0.2, "s2": 0.2, "s3": 0.19},
+        noise=0.01, noise_basis="fold_mean",
+    )
+    gate = {g.name: g for g in verdict.gates}["gate 1c - improvement exceeds measured noise"]
+    assert not gate.passed
+    assert not verdict.promoted
+
+
+def test_a_per_fold_noise_figure_is_divided_by_sqrt_folds():
+    """The gated quantity is a mean over folds; a per-fold half-width is therefore
+    too strict for it by about sqrt(F). Comparing them unscaled rejects real
+    improvements and reads as evidence."""
+    import math
+
+    inc = {f"s{i}": 0.2 for i in range(1, 5)}
+    cand = {f"s{i}": 0.2 for i in range(1, 5)}
+    for fold in ("s1", "s2", "s3", "s4"):
+        cand[fold] = 0.199
+    verdict = two_gate_verdict(inc, cand, noise=0.002, noise_basis="per_fold")
+    gate = {g.name: g for g in verdict.gates}["gate 1c - improvement exceeds measured noise"]
+    assert verdict.promoted, f"0.001 against a threshold of {0.002 / 2:.6f} should pass: {gate.detail}"
+    assert f"{0.002 / math.sqrt(4):.6f}" in gate.detail
+
+
+def test_an_unknown_noise_basis_is_rejected():
+    with pytest.raises(ValueError, match="noise_basis"):
+        two_gate_verdict({"s1": 0.2}, {"s1": 0.1}, noise=0.01, noise_basis="per_season")
+
+
+def test_the_provisional_summary_is_reachable_and_states_itself():
+    """`promoted and not complete` cannot happen -- the noise gate is hard-coded
+    not-passed when no noise is supplied. So `complete` is reported on its own
+    line rather than via an unreachable "PROVISIONALLY" headline."""
+    verdict = two_gate_verdict(
+        {"2022-23": 0.192208, "2023-24": 0.188242},
+        {"2022-23": 0.191584, "2023-24": 0.186827},
+    )
+    assert not verdict.promoted and not verdict.complete
+    assert "INCOMPLETE" in verdict.summary
+    assert "PROVISIONALLY" not in verdict.summary

@@ -76,12 +76,13 @@ RATE_FEATURES = [
 STARTER_MINUTES = 82.9
 SUBSTITUTE_MINUTES = 39.9
 
-# Mirrors `OPPONENT_FEATURES` in evaluate.goal_contribution_research, which owns
-# the fitted set. Duplicated rather than imported because that module imports
-# this one for the frame builder, and a runtime import here would be circular.
-_OPPONENT_DEFENCE_FEATURES = (
-    "opponent_defence_last3", "opponent_defence_last5", "opponent_defence_last10",
-)
+# Imported, not mirrored. An earlier version duplicated this tuple and justified
+# it with "a runtime import here would be circular" -- which is false on both
+# counts: `goal_contribution_research` does not import this module, and
+# `fit_goal_contribution_model` forty lines below already does a deferred import
+# from it. A duplicated feature list is a list that can drift, and a wrong
+# justification is worse than none because the next reader preserves it.
+from ..evaluate.goal_contribution_research import OPPONENT_FEATURES as _OPPONENT_DEFENCE_FEATURES
 
 
 def fit_reliability_coefficients(seasons: list[str] | None = None) -> dict:

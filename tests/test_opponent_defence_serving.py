@@ -134,10 +134,12 @@ def test_the_route_helper_rates_the_defence_each_side_faces():
     hand every home player the away side's own defensive record."""
     from pl_predictor.api import routes
 
-    # Season labels are "2026-2027" for the in-progress season, because
-    # `fetch_current_season_partial` builds them with `season_str`. The completed
-    # seasons read from the raw CSVs are the short "2024-25" form instead, so
-    # `_get_matches_df` legitimately contains both.
+    # Season labels are long form ("2026-2027") because `season_str` is the single
+    # producer: `fetch_season` does `df["season"] = season` from
+    # `default_completed_seasons()`, and `fetch_current_season_partial` uses the
+    # same helper. An earlier note here claimed `_get_matches_df` mixes the short
+    # "2024-25" form with the long one; that was wrong, and it would have invited a
+    # name-normalisation fix for a problem that does not exist.
     matches_df = pd.DataFrame({
         "date": pd.to_datetime(["2026-08-08", "2026-08-15", "2026-08-22"]),
         "season": ["2026-2027"] * 3,
