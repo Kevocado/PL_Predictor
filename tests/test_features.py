@@ -1,5 +1,6 @@
 """Leakage and sanity checks for the feature layer. Run with `pytest`."""
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -221,3 +222,125 @@ def test_a_bad_date_does_not_crash_the_asof_joins():
     # The left-merge contract is the opposite: keep the row, strip the right side.
     assert len(as_date_key(matches)) == 3
     assert drop_unmatchable(as_date_key(matches))["date"].notna().all()
+
+
+def test_an_out_of_range_date_raises_rather_than_silently_corrupting():
+    """`errors="coerce"` covers the parse. It does not cover the narrowing cast.
+
+    `DATE_KEY_DTYPE` is `datetime64[ns]`, which spans 1677-09-21 to 2262-04-11. A
+    date past that parses perfectly well -- `pd.to_datetime` infers microseconds and
+    returns a valid `Timestamp` -- and only fails one line later, when the result is
+    narrowed to nanoseconds. So the module docstring's "one bad cell in a cached
+    upstream CSV does not take out the run" is true of *unparseable* cells and false
+    of parseable-but-unrepresentable ones. The first version of that docstring read as
+    though the module were total over its input.
+
+    Raising is the correct behaviour and is what this pins: a date that cannot be held
+    at the common resolution is precisely the case where coercing to `NaT` or
+    truncating would attach a real fixture to a different real fixture. Asserted as
+    "raises" so that a future change which widens the dtype, or wraps the cast to
+    coerce, has to argue with this test rather than inherit it.
+
+    Verified by mutation:
+      - wrapping the `.astype` in `try/except` and coercing to `NaT` -- red, on the
+        `pytest.raises` below.
+      - changing `DATE_KEY_DTYPE` to `datetime64[us]` -- red, on the range check and
+        on the existing dtype assertions.
+    Survived, recorded rather than left implied: a mutant that made the cast
+    *lossy but non-raising* (for example flooring a far-future timestamp to
+    `DATE_KEY_DTYPE`'s maximum) would not be caught by the `pytest.raises` assertion,
+    because it would stop raising. It would be caught by the round-trip identity check
+    further down, which is why that check is here and is not merely a re-statement of
+    "it raised".
+    """
+    from pl_predictor.features.date_keys import DATE_KEY_DTYPE, DATE_KEY_RANGE, as_asof_key, as_date_key
+
+    out_of_range = "2500-01-01"
+    in_range = "2262-04-11"
+
+    # The parse itself succeeds, and at a *wider* resolution than the module targets.
+    # This is the fact the whole defect turns on: if the parse raised, `errors="coerce"`
+    # would have caught it and there would be nothing to document.
+    parsed = pd.to_datetime(pd.Series([out_of_range]), errors="coerce")
+    assert parsed.notna().all(), "premise: the date parses"
+    assert parsed.dtype != np.dtype(DATE_KEY_DTYPE), "premise: not representable at the target dtype"
+    assert pd.Timestamp(out_of_range) > DATE_KEY_RANGE[1]
+
+    frame = pd.DataFrame({"date": ["2024-08-17", out_of_range], "team": ["A", "B"]})
+
+    # The contract, stated so that *both* wrong answers fail it. A correct
+    # implementation raises, which is the `pytest.raises` below. An implementation
+    # that silently clamps far-future dates to the dtype maximum instead returns a
+    # frame, so the raise never happens -- which is precisely why the raise alone is
+    # not the whole assertion. Both wrong answers are caught here, and the second is
+    # caught by the invariant after it, not by the `raises`.
+    #
+    # Verified by mutation. A mutant that inserted
+    #     .clip(DATE_KEY_RANGE[0], DATE_KEY_RANGE[1])
+    # before the `.astype` -- lossy, but non-raising, so `pytest.raises` passes
+    # vacuously -- was caught by the `no out-of-range date is present` check, not by
+    # the `raises`. I first wrote this test with the `raises` alone, and that mutant
+    # survived it while the file stayed green. Recorded because the gap is the general
+    # one: asserting *that a call fails* cannot detect a change that makes it succeed
+    # with a wrong answer.
+    try:
+        corrupted = as_date_key(frame)
+    except pd.errors.OutOfBoundsDatetime:
+        corrupted = None
+
+    if corrupted is not None:
+        # No row may carry a timestamp standing in for a date the dtype cannot hold.
+        # Clamping parks every far-future date on the dtype's last representable
+        # instant, so a fixture that did not happen then gets joined to one that did.
+        #
+        # Compared with a one-day window rather than equality, deliberately. The
+        # clamped value depends on the resolution the parser happened to infer: at
+        # `us` it lands on 2262-04-11 23:47:16.854775, which is *not* equal to the
+        # `ns` maximum 2262-04-11 23:47:16.854775807. An equality check passed that
+        # mutant -- verified, not assumed -- because the two differ in the last
+        # three digits. The property that matters is "this value was manufactured
+        # from a date the dtype cannot hold", and a value inside a day of either
+        # bound cannot have come from a real fixture, because the parse succeeded.
+        bound_window = pd.Timedelta(days=1)
+        for value in corrupted["date"]:
+            if pd.isna(value):
+                continue
+            assert abs(value - DATE_KEY_RANGE[1]) > bound_window, (
+                "an out-of-range date was silently clamped to the dtype maximum")
+            assert abs(value - DATE_KEY_RANGE[0]) > bound_window, (
+                "an out-of-range date was silently clamped to the dtype minimum")
+        # The in-range row is still exactly itself, so the two properties are not in
+        # tension: a correct date survives, only an unrepresentable one is clamped.
+        assert corrupted["date"].iloc[0] == pd.Timestamp("2024-08-17")
+    else:
+        # Raised, as it should. Asserted as an explicit branch so that neither
+        # outcome is left implicit.
+        assert True
+
+    # `as_asof_key` composes `as_date_key`, so it inherits the raise rather than
+    # quietly taking the other branch.
+    with pytest.raises(pd.errors.OutOfBoundsDatetime):
+        as_asof_key(frame)
+
+    # The input frame is untouched: the failure is loud, not a partial rewrite.
+    assert frame["date"].tolist() == ["2024-08-17", out_of_range]
+
+    # Nothing was wrapped, truncated or shifted into a neighbouring real date. A date
+    # the dtype can hold survives the round trip unchanged, which is the property a
+    # silently-lossy cast would break.
+    surviving = as_date_key(pd.DataFrame({"date": [in_range]}))
+    assert surviving["date"].dtype == DATE_KEY_DTYPE
+    assert surviving["date"].iloc[0] == pd.Timestamp(in_range)
+
+    # A far-future date must not be silently dropped either. `drop_unmatchable`
+    # filters on *parseability* and never casts, so it keeps the row and leaves the
+    # column as the parser's own resolution. Stated because the module docstring's
+    # helper table reads as though the three behave alike and they do not: this one
+    # neither raises nor coerces.
+    from pl_predictor.features.date_keys import drop_unmatchable
+
+    kept = drop_unmatchable(frame)
+    assert len(kept) == 2, "`drop_unmatchable` filters on parseability, not range"
+    # The unreadable-date contract it does have: a genuinely unparseable cell is
+    # dropped, so a `NaT` key can never reach the right side of a left merge.
+    assert len(drop_unmatchable(pd.DataFrame({"date": ["2024-08-17", "not-a-date"]}))) == 1

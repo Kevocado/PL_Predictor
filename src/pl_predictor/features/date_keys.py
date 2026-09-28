@@ -55,6 +55,31 @@ other, and the correct handling differs per call site. Hence three helpers, not 
 bad cell in a cached upstream CSV. The trade is that a match whose date cannot be read
 loses its features rather than the run. The tests drive the real call sites so the
 choice cannot be changed silently in either direction.
+
+## What this does not do
+
+That trade is narrower than it looks, and the first version of this docstring read as
+though it were total. "One bad cell" covers a cell that cannot be *parsed*. It does not
+cover a cell that parses cleanly and then does not fit `datetime64[ns]`, which is
+1677-09-21 to 2262-04-11:
+
+    pd.to_datetime("2500-01-01", errors="coerce")   # -> Timestamp('2500-01-01'), dtype datetime64[us]
+    ...astype("datetime64[ns]")                     # -> OutOfBoundsDatetime
+
+The parse succeeds and infers microseconds. The failure is the *narrowing cast* to the
+dtype above, and `errors="coerce"` governs the parse only, so it cannot cover the cast
+without a `try`. So `as_date_key` and `as_asof_key` raise `OutOfBoundsDatetime` on a
+far-future or far-past date, and `drop_unmatchable` -- which never casts -- does not.
+Raising is the right behaviour: a timestamp that cannot be represented at the common
+resolution is exactly the case where silently wrapping, truncating, or coercing to
+`NaT` would attach a real fixture to a different real fixture. But it is a raise, so
+"one bad cell never takes out the run" is true of unparseable cells only, and this
+module is not total over its input. A loader that cannot rule out far-future dates has
+to handle that exception itself.
+
+For football data this is hypothetical rather than live -- a fixture is not dated in
+the year 2500 -- which is exactly why it went unnoticed, and also why it should be
+pinned rather than left to a future loader's one bad cell.
 """
 
 from __future__ import annotations
@@ -63,18 +88,41 @@ import pandas as pd
 
 # Nanoseconds are the resolution every historical pandas version agrees on, so this is
 # the safest common denominator rather than whichever one is newest.
+#
+# It is a *common denominator*, not a superset: `datetime64[ns]` spans
+# 1677-09-21 to 2262-04-11, so it is the widest range of the resolutions in play
+# (s < us < ms < ns) while being the narrowest of the two 128-bit ones pandas
+# also offers. `DATE_KEY_DTYPE` is therefore where this module stops being
+# total, and where it is narrowest rather than widest is a deliberate trade --
+# see the "What this does not do" section in the module docstring.
 DATE_KEY_DTYPE = "datetime64[ns]"
+
+# The `astype` below is a cast, and casts do not honour `errors="coerce"`.
+# `pd.to_datetime("2500-01-01", errors="coerce")` *succeeds* -- it infers
+# `datetime64[us]` for that series -- and the overflow only happens one line
+# later, when the result is narrowed to nanoseconds. That is why the contract
+# below is stated as "raises" rather than "coerces".
+DATE_KEY_RANGE = (pd.Timestamp.min, pd.Timestamp.max)
 
 
 def as_date_key(frame: pd.DataFrame, column: str = "date") -> pd.DataFrame:
     """A copy of `frame` whose `column` is a datetime at `DATE_KEY_DTYPE`.
 
-    Rows are kept, including any whose date could not be parsed (those become `NaT`).
-    Use on the **left** side of a `how="left"` merge, where a retained row that matches
-    nothing is the desired outcome.
+    Rows are kept, including any whose date **could not be parsed** (those become
+    `NaT`). Use on the **left** side of a `how="left"` merge, where a retained
+    row that matches nothing is the desired outcome.
 
-    Never use it alone on the right side of a `how="left"` merge — `NaT` matches `NaT`
-    and duplicate keys fan out. Pair it with `drop_unmatchable` there.
+    **Total, except for dates outside the `ns` range.** A cell that *parses* but
+    falls after 2262-04-11 (or before 1677-09-21) raises
+    `pandas.errors.OutOfBoundsDatetime` rather than becoming `NaT`, because the
+    failure is in the narrowing cast to `DATE_KEY_DTYPE` and not in the parse.
+    `errors="coerce"` does not cover it and cannot, as written. That is the
+    right way for it to fail -- a silently wrapped or truncated timestamp would
+    join a real fixture to the wrong one -- but it means this function is not
+    total, and the module docstring used to imply that it was.
+
+    Never use it alone on the right side of a `how="left"` merge — `NaT` matches
+    `NaT` and duplicate keys fan out. Pair it with `drop_unmatchable` there.
     """
     if column not in frame.columns:
         return frame
