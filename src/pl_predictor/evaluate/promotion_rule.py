@@ -107,6 +107,13 @@ def _is_better(candidate: float, incumbent: float, lower_is_better: bool) -> boo
     return candidate < incumbent if lower_is_better else candidate > incumbent
 
 
+# Below this, "a majority of folds" is arithmetically satisfiable by a single fold
+# and so protects nothing. Two is the minimum at which the phrase means what it says:
+# 1 > 0.5 is true, so at one fold gate 1b reported PASS while providing none of the
+# protection it was amended in to add.
+MIN_FOLDS_FOR_MAJORITY = 2
+
+
 def two_gate_verdict(
     incumbent: dict[str, float],
     candidate: dict[str, float],
@@ -148,6 +155,22 @@ def two_gate_verdict(
     measure it gets `complete=False` and a verdict that says gate 1c was not
     evaluated, because "we did not check" and "it passed" must not look alike.
     """
+    # Input validation runs before any early return, so a malformed input is always
+    # reported as a malformed input. The fold-count guard below returns early, and when
+    # it did that it masked `test_an_unknown_noise_basis_is_rejected` entirely: a
+    # one-fold call with a bad `noise_basis` returned a verdict about fold count instead
+    # of raising. Being strict about an unknown basis while lenient about a known-bad
+    # `noise` was inconsistent as well as wrong.
+    if noise_basis not in ("per_fold", "fold_mean"):
+        raise ValueError(f"noise_basis must be 'per_fold' or 'fold_mean', got {noise_basis!r}")
+    if noise is not None and (not math.isfinite(noise) or noise <= 0):
+        raise ValueError(
+            f"noise must be a positive, finite measured half-width; got {noise!r}. A zero or "
+            f"negative noise makes gate 1c vacuous rather than strict, and a NaN makes every "
+            f"comparison False. If the metric genuinely has no measurable noise, pass "
+            f"noise=None for a provisional verdict."
+        )
+
     shared = sorted(set(incumbent) & set(candidate))
     if not shared:
         return TwoGateVerdict(
@@ -161,6 +184,20 @@ def two_gate_verdict(
     won = [fold for fold in shared if _is_better(candidate[fold], incumbent[fold], lower_is_better)]
     incumbent_mean = sum(incumbent[fold] for fold in shared) / len(shared)
     candidate_mean = sum(candidate[fold] for fold in shared) / len(shared)
+
+    # "Won a majority of folds" is vacuous at one fold: 1 > 0.5 is true, so gate 1b
+    # reports PASS while providing none of the protection it exists for, which is
+    # stopping the one-lucky-fold shape. The amendment's whole point is that a single
+    # fold cannot carry a decision.
+    if len(shared) < MIN_FOLDS_FOR_MAJORITY:
+        return TwoGateVerdict(
+            promoted=False, complete=False, metric=metric,
+            incumbent_mean=incumbent_mean, candidate_mean=candidate_mean,
+            folds_compared=len(shared), folds_won=len(won), majority_required=majority,
+            gates=(Gate(f"at least {MIN_FOLDS_FOR_MAJORITY} comparable folds", False,
+                        f"only {len(shared)} shared fold(s); a majority of {len(shared)} is "
+                        f"vacuous, so this cannot promote anything"),),
+        )
 
     required = len(shared) * majority
     # An odd fold count cannot give an exact half, so a majority is a strict
@@ -191,6 +228,27 @@ def two_gate_verdict(
                           f"improvement {improvement:+.6f} vs threshold {threshold:.6f} "
                           f"({noise:.6f} {noise_basis}, {len(shared)} folds)")
 
+    # Gate 2 looks at the most recent season **either arm** was scored on, not the most
+    # recent season both were. `shared[-1]` skips any season the candidate is missing, so
+    # a candidate that simply did not run on the newest season was graded on an older one
+    # and passed. Demonstrated before this fix: candidate absent from 2025-26, promoted,
+    # with gate 2 quoting 2024-25.
+    #
+    # That is the exact failure gate 2 was added for -- "broadly better and still break on
+    # the newest season" -- and it was most reachable exactly when it mattered least: a
+    # candidate too incomplete to score on the latest data is the one most likely to have
+    # a problem there.
+    latest = max(set(shared) | set(candidate) | set(incumbent))
+    if latest in candidate and latest in incumbent:
+        gate_2 = Gate("gate 2 - most recent season improves",
+                      _is_better(candidate[latest], incumbent[latest], lower_is_better),
+                      f"{latest}: {incumbent[latest]:.6f} -> {candidate[latest]:.6f}")
+    else:
+        missing_from = "candidate" if latest not in candidate else "incumbent"
+        gate_2 = Gate("gate 2 - most recent season improves", False,
+                      f"no verdict on the most recent season ({latest}): {missing_from} was "
+                      f"not scored on it, so the newest data is unchecked")
+
     gates = (
         Gate("gate 1 - walk-forward mean improves",
              _is_better(candidate_mean, incumbent_mean, lower_is_better),
@@ -200,9 +258,7 @@ def two_gate_verdict(
              f"won {len(won)} of {len(shared)}; needs more than {majority:.0%} "
              f"({required:.1f} folds)"),
         noise_gate,
-        Gate("gate 2 - most recent fold improves",
-             _is_better(candidate[shared[-1]], incumbent[shared[-1]], lower_is_better),
-             f"{shared[-1]}: {incumbent[shared[-1]]:.6f} -> {candidate[shared[-1]]:.6f}"),
+        gate_2,
     )
 
     return TwoGateVerdict(
