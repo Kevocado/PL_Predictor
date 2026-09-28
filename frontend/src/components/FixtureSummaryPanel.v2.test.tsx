@@ -17,10 +17,10 @@
  *  repo passed while it shipped.
  */
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 
 import { FixtureSummaryPanel } from "./FixtureSummaryPanel";
-import type { Explanation, PickRef } from "../predictor-ui";
+import type { Explanation, Factor, PickRef } from "../predictor-ui";
 import type { FixtureSummary } from "../types";
 
 const ACCENT = "var(--color-pr-accent)";
@@ -34,6 +34,19 @@ const fills = (container: HTMLElement) =>
 
 /** Which segment carries the accent, by index. -1 when none does. */
 const accentedAt = (container: HTMLElement) => fills(container).indexOf(ACCENT);
+
+/** The DE-EMPHASIS, which is a different mechanism from the accent and fails
+ *  independently of it. `dim` in `ProbabilityBar` writes an opacity onto both
+ *  the segment fills and the figures, and it is driven by the selected factor
+ *  rather than by the pick — so a bar can be correctly un-accented and wrongly
+ *  dimmed, and only reading the opacity says which happened. */
+const opacityOf =
+  (selector: string) =>
+  (container: HTMLElement): string[] =>
+    [...container.querySelectorAll<HTMLElement>(selector)].map((e) => e.style.opacity);
+
+const fillOpacity = opacityOf("[data-testid='pbar-fill']");
+const labelOpacity = opacityOf("[data-testid='pbar-label']");
 
 const edge = (prob: number, implied: number | null = null) => ({ prob, implied, edge: null });
 
@@ -57,13 +70,14 @@ const fixture = (over: Partial<FixtureSummary> = {}): FixtureSummary =>
 
 /** A v2 answer in the shape the service sends. `pick` is spread in only when
  *  there is one, because the service states "no pick" by OMITTING the key and
- *  the panel acts on the absence. */
-const v2 = (pick?: PickRef): Explanation =>
+ *  the panel acts on the absence. `factors` is overridable so a test can name a
+ *  factor the panel draws no figure for. */
+const v2 = (pick?: PickRef, factors?: Factor[]): Explanation =>
   ({
     verdict: "Arsenal are the pick, and the market roughly agrees.",
     band: "moderate",
     ...(pick ? { pick } : {}),
-    factors: [
+    factors: factors ?? [
       {
         key: "result",
         direction: "neutral",
@@ -79,8 +93,8 @@ const v2 = (pick?: PickRef): Explanation =>
   }) as Explanation;
 
 /** Render the site component and wait for the answer to land. */
-async function show(pick?: PickRef, fx: FixtureSummary = fixture()) {
-  const fetcher = vi.fn().mockResolvedValue(v2(pick));
+async function show(pick?: PickRef, fx: FixtureSummary = fixture(), factors?: Factor[]) {
+  const fetcher = vi.fn().mockResolvedValue(v2(pick, factors));
   const out = render(<FixtureSummaryPanel eventId="e1" fetcher={fetcher} fixture={fx} />);
   await screen.findByText(/Arsenal are the pick/);
   return out;
@@ -201,5 +215,103 @@ describe("the market row quotes the market, never the model", () => {
     const fx = fixture({ home_win: edge(0.48, 0.44), away_win: edge(0.26, 0.3) });
     const { container } = await show({ label: "Arsenal win", side: "home_win" }, fx);
     expect(container.querySelector("[data-testid='pbar-legend']")).toBeNull();
+  });
+});
+
+describe("an unplaceable pick fails closed, in the accent AND in the de-emphasis", () => {
+  it("accents no segment and dims no figure when the pick's label is no segment's label", async () => {
+    // The fail-closed guarantee, stated in the bar's own terms and in BOTH of the
+    // ways it can fail. `barPick` returns this label unchanged — branch 4 of its
+    // own tests, in `panelFacts.test.ts` — so `pickIndex` finds nothing and the
+    // bar spends its one accent colour on no one.
+    //
+    // The de-emphasis is a separate mechanism and has to be asserted separately.
+    // It is driven by the SELECTED FACTOR, not by the pick, so a bar can be
+    // correctly un-accented and wrongly dimmed at the same time, and no
+    // assertion on `backgroundColor` can see that. "Arsenal to win" is the label
+    // `barPick`'s own fail-closed test uses, so the two files agree on what an
+    // unplaceable pick looks like rather than each inventing one.
+    //
+    // Why this needed saying: every other test in this file either selects no
+    // factor — so nothing *can* be dimmed and a dim assertion would pass
+    // vacuously — or asserts only the accent. The unplaceable-pick case had no
+    // rendered-level test on this site at all, only the unit-level one, which is
+    // exactly the gap a library change to `dim` or `pickIndex` would slide
+    // through without turning anything red.
+    const { container } = await show({ label: "Arsenal to win", side: "home_win" });
+
+    // The accent half: no segment carries it, and nothing claims one in words.
+    expect(fills(container)).toHaveLength(3);
+    expect(accentedAt(container)).toBe(-1);
+    expect(screen.getByRole("img")).toHaveAccessibleName("Arsenal 48%, Draw 26%, Chelsea 26%");
+
+    // The dim half: every figure is at full opacity, and the count is asserted
+    // as a whole so a figure that stopped rendering an opacity at all fails
+    // rather than passing as "not dimmed".
+    expect(fillOpacity(container)).toEqual(["1", "1", "1"]);
+    expect(labelOpacity(container)).toEqual(["1", "1", "1"]);
+  });
+
+  it("dims the other figures once a factor IS selected, so the assertion above is not vacuous", async () => {
+    // The control, and the reason the test above means anything. A `dim` that
+    // had stopped working entirely would ALSO render `["1","1","1"]` for an
+    // unplaceable pick — the same class of silent breakage, in the opposite
+    // direction, and equally invisible to a green suite. So the de-emphasis has
+    // to be seen working somewhere, or its absence proves nothing.
+    //
+    // `btts` is the key that makes it work. Every segment carries the `result`
+    // market, so a factor naming `result` dims nothing (the de-emphasis is per
+    // MARKET, not per segment) — which is a fact worth pinning in its own right,
+    // and is why this test uses a factor that names a TILE the bar does not draw.
+    // `linkable` accepts it because a `btts` tile exists; `dim` then fades all
+    // three segments, because none of them is about both-teams-to-score.
+    const { container } = await show({ label: "Arsenal win", side: "home_win" }, fixture(), [
+      { key: "btts", direction: "neutral", headline: "Both score", text: "It often does." },
+    ]);
+    fireEvent.click(screen.getByTestId("factor-btts"));
+
+    // The de-emphasis is live, and it is the value `dim` actually writes.
+    expect(fillOpacity(container)).toEqual(["0.4", "0.4", "0.4"]);
+    expect(labelOpacity(container)).toEqual(["0.4", "0.4", "0.4"]);
+
+    // The row that asked for the light is the row that is pressed, and the
+    // highlight is announced as well as painted.
+    expect(screen.getByTestId("factor-btts")).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("factor-btts")).toHaveAttribute("data-highlighted", "true");
+  });
+
+  it("dims nothing at all when the selected factor names a figure the panel does not draw", async () => {
+    // The other half of the linkage, and the one that was a defect until the
+    // library made a key with no figure behind it CLEAR the highlight instead of
+    // setting one. A factor is a reference to a figure; a key that resolves to
+    // nothing used to be forwarded as though it did, and `dim` then faded every
+    // figure in the panel with none lit — the worst of the three outcomes,
+    // because the reader is left with less than before they pressed anything.
+    //
+    // This is not a rare shape: `template.py` always emits a `record` row and
+    // pads with `context`, and neither is a market, so on a no-pick panel every
+    // row is unlinkable. `linkable()` in `ExplainerPanel` now turns such a press
+    // into a light that goes off, which is a change the reader can see and undo.
+    const unlinkable: Factor[] = [
+      { key: "record", direction: "neutral", headline: "Model record", text: "It has been good." },
+      {
+        key: "result",
+        direction: "up",
+        headline: "Model and market agree",
+        text: "Both put Arsenal at about the same price.",
+      },
+    ];
+    const { container } = await show({ label: "Arsenal win", side: "home_win" }, fixture(), unlinkable);
+
+    // Pressing it sets nothing, so nothing is dimmed and nothing is lit.
+    fireEvent.click(screen.getByTestId("factor-record"));
+    expect(fillOpacity(container)).toEqual(["1", "1", "1"]);
+    expect(screen.getByTestId("factor-record")).toHaveAttribute("aria-pressed", "false");
+    expect(container.querySelector("[data-highlighted='true']")).toBeNull();
+
+    // And the row that DOES name a drawn figure still lights it, so the test
+    // above is about the key resolving rather than about selection being inert.
+    fireEvent.click(screen.getByTestId("factor-result"));
+    expect(screen.getByTestId("factor-result")).toHaveAttribute("aria-pressed", "true");
   });
 });

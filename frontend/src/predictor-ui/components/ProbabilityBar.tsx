@@ -1,4 +1,4 @@
-// Synced from predictor-ui@52a31840951f. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@9c14c67d91df. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 import { useState } from "react";
 import { contrast, parseHex } from "../contrast";
 import { pct } from "../fmt";
@@ -139,17 +139,31 @@ const LABEL_CLASS =
  *
  *  A prop would be a thing every call site has to remember, and here the default
  *  is what a call site that remembers nothing gets. Deriving the branch from a
- *  signal the component already receives makes the unsafe answer unreachable by
- *  accident: a caller that wraps this bar in a button and forgets a flag gets
- *  plain text — valid HTML, no dead focus stop — and loses only an affordance
- *  its own surface is already providing. A prop defaulting to interactive would
- *  fail in the other direction, into invalid HTML, on the call site that forgot.
+ *  signal the component already receives makes the unsafe answer unreachable *for
+ *  a caller that passes no listener*: a bar in a button with nothing to report gets
+ *  plain text — valid HTML, no dead focus stop. A prop defaulting to interactive
+ *  would fail in the other direction, into invalid HTML, on the call site that
+ *  forgot.
+ *
+ *  **What it does not reach, and the one prop that does.** "Unreachable by
+ *  accident" was this comment's claim, and it was too wide: a component cannot see
+ *  its own ancestors, so nothing derived from `onSegmentFocus` can protect a
+ *  caller who *does* pass a listener and renders the bar inside a control. That
+ *  combination is `button > button` — measured, in `nesting.test.tsx`, with this
+ *  very component — and `MatchCard` is protected from it only because a card has
+ *  no factors and so never has a listener. `insideControl` is the one thing here a
+ *  caller has to remember, and it is a real cost taken deliberately: the
+ *  alternative is not "the default is safe", it is "the default is safe only for
+ *  the call sites that happen to have nothing to report". There is no CSS answer
+ *  either — a `<button>` is a `<button>` however its contents are styled.
  *
  *  **Nothing is withheld either way.** The figures are in this label and in the
  *  bar's accessible name above, so a reader who cannot step through them still
  *  has every one of them. What a non-interactive label gives up is a way to
  *  *arrive* at them one at a time, which is a duplicate of the affordance
- *  whatever surface the bar is on. */
+ *  whatever surface the bar is on. The market row's disclosure is the same: it
+ *  cannot exist inside a control at all, so the figures there stay open rather
+ *  than being hidden behind a button the caller is not allowed to render. */
 function SegmentFigure({
   segment,
   highlighted,
@@ -216,6 +230,7 @@ export function ProbabilityBar({
   pick = null,
   expandable = false,
   onSegmentFocus,
+  insideControl = false,
 }: {
   segments: Segment[];
   legend?: Segment[];
@@ -236,7 +251,41 @@ export function ProbabilityBar({
    *  `FactorList` clamps a factor's sentence: a real `<button aria-expanded>`,
    *  off by default so a wide layout never hides text behind a control that adds
    *  nothing. Open to begin with, because an unlabelled market bar is the defect
-   *  the figures exist to fix. */
+   *  the figures exist to fix.
+   *
+   *  **It stays opt-in, and a CSS-only replacement was considered and rejected.**
+   *  The hazard is real and it is the one this component does not design out: a
+   *  site that forgets this prop gets a `justify-between` row that collides at
+   *  260px instead of the fallback, and the guard is remembering a prop rather
+   *  than like `onSegmentFocus` (above) being derived from a signal already
+   *  present. Three CSS answers were measured against the spec and each fails it:
+   *
+   *  - **`clamp()`** — ruled out by §6a, which sets a 12px floor and says the
+   *    market row "does not get a smaller size to make a row fit, it drops the
+   *    row". Both consuming sites enforce the floor in their own tests
+   *    (`craft-floor.test.ts` in Sports_Predictor, `hub.test.mjs` in the Hub), so
+   *    this is not a style preference with no teeth.
+   *  - **A container query that hides the figures.** It fixes the collision, but
+   *    CSS cannot add the control that brings them back, so on a narrow surface it
+   *    withholds data with no way to reach it — the failure §13c's closing
+   *    constraint is written about. The disclosure has to be a real element, which
+   *    is the whole reason the fallback is a button and not a `hidden` attribute.
+   *  - **A container query that reflows instead** (`flex-wrap`, or the cells
+   *    stacking). Nothing is hidden, so nothing is withheld, and the 12px floor
+   *    holds. But it breaks the one thing the row exists for: spec §6 item 3 says
+   *    each figure sits "in the column of the figure it is being compared with",
+   *    and a wrapped row puts two outcomes on one line and one on the next, so the
+   *    comparison stops lining up. At 260px with three outcomes there is no layout
+   *    that keeps three 12px figures in three columns; something has to give, and
+   *    §13c item 4 already chose what.
+   *
+   *  So the cost is a prop to remember, and the compensation is that the default
+   *  is the *safe* one: off means the figures are shown, which is a row that reads
+   *  well and a site that has not yet discovered it is narrow. The failure mode of
+   *  forgetting is a collision at 260px — a layout defect a screenshot catches —
+   *  and not withheld text, a dead control, or a claim. The rule stays where §13c
+   *  item 4 put it, and this is the note so the next person does not re-open it
+   *  without measuring first. */
   expandable?: boolean;
   /** §13c's step through the figures. **This is also what makes the segment
    *  labels operable**: with it, each label is a real button that reports its
@@ -245,11 +294,26 @@ export function ProbabilityBar({
    *  stop that announces a control and does nothing, and on a surface that is
    *  already a button (a match card) it is also invalid HTML. */
   onSegmentFocus?: (label: string, market?: string) => void;
+  /** This bar is rendered **inside another control** — a `<button>`, an `<a
+   *  href>`, a `role="button"` — so it must render no controls of its own: every
+   *  label becomes text and the market row's disclosure does not exist.
+   *
+   *  There is no way for a component to detect this, so the caller has to say it.
+   *  A bar with no `onSegmentFocus` inside a button is already safe and does not
+   *  need this; a bar *with* one is not, and a `<button>` inside a `<button>` is
+   *  invalid HTML a browser is entitled to stop making interactive — which is the
+   *  same as saying a keyboard reader has stops that do nothing. `nesting.test.tsx`
+   *  pins both halves: this case is green with the prop, and is a fault without
+   *  it. */
+  insideControl?: boolean;
 }) {
   // Open unless the caller says the layout is narrow. Held here rather than
   // derived from a width, because `FactorList` made the same call: a CSS-only
   // clamp is not announced, and a measurement the panel never takes is a
   // measurement that can be wrong in the reader's favour.
+  // Inside a control there is no disclosure to be open or closed — the button
+  // that would close it is the thing this bar is not allowed to render — so the
+  // figures stay open rather than being hidden with no way back to them.
   const [figuresOpen, setFiguresOpen] = useState(true);
   const index = pickIndex(segments, pick);
   const fills = tones(segments, index);
@@ -266,7 +330,13 @@ export function ProbabilityBar({
   // read off the wrong array would be the right number attributed to the wrong
   // source, which is the one failure on this row that is worse than no row.
   const market = showLegend ? marketSplit(segments, legend!) : [];
-  const showFigures = showLegend && (!expandable || figuresOpen);
+  const showToggle = expandable && !insideControl;
+  const showFigures = showLegend && (!showToggle || figuresOpen);
+  // Operable only where a control is legal. Inside another control the labels are
+  // text, and they keep the figures and the highlight — everything except the
+  // ability to *arrive* at them one at a time, which the surface wrapping them
+  // already provides.
+  const focus = insideControl ? undefined : onSegmentFocus;
   const dim = (s: Segment) => (highlightKey && s.market && s.market !== highlightKey ? 0.4 : 1);
 
   return (
@@ -297,7 +367,7 @@ export function ProbabilityBar({
             segment={s}
             highlighted={!!highlightKey && s.market === highlightKey}
             opacity={dim(s)}
-            onFocus={onSegmentFocus}
+            onFocus={focus}
           />
         ))}
       </div>
@@ -311,7 +381,7 @@ export function ProbabilityBar({
               model's, which is the one thing the row exists to make possible. */}
           <div className="flex items-baseline justify-between gap-2">
             <span className="text-xs uppercase tracking-wide text-pr-text-faint">market</span>
-            {expandable && (
+            {showToggle && (
               <button
                 type="button"
                 data-testid="pbar-market-toggle"

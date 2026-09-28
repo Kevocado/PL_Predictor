@@ -1,4 +1,4 @@
-// Synced from predictor-ui@52a31840951f. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@9c14c67d91df. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 import { record as fmtRecord } from "../fmt";
 
 /**
@@ -29,6 +29,33 @@ export function RecordStrip({
   const has = counts !== "—" && settled > 0;
   const share = has ? Math.max(0, Math.min(1, (hits ?? 0) / settled)) : 0;
 
+  /* One reading of `record`, including the partial one, and the reason it is a
+   * decision rather than a fall-out.
+   *
+   * `hits` and `settled` are two fields of ONE `record` object in the facts
+   * bundle (`facts.py:29`; every fixture in the service's own tests carries both,
+   * and `template.py:159` refuses to write a record row at all unless both are
+   * there). So `hits: null, settled: 68` is not a record missing its numerator —
+   * it is a record object this component cannot read, and the honest rendering
+   * of "we cannot read this" is the dash, the same token `pct()` and
+   * `fmt.record()` already use.
+   *
+   * **The trade-off, stated because it is real: this throws away a 68 the caller
+   * did hand over, and `—/68` would show it.** Rejected, and the reason is the
+   * same one that stops the bar being drawn 0% wide: `settled` comes out of the
+   * very object whose `hits` we have just declined to trust, so quoting the
+   * denominator while withholding the numerator asserts that one of the two is
+   * sound when the only thing we know is that the object is not. There is also an
+   * accessibility cost — "—/68" announces as "em dash slash sixty-eight", which
+   * is exactly the run of glyphs the bar's own "41 of 68" accessible name exists
+   * to avoid.
+   *
+   * What would change the ruling: the service emitting a partial record
+   * deliberately, or the facts guaranteeing `settled` independently of `hits`.
+   * Neither is true, so there is no partial here to be honest *about*, and the
+   * dash is the whole of the truth. Pinned by a test rather than left to the
+   * next reader of this file.
+   */
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
       <span className="text-xs font-semibold uppercase tracking-wide text-pr-text-dim">{label}</span>

@@ -1,4 +1,4 @@
-// Synced from predictor-ui@52a31840951f. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@9c14c67d91df. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 import { useState } from "react";
 
 /**
@@ -87,12 +87,25 @@ const WORDS: Record<Factor["direction"], string> = {
 export function FactorList({
   factors,
   onSelect,
+  highlighted,
   expanded,
   onToggle,
   expandable = false,
 }: {
   factors: Factor[];
   onSelect?: (key: string) => void;
+  /** The `key` of the factor whose figures the panel has lit, or null. Owned by
+   *  the panel — it is the other end of §13c's linkage, the same `highlighted`
+   *  value the tile and the bar segment are given.
+   *
+   *  **This is what the row's pressed state means.** It used to track `expanded`,
+   *  which is a different state that the reader had not touched on a wide panel,
+   *  so the row someone had just clicked gave no sign that the panel had changed.
+   *  Expansion still has its own control with `aria-expanded` below, so nothing is
+   *  lost by taking `data-highlighted` and `aria-pressed` for the selection: a
+   *  button's pressed state should say what pressing it did, and what pressing a
+   *  *why* row does is light a figure. */
+  highlighted?: string | null;
   /** Which factor's sentence is fully shown. Owned by the panel, so a factor can
    *  be highlighted and expanded independently. */
   expanded?: number | null;
@@ -113,6 +126,11 @@ export function FactorList({
       {factors.map((factor, i) => {
         const mark = MARK[factor.direction];
         const open = isOpen(i);
+        // The row's own half of §13c: this row is the one that asked for the
+        // light, so it is the one that is pressed. Left out, pressing a *why* row
+        // changes something two hundred pixels away and nothing here, and the
+        // reader is left to infer from the figures that they did anything at all.
+        const lit = !!highlighted && highlighted === factor.key;
         return (
           <li key={`${factor.key}-${i}`} className="flex min-w-0 flex-col gap-1">
             <div className="flex items-start gap-2">
@@ -125,12 +143,12 @@ export function FactorList({
                 <button
                   type="button"
                   data-testid={`factor-${factor.key}`}
-                  data-highlighted={open ? "true" : "false"}
+                  data-highlighted={lit ? "true" : "false"}
                   onClick={() => {
                     onSelect(factor.key);
                     if (expandable) toggle(i);
                   }}
-                  aria-pressed={open}
+                  aria-pressed={lit}
                   className="min-w-0 flex-1 text-left text-sm font-semibold text-pr-text underline-offset-4 hover:underline"
                 >
                   <span>{factor.headline}</span>{" "}

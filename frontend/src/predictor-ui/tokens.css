@@ -1,4 +1,4 @@
-/* Synced from predictor-ui@52a31840951f. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs. */
+/* Synced from predictor-ui@9c14c67d91df. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs. */
 /* Predictor family tokens. Synced into each site; import in this order:
      @import "./predictor-ui/fonts.css";
      @import "tailwindcss";
@@ -74,6 +74,13 @@
     color: var(--color-pr-text);
     font-family: var(--font-pr-body);
     font-variant-numeric: tabular-nums;
+    /* The caret, in the sport's accent. `color-scheme: dark` already made the
+       default caret visible, so this is not a fix for an invisible caret — it is
+       the same decision the selection highlight below already makes, applied to
+       the one text cursor the family never drew.
+       It belongs HERE and not with the scrollbar because `caret-color`
+       inherits: an input inside the sport subtree picks it up. */
+    caret-color: var(--color-pr-accent);
   }
   [data-sport] ::selection {
     background: var(--color-pr-accent);
@@ -82,6 +89,63 @@
   [data-sport] :focus-visible {
     outline: 2px solid var(--color-pr-accent);
     outline-offset: 2px;
+  }
+
+  /* The scrollbar, at DOCUMENT scope, and not under [data-sport].
+     AppFrame renders `<div data-sport={sport}>`, so the scrolling element on
+     every site is the document, which sits outside the sport subtree.
+     `scrollbar-color` and `scrollbar-width` do not inherit, and
+     `::-webkit-scrollbar` written as a descendant only reaches descendants — so
+     scoping these to the sport themes a scrollbar nobody sees and leaves the
+     real one on the system default. Measured in a browser: with them under the
+     sport element, `getComputedStyle(document.documentElement).scrollbarColor`
+     read `auto` while the same property one level down read the right colours.
+     The shared neutral tokens are used precisely because no sport changes them;
+     nothing per-sport is lost. */
+
+  /* Standard pair: Firefox, and Chrome 121+. */
+  :root {
+    scrollbar-color: var(--color-pr-text-faint) var(--color-pr-stage);
+    scrollbar-width: thin;
+  }
+
+  /* The pseudo-elements, for the engines that only speak them. NOT redundant
+     with the pair above: Safari implements `::-webkit-scrollbar` and not
+     `scrollbar-color`, and Safari is where these sites are read. Where both
+     apply the pseudo-elements win, so the two have to agree — and they do.
+
+     There were 20 scroll containers across the four sites (Sports 6, PL 14) and
+     before this there was no scrollbar rule anywhere in the family, so every one
+     of them was drawing an operating-system scrollbar on a near-black stage.
+
+     The thumb is `--color-pr-text-faint` (6.83:1 on the stage) and not
+     `--color-pr-rule`, which is the token that looks right by name and measures
+     1.53:1 — under the 3:1 WCAG 1.4.11 bar for a non-text UI part. A scrollbar
+     you cannot see is worse than an untamed one, and nothing else in the build
+     would have caught it. The test asserts the ratio, not the name, so a subtler
+     token choice later fails there rather than in someone's hands. */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--color-pr-stage);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-pr-text-faint);
+    border-radius: 999px;
+    /* A 10px thumb flush to the edge reads as a solid bar rather than a
+       control. The transparent border and the content-box clip inset it without
+       narrowing the track, which is the whole reason to do it this way. */
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-pr-text-dim);
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-corner {
+    background: var(--color-pr-stage);
   }
 }
 
