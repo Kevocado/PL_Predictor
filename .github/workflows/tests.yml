@@ -83,6 +83,11 @@ jobs:
         # usually downloaded most of the data, and we want the post-job step to
         # save that partial cache so the next attempt resumes instead of
         # restarting.
+        #
+        # It also means this job cannot go red on a test regression -- it is a
+        # cache warmer, not a check, and the `pytest` job below is the check.
+        # The cost of that is real and accepted deliberately: a genuine failure
+        # in the suite still warms the cache, and the gate is what reports it.
         continue-on-error: true
         env:
           PYTHONPATH: ${{ github.workspace }}/src
@@ -113,12 +118,32 @@ jobs:
     # skips the gate and a broken PR looks green because nothing ran.
     if: always()
     runs-on: ubuntu-latest
-    # 30, not 20: the gate half measured 22m16s (1336s) on the CI runner, so 20
-    # is below the cost it is commenting on -- the same bug this file shipped at
-    # 60 against a 4926s cold run, in miniature. 30 clears 1336s with ~35%
-    # headroom. `tests/test_tests_workflow.py` holds this setting to the number
-    # quoted here, so the two cannot drift apart again.
-    timeout-minutes: 30
+    # 45 minutes, sized from what the suite structurally costs -- not from the
+    # one run that was cancelled under this job's old 20-minute ceiling.
+    #
+    # The 20 minutes was a guess, and the guess was wrong: run 36467464533 was
+    # cancelled under it, which is a verdict no reader can distinguish from a
+    # hang. What the suite costs, measured:
+    #   * warm, local, full cache, all gating tests: 362.36s (6m02s);
+    #   * the same tests on a CI runner cost roughly 2x this machine, plus ~64s
+    #     of job overhead (checkout, setup-python, cache restore, install),
+    #     putting a warm gate at ~14 minutes;
+    #   * the gate half measured 22m16s (1336s) on the CI runner -- above the
+    #     structural estimate, because one block of tests (145-216) took 16m09s
+    #     there against seconds locally. That gap is unexplained and is worth
+    #     chasing with `--durations` on the runner before trusting a smaller
+    #     number. One run is one sample; this ceiling is not derived from it.
+    # So 45 is ~3.2x the structural number and ~2x the worst observed. The
+    # extra headroom is deliberate: a gate that cancels is indistinguishable
+    # from a gate that hung, and a false negative on a PR is worse than a slow
+    # PR. It is still a hard bound an order of magnitude under GitHub's 6-hour
+    # default, and `concurrency.cancel-in-progress: true` means a superseded
+    # run is killed immediately, so a generous ceiling does not accumulate cost
+    # on a busy branch.
+    #
+    # `tests/test_tests_workflow.py` holds this setting to the 1336s duration
+    # quoted above (GATE_RUN_SECONDS), so the two cannot drift apart again.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

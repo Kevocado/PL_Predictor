@@ -298,9 +298,12 @@ suite on both halves. The marker is registered in `pyproject.toml`.
   (XGBoost models) on every run. A `git diff --exit-code` step added to
   `tests.yml` would fail on an untouched tree.
 - **The two timeouts are set by two measurements, not by feel.** The warm job
-  carries 150 minutes against the 4926.07s cold run; the gate job carries 30
-  against the 1336s (22m16s) the gate half measured on the CI runner. A
-  timeout below the cost it covers is not a safety improvement: the job is
+  carries 150 minutes against the 4926.07s cold run; the gate job carries 45
+  against the 1336s (22m16s) the gate half measured on the CI runner, with a
+  structural derivation behind it (362s warm locally, ~2x on the runner, ~14
+  minutes) and headroom above both because one block of tests ran 16 minutes
+  on the runner against seconds locally for reasons nobody has explained yet.
+  A timeout below the cost it covers is not a safety improvement: the job is
   killed before `actions/cache`'s post step runs, so it saves no cache, so
   the next run is cold too. This file shipped the warm at 60 against a
   4926.07s cold run -- 3600s, below the very cost it was commenting on -- and

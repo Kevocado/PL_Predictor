@@ -510,10 +510,10 @@ def test_each_check_can_fail():
         # job at 60 against a 4926s cold run, and the gate at 20 against a
         # 1336s gate. Either one reintroduces its own deadlock.
         "warm_timeout": ("timeout-minutes: 150", "timeout-minutes: 60"),
-        "gate_timeout": ("timeout-minutes: 30", "timeout-minutes: 20"),
+        "gate_timeout": ("timeout-minutes: 45", "timeout-minutes: 20"),
         # Same 30 inflated to the warm budget: the jobs stay split but the
         # budgets merge, so the gate no longer says it is fast by design.
-        "job_budgets": ("timeout-minutes: 30", "timeout-minutes: 150"),
+        "job_budgets": ("timeout-minutes: 45", "timeout-minutes: 150"),
         # The pipe this file shipped, whose exit status is `tail`'s.
         "exit_status": ("run: >-\n          pytest tests/", "run: pytest tests/ -q | tail -20\n          pytest tests/"),
         # The exact violation the check exists for: the *gating* step allowed
