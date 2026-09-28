@@ -56,6 +56,7 @@ from ..evaluate import backtest as backtest_lib
 from ..evaluate import betting_validation
 from ..evaluate import calibration as calibration_lib
 from ..evaluate import odds_benchmark
+from ..evaluate import scoreline_selection
 from ..features import head_to_head, opponent_defence, player_form, ratings as ratings_mod, rolling_form, squad_change
 from ..features.build import build_features_for_fixtures, build_training_frame
 from ..models import manifest as manifest_lib
@@ -1961,7 +1962,30 @@ def get_value_bet_track_record(staking: str = "kelly"):
 
 
 @router.post("/retrain", dependencies=[Depends(_admin_only)])
-def retrain():
+def retrain(include_selection: bool = False):
+    """Refit every model.
+
+    `include_selection=true` additionally recomputes the scoreline-selection
+    diagnostics, which is what puts a `walk_forward_mean_rps` headline into
+    `manifest.json`. It is opt-in because it is a full four-candidate walk-forward
+    -- minutes on top of an already-slow retrain -- and because the diagnostics
+    change rarely: they describe the *decision procedure's* selection bias, not
+    this week's data.
+
+    It runs **before** `train_all` because the manifest is written by `train_all`
+    and reads the cache while doing so. Running it afterwards would leave the
+    manifest reporting `not_computed` for a retrain that had just produced the
+    numbers.
+
+    Without the flag the manifest reports `walk_forward_status: "not_computed"`
+    and omits `headline_rps`. That is the honest default -- a stale headline is
+    worse than an absent one -- but it does mean the published walk-forward mean
+    only appears once this has been run at least once per data window.
+    """
+    if include_selection:
+        seasons = manifest_lib.default_scoreline_seasons()
+        result = scoreline_selection.run(seasons=seasons)
+        scoreline_selection.write_cache(result, seasons=result.get("seasons"))
     manifest = manifest_lib.train_all()
     _clear_cache("models", "value_bet_table")
     return manifest

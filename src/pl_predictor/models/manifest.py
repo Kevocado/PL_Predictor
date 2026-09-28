@@ -164,10 +164,21 @@ def _selection_block(candidates: dict, chosen_market_metrics: dict, manifest_sea
             cached = None
         if isinstance(cached, dict) and cached.get("walk_forward_mean"):
             cached_seasons = cached.get("seasons")
-            fresh = (
-                bool(cached_seasons)
-                and bool(manifest_seasons)
-                and sorted(cached_seasons) == sorted(manifest_seasons)
+            # A subset test, not equality: the walk-forward is run over completed
+            # seasons, while the manifest's window also folds in the in-progress
+            # one, so the two are never equal. What must hold is that the
+            # diagnostics were computed over seasons this manifest also knows --
+            # a cache generated against a different data window is the case worth
+            # catching, because its headline does not describe this model.
+            #
+            # This does NOT catch a cache that is merely old. `computed_at` is
+            # published alongside so a reader can see it; refusing to compare
+            # wall-clock against a data window would need a clock this manifest
+            # does not otherwise keep.
+            fresh = bool(
+                cached_seasons
+                and manifest_seasons
+                and set(cached_seasons) <= set(manifest_seasons)
             )
             status = "cached" if fresh else "stale"
             if fresh:
@@ -185,6 +196,7 @@ def _selection_block(candidates: dict, chosen_market_metrics: dict, manifest_sea
         "recommended_headline": "walk_forward_mean_rps",
         "walk_forward": _json_safe(walk_forward),
         "walk_forward_status": status,
+        "walk_forward_computed_at": (walk_forward or {}).get("computed_at") if walk_forward else None,
     }
     if walk_forward is not None:
         means = walk_forward.get("walk_forward_mean") or {}
@@ -283,6 +295,18 @@ def _build_frame(seasons: list[str], current_partial: pd.DataFrame | None) -> tu
     return df, feature_cols, train_df, val_df, n_current_season_matches
 
 
+def default_scoreline_seasons() -> list[str]:
+    """The completed seasons the scoreline model is fitted on.
+
+    Exposed so `api.routes.retrain(include_selection=True)` can run the selection
+    diagnostics over exactly the window `train_all` will use. Defined here because
+    the window is a decision about the scoreline model; a caller that re-derived it
+    would silently drift the two apart, and the manifest's staleness check compares
+    the diagnostics' seasons against its own.
+    """
+    return football_data.default_completed_seasons(n=MARKET_TRAINING_WINDOWS["scoreline"])
+
+
 def train_all(seasons: list[str] | None = None, include_current_season: bool = True) -> Dict:
     """`include_current_season=True` (default) is what makes this an
     *updating* model rather than a fixed one refit on the same completed
@@ -303,7 +327,7 @@ def train_all(seasons: list[str] | None = None, include_current_season: bool = T
     so each market gets its own window length."""
     MODELS_DIR.mkdir(exist_ok=True, parents=True)
 
-    default_seasons = seasons or football_data.default_completed_seasons(n=MARKET_TRAINING_WINDOWS["scoreline"])
+    default_seasons = seasons or default_scoreline_seasons()
     corners_seasons = seasons or football_data.default_completed_seasons(n=MARKET_TRAINING_WINDOWS["corners"])
 
     current_partial = football_data.fetch_current_season_partial() if include_current_season else None

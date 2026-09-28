@@ -262,3 +262,30 @@ def test_the_written_cache_is_finite_only(tmp_path):
     assert record["seasons"] == ["2025-2026"] and record["computed_at"]
     path = write_cache(result, path=tmp_path / "c.json", seasons=["2025-2026"])
     _json.loads(path.read_text(), parse_constant=lambda c: (_ for _ in ()).throw(ValueError(c)))
+
+
+def test_the_retrain_endpoint_runs_the_diagnostics_before_writing_the_manifest():
+    """`train_all` writes the manifest and reads the cache while doing so. Running
+    the diagnostics afterwards would leave the manifest reporting
+    `not_computed` for a retrain that had just produced the numbers, so the
+    endpoint's ordering is load-bearing and is pinned here rather than trusted."""
+    import inspect
+
+    from pl_predictor.api import routes
+
+    source = inspect.getsource(routes.retrain)
+    selection_at = source.index("scoreline_selection.run")
+    train_at = source.index("manifest_lib.train_all")
+    assert selection_at < train_at, "diagnostics must be written before the manifest reads them"
+
+
+def test_the_retrain_window_is_the_one_train_all_uses():
+    """The staleness check compares the diagnostics' seasons against the manifest's
+    own, so the two must be computed over the same window. Defined once, in
+    `manifest`, so a caller cannot re-derive it and drift."""
+    from pl_predictor.models import manifest as manifest_lib
+
+    seasons = manifest_lib.default_scoreline_seasons()
+    assert seasons, "a retrain with no completed seasons cannot compute a walk-forward"
+    assert seasons == sorted(seasons)
+    assert all(isinstance(season, str) for season in seasons)
