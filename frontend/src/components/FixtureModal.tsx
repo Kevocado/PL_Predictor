@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Explanation } from "../predictor-ui";
+import { FixtureExplainer } from "../predictor-ui";
+import { panelFacts } from "../predictor-ui/lib/panelFacts";
 import type { FixtureDetail, FixturePlayerReview, FixturePlayers, FixturePostMatch, FixtureValueBetSnapshot } from "../types";
 import { api } from "../api/client";
-import { FixtureSummaryPanel } from "./FixtureSummaryPanel";
 import { TeamBadge } from "./TeamBadge";
 import { ScorelineHeatmap } from "./ScorelineHeatmap";
 import { FormStrip } from "./FormStrip";
@@ -165,6 +166,68 @@ export function FixtureModal({ eventId, onClose, explain, sport = "pl" }: Props)
   const [playerReviewLoading, setPlayerReviewLoading] = useState(false);
   const postMatchVerdict = (label: string) => detail?.post_match?.verdicts.find((verdict) => verdict.label === label);
 
+  // The panel's figures, derived rather than fetched, from the SHARED adapter.
+  // The pick translation the bar depends on lives in the shared component now,
+  // applied against the same segments it draws.
+  const panel = useMemo(
+    () =>
+      detail
+        ? panelFacts({ kind: "PL", fixture: detail })
+        : { tiles: [], segments: [], legend: [] as never[] },
+    [detail],
+  );
+
+  // The flow's facts: what this modal already holds, no request. PL carries no
+  // market line, so the flow says the pick and stops; the finished flow reads
+  // the final score and whether the pick was right, both from the detail, and
+  // nothing is claimed before the data carries it.
+  const finite = (x: unknown): number | undefined =>
+    typeof x === "number" && Number.isFinite(x) ? x : undefined;
+  const flowBundle = useMemo(() => {
+    if (!detail) return null;
+    const probs = {
+      home_win: finite(detail.home_win?.prob),
+      draw: finite(detail.draw?.prob),
+      away_win: finite(detail.away_win?.prob),
+    };
+    const pickSide =
+      detail.predicted_result === "home_win"
+        ? { label: detail.team_home, prob: probs.home_win }
+        : detail.predicted_result === "away_win"
+          ? { label: detail.team_away, prob: probs.away_win }
+          : detail.predicted_result === "draw"
+            ? { label: "Draw", prob: probs.draw }
+            : undefined;
+    const wasRight = detail.post_match?.verdicts.find((v) => v.label === detail.predicted_result)?.hit;
+    const pick =
+      pickSide && pickSide.prob !== undefined
+        ? { ...pickSide, ...(typeof wasRight === "boolean" ? { was_right: wasRight } : {}) }
+        : undefined;
+    const postMatch = detail.post_match;
+    const score = postMatch
+      ? (() => {
+          const m = postMatch.final_score.match(/(\d+)\s*-\s*(\d+)/);
+          return m ? { home: Number(m[1]), away: Number(m[2]) } : undefined;
+        })()
+      : undefined;
+    return {
+      home_team: detail.team_home,
+      away_team: detail.team_away,
+      home_win_prob: probs.home_win,
+      away_win_prob: probs.away_win,
+      pick,
+      score,
+      result: !score
+        ? undefined
+        : score.home === score.away
+          ? "draw"
+          : score.home > score.away
+            ? "home_win"
+            : "away_win",
+    };
+  }, [detail]);
+  const flowState = detail?.post_match ? "finished" : "pre-game";
+
   useEffect(() => {
     let cancelled = false;
     setDetail(null);
@@ -224,9 +287,20 @@ export function FixtureModal({ eventId, onClose, explain, sport = "pl" }: Props)
 
         <div className="overflow-y-auto px-6 py-6">
           {/* In plain English, first: it is the one-screen answer the rest of
-              this modal is the evidence for. It fetches on its own and never
-              gates the fixture detail below. */}
-          <FixtureSummaryPanel eventId={eventId} fetcher={explain} sport={sport} fixture={detail} className={detail ? "mb-6" : ""} />
+              this modal is the evidence for. The flow renders from facts this
+              modal already holds, with no request; the AI summary sits behind
+              the button and costs nothing until a reader asks. */}
+          {explain && detail && (
+            <div className="mb-6">
+              <FixtureExplainer
+                sport={sport}
+                state={flowState}
+                bundle={flowBundle}
+                request={() => explain(sport, eventId)}
+                extras={{ tiles: panel.tiles, segments: panel.segments, legend: panel.legend }}
+              />
+            </div>
+          )}
 
           {error && <div className="text-sm text-loss">{error}</div>}
           {!detail && !error && <div className="flex h-64 items-center justify-center text-pl-text-faint">Loading…</div>}

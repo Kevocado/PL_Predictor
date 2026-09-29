@@ -19,9 +19,18 @@
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 
-import { FixtureSummaryPanel } from "./FixtureSummaryPanel";
+import { FixtureModal } from "./FixtureModal";
+import { api } from "../api/client";
 import type { Explanation, Factor, PickRef } from "../predictor-ui";
-import type { FixtureSummary } from "../types";
+import type { FixtureDetail, FixtureSummary } from "../types";
+
+vi.mock("../api/client", () => ({
+  api: {
+    fixtureDetail: vi.fn(),
+    fixturePlayers: vi.fn(),
+    fixturePlayerReview: vi.fn(),
+  },
+}));
 
 const ACCENT = "var(--color-pr-accent)";
 
@@ -68,6 +77,52 @@ const fixture = (over: Partial<FixtureSummary> = {}): FixtureSummary =>
     ...over,
   }) as FixtureSummary;
 
+/** A detail the modal can open: the §7b fixture plus the fields the rest of
+ *  the modal reads unconditionally (the heatmap indexes the grid, the context
+ *  rows read both sides). Post-match stays null: the panel suite is about the
+ *  pre-game panel, and a finished fixture belongs to the review tests. */
+const modalDetail = (fx: FixtureSummary): FixtureDetail =>
+  ({
+    ...fx,
+    over_2_5: { lambda_: 2.7, line: 2.5, over: 0.52, under: 0.48 },
+    under_2_5: { lambda_: 2.3, line: 2.5, over: 0.48, under: 0.52 },
+    value_bet_flags: [],
+    value_bet: null,
+    has_live_odds: false,
+    corners: { lambda_: 10.2, line: 9.5, over: 0.5, under: 0.5 },
+    cards: { lambda_: 3.8, line: 3.5, over: 0.5, under: 0.5 },
+    home_context: { rest_days: 3, xg_for_last_5: 1.6, xg_against_last_5: 1.1, corners_last_5: 5, cards_last_5: 2, set_piece_xg_share_last_5: 0.2 },
+    away_context: { rest_days: 3, xg_for_last_5: 1.4, xg_against_last_5: 1.2, corners_last_5: 4, cards_last_5: 2, set_piece_xg_share_last_5: 0.18 },
+    score_grid: [[0.1, 0.16, 0.12], [0.12, 0.14, 0.08], [0.09, 0.11, 0.08]],
+    top_scorelines: [{ home: 1, away: 1, prob: 0.14 }],
+    home_shots: null,
+    away_shots: null,
+    home_shots_on_target: null,
+    away_shots_on_target: null,
+    head_to_head: [],
+    home_recent_form: [],
+    away_recent_form: [],
+    odds_fetched_at: null,
+    odds_is_stale: false,
+    recommended_bet: null,
+    post_match: null,
+    actual_stats: null,
+    pre_match_value_bets: [],
+  }) as unknown as FixtureDetail;
+
+/** The bar's graphic, scoped to the plain-English panel: the modal renders
+ *  other `role="img"` elements (team badges), so a bare `getByRole("img")` is
+ *  ambiguous at modal level and would quietly point at a logo. */
+const panelImg = (container: HTMLElement) => {
+  const panel = [...container.querySelectorAll("section")].find((s) =>
+    s.textContent?.includes("In plain English"),
+  );
+  expect(panel, "the plain-English panel is not on the page").toBeTruthy();
+  const bar = panel!.querySelector<HTMLElement>("[role='img']");
+  expect(bar, "the panel drew no bar").toBeTruthy();
+  return bar!;
+};
+
 /** A v2 answer in the shape the service sends. `pick` is spread in only when
  *  there is one, because the service states "no pick" by OMITTING the key and
  *  the panel acts on the absence. `factors` is overridable so a test can name a
@@ -92,10 +147,18 @@ const v2 = (pick?: PickRef, factors?: Factor[]): Explanation =>
     pick_timing: "pre_kickoff",
   }) as Explanation;
 
-/** Render the site component and wait for the answer to land. */
+/** Render the mounted panel and wait for the answer to land: the modal opens
+ *  on the fixture detail (mocked at the api boundary, the way
+ *  `FixtureModal.test.tsx` does), the flow renders from it with no request,
+ *  and the summary the assertions below read sits behind the button. */
 async function show(pick?: PickRef, fx: FixtureSummary = fixture(), factors?: Factor[]) {
-  const fetcher = vi.fn().mockResolvedValue(v2(pick, factors));
-  const out = render(<FixtureSummaryPanel eventId="e1" fetcher={fetcher} fixture={fx} />);
+  const explain = vi.fn().mockResolvedValue(v2(pick, factors));
+  vi.mocked(api.fixtureDetail).mockResolvedValue(modalDetail(fx));
+  vi.mocked(api.fixturePlayers).mockResolvedValue({ home_players: [], away_players: [] });
+  vi.mocked(api.fixturePlayerReview).mockResolvedValue(null);
+  const out = render(<FixtureModal eventId="e1" onClose={() => {}} explain={explain} />);
+  // Flow-first since the rollout: one press for the whole suite.
+  fireEvent.click(await screen.findByRole("button", { name: /ai summary/i }));
   await screen.findByText(/Arsenal are the pick/);
   return out;
 }
@@ -120,7 +183,7 @@ describe("the accent follows the pick, through this site's own labels", () => {
       // Exactly one segment is accented, and it is the one the answer names.
       expect(tones.filter((t) => t === ACCENT), pick.label).toHaveLength(1);
       expect(accentedAt(container), `${pick.label} should accent segment ${index}`).toBe(index);
-      expect(screen.getByRole("img").getAttribute("aria-label"), pick.label).toContain(
+      expect(panelImg(container).getAttribute("aria-label"), pick.label).toContain(
         `the pick is ${label}`,
       );
       unmount();
@@ -147,8 +210,8 @@ describe("the accent follows the pick, through this site's own labels", () => {
     // assertion that catches a join failing for a reason the fill alone does not
     // explain: with no matched segment the accessible name simply has no "the
     // pick is" clause, and a screen-reader user is told nothing at all.
-    await show({ label: "Arsenal win", side: "home_win" });
-    expect(screen.getByRole("img")).toHaveAccessibleName(
+    const { container } = await show({ label: "Arsenal win", side: "home_win" });
+    expect(panelImg(container)).toHaveAccessibleName(
       "Arsenal 48%, Draw 26%, Chelsea 26%, the pick is Arsenal",
     );
   });
@@ -164,7 +227,7 @@ describe("the accent follows the pick, through this site's own labels", () => {
     // Three distinguishable tones, so the neutral ramp survives having no accent
     // spent on it — a reader must still be able to tell a 48% from a 26%.
     expect(new Set(tones).size).toBe(3);
-    expect(screen.getByRole("img")).toHaveAccessibleName("Arsenal 48%, Draw 26%, Chelsea 26%");
+    expect(panelImg(container)).toHaveAccessibleName("Arsenal 48%, Draw 26%, Chelsea 26%");
   });
 });
 
@@ -243,7 +306,7 @@ describe("an unplaceable pick fails closed, in the accent AND in the de-emphasis
     // The accent half: no segment carries it, and nothing claims one in words.
     expect(fills(container)).toHaveLength(3);
     expect(accentedAt(container)).toBe(-1);
-    expect(screen.getByRole("img")).toHaveAccessibleName("Arsenal 48%, Draw 26%, Chelsea 26%");
+    expect(panelImg(container)).toHaveAccessibleName("Arsenal 48%, Draw 26%, Chelsea 26%");
 
     // The dim half: every figure is at full opacity, and the count is asserted
     // as a whole so a figure that stopped rendering an opacity at all fails
@@ -313,5 +376,24 @@ describe("an unplaceable pick fails closed, in the accent AND in the de-emphasis
     // above is about the key resolving rather than about selection being inert.
     fireEvent.click(screen.getByTestId("factor-result"));
     expect(screen.getByTestId("factor-result")).toHaveAttribute("aria-pressed", "true");
+  });
+});
+
+describe("the flow stands alone when the explainer is unreachable", () => {
+  it("shows the flow's text with no request made and no error in its place", async () => {
+    const explain = vi.fn().mockRejectedValue(new Error("unreachable"));
+    vi.mocked(api.fixtureDetail).mockResolvedValue(modalDetail(fixture()));
+    vi.mocked(api.fixturePlayers).mockResolvedValue({ home_players: [], away_players: [] });
+    vi.mocked(api.fixturePlayerReview).mockResolvedValue(null);
+    render(<FixtureModal eventId="e1" onClose={() => {}} explain={explain} />);
+    // The flow renders from the detail with no request: the fixture's own
+    // name, the three-way probabilities, the pick.
+    expect(await screen.findByTestId("fixture-flow")).toBeInTheDocument();
+    expect(screen.getByText("Arsenal vs Chelsea")).toBeInTheDocument();
+    expect(explain).not.toHaveBeenCalled();
+    // And the button offers the summary rather than an error taking its place.
+    expect(screen.getByRole("button", { name: /ai summary/i })).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.queryByTestId("fixture-summary")).toBeNull();
   });
 });
