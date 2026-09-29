@@ -211,9 +211,16 @@ def _serving_blend_weight(fitted: float | None) -> float | None:
     """The weight serving may actually use.
 
     `None` when no weight was fitted, so `blend_contribution`'s `weight is None`
-    branch serves the direct model alone -- which is what `_fit_blend_weight`'s
-    docstring has always promised. The neutral share only when a weight was
-    actually fitted.
+    branch serves the direct model alone. The neutral share only when a weight
+    was actually fitted.
+
+    This previously said the behaviour "is what `_fit_blend_weight`'s docstring
+    has always promised", which is the one claim in these three docstrings that
+    cannot be checked: no test asserts a past, and a sentence asserting history
+    is the kind that stops being updated when the code moves under it. Stated
+    as behaviour instead, and pinned in
+    `tests/test_blend_weight_docstrings.py` -- which is also where the three
+    docstrings are checked to agree.
 
     Kept as a function rather than a constant at the call site so that when the
     constructions are unified there is exactly one place to change, and so a test
@@ -256,9 +263,15 @@ def _fit_blend_weight(calibration: pd.DataFrame, direct_probability: np.ndarray)
     `None`.
 
     When no weight is fitted, `_serving_blend_weight` preserves `None`, so
-    `blend_contribution` serves the direct model alone when available. A fitted
-    weight instead selects the neutral share for serving; the fitted value is
-    recorded separately in the model manifest.
+    `blend_contribution` serves the direct model alone when available -- and
+    falls back to the union when there is no direct probability. A fitted weight
+    instead selects the neutral share for serving; the fitted value is recorded
+    separately in the model manifest, because applying it is exactly what the
+    module comment above says serving cannot do yet.
+
+    The two branches are asymmetric on purpose, and that asymmetry is the part
+    most worth a reader's attention: an unfitted weight is NOT the neutral 0.5.
+    Pinned in `tests/test_blend_weight_docstrings.py`.
     """
     from sklearn.metrics import brier_score_loss
 
@@ -352,10 +365,15 @@ def blend_contribution(
     """Combine the direct G+A classifier with the Poisson union.
 
     `weight` is the share given to the direct classifier. Serving passes the
-    neutral share when a weight was fitted on the held-out calibration season
-    (see `fit_goal_contribution_model`). When no weight was fitted, serving
-    passes `None` and uses the direct model alone when available, or the union
-    if no direct probability is available.
+    value from `_serving_blend_weight`, which is the neutral share when a weight
+    was fitted on the held-out calibration season (see
+    `fit_goal_contribution_model`) and `None` when none was. The three branches,
+    which `_fit_blend_weight` and `_serving_blend_weight` between them document
+    and `tests/test_blend_weight_docstrings.py` pins:
+
+    - no direct probability -> the union, whatever the weight;
+    - `weight is None`, i.e. nothing was fitted -> the direct model alone;
+    - otherwise -> the convex combination.
 
     This replaces a previous `max(direct, anytime_goal, anytime_assist)`. A
     max of separately-calibrated estimators is not a calibrated estimator of

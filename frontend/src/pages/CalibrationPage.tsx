@@ -10,6 +10,18 @@ import { FeatureImportanceChart } from "../components/FeatureImportanceChart";
 import { ModelFreshnessPanel } from "../components/ModelFreshnessPanel";
 import { GLOSSARY } from "../lib/glossary";
 
+/** Confirmed starters behind a group's calibration buckets, or 0 when the array
+ *  is absent. The field is typed as a required array, which is exactly why the
+ *  unguarded reduce was trusted: the type says it is always there and the
+ *  deployed endpoint does not always send it. `Array.isArray` is the check that
+ *  respects the type being wrong rather than arguing with it.
+ */
+function startersIn(stats: { calibration?: ScorerAccuracyGroup["calibration"] }): number {
+  return Array.isArray(stats.calibration)
+    ? stats.calibration.reduce((total, bucket) => total + bucket.n, 0)
+    : 0;
+}
+
 export function CalibrationPage() {
   const [calibration, setCalibration] = useState<CalibrationResponse | null>(null);
   const [manifest, setManifest] = useState<ManifestResponse | null>(null);
@@ -253,12 +265,21 @@ function ScorerTrackRecord({ data }: { data: ScorerAccuracyResponse }) {
           <p className="text-xs font-semibold uppercase tracking-wide text-pl-text-faint">{label}</p>
           {/* PUBLIC_MODE serves {} here (background tracking is skipped on the
               public host), which is not a group -- confirmed live this crashed
-              the section on .calibration.reduce instead of rendering. */}
+              the section on .calibration.reduce instead of rendering.
+
+              The `calls` guard below catches that case, and it was believed to
+              be the whole of the problem. It is not: `calibration` is a
+              SEPARATE array that a group can lack while carrying a real
+              `calls` count, and then the guard passes and the reduce throws on
+              the very next expression. The starter count is now computed
+              defensively instead of trusting the shape, because the honest
+              answer to "how many confirmed starters" is "none recorded" and
+              the dishonest one is crashing the Model tab. */}
           {stats === null || stats === undefined || typeof stats.calls !== "number"
             ? <p className="mt-2 text-sm text-pl-text-faint">Not published for this deployment.</p>
             : stats.calls === 0 ? <p className="mt-2 text-sm text-pl-text-faint">No resolved calls yet.</p> : <>
               <p className="mt-2 text-sm text-pl-text"><span className="font-semibold text-win">{stats.call_hits}/{stats.calls}</span> qualifying calls hit {stats.call_hit_rate === null ? "" : `(${(stats.call_hit_rate * 100).toFixed(0)}%)`}</p>
-              <p className="mt-1 text-xs text-pl-text-faint">Goal Brier {stats.goal_brier?.toFixed(3) ?? "—"} across {stats.calibration.reduce((total, bucket) => total + bucket.n, 0)} confirmed starters</p>
+              <p className="mt-1 text-xs text-pl-text-faint">Goal Brier {stats.goal_brier?.toFixed(3) ?? "—"} across {startersIn(stats)} confirmed starters</p>
             </>}
         </div>)}
       </div>
