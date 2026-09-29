@@ -278,3 +278,105 @@ def test_anytime_probability_helper_stays_a_poisson_union():
 
     lam = 0.8
     assert anytime_probability(lam) == pytest.approx(1 - math.exp(-lam))
+
+
+def _team_indexed_form(shots_for: float) -> "pd.DataFrame":
+    """Production `FixtureFeatureContext.form` shape: team-indexed, with
+    venue-split columns (`rolling_form.latest_form`)."""
+    return pd.DataFrame(
+        [[shots_for, shots_for]],
+        index=["Arsenal"],
+        columns=["home_last_10_shots_for", "away_last_10_shots_for"],
+    )
+
+
+class _TeamCtx:
+    def __init__(self, form):
+        self.form = form
+
+
+def test_team_indexed_context_form_scales_instead_of_raising_keyerror():
+    """Production passes the team-indexed `FixtureFeatureContext.form`, not
+    the venue-indexed frame the original lookup assumed -- confirmed live,
+    `form.loc["home", ...]` raised KeyError 'home' for every fixture, so no
+    fixture-players payload was ever baked and future player predictions
+    404'd. The team's own row must scale, keyed by team name + venue."""
+    from pl_predictor.models.player_goals import LEAGUE_AVERAGE_TEAM_SHOTS, predict_player
+
+    rates = {
+        "avg_minutes": 90.0,
+        "goals_per90": 0.2,
+        "assists_per90": 0.1,
+        "shots_per90": 2.0,
+        "shots_on_target_per90": 0.8,
+    }
+    form = _team_indexed_form(LEAGUE_AVERAGE_TEAM_SHOTS * 2.0)
+
+    unscaled = predict_player(rates, 1.35, 1.0, expected_minutes=90.0, is_home=True)
+    scaled = predict_player(
+        rates, 1.35, 1.0, expected_minutes=90.0, is_home=True,
+        context=_TeamCtx(form), team="Arsenal",
+    )
+
+    assert scaled["expected_shots"] == pytest.approx(unscaled["expected_shots"] * 2.0, rel=1e-6)
+    assert scaled["anytime_goal_prob"] == pytest.approx(unscaled["anytime_goal_prob"])
+
+
+def test_team_indexed_context_uses_the_away_column_away_from_home():
+    """The venue selects the column: away from home reads the team's away
+    splits, not its home ones."""
+    from pl_predictor.models.player_goals import LEAGUE_AVERAGE_TEAM_SHOTS, predict_player
+
+    rates = {
+        "avg_minutes": 90.0,
+        "goals_per90": 0.2,
+        "assists_per90": 0.1,
+        "shots_per90": 2.0,
+        "shots_on_target_per90": 0.8,
+    }
+    form = pd.DataFrame(
+        [[LEAGUE_AVERAGE_TEAM_SHOTS * 4.0, LEAGUE_AVERAGE_TEAM_SHOTS * 1.0]],
+        index=["Arsenal"],
+        columns=["home_last_10_shots_for", "away_last_10_shots_for"],
+    )
+
+    away = predict_player(
+        rates, 1.35, 1.0, expected_minutes=90.0, is_home=False,
+        context=_TeamCtx(form), team="Arsenal",
+    )
+    unscaled = predict_player(rates, 1.35, 1.0, expected_minutes=90.0, is_home=False)
+    assert away["expected_shots"] == pytest.approx(unscaled["expected_shots"] * 1.0, rel=1e-6)
+
+
+def test_team_indexed_context_degrades_gracefully():
+    """A team missing from the form index, a NaN cell, or no team at all
+    must leave shots unscaled -- never raise, never leak NaN."""
+    from pl_predictor.models.player_goals import LEAGUE_AVERAGE_TEAM_SHOTS, predict_player
+
+    rates = {
+        "avg_minutes": 90.0,
+        "goals_per90": 0.2,
+        "assists_per90": 0.1,
+        "shots_per90": 2.0,
+        "shots_on_target_per90": 0.8,
+    }
+    form = _team_indexed_form(LEAGUE_AVERAGE_TEAM_SHOTS * 2.0)
+    nan_form = pd.DataFrame(
+        [[float("nan"), float("nan")]],
+        index=["Arsenal"],
+        columns=["home_last_10_shots_for", "away_last_10_shots_for"],
+    )
+    common = dict(expected_minutes=90.0, is_home=True)
+    unscaled = predict_player(rates, 1.35, 1.0, **common)
+
+    for kwargs in (
+        {"context": _TeamCtx(form), "team": "Nonexistent FC"},
+        {"context": _TeamCtx(nan_form), "team": "Arsenal"},
+        {"context": _TeamCtx(form)},
+    ):
+        result = predict_player(rates, 1.35, 1.0, **common, **kwargs)
+        assert result["expected_shots"] == pytest.approx(unscaled["expected_shots"])
+        assert all(
+            math.isfinite(float(result[field]))
+            for field in ("expected_shots", "expected_shots_on_target", "anytime_shot_on_target_prob")
+        )
