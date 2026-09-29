@@ -207,32 +207,32 @@ def fit_goal_contribution_model(seasons: list[str] | None = None) -> dict:
 NEUTRAL_BLEND_WEIGHT = 0.5
 
 
-def _serving_blend_weight(fitted: float | None) -> float:
-    """The weight serving may actually use. Always the neutral share.
+def _serving_blend_weight(fitted: float | None) -> float | None:
+    """The weight serving may actually use.
+
+    `None` when no weight was fitted, so `blend_contribution`'s `weight is None`
+    branch serves the direct model alone -- which is what `_fit_blend_weight`'s
+    docstring has always promised. The neutral share only when a weight was
+    actually fitted.
 
     Kept as a function rather than a constant at the call site so that when the
     constructions are unified there is exactly one place to change, and so a test
     can assert the two are deliberately distinct today.
 
-    `fitted` is accepted and ignored in **all** cases, `None` included. This is
-    the point at which the "no weight was fitted" case is decided, and it decides
-    it the same way as every other: with the neutral share. It is called once,
-    from `fit_goal_contribution_model`, with either a fitted float or `None`.
+    It is called once, from `fit_goal_contribution_model`, with either a fitted
+    float or `None`. The three `None` triggers are all reachable (a missing
+    required column, a single-class target, a calibration slice under 100 rows),
+    so this is not a hypothetical path.
 
-    **Consequence worth stating plainly:** returning `None` here does not
-    reproduce `blend_contribution`'s `weight is None` branch, so a fit that
-    could not produce a weight still serves a 50/50 mixture rather than the
-    direct model alone. `blend_contribution` *does* implement the
-    direct-alone fallback, and the two functions do not agree about what the
-    unfitted case means.
-
-    That is a modelling question, not a documentation one -- 0.5 and
-    direct-alone have different accuracy consequences, and the neutral share is
-    what removed the order-statistic bias this change was made for. So the
-    behaviour is left as it is and recorded rather than silently altered.
-    `test_serving_uses_the_neutral_share_even_when_no_weight_was_fitted` pins
-    what actually happens, so that changing it has to be a deliberate act.
+    **Why the neutral share is not used for the unfitted case:** the neutral
+    share blends 50/50 against an *uncalibrated* union. When no weight was
+    fitted there is no evidence for any share, and mixing in an uncalibrated
+    quantity is not a conservative default -- it is an undisclosed behaviour
+    change. Serving the direct model alone is what the code already documents,
+    and it is the choice that cannot be worse than inventing a weight.
     """
+    if fitted is None:
+        return None
     return NEUTRAL_BLEND_WEIGHT
 
 
