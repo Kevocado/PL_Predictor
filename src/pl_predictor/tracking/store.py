@@ -729,14 +729,78 @@ def _market_reliability(fixtures: pd.DataFrame, column: str) -> dict:
     }
 
 
+def _per_pick_rows(fixtures: pd.DataFrame) -> list[dict]:
+    """One row per resolved fixture, each labelled with whether it was rebuilt.
+
+    This is what makes the headline auditable rather than merely asserted: a
+    row that does not say whether its pick was made in time cannot be checked
+    against the claim that only in-time picks count toward it.
+    """
+    if fixtures.empty:
+        return []
+    rows = []
+    for _, r in fixtures.iterrows():
+        ct = r.get("commence_time")
+        rows.append({
+            "event_id": r.get("event_id"),
+            "team_home": r.get("team_home"),
+            "team_away": r.get("team_away"),
+            "commence_time": ct.isoformat() if hasattr(ct, "isoformat") else ct,
+            "gameweek": int(r["gameweek"]) if pd.notna(r.get("gameweek")) else None,
+            "hit": bool(r["hit"]) if pd.notna(r.get("hit")) else None,
+            "rebuilt": bool(r.get("backfilled")) if pd.notna(r.get("backfilled")) else False,
+        })
+    return rows
+
+
+def _all_picks_record(fixtures: pd.DataFrame) -> dict:
+    """The same rates over EVERY resolved pick, rebuilt included.
+
+    Deliberately the unfiltered frame, and deliberately beside the headline
+    rather than replacing it. B8 is about what the headline is allowed to claim,
+    not about hiding the picks it no longer counts: a reader who wants the mixed
+    number can have it, labelled, instead of being shown it as the honest one.
+    """
+    if fixtures.empty:
+        return {"n_resolved": 0, "pct_correct": None, "by_market": {
+            "exact_score": {"pct_correct": None, "n_resolved": 0},
+            "match_result": {"pct_correct": None, "n_resolved": 0},
+            "over_under_2_5": {"pct_correct": None, "n_resolved": 0},
+            "btts": {"pct_correct": None, "n_resolved": 0},
+        }}
+    return {
+        "n_resolved": int(len(fixtures)),
+        "pct_correct": float(fixtures["hit"].mean()),
+        "by_market": {
+            "exact_score": _market_reliability(fixtures, "exact_score_hit"),
+            "match_result": _market_reliability(fixtures, "hit"),
+            "over_under_2_5": _market_reliability(fixtures, "over_under_hit"),
+            "btts": _market_reliability(fixtures, "btts_hit"),
+        },
+    }
+
+
 def get_track_record() -> dict:
     all_fixtures = _fixture_market_hit_table()
-    # Every resolved pick counts, whenever it was made: pre-kickoff
-    # snapshots and picks rebuilt after kickoff (backfilled) alike. The
-    # product accepts the look-forward bias this implies for rebuilt picks;
-    # n_rebuilt_fixtures is reported alongside so the mix stays visible.
     n_rebuilt = int(all_fixtures["backfilled"].sum()) if not all_fixtures.empty else 0
-    fixtures = all_fixtures
+
+    # B8: the headline is pre-kickoff picks only.
+    #
+    # The live payload said n_resolved 50, n_rebuilt 50, pct_correct 0.52 — a
+    # headline computed entirely from picks rebuilt after kickoff, carrying the
+    # look-forward bias this product exists to avoid. NFL already ships this
+    # split (NFL#23 / Sports#13) and PL did not, so the two sites were reporting
+    # the same idea under different rules.
+    #
+    # Two populations, and the order matters: `all_picks` and `per_pick` are
+    # built from the UNFILTERED frame BEFORE it is narrowed, so scoping the
+    # headline cannot also delete the rebuilt picks from the record. A headline
+    # with nothing beside it would satisfy the letter of the ruling by hiding
+    # everything, which is the opposite of it.
+    all_picks = _all_picks_record(all_fixtures)
+    per_pick = _per_pick_rows(all_fixtures)
+    fixtures = all_fixtures[~all_fixtures["backfilled"].astype(bool)] \
+        if not all_fixtures.empty else all_fixtures
     # current_gameweek is a navigation anchor (routes._resolve_current_gameweek,
     # public_snapshot's default view), not a rate: it follows every resolved
     # fixture, rebuilt or not.
@@ -757,10 +821,16 @@ def get_track_record() -> dict:
                 "over_under_2_5": {"pct_correct": None, "n_resolved": 0},
                 "btts": {"pct_correct": None, "n_resolved": 0},
             },
+            "all_picks": all_picks,
+            "per_pick": per_pick,
         }
 
     n_resolved = int(len(fixtures))
-    pct_correct_overall = float(fixtures["hit"].mean())
+    # `None`, not 0.0: this is the state the live site is actually in — every
+    # stored pick rebuilt — and a rate over zero picks is a claim about
+    # accuracy with nothing behind it. The frontend renders null as "no
+    # pre-kickoff picks yet", which is the truth.
+    pct_correct_overall = float(fixtures["hit"].mean()) if n_resolved else None
 
     with_gw = fixtures[fixtures["gameweek"].notna()]
     this_gw = with_gw[with_gw["gameweek"] == current_gameweek] if current_gameweek is not None else with_gw.iloc[0:0]
@@ -793,6 +863,8 @@ def get_track_record() -> dict:
             "over_under_2_5": _market_reliability(fixtures, "over_under_hit"),
             "btts": _market_reliability(fixtures, "btts_hit"),
         },
+        "all_picks": all_picks,
+        "per_pick": per_pick,
     }
 
 

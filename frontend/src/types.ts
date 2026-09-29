@@ -514,12 +514,29 @@ export interface TrackRecordByMarket {
 }
 
 export interface TrackRecordSummary {
-  // Counts and rates cover every resolved pick, whenever it was made --
-  // pre-kickoff snapshots and picks rebuilt after the match (backfilled)
-  // alike. n_rebuilt_fixtures reports the rebuilt share of that total.
+  // B8: the headline below counts and rates ONLY picks made before kickoff.
+  // A pick rebuilt after the match cannot be one the model would have made on
+  // the night, so counting it toward the headline is the look-forward bias this
+  // product exists to avoid. NFL ships the same split (NFL#23 / Sports#13).
   n_resolved_fixtures: number;
   // Optional: absent from snapshots baked before this field existed.
   n_rebuilt_fixtures?: number;
+  // Every resolved pick, rebuilt included — reported BESIDE the headline, not
+  // folded into it, so nothing is hidden by scoping the headline.
+  all_picks?: {
+    n_resolved: number;
+    pct_correct: number | null;
+    by_market: Record<string, { pct_correct: number | null; n_resolved: number }>;
+  };
+  per_pick?: Array<{
+    event_id?: string | null;
+    team_home?: string | null;
+    team_away?: string | null;
+    commence_time?: string | null;
+    gameweek?: number | null;
+    hit?: boolean | null;
+    rebuilt: boolean;
+  }>;
   pct_correct_overall: number | null;
   current_gameweek: number | null;
   pct_correct_current_gameweek: number | null;

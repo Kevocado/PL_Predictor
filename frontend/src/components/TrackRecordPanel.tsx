@@ -50,8 +50,11 @@ export function TrackRecordPanel({ data }: { data: TrackRecordResponse }) {
   const byMarket = summary.by_market ?? DEFAULT_BY_MARKET;
   const nRebuilt = summary.n_rebuilt_fixtures ?? 0;
 
-  // Rebuilt picks still get listed below, so only an entirely empty record
-  // falls back to the "nothing yet" message.
+  // Only a record with NOTHING at all falls back to the short message. When
+  // every stored pick was rebuilt, n_resolved is 0 but nRebuilt is not — and
+  // that record still has a list worth showing, so it renders in full and the
+  // "no honest score yet" line sits above the (empty) headline instead. The
+  // two states are different facts and used to share one branch.
   if (summary.n_resolved_fixtures === 0 && nRebuilt === 0) {
     return (
       <div>
@@ -94,9 +97,19 @@ export function TrackRecordPanel({ data }: { data: TrackRecordResponse }) {
       </div>
 
       {nRebuilt > 0 && (
-        <p className="text-xs text-pl-text-dim">
-          {nRebuilt} pick{nRebuilt === 1 ? "" : "s"} rebuilt after kickoff {nRebuilt === 1 ? "is" : "are"} included in the score.
-        </p>
+        <>
+          {summary.n_resolved_fixtures === 0 && (
+            <p className="text-xs text-pl-text-faint">
+              No pre-kickoff picks recorded yet, so there is no honest score to show. Every
+              pick below was made after kickoff and none of them is counted.
+            </p>
+          )}
+          <p className="text-xs text-pl-text-dim">
+            {nRebuilt} pick{nRebuilt === 1 ? "" : "s"} rebuilt after kickoff{" "}
+            {nRebuilt === 1 ? "is" : "are"} shown below and counted in the all-picks figure,
+            not in the headline above.
+          </p>
+        </>
       )}
 
       <div>
