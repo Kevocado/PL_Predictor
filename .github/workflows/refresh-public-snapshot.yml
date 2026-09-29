@@ -87,9 +87,8 @@ jobs:
       # A DIFFERENT key from the one above, and deliberately. `data-cache-` is
       # keyed per run id and per TTL because its contents are disposable; the
       # tracking database is the opposite — it is the accumulating record, so
-      # it is keyed on a rolling 7-day window and restored with a prefix. Run
-      # ids grow without bound and a per-run key for a file that must persist
-      # is the same bug one level down.
+      # it is restored with a prefix. Run ids grow without bound and a per-run
+      # key for a file that must persist is the same bug one level down.
       - name: Restore data cache
         uses: actions/cache@v4
         with:
@@ -98,16 +97,27 @@ jobs:
           restore-keys: |
             data-cache-
 
+      # CACHE IS AN ACCELERATOR HERE, NOT THE RECORD. The pre-kickoff picks are
+      # the product's evidence and actions/cache is not durable storage: entries
+      # are evicted after 7 days of no access, and a cache is not written at all
+      # when the job that would write it fails. Either way the picks are gone
+      # and the honest headline returns to null. The durable copy is
+      # `data/tracking_picks.jsonl` (see "Record durable pre-kickoff picks"),
+      # which is committed; this step only avoids re-deriving what is already
+      # known. Deleting this step would slow the workflow and lose nothing.
       - name: Restore tracking database
         uses: actions/cache@v4
         with:
           path: data/tracking.db
-          # Rolling, not per-run. The database only ever gains rows, so a
-          # 7-day-old restore is at worst a week behind on picks that were
-          # already graded — and `INSERT OR IGNORE` plus the per-pick
-          # reconciliation means a stale restore cannot corrupt anything. It
-          # can only delay a pick being recorded, which is the honest failure.
-          key: tracking-db-${{ github.run_id }}
+          # `github.run_attempt`, not `github.run_id`. actions/cache does not
+          # re-save on an exact key hit: re-running a run that already saved
+          # `tracking-db-<run_id>` restores that same cache, and anything
+          # recorded in between is never written anywhere. `run_attempt`
+          # increments on a re-run, so each attempt gets its own key and the
+          # save always happens. The `data/cache` step above keeps `run_id`,
+          # because its contents really are disposable and an unchanged key is
+          # the cheaper outcome there.
+          key: tracking-db-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             tracking-db-
 
@@ -119,16 +129,45 @@ jobs:
           API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
         run: python -m pl_predictor.public_snapshot
 
+      # The durable record, written AFTER the snapshot build so the picks the
+      # build just recorded are included, and committed below with it.
+      #
+      # Appends only, and only picks whose snapshotted_at precedes their own
+      # kickoff. A re-run appends nothing, so a no-op run is an empty diff.
+      - name: Record durable pre-kickoff picks
+        run: |
+          python - <<'PY'
+          import sqlite3
+          from pl_predictor.config import TRACKING_DB_PATH
+          from pl_predictor.tracking.pick_record import append_picks
+
+          if not TRACKING_DB_PATH.exists():
+              print("no tracking.db yet; nothing to record")
+              raise SystemExit(0)
+          conn = sqlite3.connect(str(TRACKING_DB_PATH))
+          conn.row_factory = sqlite3.Row
+          rows = [dict(r) for r in conn.execute(
+              "SELECT event_id, team_home, team_away, market, outcome_name, "
+              "predicted_prob, commence_time, snapshotted_at FROM predictions")]
+          conn.close()
+          n = append_picks(rows)
+          print(f"recorded {n} new pre-kickoff pick(s) of {len(rows)} stored")
+          PY
+
       - name: Commit and push if changed
         run: |
-          if git diff --quiet -- data/public_snapshot.json; then
+          if git diff --quiet -- data/public_snapshot.json data/tracking_picks.jsonl; then
             echo "No change, nothing to push."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/public_snapshot.json
-          git commit -m "Refresh public snapshot [automated]"
+          # The pick record is committed ALONGSIDE the snapshot, and that is
+          # deliberate: they are written in the same run, and a run that
+          # committed one and not the other would leave the evidence behind the
+          # published number out of step with the number itself.
+          git add data/public_snapshot.json data/tracking_picks.jsonl
+          git commit -m "Refresh public snapshot and record pre-kickoff picks [automated]"
 
           # This build regularly takes long enough for an unrelated commit
           # to land on main first (confirmed live: a plain `git push` here
