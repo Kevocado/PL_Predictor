@@ -38,16 +38,6 @@ const detail = {
   post_match: null, actual_stats: null, pre_match_value_bets: [],
 } as unknown as FixtureDetail;
 
-const explanation = {
-  headline: "Tottenham are the narrow favourites, but this is close to a coin flip.",
-  sections: [{ market: "result", title: "Why Tottenham", text: "The model has them at 44% at home." }],
-  source: "template" as const,
-  model: "",
-  generated_at: new Date().toISOString(),
-  sport: "pl",
-  pick_timing: "pre_kickoff" as const,
-};
-
 function mockApi(over: Record<string, unknown> = {}) {
   vi.mocked(api.fixtureDetail).mockResolvedValue(detail);
   vi.mocked(api.fixturePlayers).mockResolvedValue({ home_players: [], away_players: [] });
@@ -55,23 +45,45 @@ function mockApi(over: Record<string, unknown> = {}) {
   Object.assign(api, over);
 }
 
+const answer = {
+  verdict: "Tottenham are the pick, and the market roughly agrees.",
+  band: "moderate",
+  factors: [
+    {
+      key: "result",
+      direction: "neutral",
+      headline: "Model and market agree",
+      text: "Both put Tottenham at about the same price.",
+    },
+  ],
+  source: "template" as const,
+  model: "",
+  generated_at: new Date().toISOString(),
+  sport: "pl",
+  pick_timing: "pre_kickoff" as const,
+};
+
 describe("FixtureModal and the plain-English panel", () => {
-  it("fetches the summary for this fixture and shows its headline", async () => {
+  it("fetches nothing until asked, then shows the summary for this fixture", async () => {
     mockApi();
-    const explain = vi.fn().mockResolvedValue(explanation);
+    const explain = vi.fn().mockResolvedValue(answer);
     render(<FixtureModal eventId="e1" onClose={() => {}} explain={explain} />);
-    expect(await screen.findByText(explanation.headline)).toBeInTheDocument();
+    expect(explain).not.toHaveBeenCalled();
+    fireEvent.click(await screen.findByRole("button", { name: /ai summary/i }));
+    expect(await screen.findByText("Tottenham are the pick, and the market roughly agrees.")).toBeInTheDocument();
     expect(explain).toHaveBeenCalledWith("pl", "e1");
   });
 
-  it("shows the fixture while the summary is still being written", async () => {
+  it("shows the flow and the fixture while the summary is still being written", async () => {
     mockApi();
-    const explain = vi.fn().mockReturnValue(new Promise<typeof explanation>(() => {}));
+    const explain = vi.fn().mockReturnValue(new Promise<typeof answer>(() => {}));
     render(<FixtureModal eventId="e1" onClose={() => {}} explain={explain} />);
-    expect(screen.getByText("Writing the summary…")).toBeInTheDocument();
-    // The fixture itself must not wait on the summary. The team name appears in
-    // several places in this modal, so assert the fixture heading reached the
-    // screen rather than a first match on a common string.
+    fireEvent.click(await screen.findByRole("button", { name: /ai summary/i }));
+    // No skeleton: the flow is the thing on screen while the request is in
+    // flight. The team name appears in several places in this modal, so assert
+    // the fixture heading reached the screen rather than a first match.
+    expect(screen.getByTestId("fixture-flow")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Writing…" })).toBeDisabled();
     expect(await screen.findByRole("heading", { name: /Scoreline/i })).toBeInTheDocument();
   });
 
@@ -79,11 +91,24 @@ describe("FixtureModal and the plain-English panel", () => {
     mockApi();
     const explain = vi.fn().mockRejectedValue(new Error("down"));
     render(<FixtureModal eventId="e1" onClose={() => {}} explain={explain} />);
+    fireEvent.click(await screen.findByRole("button", { name: /ai summary/i }));
     const retry = await screen.findByRole("button", { name: "Try again" });
-    explain.mockResolvedValue(explanation);
+    // The flow is still on screen beside the retry, not an error panel.
+    expect(screen.getByTestId("fixture-flow")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).toBeNull();
+    explain.mockResolvedValue(answer);
     fireEvent.click(retry);
-    expect(await screen.findByText(explanation.headline)).toBeInTheDocument();
+    expect(await screen.findByText("Tottenham are the pick, and the market roughly agrees.")).toBeInTheDocument();
     expect(explain).toHaveBeenCalledTimes(2);
+  });
+
+  it("shows the rebuilt status the service reports, in this site's words", async () => {
+    mockApi();
+    const explain = vi.fn().mockResolvedValue({ ...answer, pick_timing: "rebuilt" });
+    render(<FixtureModal eventId="e1" onClose={() => {}} explain={explain} />);
+    fireEvent.click(await screen.findByRole("button", { name: /ai summary/i }));
+    expect(await screen.findByText("Rebuilt after kickoff")).toBeInTheDocument();
+    expect(screen.getByText(/not counted/)).toBeInTheDocument();
   });
 
   it("leaves the modal usable when there is no explainer", async () => {
