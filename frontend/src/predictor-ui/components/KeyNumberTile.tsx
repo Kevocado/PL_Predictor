@@ -1,4 +1,4 @@
-// Synced from predictor-ui@7bf61090ff9b. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@56ad800924dc. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 import type { ReactNode } from "react";
 
 /**
@@ -40,7 +40,15 @@ export type MarketTile = {
 };
 
 export function KeyNumberTile({ tile, highlighted }: { tile: MarketTile; highlighted?: boolean }) {
-  if (!tile.value) return null;
+  // `== null`, not a falsiness test. `0` is a real figure: a 0-0 draw, a total of
+  // zero, a probability the model has rounded to nothing. `!tile.value` hid all
+  // three, and it did so silently — the tile simply was not on the page, which
+  // reads as "no market here" rather than "the model said zero".
+  //
+  // `""` is still treated as absent, deliberately: the adapters produce a
+  // formatted string for a figure they have, and an empty one means the figure
+  // was missing upstream. Only the falsy NUMBER is a value.
+  if (tile.value === null || tile.value === undefined || tile.value === "") return null;
   const { market, value, sub, tint } = tile;
   return (
     <dl

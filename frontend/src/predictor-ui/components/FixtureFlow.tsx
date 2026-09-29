@@ -1,4 +1,4 @@
-// Synced from predictor-ui@7bf61090ff9b. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@56ad800924dc. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 /** FixtureFlow — instant, local, state-appropriate description.
  *
  *  Pure function of its props.  No useEffect, no fetch, no timer.
@@ -52,10 +52,13 @@ function pickProb(bundle: any): number | null {
   return typeof p === "number" && Number.isFinite(p) ? p : null;
 }
 
-/** When the pick was made, from the facts' own `pick_timing`. */
+/** When the pick was made, from the facts' own `pick_timing`. A rebuilt pick
+ *  was made after the event began; the moment is worded per sport because F1
+ *  has sessions, not kickoffs, and "after the game started" on a race page
+ *  names a moment that sport does not have. */
 function whenMade(sport: string, bundle: any): string {
   const timing = bundle?.pick_timing;
-  if (timing === "rebuilt") return "after the game started";
+  if (timing === "rebuilt") return sport === "f1" ? "after the session started" : "after the game started";
   const moment = MOMENT[sport] ?? "kickoff";
   return `before ${moment}`;
 }
@@ -196,7 +199,7 @@ function buildRows(sport: string, state: FlowState, bundle: any): Row[] {
 export function FixtureFlow({ sport, state, bundle }: FixtureFlowProps) {
   const rows = buildRows(sport, state, bundle);
   return (
-    <main className="flex flex-col gap-2" data-testid="fixture-flow">
+    <div className="flex flex-col gap-2" data-testid="fixture-flow">
       {rows.map((row, i) =>
         row.heading ? (
           <h4 key={i} className="font-pr-display text-lg font-semibold text-pr-text">
@@ -208,6 +211,6 @@ export function FixtureFlow({ sport, state, bundle }: FixtureFlowProps) {
           </p>
         ),
       )}
-    </main>
+    </div>
   );
 }
