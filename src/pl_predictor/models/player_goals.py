@@ -477,6 +477,37 @@ def _expected_per_appearance(rates: dict, target_key: str, reliability_coeffs: d
     return max(estimate, 0.0)
 
 
+def _shots_scale_from_context(form: object, team: str | None, is_home: bool) -> float:
+    """Team shot-volume scale for `predict_player`'s expected-shots fields.
+
+    Accepts the two `form` shapes in the wild: a venue-indexed frame (the
+    unit-test contract — index labels "home"/"away") and the team-indexed
+    `FixtureFeatureContext.form` (`rolling_form.latest_form`) served in
+    production, where the right row is this fixture's own team and the
+    column follows the venue. Anything missing, unparseable, non-finite or
+    non-positive degrades to 1.0 (unscaled) rather than raising or leaking
+    NaN into served probabilities — confirmed live, the venue-only lookup
+    raised KeyError 'home' for every fixture once production started
+    passing the team-indexed context.
+    """
+    try:
+        index = form.index
+        col = "home_last_10_shots_for" if is_home else "away_last_10_shots_for"
+        venue = "home" if is_home else "away"
+        if venue in index:
+            value = form.loc[venue, col]
+        elif team is not None and team in index:
+            value = form.loc[team, col]
+        else:
+            return 1.0
+        value = float(value)
+    except (AttributeError, KeyError, TypeError, ValueError, IndexError):
+        return 1.0
+    if not math.isfinite(value) or value <= 0:
+        return 1.0
+    return value / LEAGUE_AVERAGE_TEAM_SHOTS
+
+
 def predict_player(
     rates: dict,
     team_goal_expectation: float,
@@ -490,6 +521,7 @@ def predict_player(
     is_set_piece_taker: bool = False,
     context: object | None = None,
     opponent_defence: dict | None = None,
+    team: str | None = None,
 ) -> dict:
     """`rates` is `features.player_form.blended_current_form`'s output.
     `reliability_coeffs` (from `fit_reliability_coefficients`) is optional —
@@ -514,12 +546,7 @@ def predict_player(
 
     shots_scale = 1.0
     if context is not None:
-        form = getattr(context, "form", None)
-        if form is not None:
-            shots_scale = (
-                (form.loc["home", "home_last_10_shots_for"] if is_home else form.loc["away", "away_last_10_shots_for"])
-                / LEAGUE_AVERAGE_TEAM_SHOTS
-            )
+        shots_scale = _shots_scale_from_context(getattr(context, "form", None), team=team, is_home=is_home)
     shots_scale = max(float(shots_scale or 1.0), 0.0)
 
     lam_goals = goals_estimate * scale
@@ -689,7 +716,7 @@ def rank_team_players(
             rates, team_goal_expectation, availability, reliability_coeffs,
             expected_minutes=lineup["expected_minutes"], position=position, is_home=is_home,
             position_rate_models=position_rate_models, is_penalty_taker=is_penalty_taker,
-            is_set_piece_taker=is_set_piece_taker, context=context,
+            is_set_piece_taker=is_set_piece_taker, context=context, team=team,
             opponent_defence=opponent_defence,
         )
         direct_contribution = predict_goal_contribution(
