@@ -255,14 +255,10 @@ def _fit_blend_weight(calibration: pd.DataFrame, direct_probability: np.ndarray)
     first weeks of a new one, a partial cache, a truncated history -- produces
     `None`.
 
-    The `None` then goes to `_serving_blend_weight`, which ignores it and
-    returns `NEUTRAL_BLEND_WEIGHT`. **Serving therefore blends 50/50 against the
-    uncalibrated union; it does not fall back to the direct model alone.** An
-    earlier version of this docstring said it did, which described
-    `blend_contribution`'s `weight is None` branch rather than the path actually
-    taken. Whether the unfitted case *should* serve the direct model alone is a
-    modelling decision with accuracy consequences and is deliberately left to
-    whoever owns that decision; see `_serving_blend_weight`.
+    When no weight is fitted, `_serving_blend_weight` preserves `None`, so
+    `blend_contribution` serves the direct model alone when available. A fitted
+    weight instead selects the neutral share for serving; the fitted value is
+    recorded separately in the model manifest.
     """
     from sklearn.metrics import brier_score_loss
 
@@ -355,23 +351,11 @@ def blend_contribution(
 ) -> float:
     """Combine the direct G+A classifier with the Poisson union.
 
-    `weight` is the share given to the direct classifier, fitted on the
-    held-out calibration season (see `fit_goal_contribution_model`). `None`
-    means no weight was fitted, in which case the direct model is used alone
-    when available and the union otherwise.
-
-    **Note the `weight is None` branch below is not what serving does today.**
-    It is implemented and correct on its own terms, but the only production
-    caller passes `(contribution_model or {}).get("blend_weight")`, and
-    `fit_goal_contribution_model` always stores a *float* there --
-    `_serving_blend_weight` converts a failed fit (`None`) into
-    `NEUTRAL_BLEND_WEIGHT` before the manifest is built. So `None` reaches this
-    function from serving only if the manifest is missing the key entirely, and
-    the direct-alone fallback is effectively dormant. An earlier version of
-    `_fit_blend_weight`'s docstring described *this* branch as the unfitted-case
-    behaviour, which was wrong about the path taken.
-    `test_serving_uses_the_neutral_share_even_when_no_weight_was_fitted` pins
-    the real behaviour.
+    `weight` is the share given to the direct classifier. Serving passes the
+    neutral share when a weight was fitted on the held-out calibration season
+    (see `fit_goal_contribution_model`). When no weight was fitted, serving
+    passes `None` and uses the direct model alone when available, or the union
+    if no direct probability is available.
 
     This replaces a previous `max(direct, anytime_goal, anytime_assist)`. A
     max of separately-calibrated estimators is not a calibrated estimator of
