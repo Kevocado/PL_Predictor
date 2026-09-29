@@ -514,8 +514,9 @@ export interface TrackRecordByMarket {
 }
 
 export interface TrackRecordSummary {
-  // Counts and rates cover only picks captured before kickoff; picks rebuilt
-  // after the match (backfilled) are reported here and never counted.
+  // Counts and rates cover every resolved pick, whenever it was made --
+  // pre-kickoff snapshots and picks rebuilt after the match (backfilled)
+  // alike. n_rebuilt_fixtures reports the rebuilt share of that total.
   n_resolved_fixtures: number;
   // Optional: absent from snapshots baked before this field existed.
   n_rebuilt_fixtures?: number;
@@ -558,7 +559,7 @@ export interface GameweekResult {
 
 export interface GameweekGroup {
   gameweek: number | null;
-  // null when every fixture in the gameweek was rebuilt after kickoff.
+  // null only in snapshots baked before rebuilt picks started counting.
   pct_correct: number | null;
   n_fixtures: number;
   n_rebuilt?: number;

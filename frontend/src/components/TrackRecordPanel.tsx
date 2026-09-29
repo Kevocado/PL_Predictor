@@ -60,8 +60,7 @@ export function TrackRecordPanel({ data }: { data: TrackRecordResponse }) {
           <InfoTooltip text={GLOSSARY.trackRecordScore} align="left" />
         </h3>
         <p className="text-xs text-pl-text-faint">
-          No resolved predictions yet — this builds up automatically as fixtures kick off and results come in.
-          Predictions are snapshotted the moment a fixture first appears in the app, before it's played.
+          No scored predictions yet — this builds up automatically as fixtures are predicted and results come in.
         </p>
       </div>
     );
@@ -96,7 +95,7 @@ export function TrackRecordPanel({ data }: { data: TrackRecordResponse }) {
 
       {nRebuilt > 0 && (
         <p className="text-xs text-pl-text-dim">
-          {nRebuilt} pick{nRebuilt === 1 ? "" : "s"} rebuilt after kickoff {nRebuilt === 1 ? "is" : "are"} shown but not counted.
+          {nRebuilt} pick{nRebuilt === 1 ? "" : "s"} rebuilt after kickoff {nRebuilt === 1 ? "is" : "are"} included in the score.
         </p>
       )}
 

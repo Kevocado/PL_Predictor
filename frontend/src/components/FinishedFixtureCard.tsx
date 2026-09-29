@@ -75,7 +75,7 @@ export function FinishedFixtureCard({
         <div className="flex flex-wrap items-center justify-end gap-1.5">
           {backfilled && (
             <span
-              title="Rebuilt from the model after this match finished. Shown for reference; not counted in the hit rate."
+              title="Rebuilt from the model after this match finished. Counted in the track record like any other pick."
               className="rounded border border-pl-border px-1.5 py-0.5 text-xs font-semibold normal-case tracking-normal text-pl-text-dim"
             >
               Rebuilt after kickoff

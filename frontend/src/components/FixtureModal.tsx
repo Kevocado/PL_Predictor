@@ -93,7 +93,7 @@ function PostMatchReview({ review }: { review: FixturePostMatch }) {
       <div className="mt-3 grid gap-1.5 sm:grid-cols-2">
         {review.verdicts.map((verdict) => <div key={verdict.label} className={`flex items-center justify-between rounded-lg px-3 py-2 text-xs ${verdict.hit ? "bg-win/10 text-win" : "bg-pl-850/70 text-pl-text-dim"}`}><span className="font-semibold">{verdict.hit ? "✓" : "×"} {verdict.label}</span><span><span className="text-pl-text-faint">{verdict.prediction}</span><span className="mx-1">→</span><span>{verdict.actual}</span></span></div>)}
       </div>
-      {review.provenance === "reconstructed" && <p className="mt-2 text-xs text-pl-text-faint">Rebuilt after the match from saved inputs where available. Shown for reference; not counted in the hit rate.</p>}
+      {review.provenance === "reconstructed" && <p className="mt-2 text-xs text-pl-text-faint">Rebuilt after the match from saved inputs where available. Counted in the track record like any other pick.</p>}
     </section>
   );
 }
