@@ -23,10 +23,11 @@ that cannot tell "attempted once" from "attempted 3x" is decoration.
 from __future__ import annotations
 
 import importlib
-import socket
 
 import pytest
 import requests
+
+from pl_predictor.data.network_blocked import NetworkBlockedError
 
 EXPECTED_SLEEPS = [2.0, 4.0]  # backoff * (attempt + 1), attempts=3, backoff=2.0
 
@@ -40,9 +41,14 @@ def _record_sleeps(monkeypatch, module_path):
 
 
 def _blocked_fetch():
-    """A fetch that hits the real autouse guard: raises the guard's refusal."""
-    socket.create_connection(("example.com", 80), timeout=1)
-    raise AssertionError("the guard did not block this connect")
+    """Inject the refusal even when cache warming disables the socket guard.
+
+    The real socket guard is covered separately in test_network_guard.py.
+    Retry behavior must be testable without making an outbound connection.
+    """
+    raise NetworkBlockedError(
+        "outbound network blocked in tests; warm the cache with PL_ALLOW_NETWORK=1"
+    )
 
 
 def _flaky_fetch(state, sentinel):
@@ -113,12 +119,12 @@ ALL_WRAPPER_PATHS = FN_WRAPPERS + [path for path, _ in SCRAPER_WRAPPERS]
 def _terminal_case(module_path, monkeypatch):
     if module_path in FN_WRAPPERS:
         mod, sleeps, calls, counting = _drive_fn_wrapper(monkeypatch, module_path, _blocked_fetch)
-        with pytest.raises(Exception) as excinfo:
+        with pytest.raises(NetworkBlockedError) as excinfo:
             mod._fetch_with_retry(counting)
     else:
         attr = dict(SCRAPER_WRAPPERS)[module_path]
         mod, sleeps, calls = _drive_scraper_wrapper(monkeypatch, module_path, attr, _blocked_fetch)
-        with pytest.raises(Exception) as excinfo:
+        with pytest.raises(NetworkBlockedError) as excinfo:
             mod._fetch_with_retry("2023")
     return sleeps, calls, excinfo
 

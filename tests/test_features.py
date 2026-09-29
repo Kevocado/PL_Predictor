@@ -31,7 +31,7 @@ def test_rolling_form_never_uses_same_row_stat(matches):
     assert team_rows.loc[1, "last_3_goals_for"] == pytest.approx(team_rows.loc[0, "goals_for"])
 
 
-def test_no_lookahead_in_training_frame(matches):
+def test_no_lookahead_in_training_frame(matches, no_other_competitions):
     df, feature_cols = build_training_frame(matches_df=matches)
     assert (df["date"] == matches["date"]).all()
     # elo/pi ratings before the match must differ from ratings after (i.e.
@@ -40,13 +40,13 @@ def test_no_lookahead_in_training_frame(matches):
     assert df[feature_cols].shape[1] == len(feature_cols)
 
 
-def test_cold_start_confidence_present(matches):
+def test_cold_start_confidence_present(matches, no_other_competitions):
     df, feature_cols = build_training_frame(matches_df=matches)
     assert "confidence_home" in df.columns
     assert set(df["confidence_home"].unique()) <= {"current", "blended", "none"}
 
 
-def test_build_row_accepts_tz_aware_commence_time(matches):
+def test_build_row_accepts_tz_aware_commence_time(matches, no_other_competitions):
     """A live fixtures source (e.g. the Odds API) hands commence_time as a
     tz-aware UTC timestamp; matches_df's own `date` column is tz-naive.
     build_row must not blow up computing rest days from that mismatch —
@@ -58,7 +58,7 @@ def test_build_row_accepts_tz_aware_commence_time(matches):
     assert row["rest_days_home"] is not None or row["is_first_match_of_season_home"]
 
 
-def test_date_keyed_merges_survive_mismatched_datetime_resolutions():
+def test_date_keyed_merges_survive_mismatched_datetime_resolutions(no_other_competitions):
     """The bug CI found and a warm local cache hid.
 
     A `merge` on a datetime key needs both sides at the *same resolution*, not merely

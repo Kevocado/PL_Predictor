@@ -1,7 +1,7 @@
 from pl_predictor.evaluate.tune_dc_bp_xi import evaluate_xi_grid, prepare_folds, summarize
 
 
-def test_evaluate_xi_grid_produces_one_row_per_xi_per_fold():
+def test_evaluate_xi_grid_produces_one_row_per_xi_per_fold(no_other_competitions):
     folds = prepare_folds(seasons=["2023-2024", "2024-2025", "2025-2026"], min_train_seasons=2)
     assert len(folds) == 1
 
@@ -12,7 +12,7 @@ def test_evaluate_xi_grid_produces_one_row_per_xi_per_fold():
     assert (result["rps"] > 0).all()
 
 
-def test_summarize_averages_across_folds():
+def test_summarize_averages_across_folds(no_other_competitions):
     folds = prepare_folds(seasons=["2022-2023", "2023-2024", "2024-2025", "2025-2026"], min_train_seasons=2)
     assert len(folds) == 2
 
