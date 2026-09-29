@@ -1,4 +1,4 @@
-// Synced from predictor-ui@69b543225a15. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@7bf61090ff9b. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 /** Shared v2 panelFacts adapter.
  *
  *  One function, two call sites.  Each call site passes an input tagged with
@@ -134,7 +134,10 @@ export function panelFacts(
     ] as const;
     const known = sides
       .map(({ key, edge }) => ({ key, prob: prob(edge?.prob), implied: num(edge?.implied) }))
-      .filter((e): e is { key: string; prob: number; implied: number | null } => e.prob !== null);
+      .filter(
+        (e): e is { key: "home_win" | "draw" | "away_win"; prob: number; implied: number | null } =>
+          e.prob !== null,
+      );
 
     if (known.length) {
       // Labels are the teams where we have them, and the bare side otherwise.
