@@ -515,6 +515,7 @@ export interface TrackRecordByMarket {
 
 export interface TrackRecordSummary {
   n_resolved_fixtures: number;
+  n_rebuilt_fixtures: number;
   pct_correct_overall: number | null;
   current_gameweek: number | null;
   pct_correct_current_gameweek: number | null;

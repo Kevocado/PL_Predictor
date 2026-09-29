@@ -48,7 +48,7 @@ export function TrackRecordPanel({ data }: { data: TrackRecordResponse }) {
   // rather than just missing a section.
   const byMarket = summary.by_market ?? DEFAULT_BY_MARKET;
 
-  if (summary.n_resolved_fixtures === 0) {
+  if (summary.n_resolved_fixtures === 0 && summary.n_rebuilt_fixtures === 0) {
     return (
       <div>
         <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-pl-text-dim">
@@ -56,7 +56,7 @@ export function TrackRecordPanel({ data }: { data: TrackRecordResponse }) {
           <InfoTooltip text={GLOSSARY.trackRecordScore} align="left" />
         </h3>
         <p className="text-xs text-pl-text-faint">
-          No resolved predictions yet — this builds up automatically as fixtures kick off and results come in.
+          No predictions yet — this builds up automatically as fixtures kick off and results come in.
           Predictions are snapshotted the moment a fixture first appears in the app, before it's played.
         </p>
       </div>
@@ -79,9 +79,11 @@ export function TrackRecordPanel({ data }: { data: TrackRecordResponse }) {
         />
         <StatCard
           label="Correct overall"
-          value={`${pct(summary.pct_correct_overall)} (${Math.round(
-            (summary.pct_correct_overall ?? 0) * summary.n_resolved_fixtures
-          )}/${summary.n_resolved_fixtures})`}
+          value={summary.n_resolved_fixtures > 0
+            ? `${pct(summary.pct_correct_overall)} (${Math.round(
+                (summary.pct_correct_overall ?? 0) * summary.n_resolved_fixtures
+              )}/${summary.n_resolved_fixtures})`
+            : "—"}
           info={GLOSSARY.trackRecordScore}
         />
       </div>
