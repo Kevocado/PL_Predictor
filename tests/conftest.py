@@ -115,3 +115,19 @@ def _isolate_fpl_module_caches():
         fpl_api._fixtures_memory_cache = saved_cache
         fpl_api._failed_fetches.clear()
         fpl_api._failed_fetches.update(saved_failed)
+
+
+@pytest.fixture
+def no_other_competitions(monkeypatch):
+    """Use the PL-only baseline in tests unrelated to the live cup calendar.
+
+    Its six-hour cache can expire between CI cache warming and the offline
+    gate. Calendar loaders and cross-competition features have their own
+    tests; opt in here only where those live fixtures are incidental.
+    """
+    from pl_predictor.data import other_competitions
+
+    monkeypatch.setattr(
+        other_competitions, "get_team_fixture_calendar",
+        lambda: other_competitions._EMPTY.copy(),
+    )

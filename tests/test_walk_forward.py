@@ -2,7 +2,7 @@ from pl_predictor.evaluate.goal_contribution_research import build_projected_tea
 from pl_predictor.evaluate.walk_forward import prepare_folds
 
 
-def test_prepare_folds_merges_extra_feature_frame():
+def test_prepare_folds_merges_extra_feature_frame(no_other_competitions):
     """EXP-2026-03's walk-forward follow-up depends on `prepare_folds` being
     able to inject a candidate feature set (built on a different season-
     string convention than football_data's) onto every fold without

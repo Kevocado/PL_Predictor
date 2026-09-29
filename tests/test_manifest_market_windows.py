@@ -14,7 +14,7 @@ def test_score_change_history_omits_retrains_without_a_validation_score_change()
     assert [entry["trained_at"] for entry in changes] == ["a", "c", "d"]
 
 
-def test_train_all_reuses_the_same_frame_when_windows_match(monkeypatch, tmp_path):
+def test_train_all_reuses_the_same_frame_when_windows_match(monkeypatch, tmp_path, no_other_competitions):
     """When an explicit `seasons` override is passed, it applies uniformly
     to every market (MARKET_TRAINING_WINDOWS is bypassed) — the corners
     frame must be the exact same object as the default frame, not a
@@ -46,7 +46,7 @@ def test_train_all_reuses_the_same_frame_when_windows_match(monkeypatch, tmp_pat
     assert result["market_training_windows"] == {"scoreline": 8, "corners": 12, "cards": 8}
 
 
-def test_train_all_gives_corners_its_own_window_by_default(monkeypatch, tmp_path):
+def test_train_all_gives_corners_its_own_window_by_default(monkeypatch, tmp_path, no_other_competitions):
     """With no explicit `seasons` override, corners must train on its own
     (larger) MARKET_TRAINING_WINDOWS-driven window even though scoreline/
     cards stay on the default — verified with small substitute window

@@ -14,7 +14,7 @@ def test_is_cold_start_involved_flags_either_side():
     assert result == [False, True, True, True]
 
 
-def test_evaluate_models_by_segment_covers_all_three_models_and_segments():
+def test_evaluate_models_by_segment_covers_all_three_models_and_segments(no_other_competitions):
     result = evaluate_models_by_segment(seasons=["2023-2024", "2024-2025", "2025-2026"], min_train_seasons=2)
 
     assert set(result["model"]) == {"dixon_coles", "bivariate_poisson", "ml_scoreline"}
