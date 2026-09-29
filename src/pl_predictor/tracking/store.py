@@ -731,10 +731,12 @@ def _market_reliability(fixtures: pd.DataFrame, column: str) -> dict:
 
 def get_track_record() -> dict:
     all_fixtures = _fixture_market_hit_table()
-    # Picks rebuilt after kickoff (backfilled) are shown in the UI but never
-    # counted: only a prediction captured before the match is evidence.
+    # Every resolved pick counts, whenever it was made: pre-kickoff
+    # snapshots and picks rebuilt after kickoff (backfilled) alike. The
+    # product accepts the look-forward bias this implies for rebuilt picks;
+    # n_rebuilt_fixtures is reported alongside so the mix stays visible.
     n_rebuilt = int(all_fixtures["backfilled"].sum()) if not all_fixtures.empty else 0
-    fixtures = all_fixtures[~all_fixtures["backfilled"].astype(bool)] if not all_fixtures.empty else all_fixtures
+    fixtures = all_fixtures
     # current_gameweek is a navigation anchor (routes._resolve_current_gameweek,
     # public_snapshot's default view), not a rate: it follows every resolved
     # fixture, rebuilt or not.
@@ -801,9 +803,9 @@ def get_biggest_upsets(limit: int = 5) -> list[dict]:
     goals/BTTS misses, which aren't what "upset" means and aren't tracked by
     this view anymore."""
     fixtures = _fixture_hit_table()
-    # An "upset" claims the model published odds before kickoff, so picks
-    # rebuilt after the match (backfilled) never qualify.
-    fixtures = fixtures[fixtures["actual_outcome"].notna() & ~fixtures["backfilled"].astype(bool)] if not fixtures.empty else fixtures
+    # Upsets are ranked over every resolved pick, rebuilt or not, matching
+    # the track record's score-everything rule.
+    fixtures = fixtures[fixtures["actual_outcome"].notna()] if not fixtures.empty else fixtures
     if fixtures.empty:
         return []
 
@@ -840,20 +842,20 @@ def get_results_by_gameweek() -> list[dict]:
     groups = []
     for gameweek, group in fixtures.groupby(fixtures["gameweek"].fillna(-1)):
         gw_value = None if gameweek == -1 else int(gameweek)
-        # Every fixture is still listed below; only pre-kickoff picks count.
-        counted = group[~group["backfilled"].astype(bool)]
-        has_counted = not counted.empty
+        # Every resolved pick in the group counts, rebuilt or not; n_rebuilt
+        # stays as an informational split so the mix remains visible.
+        n_rebuilt_group = int(group["backfilled"].astype(bool).sum())
         groups.append(
             {
                 "gameweek": gw_value,
-                "pct_correct": float(counted["hit"].mean()) if has_counted else None,
-                "n_fixtures": int(len(counted)),
-                "n_rebuilt": int(len(group) - len(counted)),
+                "pct_correct": float(group["hit"].mean()),
+                "n_fixtures": int(len(group)),
+                "n_rebuilt": n_rebuilt_group,
                 "pct_correct_by_market": {
-                    "exact_score": _market_reliability(counted, "exact_score_hit")["pct_correct"] if has_counted else None,
-                    "match_result": float(counted["hit"].mean()) if has_counted else None,
-                    "over_under_2_5": _market_reliability(counted, "over_under_hit")["pct_correct"] if has_counted else None,
-                    "btts": _market_reliability(counted, "btts_hit")["pct_correct"] if has_counted else None,
+                    "exact_score": _market_reliability(group, "exact_score_hit")["pct_correct"],
+                    "match_result": float(group["hit"].mean()),
+                    "over_under_2_5": _market_reliability(group, "over_under_hit")["pct_correct"],
+                    "btts": _market_reliability(group, "btts_hit")["pct_correct"],
                 },
                 "fixtures": [
                     {

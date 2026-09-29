@@ -333,11 +333,12 @@ def test_backfill_missing_predictions(clean_db):
     home_goals, away_goals = row["predicted_scoreline"].split("-")
     assert int(home_goals) > int(away_goals)
 
-    # A backfilled (rebuilt after kickoff) pick is listed above but never
-    # counted toward the track record's rates.
+    # A backfilled (rebuilt after kickoff) pick counts toward the track
+    # record's rates like any other resolved pick (score-everything rule).
     record = store.get_track_record()
     assert record["current_gameweek"] is None
-    assert record["pct_correct_overall"] is None
+    assert record["pct_correct_overall"] == pytest.approx(1.0)  # Strong 3-0 Weak was a hit
+    assert record["n_resolved_fixtures"] == 1
     assert record["n_rebuilt_fixtures"] == 1
 
 
@@ -575,7 +576,7 @@ def _one_fixture(event_id, home, away, gameweek=1):
     }])
 
 
-def test_track_record_leaves_rebuilt_picks_out_of_every_rate(clean_db):
+def test_track_record_scores_rebuilt_picks_in_every_rate(clean_db):
     store.record_predictions(_one_fixture("live", "Arsenal", "Chelsea"))
     store.record_predictions(_one_fixture("rebuilt", "Spurs", "Villa"), backfilled=True)
     store.reconcile_predictions(pd.DataFrame([
@@ -585,12 +586,12 @@ def test_track_record_leaves_rebuilt_picks_out_of_every_rate(clean_db):
 
     record = store.get_track_record()
 
-    assert record["n_resolved_fixtures"] == 1
+    assert record["n_resolved_fixtures"] == 2
     assert record["n_rebuilt_fixtures"] == 1
-    assert record["pct_correct_overall"] == 0.0  # only the live miss counts; the rebuilt hit does not
+    assert record["pct_correct_overall"] == 0.5  # live miss + rebuilt hit both count
 
 
-def test_track_record_with_only_rebuilt_picks_reports_no_rate(clean_db):
+def test_track_record_with_only_rebuilt_picks_reports_a_rate(clean_db):
     store.record_predictions(_one_fixture("rebuilt", "Spurs", "Villa"), backfilled=True)
     store.reconcile_predictions(pd.DataFrame([
         {"team_home": "Spurs", "team_away": "Villa", "date": pd.Timestamp("2020-01-01"), "goals_home": 2, "goals_away": 0, "ftr": "H"},
@@ -599,19 +600,19 @@ def test_track_record_with_only_rebuilt_picks_reports_no_rate(clean_db):
     record = store.get_track_record()
     groups = store.get_results_by_gameweek()
 
-    assert record["pct_correct_overall"] is None
-    assert record["n_resolved_fixtures"] == 0
+    assert record["pct_correct_overall"] == pytest.approx(1.0)
+    assert record["n_resolved_fixtures"] == 1
     assert record["n_rebuilt_fixtures"] == 1
-    assert groups[0]["pct_correct"] is None
-    assert groups[0]["n_fixtures"] == 0
+    assert groups[0]["pct_correct"] == pytest.approx(1.0)
+    assert groups[0]["n_fixtures"] == 1
     assert groups[0]["n_rebuilt"] == 1
-    assert len(groups[0]["fixtures"]) == 1  # still listed, just not counted
+    assert len(groups[0]["fixtures"]) == 1
 
 
 def test_current_gameweek_still_tracks_the_latest_gameweek_when_it_is_all_rebuilt(clean_db):
     """current_gameweek anchors navigation (routes._resolve_current_gameweek,
-    public_snapshot's default view), so rebuilt picks must still move it even
-    though they never count toward a rate."""
+    public_snapshot's default view), so rebuilt picks must still move it --
+    and under the score-everything rule they count toward its rate too."""
     store.record_predictions(_one_fixture("live", "Arsenal", "Chelsea", gameweek=4))
     store.record_predictions(_one_fixture("rebuilt", "Spurs", "Villa", gameweek=5), backfilled=True)
     store.reconcile_predictions(pd.DataFrame([
@@ -622,8 +623,8 @@ def test_current_gameweek_still_tracks_the_latest_gameweek_when_it_is_all_rebuil
     record = store.get_track_record()
 
     assert record["current_gameweek"] == 5
-    assert record["pct_correct_current_gameweek"] is None
-    assert record["n_fixtures_current_gameweek"] == 0
+    assert record["pct_correct_current_gameweek"] == pytest.approx(1.0)
+    assert record["n_fixtures_current_gameweek"] == 1
     assert record["pct_correct_overall"] == 1.0
 
 
@@ -636,13 +637,16 @@ def test_current_gameweek_is_set_even_when_every_pick_is_rebuilt(clean_db):
     assert store.get_track_record()["current_gameweek"] == 5
 
 
-def test_biggest_upsets_leave_out_rebuilt_picks(clean_db):
+def test_biggest_upsets_include_rebuilt_picks(clean_db):
     store.record_predictions(_one_fixture("rebuilt", "Spurs", "Villa"), backfilled=True)
     store.reconcile_predictions(pd.DataFrame([
         {"team_home": "Spurs", "team_away": "Villa", "date": pd.Timestamp("2020-01-01"), "goals_home": 0, "goals_away": 3, "ftr": "A"},
     ]))
 
-    assert store.get_biggest_upsets() == []
+    upsets = store.get_biggest_upsets()
+    assert len(upsets) == 1
+    assert upsets[0]["team_home"] == "Spurs"
+    assert upsets[0]["actual_outcome"] == "away_win"
 
 
 def test_overall_pct_can_never_disagree_with_the_match_result_market(clean_db, tmp_path):
@@ -658,7 +662,8 @@ def test_overall_pct_can_never_disagree_with_the_match_result_market(clean_db, t
     two contradicting percentages with no test failing. This is the invariant
     that makes such an edit impossible to merge silently, and it is asserted
     over a mixed fixture set: two live picks (one hit, one miss) and two
-    rebuilt picks, so the rebuilt exclusion is exercised rather than incidental.
+    rebuilt picks, so rebuilt picks are exercised as counted members of the
+    average rather than incidental rows.
     """
     store.record_predictions(_one_fixture("live-hit", "Arsenal", "Chelsea"))
     store.record_predictions(_one_fixture("live-miss", "Spurs", "Villa"))
@@ -675,16 +680,16 @@ def test_overall_pct_can_never_disagree_with_the_match_result_market(clean_db, t
     match_result = record["by_market"]["match_result"]
 
     # The mixed set actually exercises the rule: rebuilt picks are present,
-    # resolved, and would each move the average if they were counted.
+    # resolved, and counted in the average.
     assert record["n_rebuilt_fixtures"] == 2
-    assert record["n_resolved_fixtures"] == 2
-    assert record["pct_correct_overall"] == pytest.approx(0.5)  # 1 hit of 2 live
+    assert record["n_resolved_fixtures"] == 4
+    assert record["pct_correct_overall"] == pytest.approx(0.5)  # 2 hits of 4
     assert match_result["n_resolved"] == record["n_resolved_fixtures"]
     assert match_result["pct_correct"] == pytest.approx(record["pct_correct_overall"])
 
-    # And when there is nothing live to count, both must go empty together
-    # rather than one reporting a rate the other denies exists. A separate
-    # store, because the two live picks above are still in this one.
+    # And when only rebuilt picks exist, both must still agree with each
+    # other rather than one reporting a rate the other denies exists. A
+    # separate store, because the two live picks above are still in this one.
     rebuilt_only = tmp_path / "rebuilt_only.db"
     original_db = store.TRACKING_DB_PATH
     store.TRACKING_DB_PATH = rebuilt_only
@@ -694,10 +699,10 @@ def test_overall_pct_can_never_disagree_with_the_match_result_market(clean_db, t
             {"team_home": "Leeds", "team_away": "Palace", "date": pd.Timestamp("2020-01-01"), "goals_home": 1, "goals_away": 1, "ftr": "D"},
         ]))
 
-        empty = store.get_track_record()
+        rebuilt_record = store.get_track_record()
     finally:
         store.TRACKING_DB_PATH = original_db
 
-    assert empty["pct_correct_overall"] is None
-    assert empty["by_market"]["match_result"]["pct_correct"] is None
-    assert empty["by_market"]["match_result"]["n_resolved"] == 0
+    assert rebuilt_record["pct_correct_overall"] == pytest.approx(0.0)  # rebuilt-only Leeds draw was a miss
+    assert rebuilt_record["by_market"]["match_result"]["pct_correct"] == pytest.approx(0.0)
+    assert rebuilt_record["by_market"]["match_result"]["n_resolved"] == 1

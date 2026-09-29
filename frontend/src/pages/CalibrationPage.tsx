@@ -251,10 +251,15 @@ function ScorerTrackRecord({ data }: { data: ScorerAccuracyResponse }) {
       <div className="grid gap-3 md:grid-cols-2">
         {groups.map(([label, stats]) => <div key={label} className="clip-corner rounded-xl border border-pl-border bg-pl-850/70 p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-pl-text-faint">{label}</p>
-          {stats.calls === 0 ? <p className="mt-2 text-sm text-pl-text-faint">No resolved calls yet.</p> : <>
-            <p className="mt-2 text-sm text-pl-text"><span className="font-semibold text-win">{stats.call_hits}/{stats.calls}</span> qualifying calls hit {stats.call_hit_rate === null ? "" : `(${(stats.call_hit_rate * 100).toFixed(0)}%)`}</p>
-            <p className="mt-1 text-xs text-pl-text-faint">Goal Brier {stats.goal_brier?.toFixed(3) ?? "—"} across {stats.calibration.reduce((total, bucket) => total + bucket.n, 0)} confirmed starters</p>
-          </>}
+          {/* PUBLIC_MODE serves {} here (background tracking is skipped on the
+              public host), which is not a group -- confirmed live this crashed
+              the section on .calibration.reduce instead of rendering. */}
+          {stats === null || stats === undefined || typeof stats.calls !== "number"
+            ? <p className="mt-2 text-sm text-pl-text-faint">Not published for this deployment.</p>
+            : stats.calls === 0 ? <p className="mt-2 text-sm text-pl-text-faint">No resolved calls yet.</p> : <>
+              <p className="mt-2 text-sm text-pl-text"><span className="font-semibold text-win">{stats.call_hits}/{stats.calls}</span> qualifying calls hit {stats.call_hit_rate === null ? "" : `(${(stats.call_hit_rate * 100).toFixed(0)}%)`}</p>
+              <p className="mt-1 text-xs text-pl-text-faint">Goal Brier {stats.goal_brier?.toFixed(3) ?? "—"} across {stats.calibration.reduce((total, bucket) => total + bucket.n, 0)} confirmed starters</p>
+            </>}
         </div>)}
       </div>
       <p className="mt-2 text-xs text-pl-text-faint">Reconstructed rows were created after the fixture and stay separate from prospective live evidence.</p>
