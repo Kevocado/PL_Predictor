@@ -70,6 +70,26 @@ jobs:
       # single scheduled run. Restoring the most recent cache (by prefix)
       # and always saving a new one under this run's own key lets it warm
       # up across runs the same way a laptop naturally does.
+      #
+      # data/tracking.db is cached here too, and this is a correctness fix
+      # rather than a speed one — the reason it was missing is the reason the
+      # track record was dishonest. The two paths look adjacent and are not:
+      # config.py resolves the database to `data/tracking.db`, and only
+      # `data/cache` was being restored, so every scheduled run began with an
+      # EMPTY tracking store. A pre-kickoff pick is written once, before
+      # kickoff, and never rewritten (predictions are INSERT OR IGNORE), so an
+      # empty store per run means no in-time pick was ever kept: the live
+      # payload showed n_rebuilt 50 of 50, which is the signature of exactly
+      # this. Restoring the file is what lets a stored pre-kickoff pick survive
+      # to the next run, and the immutability that keeps it honest is already
+      # structural in the schema.
+      #
+      # A DIFFERENT key from the one above, and deliberately. `data-cache-` is
+      # keyed per run id and per TTL because its contents are disposable; the
+      # tracking database is the opposite — it is the accumulating record, so
+      # it is keyed on a rolling 7-day window and restored with a prefix. Run
+      # ids grow without bound and a per-run key for a file that must persist
+      # is the same bug one level down.
       - name: Restore data cache
         uses: actions/cache@v4
         with:
@@ -77,6 +97,19 @@ jobs:
           key: data-cache-${{ github.run_id }}
           restore-keys: |
             data-cache-
+
+      - name: Restore tracking database
+        uses: actions/cache@v4
+        with:
+          path: data/tracking.db
+          # Rolling, not per-run. The database only ever gains rows, so a
+          # 7-day-old restore is at worst a week behind on picks that were
+          # already graded — and `INSERT OR IGNORE` plus the per-pick
+          # reconciliation means a stale restore cannot corrupt anything. It
+          # can only delay a pick being recorded, which is the honest failure.
+          key: tracking-db-${{ github.run_id }}
+          restore-keys: |
+            tracking-db-
 
       - name: Build snapshot
         env:
