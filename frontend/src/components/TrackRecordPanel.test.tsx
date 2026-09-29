@@ -56,7 +56,7 @@ describe("TrackRecordPanel", () => {
     // (3 picks, all rebuilt) with the ruling's answer instead of the old one.
     render(<TrackRecordPanel data={onlyRebuilt} />);
     expect(
-      screen.getByText(/not in the headline above/i),
+      screen.getByText(/not in\s+the headline/i),
     ).toBeInTheDocument();
     expect(screen.queryByText(/included in the score/i)).toBeNull();
     // Still listed, so scoping the headline does not hide the picks.
@@ -80,6 +80,32 @@ describe("TrackRecordPanel", () => {
     render(<TrackRecordPanel data={onlyRebuilt} />);
     expect(screen.getByText(/no honest score to show/i)).toBeInTheDocument();
     expect(screen.queryByText(/No scored predictions yet/i)).toBeNull();
+  });
+
+  it("renders the all-picks figure the copy refers to", () => {
+    // The copy said rebuilt picks are "counted in the all-picks figure" while
+    // the panel never rendered `summary.all_picks` — the number was in the
+    // payload and in the type, and the reader could never see it. A sentence
+    // promising a figure is worse than no sentence: it sends someone looking
+    // for something that does not exist.
+    render(<TrackRecordPanel data={onlyRebuilt} />);
+    const card = screen.getByText(/All picks, rebuilt included/i).parentElement;
+    expect(card).toHaveTextContent("67%");
+    expect(card).toHaveTextContent("2/3");
+    // And it must be a DIFFERENT number from the headline, which is the point
+    // of showing it beside. The headline is "—" here (no pre-kickoff picks);
+    // if both ever render the same figure, B8 has been undone.
+    const overall = screen.getByText(/Correct overall/i).parentElement;
+    expect(overall).toHaveTextContent("—");
+    expect(overall).not.toHaveTextContent("67%");
+  });
+
+  it("omits the all-picks card entirely when the payload has no pre-kickoff record", () => {
+    // A record with no rebuilt picks has nothing to distinguish, so the extra
+    // card would be a duplicate of the headline with a longer label.
+    const { all_picks: _drop, ...withoutAllPicks } = onlyRebuilt.summary;
+    render(<TrackRecordPanel data={{ ...onlyRebuilt, summary: withoutAllPicks }} />);
+    expect(screen.queryByText(/All picks, rebuilt included/i)).toBeNull();
   });
 
   it("renders no NaN anywhere in the no-pre-kickoff-picks state", () => {

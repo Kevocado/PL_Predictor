@@ -49,6 +49,9 @@ export function TrackRecordPanel({ data }: { data: TrackRecordResponse }) {
   // rather than just missing a section.
   const byMarket = summary.by_market ?? DEFAULT_BY_MARKET;
   const nRebuilt = summary.n_rebuilt_fixtures ?? 0;
+  // Optional for the same reason `by_market` is: a snapshot baked before the
+  // field existed can still be live for a few minutes after a deploy.
+  const allPicks = summary.all_picks ?? null;
 
   // Only a record with NOTHING at all falls back to the short message. When
   // every stored pick was rebuilt, n_resolved is 0 but nRebuilt is not — and
@@ -104,10 +107,30 @@ export function TrackRecordPanel({ data }: { data: TrackRecordResponse }) {
               pick below was made after kickoff and none of them is counted.
             </p>
           )}
+          {allPicks && (
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              {/* The all-picks figure the copy above refers to. It was absent
+                  from the panel entirely — `all_picks` was in the payload and in
+                  the type, and the sentence promised a number a reader could
+                  never see. Rendered here, beside the headline it is distinct
+                  from, which is the whole of B8 made visible. */}
+              <StatCard
+                label="All picks, rebuilt included"
+                value={
+                  allPicks.pct_correct === null
+                    ? "—"
+                    : `${pct(allPicks.pct_correct)} (${Math.round(
+                        allPicks.pct_correct * allPicks.n_resolved,
+                      )}/${allPicks.n_resolved})`
+                }
+                info={GLOSSARY.trackRecordScore}
+              />
+            </div>
+          )}
           <p className="text-xs text-pl-text-dim">
             {nRebuilt} pick{nRebuilt === 1 ? "" : "s"} rebuilt after kickoff{" "}
-            {nRebuilt === 1 ? "is" : "are"} shown below and counted in the all-picks figure,
-            not in the headline above.
+            {nRebuilt === 1 ? "is" : "are"} included in the all-picks figure above and not in
+            the headline.
           </p>
         </>
       )}
