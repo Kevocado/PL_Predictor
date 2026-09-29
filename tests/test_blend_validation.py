@@ -283,7 +283,9 @@ def test_serving_does_not_apply_a_weight_fitted_against_another_construction():
 
     assert player_goals._serving_blend_weight(0.70) == player_goals.NEUTRAL_BLEND_WEIGHT
     assert player_goals._serving_blend_weight(0.65) == player_goals.NEUTRAL_BLEND_WEIGHT
-    assert player_goals._serving_blend_weight(None) == player_goals.NEUTRAL_BLEND_WEIGHT
+    # `None` passes through now, so the unfitted case serves the direct model alone
+    # rather than blending 50/50 against an uncalibrated union.
+    assert player_goals._serving_blend_weight(None) is None
     assert player_goals.NEUTRAL_BLEND_WEIGHT != 0.70, (
         "if the neutral weight is ever set to the fitted value, the distinction this "
         "exists to make has been lost and EXP-2026-28 must be revisited")
@@ -354,42 +356,34 @@ def test_the_fitted_weight_is_still_recorded_on_the_model(fitted_manifest):
     assert player_goals._serving_blend_weight(fitted) == player_goals.NEUTRAL_BLEND_WEIGHT
 
 
-def test_serving_uses_the_neutral_share_even_when_no_weight_was_fitted():
-    """The documented `None` fallback is not the path serving takes.
+def test_serving_serves_direct_alone_when_no_weight_was_fitted():
+    """The documented `None` fallback is the path serving takes.
 
     `_fit_blend_weight` documents that it returns `None` "in which case serving
-    falls back to the direct model alone". It does not. `None` reaches
-    `_serving_blend_weight`, which ignores it and returns the neutral share, so
-    the manifest carries `0.5` and `blend_contribution` blends 50/50 against the
-    uncalibrated union.
+    falls back to the direct model alone". That is now true: `_serving_blend_weight`
+    passes `None` through, the manifest carries `None`, and `blend_contribution`'s
+    `weight is None` branch serves the direct model alone.
 
-    `blend_contribution` *does* implement a direct-alone fallback for a `None`
-    weight, and that branch is correct. It is just not reached from production:
-    the only production caller passes `(contribution_model or {}).get(
-    "blend_weight")`, and the manifest never stores `None` there. The two
-    functions disagree about what an unfitted weight means.
-
-    The `None` is reachable, which is the part that makes the wrong docstring
-    matter rather than merely stale. All three triggers were confirmed by
-    calling the real `_fit_blend_weight`: a missing required column, a
-    single-class target, and -- the undocumented one, and the one with no
-    counterpart in the caller, which has already rejected empty and
-    single-class slices -- a calibration slice under 100 rows. That last is a
-    row-count floor nothing upstream shares, so a short or partial final season
-    lands on it.
+    The `None` is reachable, which is the part that makes this matter rather than
+    merely cosmetic. All three triggers were confirmed by calling the real
+    `_fit_blend_weight`: a missing required column, a single-class target, and --
+    the undocumented one, and the one with no counterpart in the caller, which has
+    already rejected empty and single-class slices -- a calibration slice under
+    100 rows. That last is a row-count floor nothing upstream shares, so a short
+    or partial final season lands on it.
 
     This test drives the manifest, so it pins what serving actually serves
     rather than what a helper does with a hand-passed `None`.
 
-    **No behaviour is changed here.** 0.5 versus direct-alone has different
-    accuracy consequences, and the neutral share is what removed the
-    order-statistic bias the change was made for. Choosing between them is a
-    modelling decision for the model owner, not a documentation fix, so the
-    current behaviour is pinned and flagged rather than altered. The tripwire for
-    a future decision is that this assertion goes red.
+    **Decision made 2026-09-29:** the neutral share blends 50/50 against an
+    *uncalibrated* union. When no weight was fitted there is no evidence for any
+    share, and mixing in an uncalibrated quantity is not a conservative default.
+    Serving the direct model alone is what the code already documents, and it is
+    the choice that cannot be worse than inventing a weight. The previous
+    behaviour (neutral share) is recorded here so the change is visible.
 
     Verified by mutation:
-      - `_serving_blend_weight(None)` returning `1.0` (direct alone) -- red.
+      - `_serving_blend_weight(None)` returning `0.5` (old behaviour) -- red.
       - the 100-row floor removed from `_fit_blend_weight`, so a 40-row
         calibration slice stops returning `None` -- red, via the
         `fitted_blend_weight is None` assertion on the manifest.
@@ -401,17 +395,48 @@ def test_serving_uses_the_neutral_share_even_when_no_weight_was_fitted():
     assert manifest["fitted_blend_weight"] is None, (
         "premise: a 40-row calibration slice cannot produce a fitted weight")
 
-    # And yet the served share is the neutral one, not the direct model alone.
-    assert manifest["blend_weight"] == player_goals.NEUTRAL_BLEND_WEIGHT
+    # The served share is None, so blend_contribution serves the direct model alone.
+    assert manifest["blend_weight"] is None
 
     direct, union = 0.30, 0.45
     served = player_goals.blend_contribution(direct, union, manifest["blend_weight"])
-    assert served == pytest.approx(0.5 * direct + 0.5 * union)
-    assert served != direct, "the direct model alone is *not* what the docstring claims"
-    assert served == pytest.approx(0.375)
-
-    # The dormant branch, shown to work and shown to be a different answer. If a
-    # future change makes serving pass `None` through, this is the value that
-    # would start being returned -- recorded here so that change is visible as a
-    # change in served probabilities rather than a silent one.
+    assert served == pytest.approx(direct)
+    assert served != pytest.approx(0.5 * direct + 0.5 * union)
     assert player_goals.blend_contribution(direct, union, None) == pytest.approx(direct)
+
+
+def test_serving_passes_none_through_when_no_weight_was_fitted():
+    """The documented `None` fallback is the path serving takes.
+
+    `_fit_blend_weight` documents that it returns `None` "in which case serving
+    falls back to the direct model alone". After this fix that is true:
+    `_serving_blend_weight(None)` returns `None`, the manifest carries `None`,
+    and `blend_contribution`'s `weight is None` branch serves the direct model
+    alone.
+
+    The three `None` triggers are reachable (missing required column,
+    single-class target, calibration slice under 100 rows), so this is not a
+    hypothetical path.
+    """
+    assert player_goals._serving_blend_weight(None) is None
+    assert player_goals._serving_blend_weight(0.70) == player_goals.NEUTRAL_BLEND_WEIGHT
+    assert player_goals._serving_blend_weight(0.65) == player_goals.NEUTRAL_BLEND_WEIGHT
+
+
+def test_manifest_carries_none_and_serves_direct_alone_when_unfitted():
+    """End to end through the manifest: an unfitted weight serves the direct model.
+
+    40 rows is under `_fit_blend_weight`'s 100-row floor, so the fit really did
+    fail -- asserted on the real manifest, not assumed from the row count.
+    """
+    manifest = _fit_manifest(calibration_rows=40)
+
+    assert manifest["fitted_blend_weight"] is None, (
+        "premise: a 40-row calibration slice cannot produce a fitted weight")
+    # the served share is now None, not the neutral share
+    assert manifest["blend_weight"] is None
+
+    direct, union = 0.30, 0.45
+    served = player_goals.blend_contribution(direct, union, manifest["blend_weight"])
+    assert served == pytest.approx(direct), "the direct model alone is what serving serves"
+    assert served != pytest.approx(0.5 * direct + 0.5 * union)
