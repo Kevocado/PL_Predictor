@@ -77,6 +77,17 @@ function fixtureMetric(value: number | null, suffix = "") {
   return value === null ? "—" : `${value.toFixed(1)}${suffix}`;
 }
 
+// A field that is ABSENT is `undefined`, and `undefined !== null` is true, so a
+// `!== null` guard waves it straight through to `undefined.toFixed(...)`.
+// 30 of the rows in data/public_snapshot.json are backfilled finished fixtures
+// that carry no shot projections and no predicted_result key at all, and they
+// blanked the whole modal. Ask whether there IS a number rather than whether it
+// is something other than null, so absent and null land in the same honest
+// branch: the row is left out. Never filled in, never coerced to 0.
+function hasNumber(value: number | null | undefined): value is number {
+  return value !== null && value !== undefined;
+}
+
 function reportedMetric(value: number | null | undefined, label: string) {
   if (value === null || value === undefined) return "—";
   const rounded = Number.isInteger(value) ? String(value) : value.toFixed(1);
@@ -488,7 +499,7 @@ export function FixtureModal({ eventId, onClose, explain, sport = "pl" }: Props)
                           isModelCall(detail.btts_yes_prob)
                         )}
                       />
-                      {detail.home_2plus_prob !== null && (
+                      {hasNumber(detail.home_2plus_prob) && (
                         <MarketBar
                           label={
                             <span className="inline-flex items-center gap-1.5">
@@ -498,7 +509,7 @@ export function FixtureModal({ eventId, onClose, explain, sport = "pl" }: Props)
                           prob={detail.home_2plus_prob}
                         />
                       )}
-                      {detail.away_2plus_prob !== null && (
+                      {hasNumber(detail.away_2plus_prob) && (
                         <MarketBar
                           label={
                             <span className="inline-flex items-center gap-1.5">
@@ -530,7 +541,7 @@ export function FixtureModal({ eventId, onClose, explain, sport = "pl" }: Props)
                       )}
                       <OverUnderRow label="Total corners" lam={detail.corners.lambda_} line={detail.corners.line} over={detail.corners.over} postMatchHit={postMatchVerdict(`Corners O/U ${detail.corners.line}`)?.hit} modelCall={isModelCall(detail.corners.over)} />
                       <OverUnderRow label="Total cards" lam={detail.cards.lambda_} line={detail.cards.line} over={detail.cards.over} postMatchHit={postMatchVerdict(`Cards O/U ${detail.cards.line}`)?.hit} modelCall={isModelCall(detail.cards.over)} />
-                      {detail.home_shots !== null && detail.away_shots !== null && (
+                      {hasNumber(detail.home_shots) && hasNumber(detail.away_shots) && (
                         <div className="flex items-center justify-between rounded-lg bg-pl-850/60 px-3 py-2 text-sm">
                           <span className="text-pl-text-dim">Predicted shots</span>
                           <span className="font-semibold text-pl-text">
@@ -538,7 +549,7 @@ export function FixtureModal({ eventId, onClose, explain, sport = "pl" }: Props)
                           </span>
                         </div>
                       )}
-                      {detail.home_shots_on_target !== null && detail.away_shots_on_target !== null && (
+                      {hasNumber(detail.home_shots_on_target) && hasNumber(detail.away_shots_on_target) && (
                         <div className="flex items-center justify-between rounded-lg bg-pl-850/60 px-3 py-2 text-sm">
                           <span className="text-pl-text-dim">Predicted shots on target</span>
                           <span className="font-semibold text-pl-text">
