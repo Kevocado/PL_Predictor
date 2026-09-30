@@ -185,7 +185,7 @@ describe("FixtureModal's instant block, before any request", () => {
     expect(screen.queryByTestId("record-fill")).toBeNull();
   });
 
-  it("names the pick from the stored review when the summary field is absent, and never scores a different side", async () => {
+  it("names the pick from the stored review, which is the pick the record judges", async () => {
     mockApi();
     // 30 of the 380 fixture details in the shipped public snapshot predate the
     // `predicted_result` field the summary carries. The stored review names the
@@ -195,18 +195,21 @@ describe("FixtureModal's instant block, before any request", () => {
 
     expect(screen.getByText("Tottenham is the pick.")).toBeInTheDocument();
     expect(screen.queryByText(/No pick was made/i)).toBeNull();
-    // The review's hit flag is about ITS pick, and here they are the same side.
     expect(screen.getByText(/the model's pick was right/i)).toBeInTheDocument();
-    // The scoreline model can promote a draw the stored review did not pick.
-    // When the two name different sides, no rightness is stated at all.
+
+    // And where the two records disagree, the review's side is the pick. The
+    // scoreline model promotes a draw the tracked pick was not
+    // (`predicted_result` is the display variant; the record judges the plain
+    // argmax), and the shipped snapshot disagrees on 15 of the 20 finished
+    // fixtures it can render — so naming the promoted side here would put a
+    // third pick on a page whose review row and list card both say Tottenham.
     vi.mocked(api.fixtureDetail).mockResolvedValue({
       ...withoutPick,
       predicted_result: "draw",
-      post_match: { final_score: "1-1", provenance: "reconstructed", verdicts: REVIEW_VERDICTS, player_calls: [] },
     } as unknown as FixtureDetail);
     render(<FixtureModal eventId="e2" onClose={() => {}} explain={vi.fn().mockReturnValue(new Promise(() => {}))} />);
     await screen.findByTestId("instant-block");
-    expect(screen.getByText("Draw is the pick.")).toBeInTheDocument();
-    expect(screen.queryByText(/the model's pick was (right|wrong)/i)).toBeNull();
+    expect(screen.getByText("Tottenham is the pick.")).toBeInTheDocument();
+    expect(screen.queryByText("Draw is the pick.")).toBeNull();
   });
 });

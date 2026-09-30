@@ -222,18 +222,25 @@ export function FixtureModal({ eventId, onClose, explain, sport = "pl" }: Props)
       draw: finite(detail.draw?.prob),
       away_win: finite(detail.away_win?.prob),
     };
-    // Which side the model picked, and where that answer comes from.
+    // Which side the model picked, and which of the two records it came from.
     //
-    // `predicted_result` is the summary's own label, filled in by the service.
-    // The stored review names the same three sides, and 30 of the 380 fixture
-    // details in the shipped public snapshot predate the field entirely -- so
-    // for those the review is the fallback. That is reading a side the site
-    // already prints in the review below, not inventing a pick: without it the
-    // block would answer "no pick was made" about a fixture whose own review
-    // says which side was picked, which is the contradiction this phase exists
-    // to remove.
+    // A reviewed fixture is judged on the plain marginal argmax: that is
+    // `_fixture_hit_table`'s `max(probs, key=probs.get)` in the tracking store,
+    // `lib/pick.ts`'s `matchPick` on the finished card, and the "Match result"
+    // row the review prints. `predicted_result` is the DISPLAY variant — the
+    // scoreline model promotes a draw when it and the percentage model agree
+    // one is likely — and the backend labels it informational only, never used
+    // to score accuracy (api/schemas.py::_fill_predicted_result). Measured on
+    // the shipped snapshot, the two disagree on 15 of the 20 finished fixtures
+    // whose shots fields are present, so the review's side is read FIRST: it is
+    // the pick the review row, the list card and the record strip all mean, and
+    // a block that named the other one would put three different picks on one
+    // page. It is also the only source for the 30 finished fixtures still baked
+    // into the public snapshot without `predicted_result` at all. An
+    // unreviewed fixture has no record to disagree with, and the model's own
+    // label is the pick.
     const resultVerdict = detail.post_match?.verdicts.find((v) => v.label === "Match result");
-    const pickKey = detail.predicted_result || resultVerdict?.prediction;
+    const pickKey = resultVerdict?.prediction || detail.predicted_result;
     const pickSide =
       pickKey === "home_win"
         ? { key: "home_win", label: detail.team_home, prob: probs.home_win }
@@ -242,12 +249,9 @@ export function FixtureModal({ eventId, onClose, explain, sport = "pl" }: Props)
           : pickKey === "draw"
             ? { key: "draw", label: "Draw", prob: probs.draw }
             : undefined;
-    // The review's `hit` flag is about ITS pick, which is the plain marginal
-    // argmax. `predicted_result` may be a different side: the scoreline model
-    // promotes a draw when it and the percentage model agree one is likely
-    // (api/schemas.py::_fill_predicted_result). When the two name different
-    // sides the flag is not about this pick, so it is dropped rather than
-    // attached to a side it does not describe.
+    // The review's `hit` flag, attached only when the pick IS the review's own
+    // side. It is not about `predicted_result`'s side, so it is dropped rather
+    // than hung on a pick it does not describe.
     const wasRight =
       pickSide && resultVerdict && resultVerdict.prediction === pickSide.key ? resultVerdict.hit : undefined;
     const pick =
