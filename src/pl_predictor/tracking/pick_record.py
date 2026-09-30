@@ -33,6 +33,8 @@ import os
 from pathlib import Path
 from typing import Any, Iterable
 
+import pandas as pd
+
 #: Columns that define a pick. Deliberately the minimum that makes a row
 #: meaningful on its own — `resolved` and `actual_outcome` are deliberately
 #: absent, because grading is derived from the fixture result at read time and
@@ -57,6 +59,26 @@ def picks_path() -> Path:
     return Path(__file__).resolve().parents[3] / "data" / "tracking_picks.jsonl"
 
 
+def _utc(value) -> "pd.Timestamp | None":
+    """A timestamp as a naive UTC instant, so two of them compare as INSTANTS.
+
+    `store._naive` strips an offset without converting, which is right for that
+    module's own purpose (matching a source's wall-clock column) and wrong here:
+    13:30 at UTC-5 is 18:30 UTC, 4.5 hours after a 14:00 UTC kickoff, and
+    stripping the offset compares 13:30 with 14:00 and calls it pre-kickoff. A
+    naive value is read as UTC, which is what every writer of these columns
+    emits.
+    """
+    if value is None:
+        return None
+    ts = pd.Timestamp(value)
+    if pd.isna(ts):
+        return None
+    if ts.tzinfo is not None:
+        ts = ts.tz_convert("UTC").tz_localize(None)
+    return ts
+
+
 def is_pre_kickoff(row: dict) -> bool:
     """Whether a stored row was written before its fixture started.
 
@@ -67,11 +89,9 @@ def is_pre_kickoff(row: dict) -> bool:
     unprovable claim is not a verified one, and treating it as one is how this
     bug looked healthy in the first place.
     """
-    from .store import _naive
-
     try:
-        snap = _naive(row.get("snapshotted_at"))
-        kick = _naive(row.get("commence_time"))
+        snap = _utc(row.get("snapshotted_at"))
+        kick = _utc(row.get("commence_time"))
     except (TypeError, ValueError):
         return False
     if snap is None or kick is None:
@@ -104,8 +124,17 @@ def append_picks(rows: Iterable[dict], path: Path | None = None) -> int:
     if not lines:
         return 0
     target.parent.mkdir(parents=True, exist_ok=True)
+    # A file whose last line has no "\n" (a crash mid-write, a hand edit) would
+    # otherwise have its final record joined to the first new one, producing a
+    # line that is not JSON and silently dropping BOTH from every later load.
+    # Only ever add a separator; an existing line is never touched.
+    needs_separator = False
+    if target.exists() and target.stat().st_size:
+        with target.open("rb") as fh:
+            fh.seek(-1, 2)
+            needs_separator = fh.read(1) != b"\n"
     with target.open("a", encoding="utf-8") as fh:
-        fh.write("\n".join(lines) + "\n")
+        fh.write(("\n" if needs_separator else "") + "\n".join(lines) + "\n")
     return len(lines)
 
 
@@ -127,6 +156,8 @@ def load_pre_kickoff_picks(path: Path | None = None) -> set[tuple[Any, Any, Any]
         try:
             row = json.loads(line)
         except ValueError:
+            continue
+        if not isinstance(row, dict):
             continue
         keys.add((row.get("event_id"), row.get("market"), row.get("outcome_name")))
     return keys
