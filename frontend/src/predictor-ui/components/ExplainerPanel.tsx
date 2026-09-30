@@ -1,4 +1,4 @@
-// Synced from predictor-ui@56ad800924dc. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@761c65a6c5f8. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 import { useEffect, useId, useState } from "react";
 import { ErrorState, Skeleton } from "./States";
 import { StatusBadge, type Moment } from "./StatusBadge";
@@ -28,10 +28,12 @@ export type Common = {
   /** The sport, so the panel words the rebuilt status for that moment. */
   sport: string;
   /** When the pick itself was made. "rebuilt" means the model was asked again
-   *  after the event had begun, so the pick is shown but never counted. This
+   *  after the event had begun, so the pick is shown but never counted.
+   *  "unknown" means the schedule never supplied the start time, so the pick
+   *  cannot be shown as made before the start. This
    *  travels with the answer rather than being read out of the prose: neither
    *  the model nor the template is a reliable source for a status label. */
-  pick_timing: "pre_kickoff" | "rebuilt" | "none";
+  pick_timing: "pre_kickoff" | "rebuilt" | "none" | "unknown";
 };
 
 export type Explanation = Common & Verdict;
@@ -169,6 +171,11 @@ export function ExplainerPanel({
   const now = Date.now();
   const when = moment ?? MOMENT_OF[data.sport] ?? "kickoff";
   const rebuilt = data.pick_timing === "rebuilt";
+  // An unverified pick shows no band either: every band word is a confidence
+  // claim, and "leaning" on a pick the facts cannot place in time is still
+  // one. Withheld like `rebuilt`, for the same reason — hiding it fails
+  // closed — except nothing was rebuilt, so the badge says so instead.
+  const unverified = data.pick_timing === "unknown";
 
   /* §13c's linkage is a LOOKUP, and this is the half of it that was missing: a
    * factor's `key` is only a reference to a figure if some figure carries it.
@@ -215,7 +222,7 @@ export function ExplainerPanel({
             below not to count or grade it. "STRONG" beside that asks the reader to
             resolve a contradiction this panel created. Hiding it fails closed,
             which is the direction the footer already fails in. */}
-        {v2 && !rebuilt && <BandChip band={data.band} />}
+        {v2 && !rebuilt && !unverified && <BandChip band={data.band} />}
       </div>
 
       {rebuilt && (
@@ -223,6 +230,15 @@ export function ExplainerPanel({
           <StatusBadge status="rebuilt" moment={when} />
           <span>
             This pick was made {STARTED[when]}, so it is shown for reference and not counted.
+          </span>
+        </p>
+      )}
+
+      {unverified && (
+        <p className="flex max-w-[70ch] flex-wrap items-center gap-2 text-sm text-pr-text-dim">
+          <StatusBadge status="unverified" moment={when} />
+          <span>
+            The schedule did not provide the start time, so this pick cannot be shown as made before the start.
           </span>
         </p>
       )}

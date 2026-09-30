@@ -1,4 +1,4 @@
-// Synced from predictor-ui@56ad800924dc. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@761c65a6c5f8. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 /** SummaryButton — the only network caller in the panel.
  *
  *  One job: turn a press into a summary or an unavailable state, and nothing
@@ -67,13 +67,18 @@ export function SummaryButton({
   // they press the button and close the dialog.
   const mounted = useRef(true);
 
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    // Restored in setup, not just cleared in cleanup: StrictMode mounts,
+    // unmounts, and remounts, so the cleanup runs while the component is still
+    // here. Without this line the remount inherits mounted.current = false and
+    // every guard treats the live button as gone — the first click resolves
+    // into nothing and the button stays disabled.
+    mounted.current = true;
+    return () => {
       mounted.current = false;
       if (timer.current) clearTimeout(timer.current);
-    },
-    [],
-  );
+    };
+  }, []);
 
   const handleClick = () => {
     if (loading) return; // a second press cannot double-fire

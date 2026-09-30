@@ -1,5 +1,5 @@
-// Synced from predictor-ui@56ad800924dc. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
-export type Status = "next" | "live" | "called" | "missed" | "nopick" | "rebuilt";
+// Synced from predictor-ui@761c65a6c5f8. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+export type Status = "next" | "live" | "called" | "missed" | "nopick" | "rebuilt" | "unverified";
 /** The moment a pick must beat: "kickoff" for football, "tip-off" for
  *  basketball, "the session" for F1 (qualifying and races alike). */
 export type Moment = "kickoff" | "tip-off" | "the session";
@@ -12,6 +12,10 @@ const LOOK: Record<Status, { words: string; tone: string }> = {
   missed: { words: "Missed ✗", tone: "text-pr-loss" },
   nopick: { words: "No pick yet", tone: "text-pr-text-dim" },
   rebuilt: { words: "Rebuilt after {moment}", tone: "border border-pr-rule text-pr-text-dim" },
+  // An unverified pick is not a fault: the schedule never supplied the start
+  // time, so nothing went wrong. Neutral grey like `rebuilt`, not red — a red
+  // badge would invent a failure that isn't there.
+  unverified: { words: "Timing not confirmed", tone: "border border-pr-rule text-pr-text-dim" },
 };
 
 /** The exact words each status reads as, for accessible names elsewhere. */
