@@ -1,4 +1,4 @@
-// Synced from predictor-ui@56ad800924dc. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@761c65a6c5f8. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 /** FixtureExplainer — the panel, three states.
  *
  *  The default state is the flow: an instant, local description built from facts

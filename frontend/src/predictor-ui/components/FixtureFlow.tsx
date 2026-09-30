@@ -1,4 +1,4 @@
-// Synced from predictor-ui@56ad800924dc. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@761c65a6c5f8. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 /** FixtureFlow — instant, local, state-appropriate description.
  *
  *  Pure function of its props.  No useEffect, no fetch, no timer.
