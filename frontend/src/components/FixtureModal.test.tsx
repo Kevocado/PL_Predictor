@@ -13,13 +13,15 @@ vi.mock("../api/client", () => ({
 }));
 
 const edge = (p: number) => ({ prob: p, implied: null, edge: null });
+// corners/cards carry the OverUnder shape; over_2_5/under_2_5 are MarketEdge
+// (prob/implied/edge) like home_win/draw/away_win, which is what the modal reads.
 const ou = (over: number) => ({ lambda_: 2.7, line: 2.5, over, under: 1 - over });
 
 const detail = {
   event_id: "e1", commence_time: "2026-09-19T10:30:00Z",
   team_home: "Tottenham", team_away: "Aston Villa",
   home_win: edge(0.44), draw: edge(0.28), away_win: edge(0.28),
-  over_2_5: ou(0.52), under_2_5: ou(0.48), btts_yes_prob: 0.48,
+  over_2_5: edge(0.52), under_2_5: edge(0.48), btts_yes_prob: 0.48,
   value_bet_flags: [], value_bet: null, has_live_odds: false,
   corners: ou(0.5), cards: ou(0.5),
   top_scoreline: "1-1", predicted_result: "home_win", draw_signal: false,
@@ -116,5 +118,126 @@ describe("FixtureModal and the plain-English panel", () => {
     render(<FixtureModal eventId="e1" onClose={() => {}} />);
     expect(screen.queryByText("Writing the summary…")).not.toBeInTheDocument();
     expect(await screen.findByRole("heading", { name: /Scoreline/i })).toBeInTheDocument();
+  });
+});
+
+// 30 of the 380 rows in data/public_snapshot.json are backfilled finished
+// fixtures that carry NO predicted_result at all, and no shot projections
+// either (no home_shots / away_shots / home_shots_on_target /
+// away_shots_on_target / home_2plus_prob / away_2plus_prob keys). An absent
+// key is `undefined`, which is not `null`, so a `!== null` guard waved it
+// through and `undefined.toFixed(1)` blanked the page. These tests hold both
+// empty shapes -- ABSENT and explicit null -- to the same honest outcome:
+// the row is left out, nothing is invented, and the modal still renders.
+describe("FixtureModal when the fixture carries no prediction of its own", () => {
+  const backfilled = {
+    ...detail,
+    post_match: {
+      final_score: "3-0",
+      provenance: "reconstructed",
+      verdicts: [
+        { label: "Exact score", prediction: "2-0", actual: "3-0", hit: false },
+        { label: "Match result", prediction: "home_win", actual: "home_win", hit: true },
+      ],
+    },
+    predicted_total_goals: null,
+    predicted_margin: null,
+  };
+
+  // The 30 backfilled rows: keys simply not there. Spreading `undefined`
+  // would not model that, so each variant deletes the key outright.
+  const withoutKeys = (keys: string[], overrides: Record<string, unknown> = {}) => {
+    const clone: Record<string, unknown> = { ...backfilled, ...overrides };
+    for (const key of keys) delete clone[key];
+    return clone as unknown as FixtureDetail;
+  };
+
+  const absentKeys = [
+    "predicted_result",
+    "home_shots",
+    "away_shots",
+    "home_shots_on_target",
+    "away_shots_on_target",
+    "home_2plus_prob",
+    "away_2plus_prob",
+    "draw_signal",
+    "pre_match_value_bets",
+  ];
+
+  async function renderDetail(fixtureDetail: FixtureDetail) {
+    vi.mocked(api.fixtureDetail).mockResolvedValue(fixtureDetail);
+    vi.mocked(api.fixturePlayers).mockResolvedValue({ home_players: [], away_players: [] });
+    vi.mocked(api.fixturePlayerReview).mockResolvedValue(null);
+    render(<FixtureModal eventId="backfill" onClose={() => {}} />);
+    // A heading that only renders once the detail has landed and survived
+    // rendering: if the modal threw, nothing after this can resolve.
+    return screen.findByRole("heading", { name: /Scoreline/i });
+  }
+
+  it("renders the modal when predicted_result is absent, not just null", async () => {
+    await expect(renderDetail(withoutKeys(absentKeys))).resolves.toBeInTheDocument();
+    // The rest of the fixture is still there: it did not blank, and it did
+    // not swallow the data it does have.
+    expect(screen.getByText("Prediction review, final 3–0")).toBeInTheDocument();
+  });
+
+  it("renders the modal when predicted_result is explicitly null", async () => {
+    const nulled = withoutKeys([], {
+      predicted_result: null,
+      home_shots: null,
+      away_shots: null,
+      home_shots_on_target: null,
+      away_shots_on_target: null,
+      home_2plus_prob: null,
+      away_2plus_prob: null,
+      pre_match_value_bets: [],
+    });
+    await expect(renderDetail(nulled)).resolves.toBeInTheDocument();
+    expect(screen.getByText("Prediction review, final 3–0")).toBeInTheDocument();
+  });
+
+  // The two shapes are different states but they must be indistinguishable in
+  // the UI: absent and null both mean "the model said nothing", and neither
+  // may become a number.
+  it("shows absent and null identically, inventing neither", async () => {
+    const nulled = withoutKeys([], {
+      predicted_result: null,
+      home_shots: null,
+      away_shots: null,
+      home_shots_on_target: null,
+      away_shots_on_target: null,
+      home_2plus_prob: null,
+      away_2plus_prob: null,
+      pre_match_value_bets: [],
+    });
+
+    vi.mocked(api.fixtureDetail).mockResolvedValue(withoutKeys(absentKeys));
+    const first = render(<FixtureModal eventId="absent" onClose={() => {}} />);
+    await screen.findByRole("heading", { name: /Scoreline/i });
+    const absentText = first.container.textContent;
+    first.unmount();
+
+    vi.mocked(api.fixtureDetail).mockResolvedValue(nulled);
+    const second = render(<FixtureModal eventId="null" onClose={() => {}} />);
+    await screen.findByRole("heading", { name: /Scoreline/i });
+    const nullText = second.container.textContent;
+
+    expect(absentText).toBe(nullText);
+    // No fabricated value anywhere: not NaN, and not a 0 standing in for
+    // "no prediction recorded".
+    expect(nullText).not.toMatch(/NaN/);
+    expect(nullText).not.toMatch(/\b0\.0\b/);
+    // And the shot rows, which have no data here, are left out rather than
+    // filled in.
+    expect(nullText).not.toMatch(/Predicted shots/);
+  });
+
+  it("still omits the pre-match value bet section when the key is absent", async () => {
+    await renderDetail(withoutKeys(absentKeys));
+    // `undefined?.length > 0` is false, so this section must take the
+    // "no bet was recorded" branch, not blow up on the missing array.
+    expect(
+      screen.getByText(/No value bet qualified before kickoff/),
+    ).toBeInTheDocument();
   });
 });
