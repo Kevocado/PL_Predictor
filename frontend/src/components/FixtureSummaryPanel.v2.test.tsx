@@ -29,20 +29,28 @@ vi.mock("../api/client", () => ({
     fixtureDetail: vi.fn(),
     fixturePlayers: vi.fn(),
     fixturePlayerReview: vi.fn(),
+    trackRecord: vi.fn(),
   },
 }));
 
 const ACCENT = "var(--color-pr-accent)";
 
+/** The record the modal now carries, left unresolved on purpose: this file is
+ *  about the accent, the de-emphasis and the market row, and a resolved record
+ *  would add a bar of its own and two counts to the panel these assertions do
+ *  not account for. The strip's own arithmetic is pinned in
+ *  `FixtureModal.instant.test.tsx`. */
+const noRecordYet = { summary: { n_resolved_fixtures: 0, pct_correct_overall: null } };
+
 /** What `ProbabilityBar` painted each segment, in order — the rendered
  *  emphasis, read off the elements the browser would colour. */
-const fills = (container: HTMLElement) =>
-  [...container.querySelectorAll<HTMLElement>("[data-testid='pbar-fill']")].map(
+const fills = (scope: ParentNode) =>
+  [...scope.querySelectorAll<HTMLElement>("[data-testid='pbar-fill']")].map(
     (f) => f.style.backgroundColor,
   );
 
 /** Which segment carries the accent, by index. -1 when none does. */
-const accentedAt = (container: HTMLElement) => fills(container).indexOf(ACCENT);
+const accentedAt = (scope: ParentNode) => fills(scope).indexOf(ACCENT);
 
 /** The DE-EMPHASIS, which is a different mechanism from the accent and fails
  *  independently of it. `dim` in `ProbabilityBar` writes an opacity onto both
@@ -51,8 +59,8 @@ const accentedAt = (container: HTMLElement) => fills(container).indexOf(ACCENT);
  *  dimmed, and only reading the opacity says which happened. */
 const opacityOf =
   (selector: string) =>
-  (container: HTMLElement): string[] =>
-    [...container.querySelectorAll<HTMLElement>(selector)].map((e) => e.style.opacity);
+  (scope: ParentNode): string[] =>
+    [...scope.querySelectorAll<HTMLElement>(selector)].map((e) => e.style.opacity);
 
 const fillOpacity = opacityOf("[data-testid='pbar-fill']");
 const labelOpacity = opacityOf("[data-testid='pbar-label']");
@@ -110,15 +118,27 @@ const modalDetail = (fx: FixtureSummary): FixtureDetail =>
     pre_match_value_bets: [],
   }) as unknown as FixtureDetail;
 
-/** The bar's graphic, scoped to the plain-English panel: the modal renders
- *  other `role="img"` elements (team badges), so a bare `getByRole("img")` is
- *  ambiguous at modal level and would quietly point at a logo. */
-const panelImg = (container: HTMLElement) => {
-  const panel = [...container.querySelectorAll("section")].find((s) =>
+/** The plain-English panel, as opposed to the whole modal.
+ *
+ *  Every assertion in this file is about the panel's own bar, and the modal now
+ *  draws a SECOND bar over the same three segments: the instant block, above the
+ *  button, renders the site's own figures from the same `extras`. Scoping by the
+ *  panel's heading is therefore not tidiness — measured over the whole
+ *  container, `fills` reads six segments instead of three and `accentedAt`
+ *  answers with an index into the block's half. */
+const panel = (container: HTMLElement) => {
+  const found = [...container.querySelectorAll("section")].find((s) =>
     s.textContent?.includes("In plain English"),
   );
-  expect(panel, "the plain-English panel is not on the page").toBeTruthy();
-  const bar = panel!.querySelector<HTMLElement>("[role='img']");
+  expect(found, "the plain-English panel is not on the page").toBeTruthy();
+  return found!;
+};
+
+/** The bar's graphic, scoped to that panel: the modal renders other `role="img"`
+ *  elements (team badges, the record strip), so a bare `getByRole("img")` is
+ *  ambiguous at modal level and would quietly point at something else. */
+const panelImg = (container: HTMLElement) => {
+  const bar = panel(container).querySelector<HTMLElement>("[role='img']");
   expect(bar, "the panel drew no bar").toBeTruthy();
   return bar!;
 };
@@ -156,6 +176,7 @@ async function show(pick?: PickRef, fx: FixtureSummary = fixture(), factors?: Fa
   vi.mocked(api.fixtureDetail).mockResolvedValue(modalDetail(fx));
   vi.mocked(api.fixturePlayers).mockResolvedValue({ home_players: [], away_players: [] });
   vi.mocked(api.fixturePlayerReview).mockResolvedValue(null);
+  vi.mocked(api.trackRecord).mockResolvedValue(noRecordYet as never);
   const out = render(<FixtureModal eventId="e1" onClose={() => {}} explain={explain} />);
   // Flow-first since the rollout: one press for the whole suite.
   fireEvent.click(await screen.findByRole("button", { name: /ai summary/i }));
@@ -178,11 +199,11 @@ describe("the accent follows the pick, through this site's own labels", () => {
 
     for (const [pick, index, label] of cases) {
       const { container, unmount } = await show(pick);
-      const tones = fills(container);
+      const tones = fills(panel(container));
       expect(tones, pick.label).toHaveLength(3);
       // Exactly one segment is accented, and it is the one the answer names.
       expect(tones.filter((t) => t === ACCENT), pick.label).toHaveLength(1);
-      expect(accentedAt(container), `${pick.label} should accent segment ${index}`).toBe(index);
+      expect(accentedAt(panel(container)), `${pick.label} should accent segment ${index}`).toBe(index);
       expect(panelImg(container).getAttribute("aria-label"), pick.label).toContain(
         `the pick is ${label}`,
       );
@@ -197,11 +218,11 @@ describe("the accent follows the pick, through this site's own labels", () => {
     // the cases a positional implementation gets wrong, and a reader sees them as
     // the model having picked the side it picked least of.
     const away = await show({ label: "Chelsea win", side: "away_win" });
-    expect(accentedAt(away.container)).toBe(2);
+    expect(accentedAt(panel(away.container))).toBe(2);
     away.unmount();
 
     const draw = await show({ label: "Draw", side: "draw" });
-    expect(accentedAt(draw.container)).toBe(1);
+    expect(accentedAt(panel(draw.container))).toBe(1);
     draw.unmount();
   });
 
@@ -221,7 +242,7 @@ describe("the accent follows the pick, through this site's own labels", () => {
     // emphasises something is claiming there is a pick. This is the exact shape
     // the defect impersonated, so it has to stay reachable and stay distinct.
     const { container } = await show(undefined);
-    const tones = fills(container);
+    const tones = fills(panel(container));
     expect(tones).toHaveLength(3);
     expect(tones).not.toContain(ACCENT);
     // Three distinguishable tones, so the neutral ramp survives having no accent
@@ -244,7 +265,7 @@ describe("the market row quotes the market, never the model", () => {
     });
     const { container } = await show({ label: "Arsenal win", side: "home_win" }, fx);
 
-    const row = container.querySelector("[data-testid='pbar-market-figures']");
+    const row = panel(container).querySelector("[data-testid='pbar-market-figures']");
     expect(row).not.toBeNull();
     const quoted = [...row!.querySelectorAll<HTMLElement>("[data-market]")].map(
       (s) => s.textContent!.trim(),
@@ -259,7 +280,7 @@ describe("the market row quotes the market, never the model", () => {
     }
     // The row names itself, so it reads as the market's and not as more of the
     // model's — the labelling defect item 3 was about.
-    expect(container.querySelector("[data-testid='pbar-legend']")!.textContent).toContain("market");
+    expect(panel(container).querySelector("[data-testid='pbar-legend']")!.textContent).toContain("market");
   });
 
   it("omits the row when the market carries no implied figures, as today's snapshot does not", async () => {
@@ -268,8 +289,8 @@ describe("the market row quotes the market, never the model", () => {
     // omission has to be asserted at the rendered level too — a row of unlabelled
     // dashes is the defect the labelling fixed.
     const { container } = await show({ label: "Arsenal win", side: "home_win" });
-    expect(container.querySelector("[data-testid='pbar-legend']")).toBeNull();
-    expect(container.querySelector("[data-testid='pbar-market-figures']")).toBeNull();
+    expect(panel(container).querySelector("[data-testid='pbar-legend']")).toBeNull();
+    expect(panel(container).querySelector("[data-testid='pbar-market-figures']")).toBeNull();
   });
 
   it("omits the row when implied covers only two of the three outcomes", async () => {
@@ -277,7 +298,7 @@ describe("the market row quotes the market, never the model", () => {
     // nothing above it, inviting a comparison that cannot be made.
     const fx = fixture({ home_win: edge(0.48, 0.44), away_win: edge(0.26, 0.3) });
     const { container } = await show({ label: "Arsenal win", side: "home_win" }, fx);
-    expect(container.querySelector("[data-testid='pbar-legend']")).toBeNull();
+    expect(panel(container).querySelector("[data-testid='pbar-legend']")).toBeNull();
   });
 });
 
@@ -304,15 +325,15 @@ describe("an unplaceable pick fails closed, in the accent AND in the de-emphasis
     const { container } = await show({ label: "Arsenal to win", side: "home_win" });
 
     // The accent half: no segment carries it, and nothing claims one in words.
-    expect(fills(container)).toHaveLength(3);
-    expect(accentedAt(container)).toBe(-1);
+    expect(fills(panel(container))).toHaveLength(3);
+    expect(accentedAt(panel(container))).toBe(-1);
     expect(panelImg(container)).toHaveAccessibleName("Arsenal 48%, Draw 26%, Chelsea 26%");
 
     // The dim half: every figure is at full opacity, and the count is asserted
     // as a whole so a figure that stopped rendering an opacity at all fails
     // rather than passing as "not dimmed".
-    expect(fillOpacity(container)).toEqual(["1", "1", "1"]);
-    expect(labelOpacity(container)).toEqual(["1", "1", "1"]);
+    expect(fillOpacity(panel(container))).toEqual(["1", "1", "1"]);
+    expect(labelOpacity(panel(container))).toEqual(["1", "1", "1"]);
   });
 
   it("dims the other figures once a factor IS selected, so the assertion above is not vacuous", async () => {
@@ -334,8 +355,8 @@ describe("an unplaceable pick fails closed, in the accent AND in the de-emphasis
     fireEvent.click(screen.getByTestId("factor-btts"));
 
     // The de-emphasis is live, and it is the value `dim` actually writes.
-    expect(fillOpacity(container)).toEqual(["0.4", "0.4", "0.4"]);
-    expect(labelOpacity(container)).toEqual(["0.4", "0.4", "0.4"]);
+    expect(fillOpacity(panel(container))).toEqual(["0.4", "0.4", "0.4"]);
+    expect(labelOpacity(panel(container))).toEqual(["0.4", "0.4", "0.4"]);
 
     // The row that asked for the light is the row that is pressed, and the
     // highlight is announced as well as painted.
@@ -368,7 +389,7 @@ describe("an unplaceable pick fails closed, in the accent AND in the de-emphasis
 
     // Pressing it sets nothing, so nothing is dimmed and nothing is lit.
     fireEvent.click(screen.getByTestId("factor-record"));
-    expect(fillOpacity(container)).toEqual(["1", "1", "1"]);
+    expect(fillOpacity(panel(container))).toEqual(["1", "1", "1"]);
     expect(screen.getByTestId("factor-record")).toHaveAttribute("aria-pressed", "false");
     expect(container.querySelector("[data-highlighted='true']")).toBeNull();
 
@@ -385,6 +406,7 @@ describe("the flow stands alone when the explainer is unreachable", () => {
     vi.mocked(api.fixtureDetail).mockResolvedValue(modalDetail(fixture()));
     vi.mocked(api.fixturePlayers).mockResolvedValue({ home_players: [], away_players: [] });
     vi.mocked(api.fixturePlayerReview).mockResolvedValue(null);
+    vi.mocked(api.trackRecord).mockResolvedValue(noRecordYet as never);
     render(<FixtureModal eventId="e1" onClose={() => {}} explain={explain} />);
     // The flow renders from the detail with no request: the fixture's own
     // name, the three-way probabilities, the pick.

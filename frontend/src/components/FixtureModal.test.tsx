@@ -9,6 +9,7 @@ vi.mock("../api/client", () => ({
     fixtureDetail: vi.fn(),
     fixturePlayers: vi.fn(),
     fixturePlayerReview: vi.fn(),
+    trackRecord: vi.fn(),
   },
 }));
 
@@ -44,6 +45,10 @@ function mockApi(over: Record<string, unknown> = {}) {
   vi.mocked(api.fixtureDetail).mockResolvedValue(detail);
   vi.mocked(api.fixturePlayers).mockResolvedValue({ home_players: [], away_players: [] });
   vi.mocked(api.fixturePlayerReview).mockResolvedValue(null);
+  // Unresolved on purpose: this file is about the panel and its request, and a
+  // record strip belongs to neither. The strip's own arithmetic is pinned in
+  // `FixtureModal.instant.test.tsx`.
+  vi.mocked(api.trackRecord).mockResolvedValue({ summary: { n_resolved_fixtures: 0, pct_correct_overall: null } } as never);
   Object.assign(api, over);
 }
 
@@ -118,6 +123,29 @@ describe("FixtureModal and the plain-English panel", () => {
     render(<FixtureModal eventId="e1" onClose={() => {}} />);
     expect(screen.queryByText("Writing the summary…")).not.toBeInTheDocument();
     expect(await screen.findByRole("heading", { name: /Scoreline/i })).toBeInTheDocument();
+  });
+
+  it("no longer repeats the market bars the panel already draws, and keeps the ones it does not", async () => {
+    mockApi();
+    render(<FixtureModal eventId="e1" onClose={() => {}} explain={vi.fn().mockReturnValue(new Promise(() => {}))} />);
+    await screen.findByRole("heading", { name: /Scoreline/i });
+
+    // The 1x2 block, the O/U 2.5 pair and BTTS are each carried once, by the
+    // panel's own tiles and bar above. A second copy of the same figure is not
+    // a summary of anything, and this modal is long enough already.
+    expect(screen.queryByText("Match result & goals")).toBeNull();
+    expect(screen.queryByText("Home win")).toBeNull();
+    expect(screen.queryByText("BTTS: Yes")).toBeNull();
+    expect(screen.queryByText("Total goals")).toBeNull();
+
+    // What the panel carries nothing for stays: these appear on no other row of
+    // this page, so removing the bars must not take them with it. (This
+    // fixture's shots are null, so the shots rows are absent for their own
+    // reason and are not part of what is being kept.)
+    expect(screen.getByText("Total corners")).toBeInTheDocument();
+    expect(screen.getByText("Total cards")).toBeInTheDocument();
+    expect(screen.getByText("Predicted margin")).toBeInTheDocument();
+    expect(screen.getByText("Tottenham to score 2+")).toBeInTheDocument();
   });
 });
 

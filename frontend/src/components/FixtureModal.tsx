@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Explanation } from "../predictor-ui";
 import { FixtureExplainer } from "../predictor-ui";
 import { panelFacts } from "../predictor-ui/lib/panelFacts";
-import type { FixtureDetail, FixturePlayerReview, FixturePlayers, FixturePostMatch, FixtureValueBetSnapshot } from "../types";
+import type { FixtureDetail, FixturePlayerReview, FixturePlayers, FixturePostMatch, FixtureValueBetSnapshot, TrackRecordSummary } from "../types";
 import { api } from "../api/client";
 import { TeamBadge } from "./TeamBadge";
 import { ScorelineHeatmap } from "./ScorelineHeatmap";
@@ -37,18 +37,6 @@ function americanOdds(decimalOdds: number) {
 
 function marketType(market: string) {
   return ["home_win", "draw", "away_win"].includes(market) ? "Match result" : "Goals total";
-}
-
-function highlightFor(
-  flagged: boolean,
-  postMatchHit?: boolean,
-  modelCall?: boolean
-): "flagged" | "hit" | "miss" | "modelCall" | undefined {
-  if (postMatchHit === true) return "hit";
-  if (postMatchHit === false) return "miss";
-  if (flagged) return "flagged";
-  if (modelCall) return "modelCall";
-  return undefined;
 }
 
 function OverUnderRow({ label, lam, line, over, postMatchHit, modelCall }: { label: string; lam: number; line: number; over: number; postMatchHit?: boolean; modelCall?: boolean }) {
@@ -96,16 +84,21 @@ function reportedMetric(value: number | null | undefined, label: string) {
 
 function PostMatchReview({ review }: { review: FixturePostMatch }) {
   const correct = review.verdicts.filter((verdict) => verdict.hit).length;
+  // No provenance chip here any more. The panel's instant block carries the
+  // timing once, as a badge or the quiet chip, and that is the one place a
+  // reader learns how to read every figure below it -- so this review states
+  // only what it reviewed, and the block states the timing. The paragraph that
+  // used to sit under the verdicts went with it: it claimed a rebuilt pick is
+  // "counted in the track record like any other pick", which is the opposite
+  // of what the record counts (types.ts:517-521) and of what the block says.
   return (
     <section className="rounded-xl border border-win/30 bg-win/5 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div><h3 className="text-sm font-semibold text-pl-text">Prediction review, final {review.final_score.replace("-", "–")}</h3><p className="mt-0.5 text-xs text-pl-text-dim">{correct}/{review.verdicts.length} match calls correct</p></div>
-        <span className={`rounded px-2 py-1 text-xs font-semibold uppercase ${review.provenance === "snapshot" ? "bg-win/20 text-win" : "bg-pl-700/60 text-pl-text-dim"}`}>{review.provenance === "snapshot" ? "Pre-match snapshot" : "Rebuilt after kickoff"}</span>
       </div>
       <div className="mt-3 grid gap-1.5 sm:grid-cols-2">
         {review.verdicts.map((verdict) => <div key={verdict.label} className={`flex items-center justify-between rounded-lg px-3 py-2 text-xs ${verdict.hit ? "bg-win/10 text-win" : "bg-pl-850/70 text-pl-text-dim"}`}><span className="font-semibold">{verdict.hit ? "✓" : "×"} {verdict.label}</span><span><span className="text-pl-text-faint">{verdict.prediction}</span><span className="mx-1">→</span><span>{verdict.actual}</span></span></div>)}
       </div>
-      {review.provenance === "reconstructed" && <p className="mt-2 text-xs text-pl-text-faint">Rebuilt after the match from saved inputs where available. Counted in the track record like any other pick.</p>}
     </section>
   );
 }
@@ -159,7 +152,10 @@ function PlayerCallReview({ review, loading, error }: { review: FixturePlayerRev
     return <div key={`${player.team}-${player.name}`} className={`flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-xs ${tone}`}><span className="min-w-0 font-semibold text-pl-text">{state === "hit" ? "✓" : state === "miss" ? "×" : "↑"} {player.name} <span className="font-normal text-pl-text-faint">{player.team}</span>{player.is_recommended && <span className="ml-2 rounded bg-pl-pink/20 px-1.5 py-0.5 text-xs font-semibold text-pl-pink">Recommended</span>}</span><span className={`shrink-0 text-right ${hit ? state === "longShot" ? "text-pl-blue" : "text-win" : "text-pl-text-dim"}`}><span className="block">{hit ? outcome(player) : "No goal involvement"}</span><span className="text-pl-text-faint">{signal}</span></span></div>;
   });
   return <section className="rounded-xl border border-pl-border bg-pl-850/50 p-4">
-    <div className="flex items-center justify-between gap-2"><h3 className="text-sm font-semibold text-pl-text">Player call review</h3>{review && <span className="text-xs font-semibold uppercase text-pl-text-faint">{review.provenance === "snapshot" ? "Pre-match snapshot" : "Rebuilt after kickoff"}</span>}</div>
+    {/* The heading is not a repeat: it names this block, which the instant
+        block's badge does not. The chip beside it was, so it is gone -- the
+        badge states the timing once for the whole panel. */}
+    <div className="flex items-center justify-between gap-2"><h3 className="text-sm font-semibold text-pl-text">Player call review</h3></div>
     {loading && <p className="mt-2 text-xs text-pl-text-faint">Reconstructing confirmed player calls…</p>}
     {error && <p className="mt-2 text-xs text-loss">{error}</p>}
     {!loading && !error && !review && <p className="mt-2 text-xs text-pl-text-faint">Official player outcomes are not available for this fixture yet.</p>}
@@ -175,6 +171,7 @@ export function FixtureModal({ eventId, onClose, explain, sport = "pl" }: Props)
   const [playerReview, setPlayerReview] = useState<FixturePlayerReview | null>(null);
   const [playerReviewError, setPlayerReviewError] = useState<string | null>(null);
   const [playerReviewLoading, setPlayerReviewLoading] = useState(false);
+  const [recordSummary, setRecordSummary] = useState<TrackRecordSummary | null>(null);
   const postMatchVerdict = (label: string) => detail?.post_match?.verdicts.find((verdict) => verdict.label === label);
 
   // The panel's figures, derived rather than fetched, from the SHARED adapter.
@@ -187,6 +184,30 @@ export function FixtureModal({ eventId, onClose, explain, sport = "pl" }: Props)
         : { tiles: [], segments: [], legend: [] as never[] },
     [detail],
   );
+
+  // The record strip's two numbers, read out of the track record rather than
+  // computed by this page. `RecordStrip` prints `hits/settled` and reads the
+  // proportion off the bar's width, so a percentage is never derived here: the
+  // strip exists because the facts carry two counts and no third number.
+  //
+  // Both counts come from `summary`, and the `TrackRecordSummary` comment at
+  // types.ts:517-521 is the reason this strip may call itself the record at
+  // all: that headline counts ONLY picks made before kickoff, and a pick
+  // rebuilt after the match cannot be one the model would have made on the
+  // night. So the figure the badge refuses to count is also the figure this
+  // strip does count, and the label says which.
+  //
+  // `null` until the fetch resolves, so the strip never flashes 0/0 at a
+  // record that has not arrived yet.
+  const record = useMemo(() => {
+    if (!recordSummary) return null;
+    const settled = recordSummary.n_resolved_fixtures;
+    return {
+      label: "Picks made before kickoff",
+      hits: Math.round((recordSummary.pct_correct_overall ?? 0) * settled),
+      settled,
+    };
+  }, [recordSummary]);
 
   // The flow's facts: what this modal already holds, no request. PL carries no
   // market line, so the flow says the pick and stops; the finished flow reads
@@ -201,18 +222,37 @@ export function FixtureModal({ eventId, onClose, explain, sport = "pl" }: Props)
       draw: finite(detail.draw?.prob),
       away_win: finite(detail.away_win?.prob),
     };
+    // Which side the model picked, and where that answer comes from.
+    //
+    // `predicted_result` is the summary's own label, filled in by the service.
+    // The stored review names the same three sides, and 30 of the 380 fixture
+    // details in the shipped public snapshot predate the field entirely -- so
+    // for those the review is the fallback. That is reading a side the site
+    // already prints in the review below, not inventing a pick: without it the
+    // block would answer "no pick was made" about a fixture whose own review
+    // says which side was picked, which is the contradiction this phase exists
+    // to remove.
+    const resultVerdict = detail.post_match?.verdicts.find((v) => v.label === "Match result");
+    const pickKey = detail.predicted_result || resultVerdict?.prediction;
     const pickSide =
-      detail.predicted_result === "home_win"
-        ? { label: detail.team_home, prob: probs.home_win }
-        : detail.predicted_result === "away_win"
-          ? { label: detail.team_away, prob: probs.away_win }
-          : detail.predicted_result === "draw"
-            ? { label: "Draw", prob: probs.draw }
+      pickKey === "home_win"
+        ? { key: "home_win", label: detail.team_home, prob: probs.home_win }
+        : pickKey === "away_win"
+          ? { key: "away_win", label: detail.team_away, prob: probs.away_win }
+          : pickKey === "draw"
+            ? { key: "draw", label: "Draw", prob: probs.draw }
             : undefined;
-    const wasRight = detail.post_match?.verdicts.find((v) => v.label === detail.predicted_result)?.hit;
+    // The review's `hit` flag is about ITS pick, which is the plain marginal
+    // argmax. `predicted_result` may be a different side: the scoreline model
+    // promotes a draw when it and the percentage model agree one is likely
+    // (api/schemas.py::_fill_predicted_result). When the two name different
+    // sides the flag is not about this pick, so it is dropped rather than
+    // attached to a side it does not describe.
+    const wasRight =
+      pickSide && resultVerdict && resultVerdict.prediction === pickSide.key ? resultVerdict.hit : undefined;
     const pick =
       pickSide && pickSide.prob !== undefined
-        ? { ...pickSide, ...(typeof wasRight === "boolean" ? { was_right: wasRight } : {}) }
+        ? { label: pickSide.label, prob: pickSide.prob, ...(typeof wasRight === "boolean" ? { was_right: wasRight } : {}) }
         : undefined;
     const postMatch = detail.post_match;
     const score = postMatch
@@ -226,6 +266,12 @@ export function FixtureModal({ eventId, onClose, explain, sport = "pl" }: Props)
       away_team: detail.team_away,
       home_win_prob: probs.home_win,
       away_win_prob: probs.away_win,
+      // When this pick was made, in the one vocabulary the block reads. A stored
+      // pre-match snapshot IS a pick made before kickoff, so it carries no flag
+      // and the block's quiet chip is the whole statement; a reconstructed
+      // review is a pick rebuilt after the match, which the block badges and
+      // refuses to count.
+      pick_timing: detail.post_match?.provenance === "reconstructed" ? "rebuilt" : undefined,
       pick,
       score,
       result: !score
@@ -274,6 +320,27 @@ export function FixtureModal({ eventId, onClose, explain, sport = "pl" }: Props)
     return () => { cancelled = true; };
   }, [eventId]);
 
+  // The track record is the site's, not this fixture's, so it is fetched once
+  // when the modal opens and never re-fetched as the reader moves between
+  // fixtures. One request, and it is not the explainer's: it asks for a record
+  // the site already publishes, and the block is on screen before it lands.
+  // Guarded by the same `cancelled` flag the detail fetch uses, so an unmount
+  // mid-flight cannot setState. A failure here costs one strip -- the modal is
+  // complete without it, so it says nothing rather than reporting an error
+  // about a figure the reader never asked for.
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .trackRecord()
+      .then((response) => {
+        if (!cancelled) setRecordSummary(response.summary);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
@@ -308,7 +375,7 @@ export function FixtureModal({ eventId, onClose, explain, sport = "pl" }: Props)
                 state={flowState}
                 bundle={flowBundle}
                 request={() => explain(sport, eventId)}
-                extras={{ tiles: panel.tiles, segments: panel.segments, legend: panel.legend }}
+                extras={{ tiles: panel.tiles, segments: panel.segments, legend: panel.legend, record, moment: "kickoff" }}
               />
             </div>
           )}
@@ -444,10 +511,18 @@ export function FixtureModal({ eventId, onClose, explain, sport = "pl" }: Props)
                 </div>
 
                 <div className="flex flex-col gap-6">
+                  {/* The market bars that stood here are gone, and only those.
+                      The 1x2 block is the `result` tile and the three-way bar in
+                      the instant block above, the O/U 2.5 pair is the same bar's
+                      `total goals` tile plus the goals it quotes, and BTTS is
+                      the `both score` tile -- each of those figures was on this
+                      page twice, in two different components, and the panel's
+                      own copy is the one a reader sees before spending a
+                      request. What is left here is what no tile or bar carries:
+                      the team scoring 2+, the margin, corners, cards and shots. */}
                   <section>
                     <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-pl-text-dim">
-                      Match result &amp; goals
-                      <InfoTooltip text={GLOSSARY.edge} align="right" />
+                      More model calls
                       {detail.draw_signal && (
                         <span
                           className="rounded-full bg-pl-cyan/10 px-2 py-0.5 text-xs font-semibold normal-case tracking-normal text-pl-cyan"
@@ -458,47 +533,18 @@ export function FixtureModal({ eventId, onClose, explain, sport = "pl" }: Props)
                       )}
                     </h3>
                     <div className="flex flex-col gap-1.5">
-                      {(["home_win", "draw", "away_win", "over_2_5", "under_2_5"] as const).map((k) => (
-                        <MarketBar
-                          key={k}
-                          label={MARKET_LABELS[k]}
-                          prob={detail[k].prob}
-                          marketProb={detail[k].implied}
-                          highlight={highlightFor(
-                            detail.value_bet_flags.includes(k),
-                            (() => {
-                              const verdict = postMatchVerdict(k === "home_win" || k === "draw" || k === "away_win" ? "Match result" : "Goals O/U 2.5");
-                              const selection = k === "home_win" || k === "draw" || k === "away_win" ? k : k === "over_2_5" ? "over" : "under";
-                              return verdict?.prediction === selection ? verdict.hit : undefined;
-                            })()
-                          )}
-                          valueBet={detail.value_bet_flags.includes(k)}
-                          detail={
-                            !detail.post_match && detail.recommended_bet?.market === k ? (
-                              <>
-                                Best observed price: {americanOdds(detail.recommended_bet.price)} at {detail.recommended_bet.bookmaker} ·{" "}
-                                <span className="font-mono font-semibold text-pl-cyan">
-                                  +{(detail.recommended_bet.edge * 100).toFixed(1)}%
-                                </span>{" "}
-                                edge
-                              </>
-                            ) : undefined
-                          }
-                        />
-                      ))}
-                      <MarketBar
-                        label={
-                          <span className="inline-flex items-center gap-1.5">
-                            BTTS: Yes <InfoTooltip text={GLOSSARY.btts} align="right" />
+                      {!detail.post_match && detail.recommended_bet && (
+                        <div className="flex flex-col gap-0.5 rounded-lg bg-pl-850/60 px-3 py-2 text-sm">
+                          <span className="text-pl-text-dim">Best observed price</span>
+                          <span className="font-semibold text-pl-text">
+                            {americanOdds(detail.recommended_bet.price)} at {detail.recommended_bet.bookmaker} ·{" "}
+                            <span className="font-mono font-semibold text-pl-cyan">
+                              +{(detail.recommended_bet.edge * 100).toFixed(1)}%
+                            </span>{" "}
+                            edge
                           </span>
-                        }
-                        prob={detail.btts_yes_prob}
-                        highlight={highlightFor(
-                          false,
-                          postMatchVerdict("BTTS")?.prediction === "yes" ? postMatchVerdict("BTTS")?.hit : undefined,
-                          isModelCall(detail.btts_yes_prob)
-                        )}
-                      />
+</div>
+                      )}
                       {hasNumber(detail.home_2plus_prob) && (
                         <MarketBar
                           label={
@@ -517,14 +563,6 @@ export function FixtureModal({ eventId, onClose, explain, sport = "pl" }: Props)
                             </span>
                           }
                           prob={detail.away_2plus_prob}
-                        />
-                      )}
-                      {detail.predicted_total_goals !== null && (
-                        <OverUnderRow
-                          label="Total goals"
-                          lam={detail.predicted_total_goals}
-                          line={2.5}
-                          over={detail.over_2_5.prob}
                         />
                       )}
                       {detail.predicted_margin !== null && (
