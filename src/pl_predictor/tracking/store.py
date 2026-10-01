@@ -49,6 +49,129 @@ def _naive(ts) -> pd.Timestamp:
     return ts.tz_localize(None) if ts.tzinfo is not None else ts
 
 
+def _utc_instant(value) -> pd.Timestamp | None:
+    """An ISO-8601 timestamp as a NAIVE UTC instant, or None if unreadable.
+
+    **The offset is converted, not stripped, and that is the whole point.**
+    `_naive()` above strips an offset without converting, which is right for
+    matching a source's own wall-clock column and wrong for every comparison in
+    the track-record path: 13:30 at UTC-5 is 18:30 UTC, four and a half hours
+    AFTER a 14:00 UTC kickoff, and stripping the offset compares 13:30 with
+    14:00 and calls it pre-kickoff.
+
+    So every comparison between a pick's timestamp and a fixture's kickoff goes
+    through here first, and is between two instants — never between two strings.
+    A naive value is read as UTC, which is how both columns are written
+    everywhere in this repo.
+    """
+    if value is None:
+        return None
+    try:
+        ts = pd.Timestamp(value)
+    except (TypeError, ValueError):
+        return None
+    if pd.isna(ts):
+        return None
+    if ts.tzinfo is not None:
+        ts = ts.tz_convert("UTC").tz_localize(None)
+    return ts
+
+
+def _made_before_kickoff(snapshotted_at, commence_time) -> bool:
+    """Whether this pick was made before this fixture's kickoff, from its own two
+    timestamps. DERIVED, never read from a stored flag.
+
+    `predictions.backfilled` exists and is `0` for a pick captured live, `1` for
+    one computed after the fact. It is not consulted here, and there is no
+    `made_before_kickoff` column to add: the question is when the pick was made
+    relative to the match, and `record_predictions` takes `backfilled=` as an
+    argument, so a flag is only as honest as whatever set it.
+
+    **Fails closed.** An unreadable timestamp on either side, or a missing
+    kickoff, gives False: "cannot prove it was made before kickoff" is the only
+    honest answer, and it is never a `true` the timestamps do not support. Note
+    what that withholds now — the LABEL, not the pick. Under the pre-2026-10-01
+    rule this function's answer decided whether a pick counted at all; it no
+    longer does (see `get_track_record`), so an unreadable timestamp costs a
+    pick its place in the secondary figure and nothing else.
+
+    A pick stamped exactly at kickoff is not before it: it had no chance to be
+    made on the night.
+    """
+    picked, kickoff = _utc_instant(snapshotted_at), _utc_instant(commence_time)
+    if picked is None or kickoff is None:
+        return False
+    return picked < kickoff
+
+
+def _made_before_kickoff_row(row: pd.Series) -> bool:
+    """`_made_before_kickoff` over one row, for a frame filter."""
+    return _made_before_kickoff(row.get("snapshotted_at"), row.get("commence_time"))
+
+
+def _instants(frame: pd.DataFrame) -> pd.Series:
+    """The frame's `snapshotted_at` column as UTC instants, NaT where unreadable.
+
+    A column the frame does not carry yields an all-NaT series rather than
+    raising, so `_counted_picks` and `_counted_player_picks` can share one
+    ordering even where the provenance differs — the player snapshot table has
+    no `snapshotted_at` at all (see `_counted_player_picks`).
+    """
+    if "snapshotted_at" not in frame.columns:
+        return pd.Series(pd.NaT, index=frame.index, dtype="datetime64[ns]")
+    return frame["snapshotted_at"].map(_utc_instant).astype("datetime64[ns]")
+
+
+def _counted_picks(fixtures: pd.DataFrame) -> pd.DataFrame:
+    """The fixture rows that count: one per fixture, the EARLIEST recorded.
+
+    **The counting key is the fixture.** All four graded markets (match result,
+    exact score, O/U 2.5, BTTS) live as COLUMNS on one row of
+    `_fixture_market_hit_table`, so `(fixture, market)` reduces to the fixture
+    and the four markets are read off that single counted row. This function
+    must therefore NOT collapse the row to one market — a `drop_duplicates` over
+    a column-per-market shape would delete three of the four, and the by_market
+    block would report the right keys with silently wrong n.
+
+    `_fixture_hit_table` already dedupes by `(team_home, team_away, kickoff
+    date)` keeping the earliest snapshot — two event_ids for one match is a real
+    case here (Odds API hex id vs FPL numeric when the fixture feed falls back).
+    So on today's data this function is a no-op, and it is written anyway for
+    the same reason NFL's is: a rule enforced only by an upstream `drop_duplicates`
+    (or by the table's `UNIQUE(event_id, market, outcome_name)`) stops being
+    enforced the moment the key changes, and the failure when it does is
+    invisible — the accuracy simply improves and a rerun of the model gets to
+    grade a second time.
+
+    "Earliest" is by UTC instant, so which row wins does not depend on how its
+    timestamp is spelled. An unreadable timestamp cannot be proven earliest, so
+    it sorts LAST and never displaces a row carrying a real instant; where no
+    row in a group has one, the first row encountered stands and
+    `_made_before_kickoff` fails closed on it.
+
+    Rows that lose here are NOT deleted. They stay in the table — rule 1,
+    recorded stays recorded — and they are deliberately absent from `per_pick`
+    too, so the list a reader tallies is the list that produced the headline.
+    A non-counted rerun is in the table, in no figure, and in no list: that is
+    what history is.
+    """
+    if fixtures.empty:
+        return fixtures
+    ordered = fixtures.assign(_instant=_instants(fixtures))
+    ordered = ordered.sort_values("_instant", na_position="last", kind="stable", ignore_index=True)
+    # A fixture identity, not the event_id: the same match is legitimately
+    # snapshotted under two event_ids when the fixture feed falls back from the
+    # Odds API hex id to the FPL numeric one, and two ids for one match must not
+    # be two counted picks.
+    kickoff_date = ordered["commence_time"].map(
+        lambda v: None if _utc_instant(v) is None else _utc_instant(v).date()
+    )
+    ordered = ordered.assign(_kickoff_date=kickoff_date)
+    return ordered.drop_duplicates(
+        subset=["team_home", "team_away", "_kickoff_date"], keep="first"
+    ).drop(columns=["_instant", "_kickoff_date"])
+
+
 def _connect() -> sqlite3.Connection:
     # Fixture views and the five-minute tracking task run concurrently in
     # FastAPI worker threads. A tiny default SQLite timeout turns an ordinary
@@ -730,17 +853,35 @@ def _market_reliability(fixtures: pd.DataFrame, column: str) -> dict:
 
 
 def _per_pick_rows(fixtures: pd.DataFrame) -> list[dict]:
-    """One row per resolved fixture, each labelled with whether it was rebuilt.
+    """One row per COUNTED pick, each labelled with when it was made.
 
-    This is what makes the headline auditable rather than merely asserted: a
-    row that does not say whether its pick was made in time cannot be checked
-    against the claim that only in-time picks count toward it.
+    This is what makes the headline auditable rather than merely asserted, and it
+    is what the 2026-10-01 reversal asks for: honesty moves from exclusion to
+    disclosure. Every row carries `made_before_kickoff` beside its own
+    `snapshotted_at`, so a reader can CHECK the label rather than take it — a row
+    that says only "hit: true" cannot be checked against the claim that the
+    headline counts picks made after the start.
+
+    The label is DERIVED from the row's own two timestamps compared as UTC
+    instants (`_made_before_kickoff`), never read from `backfilled` and never
+    stored, so there is nothing to be stale and nothing to backfill.
+
+    `rebuilt` is RETAINED under its published name as the exact negation,
+    because a site may read it. It no longer means "not counted" — under the
+    reversal a rebuilt pick IS counted — so `made_before_kickoff` is the field
+    for anything a reader is meant to understand, and the two cannot disagree
+    because one is computed from the other.
+
+    Counted picks only, so a reader tallying this list arrives at the headline. A
+    non-counted rerun is in the table as history and in neither figure nor list.
     """
     if fixtures.empty:
         return []
     rows = []
     for _, r in fixtures.iterrows():
         ct = r.get("commence_time")
+        snap = r.get("snapshotted_at")
+        made_before_kickoff = _made_before_kickoff(snap, ct)
         rows.append({
             "event_id": r.get("event_id"),
             "team_home": r.get("team_home"),
@@ -748,18 +889,30 @@ def _per_pick_rows(fixtures: pd.DataFrame) -> list[dict]:
             "commence_time": ct.isoformat() if hasattr(ct, "isoformat") else ct,
             "gameweek": int(r["gameweek"]) if pd.notna(r.get("gameweek")) else None,
             "hit": bool(r["hit"]) if pd.notna(r.get("hit")) else None,
-            "rebuilt": bool(r.get("backfilled")) if pd.notna(r.get("backfilled")) else False,
+            # The disclosure, derived and never stored.
+            "made_before_kickoff": made_before_kickoff,
+            # The time the pick was made, so the label above can be checked.
+            "snapshotted_at": snap.isoformat() if hasattr(snap, "isoformat") else snap,
+            # Retained name, now meaning "made at or after kickoff" and nothing
+            # more: this pick is still counted.
+            "rebuilt": not made_before_kickoff,
         })
     return rows
 
 
 def _all_picks_record(fixtures: pd.DataFrame) -> dict:
-    """The same rates over EVERY resolved pick, rebuilt included.
+    """The same rates over EVERY COUNTED pick.
 
-    Deliberately the unfiltered frame, and deliberately beside the headline
-    rather than replacing it. B8 is about what the headline is allowed to claim,
-    not about hiding the picks it no longer counts: a reader who wants the mixed
-    number can have it, labelled, instead of being shown it as the honest one.
+    **Kept under its published name, and it still means what it always meant:
+    every pick.** Before the 2026-10-01 reversal the headline excluded picks
+    recorded after their own kickoff, so this was the wider figure beside it. The
+    reversal makes the HEADLINE the wider figure instead, and this key is what a
+    site that already reads it gets. It is kept rather than renamed so no consumer
+    breaks, and kept rather than deleted so a consumer reading `all_picks` is not
+    silently pointed at a subset it believes is the whole record.
+
+    Its `n_resolved` therefore now equals the headline's rather than exceeding it.
+    The pre-kickoff figure a reader wants is `pre_kickoff`.
     """
     if fixtures.empty:
         return {"n_resolved": 0, "pct_correct": None, "by_market": {
@@ -780,59 +933,104 @@ def _all_picks_record(fixtures: pd.DataFrame) -> dict:
     }
 
 
-def get_track_record() -> dict:
-    all_fixtures = _fixture_market_hit_table()
-    n_rebuilt = int(all_fixtures["backfilled"].sum()) if not all_fixtures.empty else 0
+def _summarize_fixtures(fixtures: pd.DataFrame) -> dict:
+    """The rate block over exactly the rows handed in: n, the headline rate, and
+    the four per-market breakouts.
 
-    # B8: the headline is pre-kickoff picks only.
-    #
-    # The live payload said n_resolved 50, n_rebuilt 50, pct_correct 0.52 — a
-    # headline computed entirely from picks rebuilt after kickoff, carrying the
-    # look-forward bias this product exists to avoid. NFL already ships this
-    # split (NFL#23 / Sports#13) and PL did not, so the two sites were reporting
-    # the same idea under different rules.
-    #
-    # Two populations, and the order matters: `all_picks` and `per_pick` are
-    # built from the UNFILTERED frame BEFORE it is narrowed, so scoping the
-    # headline cannot also delete the rebuilt picks from the record. A headline
-    # with nothing beside it would satisfy the letter of the ruling by hiding
-    # everything, which is the opposite of it.
-    all_picks = _all_picks_record(all_fixtures)
-    per_pick = _per_pick_rows(all_fixtures)
-    fixtures = all_fixtures[~all_fixtures["backfilled"].astype(bool)] \
-        if not all_fixtures.empty else all_fixtures
-    # current_gameweek is a navigation anchor (routes._resolve_current_gameweek,
-    # public_snapshot's default view), not a rate: it follows every resolved
-    # fixture, rebuilt or not.
-    all_with_gw = all_fixtures[all_fixtures["gameweek"].notna()] if not all_fixtures.empty else all_fixtures
-    current_gameweek = int(all_with_gw["gameweek"].max()) if not all_with_gw.empty else None
+    Split out so the headline and `pre_kickoff` are the SAME summariser over two
+    frames rather than two blocks of arithmetic that can drift apart. The
+    secondary figure's `n` is then equal to the count of counted picks whose own
+    timestamps prove they were made before kickoff, by construction rather than
+    by agreement.
+    """
+    empty = {
+        "exact_score": {"pct_correct": None, "n_resolved": 0},
+        "match_result": {"pct_correct": None, "n_resolved": 0},
+        "over_under_2_5": {"pct_correct": None, "n_resolved": 0},
+        "btts": {"pct_correct": None, "n_resolved": 0},
+    }
     if fixtures.empty:
-        return {
-            "n_resolved_fixtures": 0,
-            "n_rebuilt_fixtures": n_rebuilt,
-            "pct_correct_overall": None,
-            "current_gameweek": current_gameweek,
-            "pct_correct_current_gameweek": None,
-            "n_fixtures_current_gameweek": 0,
-            "gameweek_trend": [],
-            "by_market": {
-                "exact_score": {"pct_correct": None, "n_resolved": 0},
-                "match_result": {"pct_correct": None, "n_resolved": 0},
-                "over_under_2_5": {"pct_correct": None, "n_resolved": 0},
-                "btts": {"pct_correct": None, "n_resolved": 0},
-            },
-            "all_picks": all_picks,
-            "per_pick": per_pick,
-        }
+        return {"n_resolved_fixtures": 0, "pct_correct_overall": None, "by_market": empty}
+    return {
+        "n_resolved_fixtures": int(len(fixtures)),
+        "pct_correct_overall": float(fixtures["hit"].mean()),
+        "by_market": {
+            "exact_score": _market_reliability(fixtures, "exact_score_hit"),
+            "match_result": _market_reliability(fixtures, "hit"),
+            "over_under_2_5": _market_reliability(fixtures, "over_under_hit"),
+            "btts": _market_reliability(fixtures, "btts_hit"),
+        },
+    }
 
-    n_resolved = int(len(fixtures))
-    # `None`, not 0.0: this is the state the live site is actually in — every
-    # stored pick rebuilt — and a rate over zero picks is a claim about
-    # accuracy with nothing behind it. The frontend renders null as "no
-    # pre-kickoff picks yet", which is the truth.
-    pct_correct_overall = float(fixtures["hit"].mean()) if n_resolved else None
 
-    with_gw = fixtures[fixtures["gameweek"].notna()]
+def get_track_record() -> dict:
+    """The track record: every COUNTED pick in the headline, the made-before-
+    kickoff subset beside it.
+
+    **This reverses the pre-2026-10-01 rule, under which the headline was the
+    pre-kickoff record and a pick recorded after its own kickoff never counted
+    toward it.** Kevin's reason, and it is the right one: the models are re-run
+    constantly, so under the old rule a re-run on an already-played game stopped
+    counting and the record emptied out on every model change. PL's shipped
+    headline was empty for exactly that reason — `n_resolved_fixtures: 0,
+    n_rebuilt_fixtures: 50, pct_correct_overall: null` — while 50 graded picks
+    sat in the same payload under `all_picks`.
+
+    Three consequences, stated so a reader is never misled about what the
+    headline is:
+
+    - **A recorded pick is never re-scored.** One counted pick per fixture
+      (`_counted_picks`), the EARLIEST recorded one. A later rerun is kept in
+      the table as history; it neither displaces the counted pick nor counts a
+      second time, because re-running until the model is right would otherwise
+      be free.
+    - **`pre_kickoff` is the honest read of live performance**, and it is the
+      figure to quote for what the model would have done on the night. It is the
+      same summariser (`_summarize_fixtures`) over the counted picks whose own
+      timestamps prove they were made before kickoff, so its `n` is the exact
+      size of that subset rather than a figure reconciled by hand.
+    - **Counting a late pick is a known, accepted cost.** A model fitted on data
+      that includes the result can look better than it would have on the night.
+      That is why both figures are published together, and why
+      `n_rebuilt_fixtures` is still reported: the difference between the headline
+      and `pre_kickoff` is exactly the size of the inflation.
+
+    `n_rebuilt_fixtures` is RETAINED and now counts counted picks made at or
+    after their own kickoff. It used to mean "excluded from the headline"; it no
+    longer does, and `n_resolved_fixtures == pre_kickoff.n_resolved_fixtures +
+    n_rebuilt_fixtures` holds.
+
+    `all_picks` is RETAINED under its published name and still means every
+    counted pick, which is now the same population as the headline. It is not
+    renamed to `pre_kickoff` and not deleted, so no consumer breaks and none is
+    silently pointed at a subset it believes is the whole record.
+
+    **The counting key is per record type, not one key.** Fixture-level markets
+    (result, exact score, O/U 2.5, BTTS) are keyed `(fixture, market)`, which
+    reduces to the fixture because all four live as columns on one row. Player
+    picks are keyed `(fixture, player_id, market)` — many players share a
+    market, so collapsing a pick to game level deletes the player record — and
+    they are graded by a separate entry point, `get_scorer_accuracy`. See
+    `_counted_picks` and `_counted_player_picks`.
+    """
+    resolved = _fixture_market_hit_table()
+
+    # One counted pick per fixture, the earliest recorded; losers stay in the
+    # table as history.
+    counted = _counted_picks(resolved)
+    # The secondary figure: of the counted picks, the ones whose own timestamps
+    # prove they were made before their fixture's kickoff. Its n is therefore
+    # exactly the size of that subset.
+    pre = counted[counted.apply(_made_before_kickoff_row, axis=1)] if not counted.empty else counted
+    n_rebuilt = int(len(counted) - len(pre))
+
+    summary = _summarize_fixtures(counted)
+
+    # current_gameweek is a navigation anchor (routes._resolve_current_gameweek,
+    # public_snapshot's default view), not a rate: it follows every counted
+    # fixture, whenever it was made.
+    with_gw = counted[counted["gameweek"].notna()] if not counted.empty else counted
+    current_gameweek = int(with_gw["gameweek"].max()) if not with_gw.empty else None
     this_gw = with_gw[with_gw["gameweek"] == current_gameweek] if current_gameweek is not None else with_gw.iloc[0:0]
     if not this_gw.empty:
         pct_correct_current_gameweek = float(this_gw["hit"].mean())
@@ -850,21 +1048,15 @@ def get_track_record() -> dict:
         ]
 
     return {
-        "n_resolved_fixtures": n_resolved,
+        **summary,
         "n_rebuilt_fixtures": n_rebuilt,
-        "pct_correct_overall": pct_correct_overall,
         "current_gameweek": current_gameweek,
         "pct_correct_current_gameweek": pct_correct_current_gameweek,
         "n_fixtures_current_gameweek": n_fixtures_current_gameweek,
         "gameweek_trend": gameweek_trend,
-        "by_market": {
-            "exact_score": _market_reliability(fixtures, "exact_score_hit"),
-            "match_result": _market_reliability(fixtures, "hit"),
-            "over_under_2_5": _market_reliability(fixtures, "over_under_hit"),
-            "btts": _market_reliability(fixtures, "btts_hit"),
-        },
-        "all_picks": all_picks,
-        "per_pick": per_pick,
+        "pre_kickoff": {**_summarize_fixtures(pre), "n_rebuilt_fixtures": 0},
+        "all_picks": _all_picks_record(counted),
+        "per_pick": _per_pick_rows(counted),
     }
 
 
@@ -1343,8 +1535,54 @@ def get_fixture_player_review(event_id: str) -> dict | None:
     }
 
 
+def _counted_player_picks(resolved: pd.DataFrame) -> pd.DataFrame:
+    """The player rows that count: one per `(fixture, player_id, market)`, the
+    EARLIEST recorded.
+
+    **This is a DIFFERENT counting key from `_counted_picks`, and the difference
+    is not cosmetic.** The decision doc's "(game, market)" is destructive here:
+    many players share a market in one fixture, so a pick keyed on the game alone
+    keeps one player per market and DELETES the rest of the player record
+    outright — not mis-measures it, removes it. So player picks are keyed
+    `(fixture, player_id, market)` and counted here, in their own function,
+    rather than sharing the fixture frame's key.
+
+    `player_prediction_snapshots` has PRIMARY KEY `(event_id, player_id)` and
+    carries all three player markets (goal, assist, G+A) as COLUMNS, so as with
+    fixtures the market reduces to the row and the row must not be collapsed to
+    one market.
+
+    The table has no `snapshotted_at` column — provenance is recorded as
+    `snapshot` vs `reconstructed` instead — so "earliest" is a no-op there today
+    and the sort is stable, which keeps the first row encountered. It is written
+    anyway because a rule enforced only by a primary key stops being enforced the
+    moment the key changes, and a re-keyed or restored history is exactly the case
+    where a player pick would be graded twice.
+    """
+    if resolved.empty:
+        return resolved
+    ordered = resolved.assign(_instant=_instants(resolved))
+    ordered = ordered.sort_values("_instant", na_position="last", kind="stable", ignore_index=True)
+    return ordered.drop_duplicates(
+        subset=["event_id", "player_id", "market"], keep="first"
+    ).drop(columns=["_instant"])
+
+
 def get_scorer_accuracy() -> dict:
-    """Accuracy and calibration for confirmed-starter scorer probabilities."""
+    """Accuracy and calibration for confirmed-starter scorer probabilities.
+
+    **Counted on its own key, `(fixture, player_id, market)`** — see
+    `_counted_player_picks`. This grader mixes player picks into one summariser
+    where the fixture grader does not, and the two must not share a counting key:
+    many players share a market in one fixture, so keying a player pick by game
+    would keep one player per market and delete the rest of the record.
+
+    Deliberately NOT relaxed the way the track record was: the `snapshot` vs
+    `reconstructed` split here is a statement about how the probability was
+    produced, and this is a calibration view the scorer list reads, not the track
+    record headline. The track-record reversal is a change to what the RECORD
+    counts; carrying it here would be a second change wearing its clothes.
+    """
     with _connect() as conn:
         rows = pd.read_sql("SELECT * FROM player_prediction_snapshots WHERE resolved = 1", conn)
     result = {"snapshot": _scorer_accuracy_group(rows[rows["provenance"] == "snapshot"]), "reconstructed": _scorer_accuracy_group(rows[rows["provenance"] == "reconstructed"])} if not rows.empty else {"snapshot": _scorer_accuracy_group(rows), "reconstructed": _scorer_accuracy_group(rows)}

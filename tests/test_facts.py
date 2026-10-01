@@ -126,9 +126,17 @@ def api(monkeypatch):
     monkeypatch.setattr(facts_mod, "PUBLIC_MODE", True)
     monkeypatch.setattr(facts_mod, "_now", lambda: NOW)
     monkeypatch.setattr(facts_mod, "_snapshot", lambda: _snapshot())
+    # The headline is every counted pick; `pre_kickoff` is the made-before-kickoff
+    # subset. `facts._record()` reads `pre_kickoff`, because its block is labelled
+    # "Picks made before kick-off" and reading the headline would mislabel the 38
+    # picks made after the start. Given different numbers on purpose — see
+    # `test_facts_record_reads_pre_kickoff.py` for that assertion in isolation.
     monkeypatch.setattr(
         facts_mod.routes.tracking_store, "get_track_record",
-        lambda: {"n_resolved_fixtures": 50, "pct_correct_overall": 0.56, "n_rebuilt_fixtures": 4},
+        lambda: {
+            "n_resolved_fixtures": 50, "pct_correct_overall": 0.56, "n_rebuilt_fixtures": 38,
+            "pre_kickoff": {"n_resolved_fixtures": 12, "pct_correct_overall": 0.5},
+        },
     )
     return TestClient(app)
 
@@ -219,9 +227,16 @@ def test_players_are_the_top_three_scorers(api, monkeypatch):
 
 
 def test_record_reports_pre_kickoff_hits_over_settled(api):
+    """6 of 12 — the pre-kickoff subset, NOT the headline's 28 of 50.
+
+    The block's label is a claim, so the figure has to be the one the label
+    describes. Reversed on 2026-10-01, when the headline stopped being the
+    pre-kickoff subset and became every recorded pick; this block's meaning did
+    not change with it.
+    """
     body = api.get(f"/facts/{EVENT_ID}").json()
 
-    assert body["record"] == {"label": "Picks made before kick-off", "hits": 28, "settled": 50}
+    assert body["record"] == {"label": "Picks made before kick-off", "hits": 6, "settled": 12}
 
 
 def test_drivers_carry_recent_form_when_the_detail_has_it(api):

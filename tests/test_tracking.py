@@ -1,5 +1,7 @@
 """Round-trip check for the live prediction track record store."""
 
+import sqlite3
+
 import pandas as pd
 import penaltyblog as pb
 import pytest
@@ -333,18 +335,20 @@ def test_backfill_missing_predictions(clean_db):
     home_goals, away_goals = row["predicted_scoreline"].split("-")
     assert int(home_goals) > int(away_goals)
 
-    # A backfilled (rebuilt after kickoff) pick counts toward the track
-    # record's rates like any other resolved pick (score-everything rule).
+    # A pick recorded after its own kickoff counts toward the track record like
+    # any other recorded pick (2026-10-01 reversal). It was excluded from the
+    # headline until then, which is why PL shipped a null headline over graded
+    # picks — and why a record kept emptying out on every model change.
     record = store.get_track_record()
     assert record["current_gameweek"] is None
-    # This fixture was BACKFILLED — the whole point of the test — so under B8
-    # it cannot carry the headline. What it did produce is checked below and in
-    # `all_picks`; the backfill mechanics this test exists for are untouched.
-    assert record["pct_correct_overall"] is None  # backfilled: no pre-kickoff pick
-    assert record["n_rebuilt_fixtures"] == 1
-    assert record["n_resolved_fixtures"] == 0, "the headline count is pre-kickoff picks only"
-    assert record["all_picks"]["n_resolved"] == 1, "and the pick is still counted there"
-    assert record["n_rebuilt_fixtures"] == 1
+    assert record["pct_correct_overall"] == pytest.approx(1.0)
+    assert record["n_resolved_fixtures"] == 1
+    assert record["n_rebuilt_fixtures"] == 1, "retained: this one was made after its kickoff"
+    assert record["all_picks"]["n_resolved"] == 1
+    # The pre-kickoff subset is where the absence is reported. The backfill
+    # mechanics this test exists for are untouched either way.
+    assert record["pre_kickoff"]["n_resolved_fixtures"] == 0
+    assert record["pre_kickoff"]["pct_correct_overall"] is None
 
 
 def test_backfill_missing_gameweeks_repairs_null_gameweek_rows(clean_db):
@@ -573,6 +577,15 @@ def test_by_market_track_record_agrees_with_single_fixture_review_on_every_marke
 
 
 def _one_fixture(event_id, home, away, gameweek=1):
+    """A fixture in 2020, so `record_predictions` stamps `snapshotted_at = now`
+    — which is AFTER its kickoff. Under the 2026-10-01 rule that makes every
+    pick written through this helper a pick made after kickoff, whatever the
+    `backfilled=` argument says.
+
+    Which is the point: `made_before_kickoff` is derived from the timestamps, not
+    read from the flag. `_one_fixture_upcoming` is the same fixture with a
+    kickoff in the future, for the tests that need a genuinely in-time pick.
+    """
     return pd.DataFrame([{
         "event_id": event_id, "team_home": home, "team_away": away,
         "commence_time": pd.Timestamp("2020-01-01T15:00:00Z"), "home_win_prob": 0.6,
@@ -581,9 +594,46 @@ def _one_fixture(event_id, home, away, gameweek=1):
     }])
 
 
-def test_track_record_scores_rebuilt_picks_in_every_rate(clean_db):
-    store.record_predictions(_one_fixture("live", "Arsenal", "Chelsea"))
-    store.record_predictions(_one_fixture("rebuilt", "Spurs", "Villa"), backfilled=True)
+def _recorded_in_time(event_id, home, away, gameweek=1):
+    """A fixture recorded as a pick made BEFORE its own kickoff.
+
+    `record_predictions` stamps `snapshotted_at = now`, and every fixture here
+    kicked off in 2020 — so a pick written through it is always a pick made after
+    kickoff, whatever the `backfilled` argument says. That is the derivation
+    working, not a limitation of the test, and the flag is never read.
+
+    An in-time pick is therefore staged the way one actually gets in: write the
+    row, then move its `snapshotted_at` back before its own kickoff — which is
+    what the scheduled CI snapshot job produces for a fixture it captured early.
+    Done with SQL rather than a helper so it is obvious this is staging the
+    stored timestamp, not asking the code under test to change it.
+    """
+    store.record_predictions(_one_fixture(event_id, home, away, gameweek=gameweek))
+    with sqlite3.connect(str(store.TRACKING_DB_PATH)) as conn:
+        conn.execute(
+            "UPDATE predictions SET snapshotted_at = ? WHERE event_id = ?",
+            ("2019-12-31T09:00:00+00:00", event_id),
+        )
+    return event_id
+
+
+def test_track_record_counts_a_pick_made_after_kickoff_in_every_rate(clean_db):
+    """The headline counts BOTH picks, and the pre-kickoff subset is beside it.
+
+    Reversed on 2026-10-01. This asserted the opposite — the headline was the
+    in-time pick's 0/1 alone and the later pick was excluded from it — which is
+    the rule that emptied the record: the models are re-run constantly, so a
+    re-run on an already-played game stopped counting, and the headline went null
+    on every model change.
+
+    Both picks are graded here (a miss and a hit), so the headline can only be
+    the mixed 0.5. Which of the two was made in time is decided by TIMESTAMPS —
+    one row's `snapshotted_at` is moved back before its kickoff — and the
+    `backfilled` flag is left at its default on both, so nothing here can pass by
+    reading it.
+    """
+    _recorded_in_time("in-time", "Arsenal", "Chelsea")
+    store.record_predictions(_one_fixture("late", "Spurs", "Villa"))
     store.reconcile_predictions(pd.DataFrame([
         {"team_home": "Arsenal", "team_away": "Chelsea", "date": pd.Timestamp("2020-01-01"), "goals_home": 0, "goals_away": 1, "ftr": "A"},
         {"team_home": "Spurs", "team_away": "Villa", "date": pd.Timestamp("2020-01-01"), "goals_home": 2, "goals_away": 0, "ftr": "H"},
@@ -591,24 +641,26 @@ def test_track_record_scores_rebuilt_picks_in_every_rate(clean_db):
 
     record = store.get_track_record()
 
-    # B8: the rebuilt pick is excluded from the headline, so this is the live
-    # pick's miss alone (0/1) rather than the mixed 0.5. It was 0.5 before, and
-    # the comment said why — that is the rule this change reverses.
-    assert record["n_resolved_fixtures"] == 1
-    assert record["n_rebuilt_fixtures"] == 1
-    assert record["pct_correct_overall"] == 0.0
-    assert record["all_picks"]["n_resolved"] == 2, "both picks still counted in all_picks"
+    assert record["n_resolved_fixtures"] == 2, "the headline counts every recorded pick"
+    assert record["n_rebuilt_fixtures"] == 1, "retained: the one made at/after its own kickoff"
+    assert record["pct_correct_overall"] == 0.5  # 1 hit of 2
+    # And the honest live read is beside it, with its own n: the in-time pick's
+    # 0/1. This is the pair the reversal produces, and the gap between them is
+    # exactly the size of the late-pick contribution.
+    assert record["pre_kickoff"]["n_resolved_fixtures"] == 1
+    assert record["pre_kickoff"]["pct_correct_overall"] == 0.0
+    assert record["all_picks"]["n_resolved"] == 2, "all_picks keeps its published meaning"
     assert record["all_picks"]["pct_correct"] == 0.5
 
 
-def test_track_record_with_only_rebuilt_picks_reports_no_headline_rate(clean_db):
-    """Was: "..._reports_a_rate", asserting 1.0 over a single rebuilt pick.
+def test_track_record_with_only_late_picks_reports_a_headline_rate(clean_db):
+    """Was: "..._reports_no_headline_rate", asserting `None` over a rebuilt pick.
 
-    Under B8 the headline cannot be 1.0 here — that pick was made after
-    kickoff, so it is not a claim about what the model would have said. The
-    rate itself moves to `all_picks`, where it is still visible and still
-    labelled, and the per-gameweek grouping is untouched because it is a
-    record rather than a score.
+    That `None` is the shipped bug: a graded, correct pick contributing nothing
+    to the record because it was captured after the fact. The headline is now
+    1.0 over that pick, and `pre_kickoff` is where the absence is reported — as
+    a null rate over zero picks, which is an absence rather than a score of
+    nought.
     """
     store.record_predictions(_one_fixture("rebuilt", "Spurs", "Villa"), backfilled=True)
     store.reconcile_predictions(pd.DataFrame([
@@ -618,12 +670,13 @@ def test_track_record_with_only_rebuilt_picks_reports_no_headline_rate(clean_db)
     record = store.get_track_record()
     groups = store.get_results_by_gameweek()
 
-    assert record["pct_correct_overall"] is None, (
-        "a headline over zero pre-kickoff picks is an absence, not 100%"
-    )
-    assert record["n_resolved_fixtures"] == 0
+    assert record["n_resolved_fixtures"] == 1
+    assert record["pct_correct_overall"] == pytest.approx(1.0)
     assert record["n_rebuilt_fixtures"] == 1
-    # Not hidden: the rate is still reported, just not as the headline.
+    assert record["pre_kickoff"]["n_resolved_fixtures"] == 0
+    assert record["pre_kickoff"]["pct_correct_overall"] is None, (
+        "a rate over zero picks made in time is an absence, not 0% and not the headline's 100%"
+    )
     assert record["all_picks"]["n_resolved"] == 1
     assert record["all_picks"]["pct_correct"] == pytest.approx(1.0)
     assert groups[0]["pct_correct"] == pytest.approx(1.0)
@@ -632,17 +685,18 @@ def test_track_record_with_only_rebuilt_picks_reports_no_headline_rate(clean_db)
     assert len(groups[0]["fixtures"]) == 1
 
 
-def test_current_gameweek_still_tracks_the_latest_gameweek_when_it_is_all_rebuilt(clean_db):
-    """current_gameweek anchors navigation (routes._resolve_current_gameweek,
-    public_snapshot's default view), so a rebuilt pick must still move it.
+def test_current_gameweek_tracks_the_latest_gameweek_and_its_rate_follows_it(clean_db):
+    """The anchor AND the number beside it, both over every counted pick.
 
-    It must NOT move the RATE with it. Those were one rule here ("score
-    everything") and are two under B8: the anchor follows every resolved
-    fixture, the headline follows only the pre-kickoff ones. The docstring
-    previously said so explicitly and has been narrowed to match.
+    `current_gameweek` anchors navigation (routes._resolve_current_gameweek,
+    public_snapshot's default view), so a pick made after kickoff must move it.
+    Under B8 it did not move the rate with it — that split is what this reversal
+    undoes: scoping the gameweek tile to the pre-kickoff subset while the
+    headline counted everything would have shown two different populations under
+    one page's heading.
     """
-    store.record_predictions(_one_fixture("live", "Arsenal", "Chelsea", gameweek=4))
-    store.record_predictions(_one_fixture("rebuilt", "Spurs", "Villa", gameweek=5), backfilled=True)
+    _recorded_in_time("in-time", "Arsenal", "Chelsea", gameweek=4)
+    store.record_predictions(_one_fixture("late", "Spurs", "Villa", gameweek=5))
     store.reconcile_predictions(pd.DataFrame([
         {"team_home": "Arsenal", "team_away": "Chelsea", "date": pd.Timestamp("2020-01-01"), "goals_home": 1, "goals_away": 0, "ftr": "H", "matchday": 4},
         {"team_home": "Spurs", "team_away": "Villa", "date": pd.Timestamp("2020-01-01"), "goals_home": 2, "goals_away": 0, "ftr": "H", "matchday": 5},
@@ -650,14 +704,14 @@ def test_current_gameweek_still_tracks_the_latest_gameweek_when_it_is_all_rebuil
 
     record = store.get_track_record()
 
-    assert record["current_gameweek"] == 5, "the anchor still follows every resolved fixture"
-    # Gameweek 5 holds only a rebuilt pick, so it has no pre-kickoff rate. The
-    # anchor moves; the number beside it does not follow.
-    assert record["pct_correct_current_gameweek"] is None
-    assert record["n_fixtures_current_gameweek"] == 0
-    assert record["pct_correct_overall"] == 1.0, (
-        "gameweek 4's live pick is a hit and IS pre-kickoff, so the overall headline is 100%"
-    )
+    assert record["current_gameweek"] == 5, "the anchor follows every counted fixture"
+    # Gameweek 5 holds only a pick made after its kickoff, and it is a hit, so
+    # the tile reports it like any other.
+    assert record["pct_correct_current_gameweek"] == 1.0
+    assert record["n_fixtures_current_gameweek"] == 1
+    assert record["pct_correct_overall"] == 1.0, "both gameweeks' picks are hits"
+    assert record["n_resolved_fixtures"] == 2
+    assert record["pre_kickoff"]["n_resolved_fixtures"] == 1, "only gameweek 4's pick was in time"
 
 
 def test_current_gameweek_is_set_even_when_every_pick_is_rebuilt(clean_db):
@@ -694,18 +748,19 @@ def test_overall_pct_can_never_disagree_with_the_match_result_market(clean_db, t
     two contradicting percentages with no test failing. This is the invariant
     that makes such an edit impossible to merge silently.
 
-    Asserted over a mixed fixture set — two live picks (one hit, one miss) and
-    two rebuilt — because the mixed set is where a filter disagreement shows
-    up. Under B8 the headline and the match-result card are both drawn from the
-    PRE-KICKOFF subset (2 fixtures, 1 hit = 0.5) while `all_picks` covers all
-    four, so the invariant now also has to hold between the scoped pair and the
-    unscoped one. That is the harder form of the check and the reason the
-    fixture is kept.
+    Asserted over a mixed fixture set — two picks captured in time (one hit, one
+    miss) and two made after kickoff — because the mixed set is where a filter
+    disagreement shows up. Since the 2026-10-01 reversal the headline and the
+    match-result card are both drawn from EVERY counted pick (4 fixtures, 2 hits
+    = 0.5), and `pre_kickoff` carries its own pair over the in-time subset. The
+    invariant has to hold within each of those blocks; what it no longer has to
+    do is hold ACROSS them, because they are different populations on purpose and
+    the page labels them differently.
     """
-    store.record_predictions(_one_fixture("live-hit", "Arsenal", "Chelsea"))
-    store.record_predictions(_one_fixture("live-miss", "Spurs", "Villa"))
-    store.record_predictions(_one_fixture("rebuilt-hit", "Everton", "Ipswich"), backfilled=True)
-    store.record_predictions(_one_fixture("rebuilt-miss", "Brighton", "Arsenal"), backfilled=True)
+    _recorded_in_time("in-time-hit", "Arsenal", "Chelsea")
+    _recorded_in_time("in-time-miss", "Spurs", "Villa")
+    store.record_predictions(_one_fixture("late-hit", "Everton", "Ipswich"))
+    store.record_predictions(_one_fixture("late-miss", "Brighton", "Arsenal"))
     store.reconcile_predictions(pd.DataFrame([
         {"team_home": "Arsenal", "team_away": "Chelsea", "date": pd.Timestamp("2020-01-01"), "goals_home": 1, "goals_away": 0, "ftr": "H"},
         {"team_home": "Spurs", "team_away": "Villa", "date": pd.Timestamp("2020-01-01"), "goals_home": 0, "goals_away": 2, "ftr": "A"},
@@ -716,25 +771,30 @@ def test_overall_pct_can_never_disagree_with_the_match_result_market(clean_db, t
     record = store.get_track_record()
     match_result = record["by_market"]["match_result"]
 
-    # The mixed set exercises the rule: rebuilt picks are present and resolved,
-    # and the scoped pair must agree with each other while the unscoped figure
-    # covers all four. 1 hit of 2 pre-kickoff = 0.5; 2 hits of 4 = 0.5 too, so
-    # the two rates coincide here by construction — the COUNTS are what
-    # distinguish them, and both are asserted.
+    # The mixed set exercises the rule: picks made after kickoff are present and
+    # resolved, so the headline and the card must agree over ALL FOUR. 2 hits of
+    # 4 = 0.5. The in-time subset gets its own pair over its own 2.
     assert record["n_rebuilt_fixtures"] == 2
-    assert record["n_resolved_fixtures"] == 2, "the headline counts pre-kickoff picks only"
-    assert record["pct_correct_overall"] == pytest.approx(0.5)  # 1 hit of 2
+    assert record["n_resolved_fixtures"] == 4, "the headline counts every recorded pick"
+    assert record["pct_correct_overall"] == pytest.approx(0.5)  # 2 hits of 4
     assert match_result["n_resolved"] == record["n_resolved_fixtures"]
     assert match_result["pct_correct"] == pytest.approx(record["pct_correct_overall"])
-    # And the unscoped pair agrees with itself over the full set.
+    # `all_picks` keeps its published meaning (every pick), so it is the same
+    # population as the headline rather than a wider one.
     assert record["all_picks"]["n_resolved"] == 4
-    assert record["all_picks"]["pct_correct"] == pytest.approx(0.5)  # 2 hits of 4
+    assert record["all_picks"]["pct_correct"] == pytest.approx(0.5)
+    # And the pre-kickoff block is internally consistent too: 1 hit of 2.
+    pre = record["pre_kickoff"]
+    assert pre["n_resolved_fixtures"] == 2
+    assert pre["pct_correct_overall"] == pytest.approx(0.5)
+    assert pre["by_market"]["match_result"]["n_resolved"] == 2
+    assert pre["by_market"]["match_result"]["pct_correct"] == pytest.approx(0.5)
 
-    # And when only rebuilt picks exist, the scoped pair must BOTH deny that a
-    # rate exists — under B8 they are empty, so "one reports 0.0 and the other
-    # reports None" is the failure this half is now guarding against. The
-    # unscoped `all_picks` still reports the real 0.0. A separate store,
-    # because the two live picks above are still in this one.
+    # And when only late picks exist, the pair must still agree — both reporting
+    # the real rate now, with `pre_kickoff` the pair that is empty. The failure
+    # guarded against is unchanged ("one reports 0.0 and the other reports
+    # None"), it just moved to the other block. A separate store, because the
+    # four picks above are still in this one.
     rebuilt_only = tmp_path / "rebuilt_only.db"
     original_db = store.TRACKING_DB_PATH
     store.TRACKING_DB_PATH = rebuilt_only
@@ -748,12 +808,16 @@ def test_overall_pct_can_never_disagree_with_the_match_result_market(clean_db, t
     finally:
         store.TRACKING_DB_PATH = original_db
 
-    # The Leeds draw was a rebuilt-only miss: 0.0 over the full set, and no
-    # headline at all, because a rate over zero pre-kickoff picks is an absence
-    # rather than a score of nought.
-    assert rebuilt_record["pct_correct_overall"] is None
-    assert rebuilt_record["by_market"]["match_result"]["pct_correct"] is None
-    assert rebuilt_record["by_market"]["match_result"]["n_resolved"] == 0
-    # The unscoped figures still carry it, so the pick is not hidden.
+    # The Leeds draw was a pick made after its own kickoff, and a miss: 0.0 over
+    # the one counted pick, reported by the headline and by every block that
+    # summarises it. Nothing here is an absence any more.
+    assert rebuilt_record["pct_correct_overall"] == pytest.approx(0.0)
+    assert rebuilt_record["by_market"]["match_result"]["pct_correct"] == pytest.approx(0.0)
+    assert rebuilt_record["by_market"]["match_result"]["n_resolved"] == 1
+    assert rebuilt_record["n_resolved_fixtures"] == 1
+    # `pre_kickoff` is where the absence is reported: a null rate over zero picks,
+    # which is an absence rather than a score of nought.
+    assert rebuilt_record["pre_kickoff"]["n_resolved_fixtures"] == 0
+    assert rebuilt_record["pre_kickoff"]["pct_correct_overall"] is None
     assert rebuilt_record["all_picks"]["n_resolved"] == 1
     assert rebuilt_record["all_picks"]["pct_correct"] == pytest.approx(0.0)

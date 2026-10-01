@@ -89,9 +89,10 @@ function PostMatchReview({ review }: { review: FixturePostMatch }) {
   // timing once, as a badge or the quiet chip, and that is the one place a
   // reader learns how to read every figure below it -- so this review states
   // only what it reviewed, and the block states the timing. The paragraph that
-  // used to sit under the verdicts went with it: it claimed a rebuilt pick is
-  // "counted in the track record like any other pick", which is the opposite
-  // of what the record counts (types.ts:517-521) and of what the block says.
+  // used to sit under the verdicts went with it: it described a rebuilt pick's
+  // standing in the record, and since the 2026-10-01 reversal a pick made after
+  // the start IS counted (see `TrackRecordSummary` in types.ts), so the block's
+  // own moment badge is the whole of what a reader needs here.
   return (
     <section className="rounded-xl border border-win/30 bg-win/5 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -191,21 +192,24 @@ export function FixtureModal({ eventId, onClose, explain, sport = "pl" }: Props)
   // proportion off the bar's width, so a percentage is never derived here: the
   // strip exists because the facts carry two counts and no third number.
   //
-  // Both counts come from `summary`, and the `TrackRecordSummary` comment at
-  // types.ts:517-521 is the reason this strip may call itself the record at
-  // all: that headline counts ONLY picks made before kickoff, and a pick
-  // rebuilt after the match cannot be one the model would have made on the
-  // night. So the figure the badge refuses to count is also the figure this
-  // strip does count, and the label says which.
+  // It reads `pre_kickoff`, NOT the headline. The label says "made before
+  // kickoff" and that is a claim: since the 2026-10-01 reversal
+  // `n_resolved_fixtures` / `pct_correct_overall` count every recorded pick,
+  // whenever it was made, so reading the headline here would put picks made
+  // after the start under a heading saying they were made before it — on the
+  // surface a reader trusts most, beside a started fixture's stored pick.
   //
   // `null` until the fetch resolves, so the strip never flashes 0/0 at a
-  // record that has not arrived yet.
+  // record that has not arrived yet, and `null` when `pre_kickoff` is absent
+  // (a snapshot baked before the field existed) rather than falling back to the
+  // headline — a fallback here is precisely the mislabel above.
   const record = useMemo(() => {
-    if (!recordSummary) return null;
-    const settled = recordSummary.n_resolved_fixtures;
+    const pre = recordSummary?.pre_kickoff;
+    if (!recordSummary || !pre) return null;
+    const settled = pre.n_resolved_fixtures;
     return {
       label: "Picks made before kickoff",
-      hits: Math.round((recordSummary.pct_correct_overall ?? 0) * settled),
+      hits: Math.round((pre.pct_correct_overall ?? 0) * settled),
       settled,
     };
   }, [recordSummary]);
@@ -300,8 +304,10 @@ export function FixtureModal({ eventId, onClose, explain, sport = "pl" }: Props)
       // When this pick was made, in the one vocabulary the block reads. A stored
       // pre-match snapshot IS a pick made before kickoff, so it carries no flag
       // and the block's quiet chip is the whole statement; a reconstructed
-      // review is a pick rebuilt after the match, which the block badges and
-      // refuses to count.
+      // review is a pick made after the match, which the block badges. The badge
+      // says WHEN and nothing about the pick's standing in the record — it is
+      // counted, one per (fixture, market) from the earliest recorded one,
+      // whenever it was made (spec 2026-10-01-track-record-counts-every-pick).
       pick_timing: detail.post_match?.provenance === "reconstructed" ? "rebuilt" : undefined,
       pick,
       score,

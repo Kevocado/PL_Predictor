@@ -48,7 +48,13 @@ function mockApi(over: Record<string, unknown> = {}) {
   // Unresolved on purpose: this file is about the panel and its request, and a
   // record strip belongs to neither. The strip's own arithmetic is pinned in
   // `FixtureModal.instant.test.tsx`.
-  vi.mocked(api.trackRecord).mockResolvedValue({ summary: { n_resolved_fixtures: 0, pct_correct_overall: null } } as never);
+  // `pre_kickoff` supplied even where the strip is irrelevant: the modal's
+  // record strip reads the pre-kickoff subset, not the headline, and a payload
+  // without the field is a real state (a snapshot baked before the 2026-10-01
+  // reversal) that must not fall back to the headline.
+  vi.mocked(api.trackRecord).mockResolvedValue({
+    summary: { n_resolved_fixtures: 0, pct_correct_overall: null, pre_kickoff: { n_resolved_fixtures: 0, pct_correct_overall: null } },
+  } as never);
   Object.assign(api, over);
 }
 
@@ -109,15 +115,22 @@ describe("FixtureModal and the plain-English panel", () => {
     expect(explain).toHaveBeenCalledTimes(2);
   });
 
-  it("shows the rebuilt status the service reports, in this site's words", async () => {
+  it("shows the moment badge for a rebuilt pick, from the shared package", async () => {
     mockApi();
     const explain = vi.fn().mockResolvedValue({ ...answer, pick_timing: "rebuilt" });
     render(<FixtureModal eventId="e1" onClose={() => {}} explain={explain} />);
     fireEvent.click(await screen.findByRole("button", { name: /ai summary/i }));
-    // predictor-ui reworded the badge to name WHEN the pick was made
-    // ("Made after kickoff") and dropped its "not counted" claim. The `rebuilt`
-    // key and its meaning are unchanged.
-    expect(await screen.findByText("Made after kickoff")).toBeInTheDocument();
+    // The badge and its sentence come from the VENDORED `InstantBlock`, so their
+    // wording is predictor-hub's to change, not this site's. predictor-hub#67
+    // renames them to "Made after kickoff" / "Counted in the track record…";
+    // until that re-vendor lands this site still renders the old wording, and
+    // asserting the new words here would fail for a reason that has nothing to
+    // do with this repo. What this site OWNS is asserted instead: that it renders
+    // the shared block's rebuilt state at all, and adds no second claim of its
+    // own about whether the pick counts.
+    await screen.findByTestId("instant-block");
+    expect(document.body.textContent).not.toMatch(/no honest score/i);
+    expect(document.body.textContent).not.toMatch(/excluded from the record/i);
   });
 
   it("leaves the modal usable when there is no explainer", async () => {

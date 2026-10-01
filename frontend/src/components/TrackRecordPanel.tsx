@@ -50,14 +50,22 @@ export function TrackRecordPanel({ data }: { data: TrackRecordResponse }) {
   const byMarket = summary.by_market ?? DEFAULT_BY_MARKET;
   const nRebuilt = summary.n_rebuilt_fixtures ?? 0;
   // Optional for the same reason `by_market` is: a snapshot baked before the
-  // field existed can still be live for a few minutes after a deploy.
-  const allPicks = summary.all_picks ?? null;
+  // field existed can still be live for a few minutes after a deploy, and the
+  // frontend ships instantly while the data it reads is regenerated on its own
+  // schedule. Absent means "this payload predates the field", not "zero picks".
+//
+// `summary.all_picks` is deliberately NOT read here any more. The backend RETAINS
+// it, under its published name and still meaning every counted pick — which is
+// now the same population as the headline — so the key does not disappear for
+// any other consumer. Rendering it as a third card would be a duplicate of the
+// headline under a longer label; the figure a reader actually needs beside the
+// headline is `pre_kickoff`.
+const preKickoff = summary.pre_kickoff ?? null;
 
-  // Only a record with NOTHING at all falls back to the short message. When
-  // every stored pick was rebuilt, n_resolved is 0 but nRebuilt is not — and
-  // that record still has a list worth showing, so it renders in full and the
-  // "no honest score yet" line sits above the (empty) headline instead. The
-  // two states are different facts and used to share one branch.
+  // Only a record with NOTHING at all falls back to the short message. A
+  // record whose every pick was made after kickoff still has 50 graded picks
+  // and a list worth showing, so it renders in full — the headline is the
+  // record, and the pre-kickoff figure beside it is where the absence is read.
   if (summary.n_resolved_fixtures === 0 && nRebuilt === 0) {
     return (
       <div>
@@ -99,38 +107,44 @@ export function TrackRecordPanel({ data }: { data: TrackRecordResponse }) {
         />
       </div>
 
-      {nRebuilt > 0 && (
+      {/*
+        B8's two figures, with their roles SWAPPED (spec
+        2026-10-01-track-record-counts-every-pick). The headline above is every
+        COUNTED pick, whenever it was made; the figure beside it is the subset
+        made before kickoff, with its own n. That reversal is what stopped the
+        headline emptying out on every model change — under the old rule a
+        re-run on an already-played game stopped counting, and PL's shipped
+        headline was `null` while 50 graded picks sat in the payload.
+
+        Counting a late pick inflates the headline relative to a pure pre-game
+        record, and that is the accepted cost of the decision. Publishing both
+        figures is what makes it informed rather than hidden: the gap between
+        them IS the size of the inflation, and the pre-kickoff figure is the
+        honest read of live performance.
+      */}
+      {(preKickoff || nRebuilt > 0) && (
         <>
-          {summary.n_resolved_fixtures === 0 && (
-            <p className="text-xs text-pl-text-faint">
-              No pre-kickoff picks recorded yet, so there is no honest score to show. Every
-              pick below was made after kickoff and none of them is counted.
-            </p>
-          )}
-          {allPicks && (
+          {preKickoff && (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              {/* The all-picks figure the copy above refers to. It was absent
-                  from the panel entirely — `all_picks` was in the payload and in
-                  the type, and the sentence promised a number a reader could
-                  never see. Rendered here, beside the headline it is distinct
-                  from, which is the whole of B8 made visible. */}
               <StatCard
-                label="All picks, rebuilt included"
+                label="Made before kickoff"
                 value={
-                  allPicks.pct_correct === null
+                  preKickoff.pct_correct_overall === null || preKickoff.n_resolved_fixtures === 0
                     ? "—"
-                    : `${pct(allPicks.pct_correct)} (${Math.round(
-                        allPicks.pct_correct * allPicks.n_resolved,
-                      )}/${allPicks.n_resolved})`
+                    : `${pct(preKickoff.pct_correct_overall)} (${Math.round(
+                        preKickoff.pct_correct_overall * preKickoff.n_resolved_fixtures,
+                      )}/${preKickoff.n_resolved_fixtures})`
                 }
-                info={GLOSSARY.trackRecordScore}
+                info={GLOSSARY.trackRecordPreKickoff}
               />
             </div>
           )}
           <p className="text-xs text-pl-text-dim">
-            {nRebuilt} pick{nRebuilt === 1 ? "" : "s"} rebuilt after kickoff{" "}
-            {nRebuilt === 1 ? "is" : "are"} included in the all-picks figure above and not in
-            the headline.
+            {nRebuilt} pick{nRebuilt === 1 ? "" : "s"} made after kickoff{" "}
+            {nRebuilt === 1 ? "is" : "are"} included in the record above.{" "}
+            {preKickoff?.n_resolved_fixtures
+              ? `The ${preKickoff.n_resolved_fixtures} made before kickoff are shown separately above.`
+              : "None of them were made before kickoff, so the pre-kickoff figure is empty."}
           </p>
         </>
       )}

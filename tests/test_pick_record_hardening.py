@@ -1,8 +1,12 @@
 """Three ways the durable pick record could be wrong without any test noticing.
 
 Found by CodeRabbit review of PL#29 and verified against the real functions
-before this file was written. The first is an honesty defect: the record's whole
-claim is "made before kickoff", so the comparison must be between INSTANTS.
+before this file was written. The first is an honesty defect: the record's claim
+is about WHEN a pick was made, so the comparison must be between INSTANTS.
+
+Nothing here was relaxed by the 2026-10-01 reversal — a post-kickoff pick is now
+recorded rather than refused, but the LABEL on it is derived exactly as strictly
+as before, and never more permissively.
 """
 import json
 
@@ -42,10 +46,26 @@ def test_naive_timestamps_are_still_read_as_utc():
     assert not pick_record.is_pre_kickoff(_row("2026-09-13T14:00:00", "2026-09-13T14:00:00"))
 
 
-def test_the_offset_case_is_refused_by_append_picks_too(tmp_path):
+def test_the_offset_case_is_labelled_correctly_when_recorded_too(tmp_path):
+    """Since the reversal this row IS recorded, so the label is all there is.
+
+    Before, the assertion was that the append was refused (n == 0, no file). Now
+    the row is in the record and its `made_before_kickoff` must be False — a
+    post-kickoff pick that gets written down must never be written down as a
+    pre-kickoff one.
+    """
     p = tmp_path / "picks.jsonl"
     n = pick_record.append_picks([_row("2026-09-13T13:30:00-05:00", "2026-09-13T14:00:00Z")], path=p)
-    assert n == 0 and not p.exists()
+    assert n == 1
+    assert json.loads(p.read_text().strip())["made_before_kickoff"] is False
+
+
+def test_mixed_timeszone_sources_compare_correctly(tmp_path):
+    """Sources mix tz-aware (Odds API, UTC) and naive (FPL fallback) kickoffs.
+    A pick at 10:00 UTC against a 14:00 naive kickoff is before it, and must
+    not be rejected for a comparison artefact."""
+    assert pick_record.is_pre_kickoff(_row(
+        snap="2026-09-13T10:00:00Z", kick="2026-09-13T14:00:00")) is True
 
 
 # --- 2. a torn final line must not swallow the next record ---------------------
@@ -59,7 +79,9 @@ def test_an_unterminated_final_line_does_not_corrupt_the_next_append(tmp_path):
     lines = [ln for ln in p.read_text().split("\n") if ln.strip()]
     assert len(lines) == 2
     assert [json.loads(ln)["event_id"] for ln in lines] == ["e1", "e2"]   # both lines valid JSON
-    assert pick_record.load_pre_kickoff_picks(p) == {("e1", "match_result", "A"), ("e2", "match_result", "A")}
+    # Renamed from load_pre_kickoff_picks on 2026-10-01; it loads the keys of a
+    # file that now holds late picks too.
+    assert pick_record.load_recorded_picks(p) == {("e1", "match_result", "A"), ("e2", "match_result", "A")}
 
 
 def test_an_existing_recorded_line_is_never_rewritten(tmp_path):
@@ -77,4 +99,4 @@ def test_lines_that_are_valid_json_but_not_records_are_skipped(tmp_path):
     p = tmp_path / "picks.jsonl"
     good = {"event_id": "e1", "market": "match_result", "outcome_name": "A"}
     p.write_text("null\n[]\n42\n\"text\"\n" + json.dumps(good) + "\nnot json at all\n")
-    assert pick_record.load_pre_kickoff_picks(p) == {("e1", "match_result", "A")}
+    assert pick_record.load_recorded_picks(p) == {("e1", "match_result", "A")}

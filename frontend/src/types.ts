@@ -513,21 +513,62 @@ export interface TrackRecordByMarket {
   btts: MarketReliability;
 }
 
+/**
+ * The track-record summary.
+ *
+ * **The headline counts every COUNTED pick, whenever it was made**, and
+ * `pre_kickoff` beside it is the subset made before kickoff, with its own n.
+ * That is the 2026-10-01 reversal of the previous rule, under which the headline
+ * was the pre-kickoff record and a pick recorded after its own kickoff never
+ * counted. It was reversed because the models are re-run constantly, so under
+ * the old rule a re-run on an already-played game stopped counting and the
+ * record emptied out on every model change — which is why PL's headline shipped
+ * `null` while 50 graded picks sat in the same payload.
+ *
+ * NFL ships the same split (NFL#23 / Sports#13).
+ */
 export interface TrackRecordSummary {
-  // B8: the headline below counts and rates ONLY picks made before kickoff.
-  // A pick rebuilt after the match cannot be one the model would have made on
-  // the night, so counting it toward the headline is the look-forward bias this
-  // product exists to avoid. NFL ships the same split (NFL#23 / Sports#13).
+  // Every COUNTED pick: one per (fixture, market), the EARLIEST recorded one.
+  // A later rerun is kept in the table as history; it neither displaces the
+  // counted pick nor counts a second time, because re-running until the model
+  // is right would otherwise be free.
   n_resolved_fixtures: number;
+  // RETAINED name, and it changed meaning: it now counts counted picks made at
+  // or after their own kickoff. It used to mean "excluded from the headline";
+  // under the reversal such a pick IS counted. So
+  // `n_resolved_fixtures === pre_kickoff.n_resolved_fixtures + n_rebuilt_fixtures`.
   // Optional: absent from snapshots baked before this field existed.
   n_rebuilt_fixtures?: number;
-  // Every resolved pick, rebuilt included — reported BESIDE the headline, not
-  // folded into it, so nothing is hidden by scoping the headline.
+  // The honest read of live performance, summarised by the same code over the
+  // counted picks whose own timestamps prove they were made in time. Its `n` is
+  // therefore the exact size of that subset.
+  //
+  // Optional: absent from a public_snapshot.json baked before this field
+  // existed, until the next scheduled snapshot rebuild catches up. A missing
+  // field means "this payload predates it", NOT "zero pre-kickoff picks".
+  pre_kickoff?: {
+    n_resolved_fixtures: number;
+    // `null` (not 0) when n_resolved_fixtures is 0: a rate over no picks is an
+    // absence, and 0% would be a claim about accuracy with nothing behind it.
+    pct_correct_overall: number | null;
+    n_rebuilt_fixtures?: number;
+    by_market?: Record<string, { pct_correct: number | null; n_resolved: number }>;
+  };
+  // RETAINED under its published name and still meaning every pick — which is
+  // now the same population as the headline. Not renamed to `pre_kickoff` and not
+  // deleted, so no consumer breaks and none is silently pointed at a subset it
+  // believes is the whole record. The panel does not render it: a third card
+  // would be the headline again under a longer label.
   all_picks?: {
     n_resolved: number;
     pct_correct: number | null;
     by_market: Record<string, { pct_correct: number | null; n_resolved: number }>;
   };
+  // Counted picks only, so a reader tallying this list arrives at the headline.
+  // Every row carries `made_before_kickoff` beside its own `snapshotted_at`, so
+  // the label can be checked rather than taken: both are DERIVED on the server
+  // from the row's own timestamps compared as UTC instants, never from a stored
+  // flag. Nothing after the start is ever labelled "made before kickoff".
   per_pick?: Array<{
     event_id?: string | null;
     team_home?: string | null;
@@ -535,6 +576,11 @@ export interface TrackRecordSummary {
     commence_time?: string | null;
     gameweek?: number | null;
     hit?: boolean | null;
+    snapshotted_at?: string | null;
+    made_before_kickoff?: boolean;
+    // RETAINED name, now meaning "made at or after kickoff" and nothing more —
+    // this pick is still counted. Read `made_before_kickoff` for anything a
+    // reader is meant to understand; the two cannot disagree.
     rebuilt: boolean;
   }>;
   pct_correct_overall: number | null;

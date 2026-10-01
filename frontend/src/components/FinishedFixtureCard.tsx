@@ -73,12 +73,22 @@ export function FinishedFixtureCard({
           {date} &middot; {time}
         </span>
         <div className="flex flex-wrap items-center justify-end gap-1.5">
+          {/* Site-local badge, NOT the shared `StatusBadge`: `predictor-hub#67` (open,
+              unmerged) renames the shared badge's words but cannot reach this
+              hand-written span. The words match it anyway — "Made after
+              kickoff" describes WHEN the pick was made, which is what this
+              state now is. The old wording described the pick's standing in the
+              record, and under the 2026-10-01 reversal a pick made after the
+              start is counted like any other, so that standing is no longer the
+              thing worth saying. The `rebuilt` PROP is kept: it is a published
+              field name, and renaming it would break every call site to change
+              nothing a reader sees. */}
           {backfilled && (
             <span
-              title="Rebuilt from the model after this match finished. Counted in the track record like any other pick."
+              title="Made from the model after this match finished. Counted in the track record like any other pick."
               className="rounded border border-pl-border px-1.5 py-0.5 text-xs font-semibold normal-case tracking-normal text-pl-text-dim"
             >
-              Rebuilt after kickoff
+              Made after kickoff
             </span>
           )}
           {/* A rebuilt pick is shown, never judged: one badge, not two. */}

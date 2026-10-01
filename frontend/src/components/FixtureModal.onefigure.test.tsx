@@ -94,7 +94,16 @@ const finished = {
   post_match: { final_score: "1-0", provenance: "snapshot", verdicts: REVIEW_VERDICTS, player_calls: [] },
 } as unknown as FixtureDetail;
 
-const trackRecord = { summary: { n_resolved_fixtures: 71, pct_correct_overall: 0.535 } } as unknown as TrackRecordResponse;
+// `pre_kickoff`, not the headline: the strip's label says "made before kickoff"
+// and since the 2026-10-01 reversal the headline counts every recorded pick,
+// whenever it was made. The strip's own arithmetic is pinned in
+// `FixtureModal.instant.test.tsx`.
+const trackRecord = {
+  summary: {
+    n_resolved_fixtures: 71, pct_correct_overall: 0.535, n_rebuilt_fixtures: 59,
+    pre_kickoff: { n_resolved_fixtures: 12, pct_correct_overall: 0.5 },
+  },
+} as unknown as TrackRecordResponse;
 
 afterEach(() => {
   vi.restoreAllMocks();

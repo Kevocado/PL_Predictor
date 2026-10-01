@@ -2,22 +2,28 @@
 
 The bug this exists to end: `tracking.db` is gitignored and was kept across CI
 runs only by an `actions/cache` entry, which is not storage. Caches are evicted
-after seven days of no access and are not written at all when the job that
-would write them fails. So the pre-kickoff picks — the evidence behind a
-published accuracy figure — were one eviction or one failed job away from gone,
-and the site went back to a headline computed entirely from picks made after
-kickoff. That is the state this repo actually shipped in (`n_rebuilt` 50 of 50).
+after seven days of no access and are not written at all when the job that would
+write them fails. So the picks — the evidence behind a published accuracy figure
+— were one eviction or one failed job away from gone, and the site went back to a
+headline computed entirely from picks made after kickoff. That is the state this
+repo actually shipped in (`n_rebuilt` 50 of 50).
 
-Three properties are pinned, and the third is the one that matters most:
+**What this file asserts, after the 2026-10-01 reversal:** the record holds
+EVERY pick, labelled with when it was made. It no longer refuses a post-kickoff
+pick — refusing it is what kept the file empty (0 lines) and the headline null.
+`test_pick_record_records_every_pick.py` is where that half lives; this file
+holds the properties that were already true and had to SURVIVE the reversal.
 
-1. it only ever records a pick made before kickoff, judged from the row's own
-   two timestamps;
-2. it is append-only and idempotent — a re-run appends nothing, so a no-op
+1. it is append-only and idempotent — a re-run appends nothing, so a no-op
    workflow run is an empty diff rather than a row of noise;
-3. **it never rewrites a recorded pick.** Once a line exists it is evidence of
-   what the model said before a match, and a later run cannot amend it even if
-   it would have written a different number. A record that can be corrected is
-   not a record.
+2. **it never rewrites a recorded pick.** Once a line exists it is evidence of
+   what the model said and when, and a later run cannot amend it even if it would
+   have written a different number. A record that can be corrected is not a
+   record;
+3. it never stores a derived verdict (`resolved`, `actual_outcome`).
+
+Timing derivation — the offsets, the failure-closed label, and what is refused —
+is in `test_pick_record_records_every_pick.py` and `test_pick_record_hardening.py`.
 """
 import json
 import subprocess
@@ -43,50 +49,7 @@ def row(event_id="e1", market="match_result", outcome="home_win", prob=0.6,
     }
 
 
-# --- 1. only pre-kickoff picks ---------------------------------------------------
-
-def test_a_pick_written_before_kickoff_is_recorded(tmp_path):
-    path = tmp_path / "picks.jsonl"
-    assert pick_record.append_picks([row()], path) == 1
-    assert json.loads(path.read_text().strip())["event_id"] == "e1"
-
-
-def test_a_pick_written_after_kickoff_is_refused(tmp_path):
-    path = tmp_path / "picks.jsonl"
-    after = row(snapshotted_at="2026-09-13T15:00:00Z")
-    assert pick_record.append_picks([after], path) == 0
-    assert not path.exists(), "a rebuilt pick was written to the durable record"
-
-
-def test_a_pick_written_at_the_moment_of_kickoff_is_refused(tmp_path):
-    """At kickoff is not before it. A pick written in the same second the match
-    starts had no chance to be made on the night."""
-    path = tmp_path / "picks.jsonl"
-    assert pick_record.append_picks([row(snapshotted_at=KICKOFF)], path) == 0
-
-
-@pytest.mark.parametrize("bad", [None, "", "not-a-date"])
-def test_an_unparseable_timestamp_is_never_pre_kickoff(tmp_path, bad):
-    """An unprovable claim is not a verified one.
-
-    This is the property whose absence let the original bug look healthy: a row
-    whose timing cannot be established must not be counted as evidence.
-    """
-    assert pick_record.is_pre_kickoff(row(snapshotted_at=bad)) is False
-    assert pick_record.is_pre_kickoff(row(commence_time=bad)) is False
-    path = tmp_path / "picks.jsonl"
-    assert pick_record.append_picks([row(snapshotted_at=bad)], path) == 0
-
-
-def test_mixed_timeszones_compare_correctly(tmp_path):
-    """Sources mix tz-aware (Odds API, UTC) and naive (FPL fallback) kickoffs.
-    A pick at 10:00 UTC against a 14:00 naive kickoff is before it, and must
-    not be rejected for a comparison artefact."""
-    assert pick_record.is_pre_kickoff(row(
-        snapshotted_at="2026-09-13T10:00:00Z", commence_time="2026-09-13T14:00:00")) is True
-
-
-# --- 2. append-only and idempotent ----------------------------------------------
+# --- 1. append-only and idempotent --------------------------------------------
 
 def test_a_rerun_appends_nothing(tmp_path):
     """Why the file is safe to commit on every run: an unchanged workflow
@@ -117,7 +80,7 @@ def test_a_malformed_line_does_not_stop_later_runs(tmp_path):
     assert pick_record.append_picks([row(event_id="e2")], path) == 1
 
 
-# --- 3. the guarantee that matters ----------------------------------------------
+# --- 2. the guarantee that matters --------------------------------------------
 
 def test_a_recorded_pick_is_never_amended_by_a_later_different_value(tmp_path):
     """Once written, a pick is evidence of what the model said.
@@ -148,7 +111,7 @@ def test_the_record_excludes_the_derived_verdict(tmp_path):
     assert "actual_outcome" not in stored
 
 
-# --- 4. it is the record, not just a cache --------------------------------------
+# --- 3. it is the record, not just a cache --------------------------------------
 
 def test_the_record_is_tracked_by_git_and_the_cache_is_not(tmp_path):
     """The distinction the whole change rests on.
@@ -191,3 +154,10 @@ def test_a_gitignored_tracking_db_is_why_this_is_needed(tmp_path):
         "data/tracking.db is no longer gitignored, so the cache is no longer the only "
         "thing carrying picks between runs. Update pick_record's module docstring."
     )
+
+
+def test_the_python_version_in_use_is_the_one_under_test():
+    """The CI heredoc runs under whatever `python` is on PATH, and this file is
+    loaded through it. A syntax error here fails only in CI, minutes later, in a
+    step whose output nobody reads closely — so it is compiled here instead."""
+    compile(Path(pick_record.__file__).read_text(), pick_record.__file__, "exec")

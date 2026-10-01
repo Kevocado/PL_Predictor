@@ -22,15 +22,18 @@ describe("FinishedFixtureCard", () => {
     render(<FinishedFixtureCard {...base} />);
     expect(screen.getByText("Home 36% · Draw 26% · Away 38%")).toBeInTheDocument();
   });
-  it("marks a rebuilt pick and does not show the stuck scorers line", () => {
+  it("marks a pick made after kickoff and does not show the stuck scorers line", () => {
+    // This card's badge is SITE-LOCAL (a hand-written span, not the shared
+    // `StatusBadge`), so the wording is ours and this repo changes it in step
+    // with predictor-hub#67. It names the MOMENT, which is what the state now is.
     render(<FinishedFixtureCard {...base} backfilled player_events_pending />);
-    expect(screen.getByText("Rebuilt after kickoff")).toBeInTheDocument();
+    expect(screen.getByText("Made after kickoff")).toBeInTheDocument();
     expect(screen.queryByText(/BACKFILLED/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Refreshing official scorers/)).not.toBeInTheDocument();
   });
-  it("never judges a rebuilt pick: one badge, no Called it or Missed", () => {
+  it("never judges a pick made after kickoff: one badge, no Called it or Missed", () => {
     render(<FinishedFixtureCard {...base} backfilled />);
-    expect(screen.getByText("Rebuilt after kickoff")).toBeInTheDocument();
+    expect(screen.getByText("Made after kickoff")).toBeInTheDocument();
     expect(screen.queryByText("Called it ✓")).not.toBeInTheDocument();
     expect(screen.queryByText("Missed ✗")).not.toBeInTheDocument();
   });

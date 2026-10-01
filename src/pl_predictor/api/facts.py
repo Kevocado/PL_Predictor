@@ -275,13 +275,23 @@ def _players_out(rows: list[dict], team_home: str, team_away: str) -> list[dict]
 
 
 def _record() -> dict | None:
-    """Pre-kick-off accuracy. get_track_record() already excludes backfilled
-    fixtures, so these counts are honest."""
+    """Pre-kick-off accuracy — the made-before-kickoff SUBSET, not the headline.
+
+    The label is a claim, so the figure has to be the one the label describes.
+    Since the 2026-10-01 reversal `get_track_record()["n_resolved_fixtures"]` is
+    every counted pick, whenever it was made, so reading it here would put picks
+    made after the start under a heading that says they were made before it — on
+    the surface a reader trusts most, beside a started fixture's stored pick.
+
+    Reads `pre_kickoff` instead, which the backend summarises from the counted
+    picks whose own timestamps prove they were made in time.
+    """
     data = routes.tracking_store.get_track_record() or {}
-    settled = int(data.get("n_resolved_fixtures") or 0)
+    pre = data.get("pre_kickoff") or {}
+    settled = int(pre.get("n_resolved_fixtures") or 0)
     if settled <= 0:
         return None
-    pct = _num(data.get("pct_correct_overall"))
+    pct = _num(pre.get("pct_correct_overall"))
     return {
         "label": "Picks made before kick-off",
         "hits": None if pct is None else int(round(pct * settled)),
