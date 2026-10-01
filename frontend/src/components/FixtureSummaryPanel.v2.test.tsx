@@ -207,7 +207,7 @@ describe("the accent follows the BUNDLE's pick, through this site's own labels",
 
   it("accents the pick's own segment, for all three outcomes of a three-way market", async () => {
     for (const [side, index, label] of cases) {
-      const { container, unmount } = await show({ label: "Arsenal win" }, fixture({ predicted_result: side }));
+      const { container, unmount } = await show({ label: "Arsenal win" }, fixture({ predicted_result: side as FixtureSummary["predicted_result"] }));
       const tones = fills(panel(container));
       expect(tones, side).toHaveLength(3);
       // Exactly one segment is accented, and it is the one the bundle named.
@@ -266,8 +266,8 @@ describe("the accent follows the BUNDLE's pick, through this site's own labels",
     // that names no side, so all three are exercised.
     for (const fx of [
       fixture({ predicted_result: undefined }),
-      fixture({ predicted_result: null }),
-      fixture({ predicted_result: "over_2_5" }),
+      fixture({ predicted_result: null as unknown as undefined }),
+      fixture({ predicted_result: "over_2_5" as unknown as undefined }),
     ] as unknown as FixtureSummary[]) {
       const { container, unmount } = await show({ label: "Arsenal win" }, fx);
       const tones = fills(panel(container));

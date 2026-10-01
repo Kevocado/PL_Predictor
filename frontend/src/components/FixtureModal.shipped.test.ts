@@ -22,7 +22,7 @@
  *  a fixture that happens to agree.
  */
 import { readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { matchPick, resolvedPick } from "../lib/pick";
