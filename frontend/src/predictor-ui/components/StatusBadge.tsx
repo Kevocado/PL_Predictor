@@ -1,4 +1,4 @@
-// Synced from predictor-ui@ba62e3f0365e. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@b2040a541944. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 export type Status = "next" | "live" | "called" | "missed" | "nopick" | "rebuilt" | "unverified";
 /** The moment a pick must beat: "kickoff" for football, "tip-off" for
  *  basketball, "the session" for F1 (qualifying and races alike). */
@@ -11,7 +11,14 @@ const LOOK: Record<Status, { words: string; tone: string }> = {
   called: { words: "Called it ✓", tone: "text-pr-win" },
   missed: { words: "Missed ✗", tone: "text-pr-loss" },
   nopick: { words: "No pick yet", tone: "text-pr-text-dim" },
-  rebuilt: { words: "Rebuilt after {moment}", tone: "border border-pr-rule text-pr-text-dim" },
+  // The KEY is still `rebuilt` and is not copy: it is the value a site passes to
+  // `<StatusBadge status=…>` and the value `pick_timing` carries on the wire, so
+  // renaming it would break every site's compile to change nothing a reader
+  // sees. The WORDS are what changed. Since the track record began counting the
+  // earliest recorded pick per (game, market) whatever moment it was made
+  // (spec 2026-10-01-track-record-counts-every-pick), the honest description of
+  // this state is when the pick was made, not that it was rebuilt afterwards.
+  rebuilt: { words: "Made after {moment}", tone: "border border-pr-rule text-pr-text-dim" },
   // An unverified pick is not a fault: the schedule never supplied the start
   // time, so nothing went wrong. Neutral grey like `rebuilt`, not red — a red
   // badge would invent a failure that isn't there.

@@ -1,4 +1,4 @@
-// Synced from predictor-ui@ba62e3f0365e. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@b2040a541944. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 import type { ReactNode } from "react";
 import { pct } from "../fmt";
 import { ProbabilityBar, type Segment } from "./ProbabilityBar";
@@ -22,7 +22,7 @@ type Props = {
   bar?: Segment[];
   /** Shown instead of a pick when there is none yet (default "No pick yet"). */
   pickPlaceholder?: string;
-  /** Status wording: "Rebuilt after kickoff" or "… tip-off". */
+  /** Status wording: "Made after kickoff" or "… tip-off". */
   moment?: Moment;
   /** Tighter card for nights with many games (NBA). Same content. */
   compact?: boolean;

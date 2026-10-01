@@ -1,4 +1,4 @@
-// Synced from predictor-ui@ba62e3f0365e. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@b2040a541944. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 /** The facts, rendered before anything is asked for.
  *
  *  Every figure here comes from the site's own bundle or its `extras`. There
@@ -53,7 +53,19 @@ export function InstantBlock({ sport, bundle, extras }: InstantBlockProps) {
       {timing?.status === "rebuilt" && (
         <p className="flex flex-wrap items-center gap-2 text-sm text-pr-text-dim">
           <StatusBadge status="rebuilt" moment={timing.moment} />
-          <span>This pick was made {STARTED[timing.moment]}, so it is shown for reference and not counted.</span>
+          {/* The moment, and the fact that it counts. This line used to say the
+            pick was shown only as a reference and held out of the count, which
+            is the opposite of the rule: the track record counts the earliest
+            recorded pick per (game, market) whenever it was made (spec
+            2026-10-01-track-record-counts-every-pick). The badge beside this
+            line already carries the moment, so what the sentence adds is that
+            the pick is not being held back from the record — the two halves of
+            disclosure, which is what replaced exclusion. The old words are
+            spelled out in `countedCopy.test.tsx`, which guards against them
+            coming back. */}
+          <span>
+            This pick was made {STARTED[timing.moment]}. Counted in the track record like any other pick.
+          </span>
         </p>
       )}
       {timing?.status === "unverified" && (

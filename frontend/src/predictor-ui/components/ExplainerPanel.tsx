@@ -1,4 +1,4 @@
-// Synced from predictor-ui@ba62e3f0365e. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@b2040a541944. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 import { useEffect, useId, useState } from "react";
 import { ErrorState, Skeleton } from "./States";
 import { StatusBadge, type Moment } from "./StatusBadge";
@@ -218,10 +218,20 @@ export function ExplainerPanel({
             the row next. It is withheld rather than softened because the number it
             describes came from a model asked after the event began: it had seen
             the score, so the band measures confidence in a number produced with
-            the answer already known, and the panel is telling the reader two lines
-            below not to count or grade it. "STRONG" beside that asks the reader to
+            the answer already known, and the two lines below already tell the
+            reader the pick was made then. "STRONG" beside that asks the reader to
             resolve a contradiction this panel created. Hiding it fails closed,
-            which is the direction the footer already fails in. */}
+            which is the direction the footer already fails in.
+
+            Note this survives the rule change and the band withholding does not:
+            the track record counts the pick (spec
+            2026-10-01-track-record-counts-every-pick), and a confidence word
+            about a number produced with the answer already known is still a
+            claim the panel cannot make honestly. The old *reason* for hiding it
+            — that the reader was being told the pick was held out of the
+            record — no longer holds, and the reason above is what replaced it.
+            The withdrawn wording is quoted in `countedCopy.test.tsx`, which
+            guards against it returning. */}
         {v2 && !rebuilt && !unverified && <BandChip band={data.band} />}
       </div>
 
@@ -229,7 +239,7 @@ export function ExplainerPanel({
         <p className="flex max-w-[70ch] flex-wrap items-center gap-2 text-sm text-pr-text-dim">
           <StatusBadge status="rebuilt" moment={when} />
           <span>
-            This pick was made {STARTED[when]}, so it is shown for reference and not counted.
+            This pick was made {STARTED[when]}. Counted in the track record like any other pick.
           </span>
         </p>
       )}

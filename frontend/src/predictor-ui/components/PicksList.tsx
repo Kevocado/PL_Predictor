@@ -1,4 +1,4 @@
-// Synced from predictor-ui@ba62e3f0365e. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@b2040a541944. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 /**
  * The model's own top calls, ranked per category.
  *
@@ -23,8 +23,6 @@
  * or a guarantee — no odds feed exists in any of these repos.
  */
 import { pct, stat } from "../fmt";
-import { KeyNumberTile } from "./KeyNumberTile";
-import { ProbabilityBar } from "./ProbabilityBar";
 import { StatusBadge } from "./StatusBadge";
 
 /** A player out for this fixture, shown once below the lists and never ranked. */
@@ -52,8 +50,10 @@ export type PickRow = {
    *  Absent means there is no error estimate yet, which is said in words
    *  rather than drawn as "± 0" — a zero margin would be a claim. */
   margin?: number;
-  /** Provenance, verbatim from the caller. Never composed by this component. */
-  provenance: string;
+  /** Accepted for compatibility and NOT rendered. Kevin, 2026-10-01: the best calls are
+   *  the player and the prediction, nothing else (no record, Brier, calibration or error
+   *  prose per row). Callers may stop passing it. */
+  provenance?: string;
   /** True when this player is out. If true the row must NOT be passed — see
    *  `out`. The field exists so the mistake can be caught by name instead of
    *  rendering a forbidden ranking. */
@@ -117,37 +117,18 @@ function checkRow(row: PickRow): void {
   }
 }
 
-/** A probability row: the real share bar, with the rest of the field beside it so
- *  the bar is a share rather than a lone figure. `minSegmentPx={2}` so a 3%
- *  probability is a visible sliver, not a rounding error. */
-function ProbabilityRow({ row }: { row: PickRow }) {
-  return (
-    <>
-      <ProbabilityBar
-        segments={[
-          { label: row.detail, prob: row.value, market: row.key },
-          { label: "the rest of the field", prob: 1 - row.value, market: row.key },
-        ]}
-        minSegmentPx={2}
-        pick={{ label: row.detail }}
-      />
-    </>
-  );
+/** The figure a row shows. A probability is a percentage; a projection is a plain
+ *  number with no % anywhere, because a count read as a share is the "9600%" defect. */
+function figure(row: PickRow): string {
+  return row.kind === "probability" ? pct(row.value) : stat(row.value);
 }
 
-/** A projection row: the real key number, with its ± beneath. No percentage is
- *  composed here — the figure is a count or a distance, not a share. */
-function ProjectionRow({ row }: { row: PickRow }) {
+/** A thin bar for a probability only. Floored so a small probability stays visible. */
+function Bar({ value }: { value: number }) {
+  const width = Math.max(value * 100, 3);
   return (
-    <div className="w-40 shrink-0 sm:w-44">
-      <KeyNumberTile
-        tile={{
-          market: row.key,
-          label: row.detail,
-          value: stat(row.value),
-          sub: row.margin === undefined ? "no error estimate yet" : `± ${stat(row.margin)}`,
-        }}
-      />
+    <div className="h-1 w-full overflow-hidden rounded-full bg-pr-rule" aria-hidden="true">
+      <div data-testid="picks-bar" className="h-full rounded-full bg-pr-accent" style={{ width: `${width}%` }} />
     </div>
   );
 }
@@ -168,56 +149,59 @@ export function PicksList({ title = "Model's top calls", categories, out }: Pick
         {title}
       </p>
 
-      {categories.map(({ category, rows }) => {
-        // The ceiling. `slice` rather than a filter, so an out player could not
-        // be swapped in to backfill a dropped row — and it could not be
-        // swapped in at all, because `checkRow` has already refused it.
-        const shown = rows.slice(0, MAX_ROWS_PER_CATEGORY);
-        return (
-          <section key={category} data-testid="picks-category" className="flex flex-col gap-2">
-            <h3
-              data-testid="picks-category-heading"
-              className="font-pr-display text-xs font-semibold uppercase tracking-wide text-pr-text-dim"
+      <div className="grid gap-3 sm:grid-cols-2">
+        {categories.map(({ category, rows }) => {
+          // The ceiling. `slice` rather than a filter, so an out player could not be
+          // swapped in to backfill a dropped row; `checkRow` has already refused one.
+          const shown = rows.slice(0, MAX_ROWS_PER_CATEGORY);
+          return (
+            <section
+              key={category}
+              data-testid="picks-category"
+              className="flex flex-col gap-2 rounded-pr border border-pr-rule bg-pr-surface/40 p-3"
             >
-              {category}
-            </h3>
-            {shown.length === 0 ? (
-              // The existing empty-state vocabulary, rather than a zero: a
-              // figure nobody produced must not be drawn as one.
-              <StatusBadge status="nopick" />
-            ) : (
-              shown.map((row) => (
-                <div
-                  key={row.key}
-                  data-testid="picks-row"
-                  data-kind={row.kind}
-                  data-category={category}
-                  className="flex flex-col gap-1 border-t border-pr-rule py-2 first:border-t-0 first:pt-0"
-                >
-                  <p className="min-w-0 text-sm font-medium leading-snug text-pr-text">
-                    {row.name}
-                    {row.team && <span className="font-normal text-pr-text-dim"> · {row.team}</span>}
-                    <span className="font-normal text-pr-text-dim"> · {row.detail}</span>
-                  </p>
-                  {row.kind === "probability" ? (
-                    <>
-                      <ProbabilityRow row={row} />
-                      {/* The caller's own words, verbatim, in the same place on
-                          both kinds of row so provenance never moves. */}
-                      <p className="text-xs leading-snug text-pr-text-faint">{row.provenance}</p>
-                    </>
-                  ) : (
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="min-w-0 text-xs leading-snug text-pr-text-faint">{row.provenance}</p>
-                      <ProjectionRow row={row} />
+              <h3
+                data-testid="picks-category-heading"
+                className="font-pr-display text-xs font-semibold uppercase tracking-wide text-pr-text-dim"
+              >
+                {category}
+              </h3>
+              {shown.length === 0 ? (
+                // The existing empty-state vocabulary, never a zero: a figure nobody
+                // produced must not be drawn as one.
+                <StatusBadge status="nopick" />
+              ) : (
+                shown.map((row, i) => (
+                  <div
+                    key={row.key}
+                    data-testid="picks-row"
+                    data-kind={row.kind}
+                    data-category={category}
+                    className="flex flex-col gap-1.5 border-t border-pr-rule pt-2 first:border-t-0 first:pt-0"
+                  >
+                    <div className="flex items-baseline gap-2">
+                      <span data-testid="picks-rank" className="w-4 shrink-0 font-pr-display text-xs font-semibold text-pr-text-faint tabular-nums">
+                        {i + 1}
+                      </span>
+                      <p className="min-w-0 flex-1 truncate text-sm font-medium leading-snug text-pr-text">
+                        {row.name}
+                        {row.team && <span className="font-normal text-pr-text-dim"> · {row.team}</span>}
+                      </p>
+                      <span
+                        data-testid="picks-value"
+                        className={`font-pr-display text-xl font-semibold leading-none tabular-nums ${i === 0 ? "text-pr-accent" : "text-pr-text"}`}
+                      >
+                        {figure(row)}
+                      </span>
                     </div>
-                  )}
-                </div>
-              ))
-            )}
-          </section>
-        );
-      })}
+                    {row.kind === "probability" && <Bar value={row.value} />}
+                  </div>
+                ))
+              )}
+            </section>
+          );
+        })}
+      </div>
 
       {/* §D: an out player is shown ONCE, here, and nowhere in a ranking — no
           bar, no tile, no rank position, attributed and dated. */}
