@@ -1,8 +1,17 @@
-// Synced from predictor-ui@761c65a6c5f8. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@09242458b943. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 /** FixtureFlow — instant, local, state-appropriate description.
  *
  *  Pure function of its props.  No useEffect, no fetch, no timer.
  *  Renders the game flow for the given sport and state.
+ *
+ *  **The pre-game prose is gone, and the instant block is why.** The block
+ *  (`InstantBlock`) draws the timing, the verdict, the tiles, the bar and the
+ *  record from the very same bundle; saying them here as sentences is what put
+ *  one figure on a page in two places with two values. What is left here is the
+ *  fixture's own name — a name, not a claim — and then only the sentences that
+ *  carry news: the score and how it stands while the fixture is live, and the
+ *  result and the pick's rightness once it is finished. A state with nothing to
+ *  say renders an empty flow, which is the honest reading: the facts are above.
  *
  *  Honour assertions (must bite):
  *  - No line named that is not there (test on rendered strings, not keys).
@@ -10,6 +19,8 @@
  *  - F1 draws no market-line tile and no split-bar market row.
  *  - Every sentence is true for every bundle that reaches it.
  */
+
+import { pickLabel, pickProbability } from "../lib/bundleFacts";
 
 export type FlowState = "pre-game" | "in-play" | "finished";
 
@@ -23,22 +34,6 @@ export interface FixtureFlowProps {
   request: () => Promise<any>;
 }
 
-/** The moment each sport's pick has to beat, in that sport's own words. */
-const MOMENT: Record<string, string> = {
-  f1: "the session",
-  nba: "tip-off",
-  nfl: "kickoff",
-  cfb: "kickoff",
-  pl: "kickoff",
-  sp: "kickoff",
-};
-
-/** Whether the bundle carries a market line to stand against. */
-function hasLine(bundle: any): boolean {
-  const line = bundle?.market_line;
-  return line !== null && line !== undefined && line !== "";
-}
-
 /** Whole percent, matching the panel's own formatting. */
 function pct(p: number): string {
   if (p <= 0.005) return "<1%";
@@ -46,21 +41,10 @@ function pct(p: number): string {
   return `${Math.round(p * 100)}%`;
 }
 
-/** The model's pick probability, or null when the facts don't carry one. */
-function pickProb(bundle: any): number | null {
-  const p = bundle?.pick?.prob;
-  return typeof p === "number" && Number.isFinite(p) ? p : null;
-}
-
-/** When the pick was made, from the facts' own `pick_timing`. A rebuilt pick
- *  was made after the event began; the moment is worded per sport because F1
- *  has sessions, not kickoffs, and "after the game started" on a race page
- *  names a moment that sport does not have. */
-function whenMade(sport: string, bundle: any): string {
-  const timing = bundle?.pick_timing;
-  if (timing === "rebuilt") return sport === "f1" ? "after the session started" : "after the game started";
-  const moment = MOMENT[sport] ?? "kickoff";
-  return `before ${moment}`;
+/** Whether the bundle carries a market line to stand against. */
+function hasLine(bundle: any): boolean {
+  const line = bundle?.market_line;
+  return line !== null && line !== undefined && line !== "";
 }
 
 /** The score, when the facts carry one. */
@@ -75,18 +59,12 @@ function scoreSentence(bundle: any): string | null {
 /** The state of the game, for a sport with no score to show (F1). */
 function stateSentence(sport: string, bundle: any): string | null {
   if (sport !== "f1") return null;
-  const label = bundle?.pick?.label ?? bundle?.driver;
+  const label = pickLabel(bundle, sport) ?? bundle?.driver;
   if (!label) return null;
-  const prob = pickProb(bundle);
+  const prob = pickProbability(bundle);
   return prob !== null
     ? `The state of the race: the model's pick is ${label}, at ${pct(prob)} win probability.`
     : `The state of the race: the model's pick is ${label}.`;
-}
-
-/** The market's line, when the facts carry one. */
-function lineSentence(bundle: any): string | null {
-  if (!hasLine(bundle)) return null;
-  return `The market's line is ${bundle.market_line}.`;
 }
 
 /** How the score stands against the line, when there is both. */
@@ -114,7 +92,7 @@ function resultSentence(sport: string, bundle: any): string | null {
   // F1 carries no result field — the pick's rightness is the result.
   if (sport === "f1") {
     const wasRight = bundle?.pick?.was_right;
-    const label = bundle?.pick?.label ?? bundle?.driver;
+    const label = pickLabel(bundle, sport) ?? bundle?.driver;
     if (typeof wasRight === "boolean" && label) {
       return wasRight
         ? `The result is a win for ${label}.`
@@ -139,46 +117,17 @@ type Row = { text: string; heading?: boolean };
 /** Build the flow's rows for the given sport and state. */
 function buildRows(sport: string, state: FlowState, bundle: any): Row[] {
   const rows: Row[] = [];
-  const isF1 = sport === "f1";
 
   if (state === "pre-game") {
-    if (isF1) {
-      // F1: the driver, the win probability and the pick are one fact.
-      const label = bundle?.pick?.label ?? bundle?.driver;
-      const prob = pickProb(bundle);
-      if (label) {
-        rows.push({
-          heading: true,
-          text:
-            prob !== null
-              ? `The model picks ${label} to win — win probability ${pct(prob)}.`
-              : `The model picks ${label} to win.`,
-        });
-      }
-      rows.push({ text: `The pick was made ${whenMade(sport, bundle)}.` });
-    } else {
-      const home = bundle?.home_team;
-      const away = bundle?.away_team;
-      if (home && away) rows.push({ heading: true, text: `${home} vs ${away}` });
-      const hw = bundle?.home_win_prob;
-      const aw = bundle?.away_win_prob;
-      const hasMoneyline = typeof hw === "number" && typeof aw === "number" && !!home && !!away;
-      if (hasMoneyline) {
-        rows.push({ text: `Win probabilities: ${home} ${pct(hw)}, ${away} ${pct(aw)}.` });
-      }
-      rows.push({ text: `The pick was made ${whenMade(sport, bundle)}.` });
-      const label = bundle?.pick?.label;
-      const prob = pickProb(bundle);
-      if (label) {
-        rows.push(
-          hasMoneyline
-            ? { text: `The model picks ${label}.` }
-            : { text: prob !== null ? `The model picks ${label} at ${pct(prob)}.` : `The model picks ${label}.` },
-        );
-      }
-    }
-    const line = lineSentence(bundle);
-    if (line) rows.push({ text: line });
+    // The fixture's name and nothing else. The pick, the probabilities, the
+    // timing and the line are the block's, as figures, one of them.
+    //
+    // F1 names a driver rather than a home and an away side, so it has no name
+    // row here and the pre-game flow is empty for that sport — deliberately. The
+    // block states the pick; the flow adds nothing to it.
+    const home = bundle?.home_team;
+    const away = bundle?.away_team;
+    if (home && away) rows.push({ heading: true, text: `${home} vs ${away}` });
   } else if (state === "in-play") {
     const score = scoreSentence(bundle);
     if (score) rows.push({ text: score });

@@ -12,6 +12,7 @@ import { MarketBar } from "./MarketBar";
 import { PlayerHighlights, PlayerScorerList } from "./PlayerScorerList";
 import { GLOSSARY } from "../lib/glossary";
 import { isModelCall } from "../lib/modelCall";
+import { resolvedPick } from "../lib/pick";
 
 interface Props {
   eventId: string;
@@ -222,42 +223,12 @@ export function FixtureModal({ eventId, onClose, explain, sport = "pl" }: Props)
       draw: finite(detail.draw?.prob),
       away_win: finite(detail.away_win?.prob),
     };
-    // Which side the model picked, and which of the two records it came from.
-    //
-    // A reviewed fixture is judged on the plain marginal argmax: that is
-    // `_fixture_hit_table`'s `max(probs, key=probs.get)` in the tracking store,
-    // `lib/pick.ts`'s `matchPick` on the finished card, and the "Match result"
-    // row the review prints. `predicted_result` is the DISPLAY variant — the
-    // scoreline model promotes a draw when it and the percentage model agree
-    // one is likely — and the backend labels it informational only, never used
-    // to score accuracy (api/schemas.py::_fill_predicted_result). Measured on
-    // the shipped snapshot, the two disagree on 15 of the 20 finished fixtures
-    // whose shots fields are present, so the review's side is read FIRST: it is
-    // the pick the review row, the list card and the record strip all mean, and
-    // a block that named the other one would put three different picks on one
-    // page. It is also the only source for the 30 finished fixtures still baked
-    // into the public snapshot without `predicted_result` at all. An
-    // unreviewed fixture has no record to disagree with, and the model's own
-    // label is the pick.
-    const resultVerdict = detail.post_match?.verdicts.find((v) => v.label === "Match result");
-    const pickKey = resultVerdict?.prediction || detail.predicted_result;
-    const pickSide =
-      pickKey === "home_win"
-        ? { key: "home_win", label: detail.team_home, prob: probs.home_win }
-        : pickKey === "away_win"
-          ? { key: "away_win", label: detail.team_away, prob: probs.away_win }
-          : pickKey === "draw"
-            ? { key: "draw", label: "Draw", prob: probs.draw }
-            : undefined;
-    // The review's `hit` flag, attached only when the pick IS the review's own
-    // side. It is not about `predicted_result`'s side, so it is dropped rather
-    // than hung on a pick it does not describe.
-    const wasRight =
-      pickSide && resultVerdict && resultVerdict.prediction === pickSide.key ? resultVerdict.hit : undefined;
-    const pick =
-      pickSide && pickSide.prob !== undefined
-        ? { label: pickSide.label, prob: pickSide.prob, ...(typeof wasRight === "boolean" ? { was_right: wasRight } : {}) }
-        : undefined;
+    // Which side the model picked, resolved by the shared rule rather than
+    // re-derived here: the review's side first, the display variant only where
+    // there is no review, and a label in the vocabulary the bar's segments use.
+    // `resolvedPick`'s comment carries the measurements and the two fallbacks;
+    // this comment only says why the rule is not written out again.
+    const pick = resolvedPick(detail);
     const postMatch = detail.post_match;
     const score = postMatch
       ? (() => {

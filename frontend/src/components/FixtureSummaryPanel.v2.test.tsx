@@ -118,28 +118,30 @@ const modalDetail = (fx: FixtureSummary): FixtureDetail =>
     pre_match_value_bets: [],
   }) as unknown as FixtureDetail;
 
-/** The plain-English panel, as opposed to the whole modal.
+/** The block, as opposed to the whole modal — the ONLY place the figures appear.
  *
- *  Every assertion in this file is about the panel's own bar, and the modal now
- *  draws a SECOND bar over the same three segments: the instant block, above the
- *  button, renders the site's own figures from the same `extras`. Scoping by the
- *  panel's heading is therefore not tidiness — measured over the whole
- *  container, `fills` reads six segments instead of three and `accentedAt`
- *  answers with an index into the block's half. */
+ *  **This helper used to scope to the plain-English panel, and that was the
+ *  defect this phase removes.** The panel drew its own tiles, bar, legend and
+ *  record from the same `extras` the block already rendered from, so every
+ *  figure on this page was drawn twice; scoping by the panel's heading hid that
+ *  rather than reporting it. `FixtureExplainer`'s summary state now passes the
+ *  panel NO tiles, NO segments and NO record, so the block is the sole owner and
+ *  every assertion in this file reads the block.
+ *
+ *  Scoping is still load-bearing, in the other direction: the modal renders other
+ *  `role="img"` elements (team crests, the record strip) and other bars the
+ *  site's own markup may add, so an unscoped query would quietly point at one of
+ *  those and this whole file would pass while asserting about the wrong element. */
 const panel = (container: HTMLElement) => {
-  const found = [...container.querySelectorAll("section")].find((s) =>
-    s.textContent?.includes("In plain English"),
-  );
-  expect(found, "the plain-English panel is not on the page").toBeTruthy();
+  const found = container.querySelector<HTMLElement>("[data-testid='instant-block']");
+  expect(found, "the instant block is not on the page").toBeTruthy();
   return found!;
 };
 
-/** The bar's graphic, scoped to that panel: the modal renders other `role="img"`
- *  elements (team badges, the record strip), so a bare `getByRole("img")` is
- *  ambiguous at modal level and would quietly point at something else. */
+/** The bar's graphic, scoped to that block, for the same reason. */
 const panelImg = (container: HTMLElement) => {
   const bar = panel(container).querySelector<HTMLElement>("[role='img']");
-  expect(bar, "the panel drew no bar").toBeTruthy();
+  expect(bar, "the block drew no bar").toBeTruthy();
   return bar!;
 };
 
@@ -184,29 +186,34 @@ async function show(pick?: PickRef, fx: FixtureSummary = fixture(), factors?: Fa
   return out;
 }
 
-describe("the accent follows the pick, through this site's own labels", () => {
-  it("accents the pick's own segment, for all three outcomes of a three-way market", async () => {
-    // The service's vocabulary, not a convenient one: `match_pick` words the two
-    // sides "<team> win" and the draw "Draw". Home and away are the two that need
-    // reconciling; the draw is the control, because it already matched before the
-    // fix. That is exactly why the defect survived — two thirds of the market
-    // rendered correctly, so a spot check found nothing.
-    const cases: [PickRef, number, string][] = [
-      [{ label: "Arsenal win", side: "home_win" }, 0, "Arsenal"],
-      [{ label: "Draw", side: "draw" }, 1, "Draw"],
-      [{ label: "Chelsea win", side: "away_win" }, 2, "Chelsea"],
-    ];
+describe("the accent follows the BUNDLE's pick, through this site's own labels", () => {
+  /** The accent is resolved from the bundle the site hands the block, so the
+   *  bundle is what these tests vary. The service's own `pick` is deliberately
+   *  NOT the lever: the block renders before any request is made, so the summary
+   *  cannot be what decides it.
+   *
+   *  The vocabulary still matters, and it is the site's to get right. The
+   *  segments are labelled `Arsenal` / `Draw` / `Chelsea` by the shared
+   *  `panelFacts` adapter, so a bundle whose `pick` was worded `"Arsenal win"`
+   *  would join to nothing and render a bar with no accent at all — the panel's
+   *  correct rendering of a bundle with no pick, printed under a verdict sentence
+   *  naming one. `FixtureModal` builds `pick.label` in the segments' own
+   *  vocabulary, and every case below is that join holding. */
+  const cases: [string, number, string][] = [
+    ["home_win", 0, "Arsenal"],
+    ["draw", 1, "Draw"],
+    ["away_win", 2, "Chelsea"],
+  ];
 
-    for (const [pick, index, label] of cases) {
-      const { container, unmount } = await show(pick);
+  it("accents the pick's own segment, for all three outcomes of a three-way market", async () => {
+    for (const [side, index, label] of cases) {
+      const { container, unmount } = await show({ label: "Arsenal win" }, fixture({ predicted_result: side }));
       const tones = fills(panel(container));
-      expect(tones, pick.label).toHaveLength(3);
-      // Exactly one segment is accented, and it is the one the answer names.
-      expect(tones.filter((t) => t === ACCENT), pick.label).toHaveLength(1);
-      expect(accentedAt(panel(container)), `${pick.label} should accent segment ${index}`).toBe(index);
-      expect(panelImg(container).getAttribute("aria-label"), pick.label).toContain(
-        `the pick is ${label}`,
-      );
+      expect(tones, side).toHaveLength(3);
+      // Exactly one segment is accented, and it is the one the bundle named.
+      expect(tones.filter((t) => t === ACCENT), side).toHaveLength(1);
+      expect(accentedAt(panel(container)), `${side} should accent segment ${index}`).toBe(index);
+      expect(panelImg(container).getAttribute("aria-label"), side).toContain(`the pick is ${label}`);
       unmount();
     }
   });
@@ -217,13 +224,27 @@ describe("the accent follows the pick, through this site's own labels", () => {
     // pick happens to be the home side, because home is segment 0. These two are
     // the cases a positional implementation gets wrong, and a reader sees them as
     // the model having picked the side it picked least of.
-    const away = await show({ label: "Chelsea win", side: "away_win" });
+    const away = await show(undefined, fixture({ predicted_result: "away_win" }));
     expect(accentedAt(panel(away.container))).toBe(2);
     away.unmount();
 
-    const draw = await show({ label: "Draw", side: "draw" });
+    const draw = await show(undefined, fixture({ predicted_result: "draw" }));
     expect(accentedAt(panel(draw.container))).toBe(1);
     draw.unmount();
+  });
+
+  it("is already accented before the button is pressed, so no request can change it", async () => {
+    // The point of the block. The accent is a property of the bundle, so it is on
+    // screen at zero requests and pressing the button does not move it — the
+    // summary is prose, not a second opinion on which side was picked.
+    const { container, unmount } = await show({ label: "Chelsea win", side: "away_win" }, fixture({ predicted_result: "home_win" }));
+    expect(accentedAt(panel(container))).toBe(0);
+
+    // And a service answer naming a DIFFERENT side cannot move it, because it is
+    // not what the accent reads. If this ever starts following the summary, the
+    // figures under a paid answer and the block above them disagree.
+    expect(panelImg(container).getAttribute("aria-label")).toContain("the pick is Arsenal");
+    unmount();
   });
 
   it("says which segment is the pick, for a reader who cannot see the accent", async () => {
@@ -231,24 +252,35 @@ describe("the accent follows the pick, through this site's own labels", () => {
     // assertion that catches a join failing for a reason the fill alone does not
     // explain: with no matched segment the accessible name simply has no "the
     // pick is" clause, and a screen-reader user is told nothing at all.
-    const { container } = await show({ label: "Arsenal win", side: "home_win" });
+    const { container } = await show({ label: "Arsenal win" }, fixture({ predicted_result: "home_win" }));
     expect(panelImg(container)).toHaveAccessibleName(
       "Arsenal 48%, Draw 26%, Chelsea 26%, the pick is Arsenal",
     );
   });
 
-  it("still accents nothing when the answer genuinely has no pick", async () => {
+  it("still accents nothing when the bundle genuinely carries no pick", async () => {
     // The control, and the reason the tests above mean anything: a bar that
     // emphasises something is claiming there is a pick. This is the exact shape
     // the defect impersonated, so it has to stay reachable and stay distinct.
-    const { container } = await show(undefined);
-    const tones = fills(panel(container));
-    expect(tones).toHaveLength(3);
-    expect(tones).not.toContain(ACCENT);
-    // Three distinguishable tones, so the neutral ramp survives having no accent
-    // spent on it — a reader must still be able to tell a 48% from a 26%.
-    expect(new Set(tones).size).toBe(3);
-    expect(panelImg(container)).toHaveAccessibleName("Arsenal 48%, Draw 26%, Chelsea 26%");
+    // `predicted_result` absent is not the same as null, and neither is a string
+    // that names no side, so all three are exercised.
+    for (const fx of [
+      fixture({ predicted_result: undefined }),
+      fixture({ predicted_result: null }),
+      fixture({ predicted_result: "over_2_5" }),
+    ] as unknown as FixtureSummary[]) {
+      const { container, unmount } = await show({ label: "Arsenal win" }, fx);
+      const tones = fills(panel(container));
+      expect(tones).toHaveLength(3);
+      expect(tones).not.toContain(ACCENT);
+      // Three distinguishable tones, so the neutral ramp survives having no
+      // accent spent on it — a reader must still be able to tell 48% from 26%.
+      expect(new Set(tones).size).toBe(3);
+      expect(panelImg(container)).toHaveAccessibleName("Arsenal 48%, Draw 26%, Chelsea 26%");
+      // And the block says so in words rather than leaving the reader to infer it.
+      expect(panel(container).textContent).toMatch(/No pick was made/i);
+      unmount();
+    }
   });
 });
 
@@ -302,101 +334,87 @@ describe("the market row quotes the market, never the model", () => {
   });
 });
 
-describe("an unplaceable pick fails closed, in the accent AND in the de-emphasis", () => {
-  it("accents no segment and dims no figure when the pick's label is no segment's label", async () => {
-    // The fail-closed guarantee, stated in the bar's own terms and in BOTH of the
-    // ways it can fail. `barPick` returns this label unchanged — branch 4 of its
-    // own tests, in `panelFacts.test.ts` — so `pickIndex` finds nothing and the
-    // bar spends its one accent colour on no one.
+describe("an unplaceable pick fails closed, and the bar is never a control", () => {
+  it("never hands the bar a pick it cannot place, so the accent always lands or is absent", async () => {
+    // The fail-closed guarantee, stated as the site actually enforces it.
     //
-    // The de-emphasis is a separate mechanism and has to be asserted separately.
-    // It is driven by the SELECTED FACTOR, not by the pick, so a bar can be
-    // correctly un-accented and wrongly dimmed at the same time, and no
-    // assertion on `backgroundColor` can see that. "Arsenal to win" is the label
-    // `barPick`'s own fail-closed test uses, so the two files agree on what an
-    // unplaceable pick looks like rather than each inventing one.
+    // `pickIndex` returns -1 for a label the bar cannot find, and the bar spends
+    // its accent colour on no one rather than pointing at the nearest segment to
+    // a claim nobody made. On this site that state is UNREACHABLE BY
+    // CONSTRUCTION, and the construction is the thing worth pinning: `pick.label`
+    // is built from the same `team_home` / `team_away` / `"Draw"` strings the
+    // shared adapter labels its segments with, so a pick can only be named when
+    // its side carries a probability — and a side with no probability has no
+    // segment to name. Placement is a property of how the bundle is built, not
+    // something resolved later and hoped for.
     //
-    // Why this needed saying: every other test in this file either selects no
-    // factor — so nothing *can* be dimmed and a dim assertion would pass
-    // vacuously — or asserts only the accent. The unplaceable-pick case had no
-    // rendered-level test on this site at all, only the unit-level one, which is
-    // exactly the gap a library change to `dim` or `pickIndex` would slide
-    // through without turning anything red.
-    const { container } = await show({ label: "Arsenal to win", side: "home_win" });
+    // The case that would break it is a bundle naming a side the adapter gave no
+    // segment. So that is the case asserted: the draw has no probability, and
+    // `predicted_result` still names the draw.
+    const fx = fixture({
+      draw: { prob: null, implied: null, edge: null },
+      predicted_result: "draw",
+    } as unknown as Partial<FixtureSummary>);
+    const { container } = await show(undefined, fx);
 
-    // The accent half: no segment carries it, and nothing claims one in words.
-    expect(fills(panel(container))).toHaveLength(3);
-    expect(accentedAt(panel(container))).toBe(-1);
-    expect(panelImg(container)).toHaveAccessibleName("Arsenal 48%, Draw 26%, Chelsea 26%");
+    // Two segments, because there are two sides with a probability.
+    const tones = fills(panel(container));
+    expect(tones).toHaveLength(2);
+    // And no pick, because the one the bundle named has nothing to point at.
+    expect(tones).not.toContain(ACCENT);
+    expect(panelImg(container).getAttribute("aria-label")).not.toMatch(/the pick is/);
+    expect(panel(container).textContent).toMatch(/No pick was made/i);
+  });
 
-    // The dim half: every figure is at full opacity, and the count is asserted
-    // as a whole so a figure that stopped rendering an opacity at all fails
+  it("leaves every figure at full opacity whatever the reader presses", async () => {
+    // The block's bar is INERT: `InstantBlock` passes no `highlightKey` and no
+    // `onSegmentFocus`, so the bar the reader sees before pressing anything
+    // cannot be re-painted by a summary that has not been fetched yet. The
+    // figures above the button are the truth, and nothing below it dims them.
+    //
+    // This used to be reachable: the panel drew its own bar, wired to the factor
+    // list, and pressing a factor faded the others. The summary state no longer
+    // renders a bar of its own, so there is nothing to fade — asserted as a
+    // whole count, so a figure that stopped rendering an opacity at all fails
     // rather than passing as "not dimmed".
+    const factors: Factor[] = [
+      { key: "btts", direction: "neutral", headline: "Both score", text: "It often does." },
+      { key: "record", direction: "neutral", headline: "Model record", text: "It has been good." },
+    ];
+    const { container } = await show({ label: "Arsenal win", side: "home_win" }, fixture(), factors);
+
     expect(fillOpacity(panel(container))).toEqual(["1", "1", "1"]);
     expect(labelOpacity(panel(container))).toEqual(["1", "1", "1"]);
+
+    for (const key of ["btts", "record"]) {
+      fireEvent.click(screen.getByTestId(`factor-${key}`));
+      // Still nothing dimmed above the button, after either press.
+      expect(fillOpacity(panel(container))).toEqual(["1", "1", "1"]);
+      expect(labelOpacity(panel(container))).toEqual(["1", "1", "1"]);
+    }
+
+    // And the press is not a dead control either way: the summary panel is given
+    // no tiles and no segments, so no factor key resolves to a figure and every
+    // row reads as unpressed. That is the library's own rule — a key with no
+    // figure under it clears the light rather than setting one — and asserting
+    // it stops a future change from quietly re-wiring the summary's factors to
+    // figures the reader is no longer shown twice.
+    expect(screen.getByTestId("factor-btts")).toHaveAttribute("aria-pressed", "false");
+    expect(panel(container).querySelector("[data-highlighted='true']")).toBeNull();
   });
 
-  it("dims the other figures once a factor IS selected, so the assertion above is not vacuous", async () => {
-    // The control, and the reason the test above means anything. A `dim` that
-    // had stopped working entirely would ALSO render `["1","1","1"]` for an
-    // unplaceable pick — the same class of silent breakage, in the opposite
-    // direction, and equally invisible to a green suite. So the de-emphasis has
-    // to be seen working somewhere, or its absence proves nothing.
-    //
-    // `btts` is the key that makes it work. Every segment carries the `result`
-    // market, so a factor naming `result` dims nothing (the de-emphasis is per
-    // MARKET, not per segment) — which is a fact worth pinning in its own right,
-    // and is why this test uses a factor that names a TILE the bar does not draw.
-    // `linkable` accepts it because a `btts` tile exists; `dim` then fades all
-    // three segments, because none of them is about both-teams-to-score.
-    const { container } = await show({ label: "Arsenal win", side: "home_win" }, fixture(), [
-      { key: "btts", direction: "neutral", headline: "Both score", text: "It often does." },
-    ]);
-    fireEvent.click(screen.getByTestId("factor-btts"));
-
-    // The de-emphasis is live, and it is the value `dim` actually writes.
-    expect(fillOpacity(panel(container))).toEqual(["0.4", "0.4", "0.4"]);
-    expect(labelOpacity(panel(container))).toEqual(["0.4", "0.4", "0.4"]);
-
-    // The row that asked for the light is the row that is pressed, and the
-    // highlight is announced as well as painted.
-    expect(screen.getByTestId("factor-btts")).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByTestId("factor-btts")).toHaveAttribute("data-highlighted", "true");
-  });
-
-  it("dims nothing at all when the selected factor names a figure the panel does not draw", async () => {
-    // The other half of the linkage, and the one that was a defect until the
-    // library made a key with no figure behind it CLEAR the highlight instead of
-    // setting one. A factor is a reference to a figure; a key that resolves to
-    // nothing used to be forwarded as though it did, and `dim` then faded every
-    // figure in the panel with none lit — the worst of the three outcomes,
-    // because the reader is left with less than before they pressed anything.
-    //
-    // This is not a rare shape: `template.py` always emits a `record` row and
-    // pads with `context`, and neither is a market, so on a no-pick panel every
-    // row is unlinkable. `linkable()` in `ExplainerPanel` now turns such a press
-    // into a light that goes off, which is a change the reader can see and undo.
-    const unlinkable: Factor[] = [
-      { key: "record", direction: "neutral", headline: "Model record", text: "It has been good." },
-      {
-        key: "result",
-        direction: "up",
-        headline: "Model and market agree",
-        text: "Both put Arsenal at about the same price.",
-      },
-    ];
-    const { container } = await show({ label: "Arsenal win", side: "home_win" }, fixture(), unlinkable);
-
-    // Pressing it sets nothing, so nothing is dimmed and nothing is lit.
-    fireEvent.click(screen.getByTestId("factor-record"));
-    expect(fillOpacity(panel(container))).toEqual(["1", "1", "1"]);
-    expect(screen.getByTestId("factor-record")).toHaveAttribute("aria-pressed", "false");
-    expect(container.querySelector("[data-highlighted='true']")).toBeNull();
-
-    // And the row that DOES name a drawn figure still lights it, so the test
-    // above is about the key resolving rather than about selection being inert.
-    fireEvent.click(screen.getByTestId("factor-result"));
-    expect(screen.getByTestId("factor-result")).toHaveAttribute("aria-pressed", "true");
+  it("renders the segment figures as text, not as buttons with nothing behind them", async () => {
+    // The bar sits above the button, in the state that is always true, and no
+    // caller reports a segment focus — so `ProbabilityBar` renders each label as
+    // text rather than as a focus stop that announces a control and does
+    // nothing. A keyboard reader must not meet a control here.
+    const { container } = await show({ label: "Arsenal win", side: "home_win" });
+    for (const label of panel(container).querySelectorAll("[data-testid='pbar-label']")) {
+      expect(label.tagName, "a segment label is a control with no listener").not.toBe("BUTTON");
+    }
+    // And the figures are still all there for a reader who takes no other route.
+    expect(panel(container).textContent).toContain("Arsenal 48%");
+    expect(panel(container).textContent).toContain("Chelsea 26%");
   });
 });
 
