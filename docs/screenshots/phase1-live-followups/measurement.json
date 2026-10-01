@@ -1,0 +1,54 @@
+{
+  "desktop": {
+    "gameweekLabel": "Gameweek 6",
+    "cardText": "Sat 10 Oct · 6:30 AMModel onlyUpcomingArsenalLikely2–0LeedsH 71%D 17%A 12%",
+    "cardCount": 10,
+    "flowRows": [],
+    "flowHeadings": [],
+    "flowText": "",
+    "blockPresent": true,
+    "blockText": "Made before kickoffArsenal is the pick.71%win · Arsenal3.3total goals54%both scoreArsenal 71%Draw 17%Leeds 12%Picks made before kickoff—",
+    "figuresInBothPlaces": [
+      "17%"
+    ],
+    "duplicateDetail": [
+      {
+        "figure": "17%",
+        "inBlock": 1,
+        "outside": 1,
+        "outsideContext": "SoT 0.0StachMIDXISPG+A 21%Goal 5%Assist 17%Shots 0.3SoT 0.1OkaforMIDXIG+A 15%Goal 8"
+      }
+    ],
+    "figureCount": 81,
+    "pageErrors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ]
+  },
+  "mobile": {
+    "gameweekLabel": "Gameweek 6",
+    "cardText": "Sat 10 Oct · 6:30 AMModel onlyUpcomingArsenalLikely2–0LeedsH 71%D 17%A 12%",
+    "cardCount": 10,
+    "flowRows": [],
+    "flowHeadings": [],
+    "flowText": "",
+    "blockPresent": true,
+    "blockText": "Made before kickoffArsenal is the pick.71%win · Arsenal3.3total goals54%both scoreArsenal 71%Draw 17%Leeds 12%Picks made before kickoff—",
+    "figuresInBothPlaces": [
+      "17%"
+    ],
+    "duplicateDetail": [
+      {
+        "figure": "17%",
+        "inBlock": 1,
+        "outside": 1,
+        "outsideContext": "SoT 0.0StachMIDXISPG+A 21%Goal 5%Assist 17%Shots 0.3SoT 0.1OkaforMIDXIG+A 15%Goal 8"
+      }
+    ],
+    "figureCount": 81,
+    "pageErrors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ]
+  }
+}
