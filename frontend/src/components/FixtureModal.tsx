@@ -210,6 +210,22 @@ export function FixtureModal({ eventId, onClose, explain, sport = "pl" }: Props)
     };
   }, [recordSummary]);
 
+  // The flow's state, derived ONCE and used for BOTH the bundle below and the
+  // `state` prop, because the rule this PR adds is a rule about the PAIR: the
+  // bundle withholds the team names when the flow has nothing to say, and the
+  // prop has to be asking the flow for that same nothing. Two separate
+  // derivations of "is this finished?" is how the live-game case drifts, so it
+  // is written once.
+  //
+  // This site has no `in-play` state to ask for, and that is measured rather
+  // than assumed: `FixtureDetail` carries no live score field at all -- its one
+  // score is `post_match.final_score` -- so a fixture that has kicked off but
+  // has no `post_match` yet has no score sentence to say and would render the
+  // in-play branch empty. Mapping it to `pre-game` is therefore not a state this
+  // site is hiding; it is the same empty flow, reached honestly. What was NOT
+  // honest before this change was that the empty flow still carried a heading.
+  const flowState: "pre-game" | "finished" = detail?.post_match ? "finished" : "pre-game";
+
   // The flow's facts: what this modal already holds, no request. PL carries no
   // market line, so the flow says the pick and stops; the finished flow reads
   // the final score and whether the pick was right, both from the detail, and
@@ -236,9 +252,49 @@ export function FixtureModal({ eventId, onClose, explain, sport = "pl" }: Props)
           return m ? { home: Number(m[1]), away: Number(m[2]) } : undefined;
         })()
       : undefined;
+    /* THE BARE HEADING, and why the sides are spelled two ways here.
+       Measured per state by rendering the modal and dumping the flow's rows,
+       not by reading a screenshot:
+
+         - pre-game — the flow's ONLY row was the fixture's own name, rendered
+                      as an `H4`, so the live modal showed `Tottenham vs Aston
+                      Villa` with nothing under it, directly above the AI button.
+         - in-play  — `FixtureDetail` has no live score, so a kicked-off fixture
+                      with no `post_match` yet takes this same branch and
+                      rendered the SAME bare heading.
+         - finished — TWO real sentences (the result, and the pick's rightness).
+                      Live content, and it stays.
+
+       So this is not a deletion of the flow; it is the heading made conditional
+       on rows existing beneath it, expressed in the only place a site may
+       express it -- the bundle it hands over, because `predictor-ui/` is
+       vendored and must not change.
+
+       `FixtureFlow` reads the sides under `home_team`/`away_team` for BOTH its
+       pre-game name row and its finished result sentence, so one spelling
+       cannot suppress the first without breaking the second. `bundleFacts` --
+       the single place the block's verdict sentence goes through -- reads
+       `home_team ?? team_home`, and both spellings are that package's own
+       documented contract. So:
+
+         - ALWAYS carry `team_home`/`team_away`, which `fullTeamName` reads to
+           resolve the pick's label to a side. Without it the block would fall
+           back to nothing and "Tottenham is the pick." would be lost.
+         - carry `home_team`/`away_team` ONLY once a result makes a sentence
+           that needs them. Pre-game there is no such sentence, and withholding
+           the keys the name row reads is what makes that row impossible rather
+           than merely unlikely.
+
+       The block's figures depend on neither key: `panelFacts` above is handed
+       this site's own fixture, not the bundle, so the tiles and the bar are
+       identical either way. */
+    const namesForSentences = flowState !== "pre-game";
     return {
-      home_team: detail.team_home,
-      away_team: detail.team_away,
+      team_home: detail.team_home,
+      team_away: detail.team_away,
+      ...(namesForSentences
+        ? { home_team: detail.team_home, away_team: detail.team_away }
+        : {}),
       home_win_prob: probs.home_win,
       away_win_prob: probs.away_win,
       // When this pick was made, in the one vocabulary the block reads. A stored
@@ -257,8 +313,7 @@ export function FixtureModal({ eventId, onClose, explain, sport = "pl" }: Props)
             ? "home_win"
             : "away_win",
     };
-  }, [detail]);
-  const flowState = detail?.post_match ? "finished" : "pre-game";
+  }, [detail, flowState]);
 
   useEffect(() => {
     let cancelled = false;
