@@ -350,7 +350,7 @@ export function FixtureModal({ eventId, onClose, explain, sport = "pl" }: Props)
                 state={flowState}
                 bundle={flowBundle}
                 request={() => explain(sport, eventId)}
-                extras={{ tiles: panel.tiles, segments: panel.segments, legend: panel.legend, record, moment: "kickoff" }}
+                extras={{ tiles: panel.tiles, segments: panel.segments, legend: panel.legend, record: record ?? undefined, moment: "kickoff" }}
               />
             </div>
           )}
