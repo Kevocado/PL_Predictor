@@ -17,7 +17,18 @@ from fastapi.testclient import TestClient
 
 from pl_predictor.api import facts as facts_mod
 from pl_predictor.api.main import app
-from tests.test_facts import EVENT_ID, _snapshot  # the shared public-mode fixture
+
+# The shared builders come from `conftest`, not from `tests.test_facts`.
+# `from tests.test_facts import ...` needs the repo root on sys.path so that
+# `tests` resolves as a package, and there is no `tests/__init__.py`, no
+# pythonpath and no rootdir config -- so it resolved on a developer's machine
+# and failed CI collection with `ModuleNotFoundError: No module named 'tests'`.
+# conftest is loaded by pytest for every test in this directory, so importing
+# from it cannot depend on cwd or on any path the repo does not declare.
+from conftest import (  # noqa: E402  (path set by pytest's rootdir insertion)
+    FACTS_EVENT_ID as EVENT_ID,
+    facts_snapshot as _snapshot,
+)
 
 
 def _client(monkeypatch, record_payload):

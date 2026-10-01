@@ -20,6 +20,20 @@ from pydantic import BaseModel, ConfigDict, model_validator
 from pl_predictor.api import facts as facts_mod
 from pl_predictor.api.main import app
 
+# The shared snapshot builders live in conftest, because a second test module
+# needs them too and importing another test as a package (`from tests.x import
+# y`) only resolves when the developer's cwd happens to make `tests` importable.
+# There is no `tests/__init__.py` and no pythonpath setting, so it does not
+# resolve under CI -- see the note in conftest.py.
+from conftest import (  # noqa: E402  (path set by pytest's rootdir insertion)
+    FACTS_EVENT_ID,
+    FACTS_NOW,
+    facts_card as _card,
+    facts_detail as _detail,
+    facts_player as _player,
+    facts_snapshot as _snapshot,
+)
+
 # The contract, copied from predictor-hub/services/explainer/explainer/facts.py.
 class Market(BaseModel):
     market: str
@@ -48,77 +62,8 @@ class Facts(BaseModel):
         return self
 
 
-NOW = datetime(2026, 11, 8, 12, 0, tzinfo=timezone.utc)
-EVENT_ID = "100"
-
-
-def _detail(**over):
-    detail = {
-        "event_id": EVENT_ID,
-        "team_home": "Sunderland",
-        "team_away": "Chelsea",
-        "commence_time": "2026-11-08T14:00:00Z",
-        "home_win": {"prob": 0.36, "implied": None, "edge": None},
-        "draw": {"prob": 0.26, "implied": None, "edge": None},
-        "away_win": {"prob": 0.38, "implied": None, "edge": None},
-        "over_2_5": {"prob": 0.55, "implied": None, "edge": None},
-        "under_2_5": {"prob": 0.45, "implied": None, "edge": None},
-        "predicted_total_goals": 2.9,
-        "btts_yes_prob": 0.57,
-        "top_scoreline": "1-1",
-        "has_live_odds": False,
-        "value_bet_flags": [],
-        "home_recent_form": ["W", "D", "L"],
-        "away_recent_form": ["L", "W", "W"],
-        "data_confidence": "established",
-    }
-    detail.update(over)
-    return detail
-
-
-def _card(**over):
-    card = {
-        "event_id": EVENT_ID,
-        "team_home": "Sunderland",
-        "team_away": "Chelsea",
-        "commence_time": "2026-11-08T14:00:00Z",
-        "finished": False,
-        "actual_goals_home": None,
-        "actual_goals_away": None,
-        "predicted_home_win": 0.36,
-        "predicted_draw": 0.26,
-        "predicted_away_win": 0.38,
-        "backfilled": False,
-        "has_live_odds": False,
-        "value_bet_flags": [],
-    }
-    card.update(over)
-    return card
-
-
-def _player(suffix, name, prob, team):
-    return {
-        "player_id": 1000 + int(suffix),
-        "name": name,
-        "position": "MID",
-        "anytime_goal_prob": prob,
-        "status": "a",
-        "team": team,
-    }
-
-
-def _snapshot(detail=None, cards=None, players=None, gameweek=9):
-    card_list = cards if cards is not None else [_card()]
-    player_block = players if players is not None else {
-        "home_players": [_player("1", "Wilson", 0.62, "Sunderland"), _player("2", "Jones", 0.31, "Sunderland")],
-        "away_players": [_player("3", "Blue", 0.44, "Chelsea")],
-    }
-    return {
-        "current_gameweek": gameweek,
-        "fixtures_by_gameweek": {str(gameweek): {"gameweek": gameweek, "fixtures": card_list}},
-        "fixture_detail_by_event_id": {EVENT_ID: detail if detail is not None else _detail()},
-        "fixture_players_by_event_id": {EVENT_ID: player_block},
-    }
+NOW = FACTS_NOW
+EVENT_ID = FACTS_EVENT_ID
 
 
 @pytest.fixture
