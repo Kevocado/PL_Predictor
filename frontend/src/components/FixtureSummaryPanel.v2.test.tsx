@@ -17,7 +17,7 @@
  *  repo passed while it shipped.
  */
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 
 import { FixtureModal } from "./FixtureModal";
 import { api } from "../api/client";
@@ -426,10 +426,20 @@ describe("the flow stands alone when the explainer is unreachable", () => {
     vi.mocked(api.fixturePlayerReview).mockResolvedValue(null);
     vi.mocked(api.trackRecord).mockResolvedValue(noRecordYet as never);
     render(<FixtureModal eventId="e1" onClose={() => {}} explain={explain} />);
-    // The flow renders from the detail with no request: the fixture's own
-    // name, the three-way probabilities, the pick.
-    expect(await screen.findByTestId("fixture-flow")).toBeInTheDocument();
-    expect(screen.getByText("Arsenal vs Chelsea")).toBeInTheDocument();
+    // The flow renders from the detail with no request.
+    //
+    // What it renders is now nothing, and that is the correction this PR makes:
+    // pre-game, the flow's only row used to be the fixture's own name as a
+    // heading (`Arsenal vs Chelsea`) with nothing under it, directly above the AI
+    // button. The heading is now conditional on rows existing beneath it, and
+    // pre-game has none -- so the flow is mounted and empty. Asserted as the
+    // absence of a HEADING, not of that one string, so renaming the fixture
+    // cannot let the bare heading back through. The facts did not go with it:
+    // the block below is still on screen and still states the pick.
+    const flow = await screen.findByTestId("fixture-flow");
+    expect(flow.querySelector("h1, h2, h3, h4, h5, h6")).toBeNull();
+    expect(flow.textContent?.trim()).toBe("");
+    expect(within(screen.getByTestId("instant-block")).getByText("Arsenal is the pick.")).toBeInTheDocument();
     expect(explain).not.toHaveBeenCalled();
     // And the button offers the summary rather than an error taking its place.
     expect(screen.getByRole("button", { name: /ai summary/i })).toBeInTheDocument();
