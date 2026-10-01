@@ -1,3 +1,4 @@
+import { MAX_ROWS_PER_CATEGORY, PicksList, type OutPlayer, type PickRow } from "../predictor-ui";
 import type { PlayerPrediction } from "../types";
 import { InfoTooltip } from "./InfoTooltip";
 
@@ -106,6 +107,8 @@ interface Props {
   awayTeam: string;
   homePlayers: PlayerPrediction[];
   awayPlayers: PlayerPrediction[];
+  /** The fixture's kickoff, used only to date the out-player line. */
+  kickoff?: string;
 }
 
 export function PlayerScorerList({ homeTeam, awayTeam, homePlayers, awayPlayers }: Props) {
@@ -121,65 +124,145 @@ export function PlayerScorerList({ homeTeam, awayTeam, homePlayers, awayPlayers 
   );
 }
 
-type HighlightTier = "confirmed" | "predicted" | "model_pick";
+// ---------------------------------------------------------------------------
+// "Model's top calls" — the ranked list, on the vendored PicksList.
+//
+// This used to be `PlayerHighlights`, a hand-rolled ranking of G+A with no
+// provenance and no out-player rule. It is replaced rather than added to: two
+// ranked call lists on one screen is one too many, and the old one claimed a
+// number from the arm that cannot be labelled (see below).
+//
+// Everything this list needs is already on `PlayerPrediction`, so no new
+// endpoint is involved. `PicksList` itself enforces three of the rules — the
+// three-row ceiling, the refusal of an `out` row, and the kind/range guard —
+// and the rest are enforced by the ranking below.
+// ---------------------------------------------------------------------------
 
-const TIER_LABEL: Record<HighlightTier, string> = {
-  confirmed: "Confirmed XI",
-  predicted: "Predicted XI",
-  model_pick: "Model pick",
+/**
+ * The statuses the backend scales to zero, mirroring
+ * `pl_predictor.data.fpl_api.UNAVAILABLE_STATUSES`. Kept as a mirror because
+ * `PlayerPrediction` does not carry `availability`: `routes.py` builds each row
+ * as `PlayerPrediction(**{k: p[k] for k in PlayerPrediction.model_fields})`,
+ * which drops it. If a status is added to that set, this must be updated with it.
+ *
+ * "d" (doubtful) is deliberately absent: `availability_multiplier` returns
+ * `chance / 100`, or 0.5 when the chance is unknown, so a doubtful player is
+ * scaled down and not ruled out. Treating him as out would delete a ranked call
+ * the model actually stands behind.
+ */
+const UNAVAILABLE_STATUSES = new Set(["i", "s", "u"]);
+
+type Candidate = PlayerPrediction & { team: string };
+
+/** What the number on the row is, in the words the arm deserves.
+ *
+ *  The goal and assist arms are `anytime_probability`, i.e. bare
+ *  `1 - exp(-lambda)` Poisson (`player_goals.py`). Nothing calibrates them, so
+ *  the row says "uncalibrated" and the word is load-bearing: the only arm with a
+ *  calibrator is `anytime_goal_contribution_prob`, and serving hands that out as
+ *  a 50/50 blend of the calibrated direct model and this uncalibrated union
+ *  (`NEUTRAL_BLEND_WEIGHT = 0.5`), which is why that arm is not a category here
+ *  at all -- a blend of one calibrated and one uncalibrated estimator is neither.
+ */
+const ARM_PROVENANCE = "Poisson 1 − e^−λ, uncalibrated";
+
+/**
+ * There is no per-player ledger, so there is no per-player record to quote.
+ *
+ * `tracking.store.get_scorer_accuracy()` returns `{snapshot, reconstructed}` --
+ * aggregate groups over every resolved call, with no player key anywhere. A
+ * hit rate read off that aggregate and attached to a named player would be a
+ * number borrowed from a different unit of analysis, so the row says what is
+ * actually true instead: the arm, and the absence.
+ */
+const LEDGER_PROVENANCE = "no graded record per player — the scorer ledger is aggregate only";
+
+/**
+ * What the player's rate is actually made of, which is the one thing a bare
+ * probability hides.
+ *
+ * `features/player_form.blended_current_form` blends this season's rate toward
+ * last season's, or toward a position average, in proportion to how many games
+ * have actually been played, and names which of those it used. The list this
+ * replaces dropped the cold-start players silently; ranking them and saying so
+ * is the honest version, and a number whose basis the reader cannot see is the
+ * thing this phase exists to stop.
+ *
+ * The vocabulary is the function's own, including the two that only appear
+ * early in a season. Every one of the four is measured to occur in the committed
+ * snapshot: `prior_season` 4441 rows, `position_avg` 1655.
+ */
+const FORM_BASIS: Record<string, string> = {
+  current: "a full window of this season's games",
+  prior_season: "this season blended toward last season's rate",
+  position_avg: "a position average — no rate of this player's own on file",
+  none: "no games this season and no prior rate on file",
 };
 
-export function PlayerHighlights({ homePlayers, awayPlayers }: Pick<Props, "homePlayers" | "awayPlayers">) {
-  const allPlayers = [...homePlayers, ...awayPlayers].filter(
-    (player) => player.status === "a" && player.confidence !== "none",
-  );
-  // Three tiers, falling through to whichever is non-empty: confirmed
-  // lineups (close to kickoff) > the lineup model's own >50% start
-  // probability (player_goals.py's predicted_starter) > any available
-  // player at all, ranked by goal-contribution chance. That last tier
-  // matters early in a season specifically: with only a game or two of
-  // current-season data, the calibrated start-probability model can
-  // genuinely clear 50% for nobody on a given team, which isn't the same
-  // as "no recommendation exists" — the underlying goal/assist model still
-  // has a real, ranked opinion on every available player regardless.
-  let tier: HighlightTier = "confirmed";
-  let pool = allPlayers.filter((player) => player.confirmed_starter);
-  if (pool.length === 0) {
-    tier = "predicted";
-    pool = allPlayers.filter((player) => player.predicted_starter);
-  }
-  if (pool.length === 0) {
-    tier = "model_pick";
-    pool = allPlayers;
-  }
-  const picks = [...pool].sort((left, right) => right.anytime_goal_contribution_prob - left.anytime_goal_contribution_prob).slice(0, 3);
+const LINEUP_BASIS = (player: PlayerPrediction): string =>
+  player.confirmed_starter
+    ? "Confirmed XI"
+    : player.predicted_starter
+      ? "Predicted XI"
+      : "not in the predicted XI";
 
-  return (
-    <section>
-      <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">
-        Top {tier === "confirmed" ? "confirmed" : "predicted"} player calls
-      </h3>
-      {picks.length === 0 ? (
-        <p className="rounded-lg bg-pl-850/60 px-3 py-2 text-xs text-pl-text-faint">No available players to call for this fixture.</p>
-      ) : (
-        <div className="flex flex-col gap-1.5">
-          {picks.map((player) => (
-            <div key={`highlight-${player.player_id}`} className="flex items-center justify-between rounded-lg bg-pl-850/60 px-3 py-2 text-sm">
-              <div className="flex items-center gap-2">
-                <span className="font-medium text-pl-text">{player.name}</span>
-                <span className="rounded bg-win/20 px-1.5 py-0.5 text-xs font-semibold text-win">
-                  {TIER_LABEL[tier]}
-                </span>
-              </div>
-              <span className="text-xs text-pl-text-faint">
-                G+A <span className="font-semibold text-pl-text">{(player.anytime_goal_contribution_prob * 100).toFixed(0)}%</span>
-                <span className="ml-2">G {(player.anytime_goal_prob * 100).toFixed(0)}% · A {(player.anytime_assist_prob * 100).toFixed(0)}%</span>
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-      <p className="mt-1 text-xs text-pl-text-faint">Player calls are model projections, not live odds recommendations.</p>
-    </section>
-  );
+const gameweekOf = (kickoff?: string): string => {
+  if (!kickoff) return "this gameweek";
+  const date = new Date(kickoff);
+  if (Number.isNaN(date.getTime())) return "this gameweek";
+  return `${date.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })} gameweek`;
+};
+
+/** Rank one category. The out filter runs BEFORE the sort and the slice, so an
+ *  out player can neither occupy a rank nor backfill a freed slot. */
+function rankedRows(
+  candidates: Candidate[],
+  category: string,
+  probability: (player: PlayerPrediction) => number,
+): PickRow[] {
+  return candidates
+    .filter((player) => !UNAVAILABLE_STATUSES.has(player.status))
+    .sort((left, right) => probability(right) - probability(left))
+    .slice(0, MAX_ROWS_PER_CATEGORY)
+    .map((player) => ({
+      key: `${player.player_id}-${category}`,
+      name: player.name,
+      team: player.team,
+      detail: category,
+      // The model's own number for this category, read straight off the row.
+      value: probability(player),
+      kind: "probability" as const,
+      provenance: [LINEUP_BASIS(player), `form is ${FORM_BASIS[player.confidence] ?? "of an unstated basis"}`, ARM_PROVENANCE, LEDGER_PROVENANCE].join(" · "),
+    }));
 }
+
+export function ModelTopCalls({ homeTeam, awayTeam, homePlayers, awayPlayers, kickoff }: Props) {
+  const candidates: Candidate[] = [
+    ...homePlayers.map((player) => ({ ...player, team: homeTeam })),
+    ...awayPlayers.map((player) => ({ ...player, team: awayTeam })),
+  ];
+
+  // The two categories, and only these two. `expected_saves` is a GK-only
+  // figure -- two rows per fixture -- and is not a category; the shot-on-target
+  // probability needs an Understat merge per player, so its row count is
+  // data-dependent and is measured rather than assumed to be three.
+  const categories = [
+    { category: "Anytime goal", rows: rankedRows(candidates, "Anytime goal", (p) => p.anytime_goal_prob) },
+    { category: "Anytime assist", rows: rankedRows(candidates, "Anytime assist", (p) => p.anytime_assist_prob) },
+  ];
+
+  // §D: removed from the ranking entirely, then shown once here, attributed and
+  // dated. `PickRow.out` is never set -- PicksList refuses such a row by name,
+  // which is the point of the field.
+  const out: OutPlayer[] = candidates
+    .filter((player) => UNAVAILABLE_STATUSES.has(player.status))
+    .map((player) => ({
+      name: player.name,
+      team: player.team,
+      source: `FPL squad status (${STATUS_LABEL[player.status] ?? player.status})`,
+      dated: `as read for the ${gameweekOf(kickoff)}`,
+    }));
+
+  return <PicksList categories={categories} out={out} />;
+}
+
