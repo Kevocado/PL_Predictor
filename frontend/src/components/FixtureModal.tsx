@@ -9,7 +9,7 @@ import { ScorelineHeatmap } from "./ScorelineHeatmap";
 import { FormStrip } from "./FormStrip";
 import { InfoTooltip } from "./InfoTooltip";
 import { MarketBar } from "./MarketBar";
-import { PlayerHighlights, PlayerScorerList } from "./PlayerScorerList";
+import { ModelTopCalls, PlayerScorerList } from "./PlayerScorerList";
 import { GLOSSARY } from "../lib/glossary";
 import { isModelCall } from "../lib/modelCall";
 import { resolvedPick } from "../lib/pick";
@@ -606,7 +606,16 @@ export function FixtureModal({ eventId, onClose, explain, sport = "pl" }: Props)
                 )}
               </section>
 
-              {players && <PlayerHighlights homePlayers={players.home_players} awayPlayers={players.away_players} />}
+              {players && (
+                <ModelTopCalls
+                  homeTeam={detail.team_home}
+                  awayTeam={detail.team_away}
+                  homePlayers={players.home_players}
+                  awayPlayers={players.away_players}
+                  kickoff={detail.commence_time}
+                />
+              )}
+
 
             </div>
           )}
