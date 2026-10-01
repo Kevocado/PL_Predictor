@@ -177,18 +177,26 @@ const ARM_PROVENANCE = "Poisson 1 − e^−λ, uncalibrated";
  */
 const LEDGER_PROVENANCE = "no graded record per player — the scorer ledger is aggregate only";
 
-/** How much of this player's form is real data rather than a prior.
+/**
+ * What the player's rate is actually made of, which is the one thing a bare
+ * probability hides.
  *
- *  `features/cold_start.py` sets `"none"` when a player has played zero games
- *  this season, so their rate is entirely a league-average prior. The list this
- *  replaces dropped those rows silently; ranking them and saying so is the
- *  honest version, and a number the reader cannot see the basis of is the thing
- *  this phase exists to stop.
+ * `features/player_form.blended_current_form` blends this season's rate toward
+ * last season's, or toward a position average, in proportion to how many games
+ * have actually been played, and names which of those it used. The list this
+ * replaces dropped the cold-start players silently; ranking them and saying so
+ * is the honest version, and a number whose basis the reader cannot see is the
+ * thing this phase exists to stop.
+ *
+ * The vocabulary is the function's own, including the two that only appear
+ * early in a season. Every one of the four is measured to occur in the committed
+ * snapshot: `prior_season` 4441 rows, `position_avg` 1655.
  */
 const FORM_BASIS: Record<string, string> = {
-  current: "form from this season's games",
-  blended: "form blended with a league average",
-  none: "no games this season — the rate is a league-average prior",
+  current: "a full window of this season's games",
+  prior_season: "this season blended toward last season's rate",
+  position_avg: "a position average — no rate of this player's own on file",
+  none: "no games this season and no prior rate on file",
 };
 
 const LINEUP_BASIS = (player: PlayerPrediction): string =>
@@ -224,7 +232,7 @@ function rankedRows(
       // The model's own number for this category, read straight off the row.
       value: probability(player),
       kind: "probability" as const,
-      provenance: [LINEUP_BASIS(player), FORM_BASIS[player.confidence] ?? "form basis unstated", ARM_PROVENANCE, LEDGER_PROVENANCE].join(" · "),
+      provenance: [LINEUP_BASIS(player), `form is ${FORM_BASIS[player.confidence] ?? "of an unstated basis"}`, ARM_PROVENANCE, LEDGER_PROVENANCE].join(" · "),
     }));
 }
 

@@ -216,15 +216,16 @@ describe("PL Model's top calls — per-arm honesty", () => {
   });
 
   it("says what the form behind each number is, and never silently drops a cold-start row", () => {
-    // `confidence` is how much of a player's form is real data rather than a
-    // prior: "none" means zero games this season. The list this replaces hid
-    // those players; a ranked row whose number rests on a league-average prior
-    // is fine as long as the row says so, and hiding it is its own lie.
+    // `confidence` is what `player_form.blended_current_form` named its blend:
+    // "current" (a full window of this season), "prior_season" (blended back
+    // toward last season), "position_avg" (no rate of this player's own) and
+    // "none". The list this replaces hid the cold-start players; a ranked row
+    // whose number rests on a prior is fine as long as the row says so.
     renderList(
       [
-        player({ player_id: 3, name: "New Signing", anytime_goal_prob: 0.4, anytime_assist_prob: 0.2, confidence: "none" }),
+        player({ player_id: 3, name: "New Signing", anytime_goal_prob: 0.4, anytime_assist_prob: 0.2, confidence: "position_avg" }),
         player({ player_id: 4, name: "Steady Hand", anytime_goal_prob: 0.3, anytime_assist_prob: 0.1, confidence: "current" }),
-        player({ player_id: 5, name: "Still Settling", anytime_goal_prob: 0.2, anytime_assist_prob: 0.05, confidence: "blended" }),
+        player({ player_id: 5, name: "Still Settling", anytime_goal_prob: 0.2, anytime_assist_prob: 0.05, confidence: "prior_season" }),
       ],
       [],
     );
@@ -233,9 +234,30 @@ describe("PL Model's top calls — per-arm honesty", () => {
       rows()
         .find((r) => r.textContent!.includes(name))!
         .querySelectorAll("p")[1].textContent!;
-    expect(provenanceFor("New Signing")).toMatch(/league-average prior/i);
-    expect(provenanceFor("Steady Hand")).toMatch(/this season/i);
-    expect(provenanceFor("Still Settling")).toMatch(/blended/i);
+    expect(provenanceFor("New Signing")).toMatch(/position average/i);
+    expect(provenanceFor("Steady Hand")).toMatch(/this season's games/i);
+    expect(provenanceFor("Still Settling")).toMatch(/last season/i);
+    // No row falls back to an unstated basis.
+    for (const row of rows()) {
+      expect(row.querySelectorAll("p")[1].textContent).not.toMatch(/unstated/i);
+    }
+  });
+
+  it("names every confidence value the backend can serve, and says so for one it does not know", () => {
+    // All four values in `blended_current_form`'s documented vocabulary, plus
+    // an unknown one, which must be named as unknown rather than guessed at.
+    for (const [confidence, expected] of [
+      ["current", /this season's games/i],
+      ["prior_season", /last season/i],
+      ["position_avg", /position average/i],
+      ["none", /no prior rate on file/i],
+      ["something_new", /unstated basis/i],
+    ] as const) {
+      const view = renderList([player({ player_id: 3, name: "Solo", confidence })], []);
+      const provenance = rows()[0].querySelectorAll("p")[1].textContent!;
+      expect(provenance, `confidence=${confidence}`).toMatch(expected);
+      view.unmount();
+    }
   });
 
   it("says what the lineup basis is on every row", () => {
