@@ -129,13 +129,18 @@ export function PlayerScorerList({ homeTeam, awayTeam, homePlayers, awayPlayers 
 //
 // This used to be `PlayerHighlights`, a hand-rolled ranking of G+A with no
 // provenance and no out-player rule. It is replaced rather than added to: two
-// ranked call lists on one screen is one too many, and the old one claimed a
-// number from the arm that cannot be labelled (see below).
+// ranked call lists on one screen is one too many.
 //
 // Everything this list needs is already on `PlayerPrediction`, so no new
 // endpoint is involved. `PicksList` itself enforces three of the rules — the
 // three-row ceiling, the refusal of an `out` row, and the kind/range guard —
 // and the rest are enforced by the ranking below.
+//
+// Kevin, 2026-10-01: a top call is simple — the player, the team and the
+// prediction. So a row here carries {key,name,team,detail,value,kind} and
+// nothing else. The arm, the form basis, the lineup basis and the absence of a
+// per-player ledger were all true and all removed: they are what a reader does
+// not need in order to act on "Saliba, Arsenal, 31% chance of scoring".
 // ---------------------------------------------------------------------------
 
 /**
@@ -154,57 +159,27 @@ const UNAVAILABLE_STATUSES = new Set(["i", "s", "u"]);
 
 type Candidate = PlayerPrediction & { team: string };
 
-/** What the number on the row is, in the words the arm deserves.
- *
- *  The goal and assist arms are `anytime_probability`, i.e. bare
- *  `1 - exp(-lambda)` Poisson (`player_goals.py`). Nothing calibrates them, so
- *  the row says "uncalibrated" and the word is load-bearing: the only arm with a
- *  calibrator is `anytime_goal_contribution_prob`, and serving hands that out as
- *  a 50/50 blend of the calibrated direct model and this uncalibrated union
- *  (`NEUTRAL_BLEND_WEIGHT = 0.5`), which is why that arm is not a category here
- *  at all -- a blend of one calibrated and one uncalibrated estimator is neither.
- */
-const ARM_PROVENANCE = "Poisson 1 − e^−λ, uncalibrated";
-
 /**
- * There is no per-player ledger, so there is no per-player record to quote.
+ * The three vocabularies below were removed with the rest of the row text
+ * (Kevin, 2026-10-01). Each was true and load-bearing once; none is a claim
+ * this list still needs to make per row, because a row is now the player, the
+ * team and the prediction:
  *
- * `tracking.store.get_scorer_accuracy()` returns `{snapshot, reconstructed}` --
- * aggregate groups over every resolved call, with no player key anywhere. A
- * hit rate read off that aggregate and attached to a named player would be a
- * number borrowed from a different unit of analysis, so the row says what is
- * actually true instead: the arm, and the absence.
+ *  - ARM (`Poisson 1 − e^−λ, uncalibrated`). The goal and assist arms are
+ *    `anytime_probability`, bare `1 - exp(-lambda)` Poisson
+ *    (`player_goals.py`), and nothing calibrates them. This is why the
+ *    50/50-blended `anytime_goal_contribution_prob` is still NOT a category
+ *    here: a blend of one calibrated and one uncalibrated estimator is
+ *    neither. That decision is unchanged -- only the sentence per row went.
+ *  - LEDGER (`no graded record per player …`). `tracking.store
+ *    .get_scorer_accuracy()` returns `{snapshot, reconstructed}` -- aggregate
+ *    groups with no player key -- so there was never a per-player record to
+ *    quote and never a hit rate that belonged on a named row.
+ *  - FORM / LINEUP. `features/player_form.blended_current_form` names which
+ *    blend it used ("current", "prior_season", "position_avg", "none"). Both
+ *    the cold-start ranking and the doubtful-player rule below still hold; the
+ *    row just no longer narrates them.
  */
-const LEDGER_PROVENANCE = "no graded record per player — the scorer ledger is aggregate only";
-
-/**
- * What the player's rate is actually made of, which is the one thing a bare
- * probability hides.
- *
- * `features/player_form.blended_current_form` blends this season's rate toward
- * last season's, or toward a position average, in proportion to how many games
- * have actually been played, and names which of those it used. The list this
- * replaces dropped the cold-start players silently; ranking them and saying so
- * is the honest version, and a number whose basis the reader cannot see is the
- * thing this phase exists to stop.
- *
- * The vocabulary is the function's own, including the two that only appear
- * early in a season. Every one of the four is measured to occur in the committed
- * snapshot: `prior_season` 4441 rows, `position_avg` 1655.
- */
-const FORM_BASIS: Record<string, string> = {
-  current: "a full window of this season's games",
-  prior_season: "this season blended toward last season's rate",
-  position_avg: "a position average — no rate of this player's own on file",
-  none: "no games this season and no prior rate on file",
-};
-
-const LINEUP_BASIS = (player: PlayerPrediction): string =>
-  player.confirmed_starter
-    ? "Confirmed XI"
-    : player.predicted_starter
-      ? "Predicted XI"
-      : "not in the predicted XI";
 
 const gameweekOf = (kickoff?: string): string => {
   if (!kickoff) return "this gameweek";
@@ -214,8 +189,12 @@ const gameweekOf = (kickoff?: string): string => {
 };
 
 /** Rank one category. The out filter runs BEFORE the sort and the slice, so an
- *  out player can neither occupy a rank nor backfill a freed slot. */
-function rankedRows(
+ *  out player can neither occupy a rank nor backfill a freed slot.
+ *
+ *  The row is the player, the team and the prediction: `{key, name, team,
+ *  detail, value, kind}` and no `provenance`. `detail` is the bare category,
+ *  which the list heading already shows. */
+export function rankedRows(
   candidates: Candidate[],
   category: string,
   probability: (player: PlayerPrediction) => number,
@@ -232,7 +211,6 @@ function rankedRows(
       // The model's own number for this category, read straight off the row.
       value: probability(player),
       kind: "probability" as const,
-      provenance: [LINEUP_BASIS(player), `form is ${FORM_BASIS[player.confidence] ?? "of an unstated basis"}`, ARM_PROVENANCE, LEDGER_PROVENANCE].join(" · "),
     }));
 }
 

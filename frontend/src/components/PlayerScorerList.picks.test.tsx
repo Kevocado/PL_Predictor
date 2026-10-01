@@ -1,15 +1,15 @@
 /**
- * Phase 2 task 3 — PL's "Model's top calls", with per-arm honesty.
+ * PL's "Model's top calls".
  *
- * Seven corrections were measured on the hubs' `origin/main` and each one is
- * pinned here rather than left to the wording to be right about:
+ * The rules below are pinned here rather than left to the wording to be right
+ * about. Seven corrections were measured on the hubs' `origin/main`:
  *
  *  1. The goal and assist arms are bare `1 - exp(-lambda)` Poisson. Only
  *     `anytime_goal_contribution_prob` has a calibrator, and serving blends it
- *     50/50 with the uncalibrated union (`NEUTRAL_BLEND_WEIGHT = 0.5`), so no
- *     row may claim calibration. G+A is not shipped as a category at all.
+ *     50/50 with the uncalibrated union (`NEUTRAL_BLEND_WEIGHT = 0.5`), so G+A
+ *     is not shipped as a category at all.
  *  2. `get_scorer_accuracy()` returns `{snapshot, reconstructed}` — aggregate
- *     only, never per player. No per-player ledger exists, so a row says so.
+ *     only, never per player, so no row may carry a hit rate.
  *  3. `expected_saves` is not a category (GK only, two rows per fixture, and the
  *     cap is a ceiling). The shot-on-target probability needs an Understat merge
  *     per player, so its row count is data-dependent and is measured, not
@@ -20,10 +20,16 @@
  *  6. One category per list.
  *  7. No "lock" / "guaranteed" / "best bet" / "edge" / "value" — there is no
  *     odds feed in any repo. The title is "Model's top calls".
+ *
+ * Kevin, 2026-10-01: a row is the player, the team and the prediction. The
+ * per-row sentences for the arm, the form basis, the lineup basis and the absent
+ * per-player ledger are gone, and the tests that asserted them are gone with
+ * them; the decisions those sentences described are still asserted above, on the
+ * ranking rather than on the prose.
  */
 import { describe, expect, it } from "vitest";
 import { render, screen, within } from "@testing-library/react";
-import { ModelTopCalls } from "./PlayerScorerList";
+import { ModelTopCalls, rankedRows } from "./PlayerScorerList";
 import type { PlayerPrediction } from "../types";
 
 function player(over: Partial<PlayerPrediction> & { player_id: number; name: string }): PlayerPrediction {
@@ -90,11 +96,10 @@ const rows = () => screen.getAllByTestId("picks-row");
 const queryRows = () => screen.queryAllByTestId("picks-row");
 const rowNames = () => rows().map((r) => r.querySelector("p")!.textContent!.split("·")[0].trim());
 const categories = () => screen.getAllByTestId("picks-category-heading").map((h) => h.textContent);
-/** The bar's label for the model's own side of the row — i.e. the row's number.
- *  `PicksList` passes no `highlightKey`, so it is selected by its segment
- *  label, which is the category the figure belongs to. */
-const barLabel = (row: HTMLElement, category: string) =>
-  row.querySelector<HTMLElement>(`[data-testid="pbar-label"][data-seg="${category}"]`)!;
+/** The figure a row shows. Since 2026-10-01 that is the row's whole number: the
+ *  shared component draws a probability as a bare percentage beside a bar, and
+ *  the category it belongs to is the list heading rather than text on the row. */
+const figure = (row: HTMLElement) => row.querySelector('[data-testid="picks-value"]')!.textContent!;
 const outLines = () => screen.getByTestId("picks-out").querySelectorAll("p");
 
 describe("PL Model's top calls — categories", () => {
@@ -155,72 +160,134 @@ describe("PL Model's top calls — categories", () => {
     // A player who cannot score is still a ranked row; the figure reads "<1%",
     // which is a floor, and not the "0%" that would claim a measured zero.
     renderList([player({ player_id: 3, name: "Goalless", anytime_goal_prob: 0, anytime_assist_prob: 0 })], []);
-    expect(barLabel(rows()[0], "Anytime goal").textContent).toBe("Anytime goal <1%");
+    expect(figure(rows()[0])).toBe("<1%");
     expect(screen.getByTestId("picks-list").textContent).not.toContain("0%");
   });
 
   it("correction 6: one category per list — a goal row never sits under an assists heading", () => {
     renderList();
     for (const row of rows()) {
-      const category = row.getAttribute("data-category")!;
-      // The bar's own segment label is the category the number belongs to.
-      expect(barLabel(row, category)).toBeTruthy();
+      // The row names the category it belongs to, and it is the list's heading.
+      expect(row.getAttribute("data-category")).toBeTruthy();
+      expect(categories()).toContain(row.getAttribute("data-category"));
     }
     // And the goal rows carry the goal number, not the assist number.
     const goalRows = rows().filter((r) => r.getAttribute("data-category") === "Anytime goal");
-    expect(goalRows.map((r) => barLabel(r, "Anytime goal").textContent)).toEqual([
-      "Anytime goal 44%",
-      "Anytime goal 38%",
-      "Anytime goal 31%",
-    ]);
+    expect(goalRows.map(figure)).toEqual(["44%", "38%", "31%"]);
+    const assistRows = rows().filter((r) => r.getAttribute("data-category") === "Anytime assist");
+    expect(assistRows.map(figure)).toEqual(["41%", "33%", "28%"]);
   });
 });
 
-describe("PL Model's top calls — per-arm honesty", () => {
-  it("correction 1: every row names its arm and claims no calibration", () => {
-    renderList();
-    for (const row of rows()) {
-      const provenance = row.querySelectorAll("p")[1].textContent!;
-      expect(provenance).toMatch(/Poisson/);
-      expect(provenance).toMatch(/uncalibrated/);
-      // "calibrated" on its own would be a claim. Only "uncalibrated" may match.
-      expect(provenance).not.toMatch(/(?<!un)calibrated/);
+/**
+ * Kevin, 2026-10-01: a top call is the player, the team and the prediction.
+ * Nothing else. So no row carries a provenance sentence, a ± margin, a "no
+ * graded record" line, a calibration note, a form-basis note or a lineup-basis
+ * note -- and the row shows its figure rather than disclaiming what backs it.
+ */
+describe("PL Model's top calls — a row is the player, the team and the prediction", () => {
+
+  it("carries no provenance, no ± and no availability text on any row", () => {
+    // On the BUILT row, not only on the rendered page: the shared component
+    // stopped drawing `provenance`, but the site must also stop building it, so
+    // the text cannot come back the day a caller starts printing it again.
+    const built = rankedRows(
+      [
+        { ...player({ player_id: 3, name: "New Signing", anytime_goal_prob: 0.4 }), team: "Arsenal", confidence: "position_avg", confirmed_starter: true } as never,
+      ],
+      "Anytime goal",
+      (p) => p.anytime_goal_prob,
+    );
+    for (const row of built) {
+      const text = Object.entries(row)
+        .filter(([k]) => !["key", "name", "team", "value", "kind"].includes(k))
+        .map(([, v]) => String(v))
+        .join(" ")
+        .toLowerCase();
+      for (const banned of [
+        "poisson",
+        "uncalibrated",
+        "graded record",
+        "aggregate",
+        "ledger",
+        "hit rate",
+        "±",
+        "position average",
+        "confirmed xi",
+      ]) {
+        expect(text, `stripped text on a built row: ${banned}`).not.toContain(banned);
+      }
+      // No provenance or margin field at all, rather than an empty one.
+      expect(row).not.toHaveProperty("provenance");
+      expect(row).not.toHaveProperty("margin");
     }
   });
 
+  it("says no form basis, no lineup basis and no record on the page at all", () => {
+    renderList(
+      [
+        player({ player_id: 3, name: "New Signing", anytime_goal_prob: 0.4, anytime_assist_prob: 0.2, confidence: "position_avg" }),
+        player({ player_id: 4, name: "In The Team", anytime_goal_prob: 0.3, anytime_assist_prob: 0.1, confirmed_starter: true }),
+        player({ player_id: 5, name: "Still Settling", anytime_goal_prob: 0.2, anytime_assist_prob: 0.05, confidence: "prior_season" }),
+      ],
+      [],
+    );
+    const text = screen.getByTestId("picks-list").textContent!.toLowerCase();
+    for (const banned of [
+      "poisson",
+      "uncalibrated",
+      "graded record",
+      "position average",
+      "last season",
+      "this season",
+      "confirmed xi",
+      "not in the predicted xi",
+      "prior rate",
+      "±",
+    ]) {
+      expect(text, `stripped text on the page: ${banned}`).not.toContain(banned);
+    }
+  });
+
+  it("still shows the player, the team and the figure", () => {
+    renderList();
+    const goalRow = rows().find((r) => r.getAttribute("data-category") === "Anytime goal")!;
+    // Name and team, side by side...
+    expect(goalRow.querySelector("p")!.textContent).toContain("Home Alpha");
+    expect(goalRow.querySelector("p")!.textContent).toContain("Arsenal");
+    // ...and the model's own number for that category, as a share.
+    expect(goalRow.querySelector('[data-testid="picks-value"]')!.textContent).toBe("44%");
+    expect(goalRow).toHaveAttribute("data-kind", "probability");
+  });
+});
+
+/**
+ * The rules here that are NOT text. What changed on 2026-10-01 is only the
+ * per-row prose; the decisions it used to describe are still the decisions.
+ */
+describe("PL Model's top calls — the rules that are not text", () => {
   it("correction 1: the 50/50-blended G+A arm is not shipped as a category", () => {
     // `anytime_goal_contribution_prob` is the only arm with a calibrator, and
     // serving blends it 50/50 with the uncalibrated union, so it cannot be
     // labelled either way. It is left out rather than mislabelled.
     renderList();
     expect(categories()).toHaveLength(2);
-    const barLabels = screen.getAllByTestId("pbar-label").map((l) => l.getAttribute("data-seg"));
-    expect(barLabels).not.toContain("Goal or assist");
-  });
-
-  it("correction 2: no row presents a per-player graded record", () => {
-    renderList();
-    for (const row of rows()) {
-      const provenance = row.querySelectorAll("p")[1].textContent!;
-      expect(provenance).toMatch(/no graded record per player/i);
-      // The ledger that does exist is aggregate, and must be labelled so.
-      expect(provenance).toMatch(/aggregate/i);
-    }
+    expect(categories()).not.toContain("Goal or assist");
   });
 
   it("correction 2: no row shows a hit rate that is not this player's own", () => {
+    // There is no per-player ledger to draw a hit rate from in the first place
+    // (`get_scorer_accuracy()` is aggregate), so no row may carry one.
     renderList();
     const list = within(screen.getByTestId("picks-list"));
     expect(list.queryByText(/hit rate/i)).not.toBeInTheDocument();
     expect(list.queryByText(/\d+\s*\/\s*\d+\s*hit/i)).not.toBeInTheDocument();
   });
 
-  it("says what the form behind each number is, and never silently drops a cold-start row", () => {
-    // `confidence` is what `player_form.blended_current_form` named its blend:
-    // "current" (a full window of this season), "prior_season" (blended back
-    // toward last season), "position_avg" (no rate of this player's own) and
-    // "none". The list this replaces hid the cold-start players; a ranked row
-    // whose number rests on a prior is fine as long as the row says so.
+  it("never silently drops a cold-start row", () => {
+    // `confidence` used to be narrated per row ("position average", "last
+    // season"). The narration is gone; the RANKING of a player whose rate rests
+    // on a prior is not, and this is the test that holds that.
     renderList(
       [
         player({ player_id: 3, name: "New Signing", anytime_goal_prob: 0.4, anytime_assist_prob: 0.2, confidence: "position_avg" }),
@@ -230,37 +297,20 @@ describe("PL Model's top calls — per-arm honesty", () => {
       [],
     );
     expect(rowNames().slice(0, 3)).toEqual(["New Signing", "Steady Hand", "Still Settling"]);
-    const provenanceFor = (name: string) =>
-      rows()
-        .find((r) => r.textContent!.includes(name))!
-        .querySelectorAll("p")[1].textContent!;
-    expect(provenanceFor("New Signing")).toMatch(/position average/i);
-    expect(provenanceFor("Steady Hand")).toMatch(/this season's games/i);
-    expect(provenanceFor("Still Settling")).toMatch(/last season/i);
-    // No row falls back to an unstated basis.
-    for (const row of rows()) {
-      expect(row.querySelectorAll("p")[1].textContent).not.toMatch(/unstated/i);
-    }
   });
 
-  it("names every confidence value the backend can serve, and says so for one it does not know", () => {
-    // All four values in `blended_current_form`'s documented vocabulary, plus
-    // an unknown one, which must be named as unknown rather than guessed at.
-    for (const [confidence, expected] of [
-      ["current", /this season's games/i],
-      ["prior_season", /last season/i],
-      ["position_avg", /position average/i],
-      ["none", /no prior rate on file/i],
-      ["something_new", /unstated basis/i],
-    ] as const) {
+  it("ranks a player the backend serves a `none` confidence for", () => {
+    // Every value in `blended_current_form`'s vocabulary, plus an unknown one,
+    // ranks normally. Nothing about the basis is guessed at, and nothing about
+    // the basis is printed.
+    for (const confidence of ["current", "prior_season", "position_avg", "none", "something_new"]) {
       const view = renderList([player({ player_id: 3, name: "Solo", confidence })], []);
-      const provenance = rows()[0].querySelectorAll("p")[1].textContent!;
-      expect(provenance, `confidence=${confidence}`).toMatch(expected);
+      expect(rowNames(), `confidence=${confidence}`).toContain("Solo");
       view.unmount();
     }
   });
 
-  it("says what the lineup basis is on every row", () => {
+  it("a confirmed and an unconfirmed starter are both ranked, on their own number", () => {
     renderList(
       [
         player({ player_id: 3, name: "In The Team", confirmed_starter: true, anytime_goal_prob: 0.4, anytime_assist_prob: 0.2 }),
@@ -268,12 +318,7 @@ describe("PL Model's top calls — per-arm honesty", () => {
       ],
       [],
     );
-    const provenanceFor = (name: string) =>
-      rows()
-        .find((r) => r.textContent!.includes(name))!
-        .querySelectorAll("p")[1].textContent!;
-    expect(provenanceFor("In The Team")).toMatch(/Confirmed XI/);
-    expect(provenanceFor("Not In It")).toMatch(/not in the predicted XI/i);
+    expect(rowNames().slice(0, 2)).toEqual(["In The Team", "Not In It"]);
   });
 
   it("correction 7: no row claims a lock, a guarantee, a bet, an edge or a value", () => {
@@ -385,9 +430,9 @@ function duplicateRenderedFigures(): Array<{ category: string; percent: string; 
   for (const row of rows()) {
     const category = row.getAttribute("data-category")!;
     const name = row.querySelector("p")!.textContent!.split("·")[0].trim();
-    const shown = barLabel(row, category).textContent ?? "";
-    // Anchored at the end, so "17%" can only ever parse as 17 and never as 7.
-    const parsed = /(\d+(?:\.\d+)?)%\s*$/.exec(shown);
+    // The row's whole figure is now the percentage ("<1%", "44%"), so the
+    // number is parsed out of it directly rather than off a bar segment label.
+    const parsed = /(\d+(?:\.\d+)?)%\s*$/.exec(figure(row));
     if (!parsed) continue;
     const percent = parsed[1];
     if (!byCategory.has(category)) byCategory.set(category, new Map());
@@ -429,13 +474,10 @@ describe("duplicate-figure audit", () => {
     ];
     renderList(sevenVsSeventeen, []);
     const goalRows = rows().filter((r) => r.getAttribute("data-category") === "Anytime goal");
-    expect(goalRows.map((r) => barLabel(r, "Anytime goal").textContent)).toEqual([
-      "Anytime goal 17%",
-      "Anytime goal 7%",
-    ]);
+    expect(goalRows.map(figure)).toEqual(["17%", "7%"]);
     // The substring trap this repo fell into before: a search for "7%" here
     // would report a duplicate. Prove the two figures are distinct as numbers.
-    const parsed = goalRows.map((r) => parseFloat(/(\d+(?:\.\d+)?)%\s*$/.exec(barLabel(r, "Anytime goal").textContent!)![1]));
+    const parsed = goalRows.map((r) => parseFloat(/(\d+(?:\.\d+)?)%\s*$/.exec(figure(r))![1]));
     expect(parsed).toEqual([17, 7]);
     expect(new Set(parsed).size).toBe(2);
     expect(duplicateRenderedFigures()).toEqual([]);

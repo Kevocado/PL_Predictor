@@ -114,8 +114,10 @@ describe("FixtureModal and the plain-English panel", () => {
     const explain = vi.fn().mockResolvedValue({ ...answer, pick_timing: "rebuilt" });
     render(<FixtureModal eventId="e1" onClose={() => {}} explain={explain} />);
     fireEvent.click(await screen.findByRole("button", { name: /ai summary/i }));
-    expect(await screen.findByText("Rebuilt after kickoff")).toBeInTheDocument();
-    expect(screen.getByText(/not counted/)).toBeInTheDocument();
+    // predictor-ui reworded the badge to name WHEN the pick was made
+    // ("Made after kickoff") and dropped its "not counted" claim. The `rebuilt`
+    // key and its meaning are unchanged.
+    expect(await screen.findByText("Made after kickoff")).toBeInTheDocument();
   });
 
   it("leaves the modal usable when there is no explainer", async () => {

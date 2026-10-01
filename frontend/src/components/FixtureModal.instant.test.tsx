@@ -132,19 +132,18 @@ describe("FixtureModal's instant block, before any request", () => {
     // The two ad-hoc chips this replaces: the timing is now stated once, by the
     // block that governs how every figure below it should be read.
     expect(screen.queryByText("Pre-match snapshot")).toBeNull();
-    expect(screen.queryByText("Rebuilt after kickoff")).toBeNull();
+    expect(screen.queryByText("Made after kickoff")).toBeNull();
   });
 
-  it("shows the rebuilt badge for a reconstructed review, and says the pick is not counted", async () => {
+  it("shows the timing badge for a reconstructed review, naming when the pick was made", async () => {
     mockApi();
     await openModal(finished("reconstructed"));
 
-    expect(screen.getByText("Rebuilt after kickoff")).toBeInTheDocument();
-    expect(screen.getByText(/not counted/i)).toBeInTheDocument();
-    // The old line under the review claimed the opposite -- that a rebuilt pick
-    // is "counted in the track record like any other pick". It is not, and two
-    // claims about the same count may not differ.
-    expect(screen.queryByText(/Counted in the track record/i)).toBeNull();
+    // predictor-ui reworded this badge from "Rebuilt after kickoff" to
+    // "Made after kickoff": since the track record began counting the earliest
+    // recorded pick whatever moment it was made, when it was made is the honest
+    // description of the state. The `rebuilt` key and its meaning are unchanged.
+    expect(screen.getByText("Made after kickoff")).toBeInTheDocument();
   });
 
   it("no longer repeats the market bars below the panel, and keeps the figures that are not repeats", async () => {

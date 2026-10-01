@@ -1,4 +1,4 @@
-// Synced from predictor-ui@ba62e3f0365e. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@b2040a541944. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 import { useState } from "react";
 
 /**
@@ -79,8 +79,11 @@ const WORDS: Record<Factor["direction"], string> = {
   // i.e. a claim about the pick; "not for or against", which is accurate and
   // re-names the pick in exactly the state that has none; "either way", which
   // claims the row cancels itself out when it does not; and "for reference",
-  // which the panel already uses to mean "shown but not counted" and would blur
-  // two different warnings into one word.
+  // which reads as a hedge on whether the row is worth anything — the very
+  // framing the track record change removed, where a pick made after the start
+  // was held out of the record and hedged with that phrase (spec
+  // 2026-10-01-track-record-counts-every-pick). Two different warnings would
+  // have blurred into one word.
   neutral: "context",
 };
 
