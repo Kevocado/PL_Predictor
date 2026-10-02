@@ -990,6 +990,9 @@ def current_gameweek_fixtures(gameweek: int | None = None):
 
     if not upcoming_rows.empty:
             models = _get_models()
+            # When this batch is computed — the only moment that can place a
+            # freshly-built prediction relative to its own kickoff.
+            captured_at = pd.Timestamp.now(tz="UTC")
             preds = scoreline.predict_fixtures_batch(
                 models["scoreline"], upcoming_rows, market_overrides=models.get("scoreline_market_overrides")
             )
@@ -1029,16 +1032,18 @@ def current_gameweek_fixtures(gameweek: int | None = None):
                             ) == "draw",
                             "hit": None,
                             "backfilled": False,
-                            # An upcoming row's pick is computed here, now, for a
-                            # fixture that has not kicked off -- there is no
-                            # recorded row to consult, and by construction the
-                            # pick precedes its kickoff. Stated rather than
-                            # derived, so `/facts` labels it "pre_kickoff"
-                            # instead of failing closed to "rebuilt" and
-                            # refusing to judge a forecast made in time. The
-                            # FINISHED branch above reads the store's derived
-                            # value; only this one has nothing to read.
-                            "made_before_kickoff": True,
+                            # Derived, never stated. This pick came out of the
+                            # cached value-bet table, whose own `odds_fetched_at`
+                            # is when its inputs were captured; comparing that to
+                            # the kickoff is the only timestamp here that can
+                            # actually place the prediction in time. Notably NOT
+                            # "is the fixture live now": a cached row captured
+                            # before kickoff stays a pre-kickoff prediction
+                            # after the match starts, which is the whole point of
+                            # caching it (CodeRabbit, #44).
+                            "made_before_kickoff": tracking_store._made_before_kickoff(
+                                vb_row.get("odds_fetched_at"), row["commence_time"]
+                            ),
                             "has_live_odds": bool(vb_row["home_win_implied"] is not None and not pd.isna(vb_row["home_win_implied"])),
                             "value_bet_flags": list(vb_row["value_bet_flags"]),
                         }
@@ -1064,8 +1069,18 @@ def current_gameweek_fixtures(gameweek: int | None = None):
                         ) == "draw",
                         "hit": None,
                         "backfilled": False,
-                        # Same reasoning as the live-odds branch above.
-                        "made_before_kickoff": True,
+                        # Derived from the clock, because this pick was computed
+                        # on this very request (`predict_fixtures_batch` above).
+                        # `upcoming_rows` filters on the feed's `finished` flag,
+                        # which can lag a kickoff that has already happened, so
+                        # "not finished" is not "not started". Comparing the
+                        # moment of computation to the kickoff is what actually
+                        # places it, and it fails closed: after kickoff this is
+                        # False and `/facts` will not judge the pick (CodeRabbit,
+                        # #44).
+                        "made_before_kickoff": tracking_store._made_before_kickoff(
+                            captured_at, row["commence_time"]
+                        ),
                         "has_live_odds": False,
                         "value_bet_flags": [],
                     }
