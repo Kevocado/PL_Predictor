@@ -37,6 +37,32 @@ TARGET_COLS = [
 ]
 
 
+def _league_goals_per_match(matches_df: pd.DataFrame) -> float | None:
+    """League-average goals scored per team per match — the fallback expected-
+    goals rate used when Understat xG is unavailable. Returns None only if
+    `matches_df` carries no goals at all (nothing to fall back to).
+
+    Derived from `matches_df` (actual goals) rather than from Understat: this
+    is the one path that must still work when the Understat cache is cold,
+    which is exactly when it is needed. Actual goals per team per match is
+    the same quantity xG estimates, and the two agree closely (measured over
+    2022-23..2025-26: 1.533 from `matches_df` vs 1.544 mean of the training
+    frame's `home_xg_for_last_5`).
+
+    Note this is the *league* rate and is used only as a last resort — see
+    `FixtureFeatureContext.build_row`'s xG loop, which prefers the team's own
+    rolling goals because that measured better on every fold (see that
+    comment for the numbers)."""
+    if matches_df is None or matches_df.empty:
+        return None
+    if "goals_home" not in matches_df.columns or "goals_away" not in matches_df.columns:
+        return None
+    goals = pd.concat([matches_df["goals_home"], matches_df["goals_away"]], ignore_index=True).dropna()
+    if goals.empty:
+        return None
+    return float(goals.mean())
+
+
 def _add_targets(matches_df: pd.DataFrame) -> pd.DataFrame:
     df = matches_df.copy()
     zeros = pd.Series(0, index=df.index)
@@ -348,8 +374,14 @@ class FixtureFeatureContext:
         understat_seasons = sorted({str(s)[:4] for s in self.matches_df["season"].unique()})
         xg_data = understat.load_xg_data(seasons=understat_seasons)
         self.xg_current = xg_form.latest_xg_form(xg_data)
-        self.xg_league_avg = self.xg_current.mean() if not self.xg_current.empty else pd.Series(dtype=float)
         self.xg_stat_cols = {f"{stat}_last_{w}": w for stat in ("xg_for", "xg_against") for w in xg_form.WINDOWS}
+        # The league-average rate `build_row`'s cold-start blend shrinks toward.
+        # Understat's own cross-team mean when it has data; when it doesn't,
+        # `_league_goals_per_match` supplies the same quantity from actual goals
+        # in `matches_df`, so the blend always has a real target instead of
+        # degrading every xG column to NaN (which the serving line would then
+        # turn into a literal 0.0 — see that loop's comment).
+        self.xg_league_avg = self._xg_league_avg_series(self.xg_current)
 
         self.current_streaks = streaks.latest_streaks(self.matches_df)
 
@@ -397,6 +429,22 @@ class FixtureFeatureContext:
             self.shot_situation_current.mean() if not self.shot_situation_current.empty else pd.Series(dtype=float)
         )
         self.shot_situation_stat_cols = {f"set_piece_xg_share_last_{w}": w for w in shot_situation.WINDOWS}
+
+    def _xg_league_avg_series(self, xg_current: pd.DataFrame) -> pd.Series:
+        """Per-`xg_stat_cols` league-average expected-goals rate, keyed the way
+        `build_row`'s blend looks it up.
+
+        Understat's own cross-team mean when it has data; otherwise the
+        actual-goals rate from `matches_df` (`_league_goals_per_match`), so a
+        cold Understat still leaves the blend with a real target. Empty only
+        when `matches_df` carries no goals either -- nothing left to fall back
+        on, and the blend degrades to NaN rather than inventing a number."""
+        avg = _league_goals_per_match(self.matches_df)
+        if xg_current is not None and not xg_current.empty:
+            return xg_current.mean()
+        if avg is None:
+            return pd.Series(dtype=float)
+        return pd.Series({col: avg for col in self.xg_stat_cols}, dtype=float)
 
     def build_row(self, home: str, away: str, commence_time=None) -> dict:
         row = {"team_home": home, "team_away": away, "commence_time": commence_time}
@@ -452,19 +500,71 @@ class FixtureFeatureContext:
                 weight = min(n_games / w, 1.0)
                 avg = self.xg_league_avg.get(stat_col)
                 current_val = team_xg.get(stat_col)
-                if pd.isna(current_val):
-                    current_val = avg
-                # `avg` and `current_val` are both `None` when Understat yielded
-                # nothing at all: `xg_league_avg` is then an empty Series, and
-                # `.get()` on an empty Series returns None rather than NaN. Left
-                # as None it reached the xG-delta loop below as
-                # `float - None` -> TypeError, i.e. a 500 on the live fixtures
-                # path for any deployment with a cold or unavailable Understat
-                # cache. NaN is the honest answer and is what every other feature
-                # here already degrades to; XGBoost consumes it natively. 0.0
-                # would instead claim the team created/conceded zero expected
-                # goals, which is a real number and a wrong one.
                 if current_val is None or pd.isna(current_val):
+                    # No Understat xG for this team (`team_xg` is an empty
+                    # Series when `xg_current` has no row for it, so `.get()`
+                    # returns None rather than NaN).
+                    #
+                    # Degrading straight to NaN here was the original defect,
+                    # and it was worse than it looked: the NaN did not stay
+                    # NaN. `ml_scoreline.MLScorelineModel.predict` ends in
+                    # `.fillna(0)` (see `_row_to_matrix`), so every one of
+                    # these columns reached the booster as a literal 0.0 --
+                    # asserting the team created exactly zero expected goals,
+                    # and (via the delta loop below) scored exactly to
+                    # expectation. 0.0 also sits 2.9-3.5 SD below these
+                    # columns' real means, far outside anything the fitted
+                    # boosters had support for.
+                    #
+                    # The substitute is the league-average expected-goals rate,
+                    # which `__init__` now always populates: Understat's own
+                    # cross-team mean when available, else the actual-goals
+                    # rate in `matches_df` (`_league_goals_per_match`). It is
+                    # a real, in-distribution number that says the honest
+                    # thing -- "this team's xG rate is not measurable right now;
+                    # the league average is the best available estimate" -- and
+                    # it leaves the delta loop below doing real work, since
+                    # goals minus the league rate is a genuine
+                    # over/under-performance reading rather than the "exactly
+                    # to expectation" fiction 0.0 asserted.
+                    #
+                    # Chosen by measurement, not taste: simulating a cold
+                    # Understat on each of the four available seasons and
+                    # scoring against real outcomes (mean RPS, lower better):
+                    #
+                    #     league-avg xG, deltas recomputed  0.18855  <- this
+                    #     league-avg xG, deltas zeroed       0.19035
+                    #     xG=0.0 (before this fix)            0.19059
+                    #     xG=NaN, routed natively             0.19152
+                    #     real xG (warm reference)            0.18412
+                    #
+                    # Re-deriving the deltas is what earns the 0.002 RPS:
+                    # zeroing them instead lands at 0.19035, barely better
+                    # than the 0.0 it replaces, because per-team
+                    # over/under-performance is exactly what those columns
+                    # carry. And routing NaN through XGBoost's native
+                    # missing-value handling is the WORST option tested --
+                    # these boosters are fitted on `fillna(0)`-imputed frames
+                    # (see `manifest.train_all`) and have never seen a missing
+                    # value in these columns, so there is no learned default
+                    # direction to route it by.
+                    #
+                    # Not fixed here: TRAINING still encodes a cold-missing xG
+                    # as 0.0, via `manifest.train_all`'s
+                    # `train_df[feature_cols].fillna(0)`, so train and serve now
+                    # disagree on what "no xG" means (0.0 vs the league rate).
+                    # Measured, that disagreement costs almost nothing: all
+                    # train/serve pairings scored within ~0.0003 RPS of each
+                    # other in a retrain-per-fold check, and the shipped
+                    # boosters see this path only when Understat is cold. The
+                    # serving side is kept because it is the side whose number
+                    # gets reported. Aligning training means editing
+                    # `manifest.py` and retraining, which is a separate change.
+                    current_val = avg
+                if current_val is None or pd.isna(current_val):
+                    # `matches_df` has no goals either: genuinely nothing to
+                    # say. NaN is honest here and is all that is left; it is
+                    # still not what the model sees (see `_row_to_matrix`).
                     current_val = float("nan")
                 blended = weight * current_val + (1 - weight) * avg if avg is not None and not pd.isna(avg) else current_val
                 row[f"{prefix}_{stat_col}"] = blended

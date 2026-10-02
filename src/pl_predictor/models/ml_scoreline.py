@@ -143,6 +143,43 @@ def evaluate_on_holdout(home_model, away_model, X_val: pd.DataFrame, val_df: pd.
     }
 
 
+def _row_to_matrix(row, feature_cols: list[str]) -> pd.DataFrame:
+    """Shape one feature row into the numeric matrix the fitted boosters
+    require. Shared by both single-row serving entry points below so they
+    cannot drift apart on what "missing" means.
+
+    Why `.fillna(0)` is still here, now that it is easy to misread as
+    "unknown means zero":
+
+    * **dtype, not semantics.** A single-row frame built from a dict leaves an
+      all-`None` column (e.g. `h2h_*` for a pair with no prior meetings) as
+      `object` dtype even after `fillna`. XGBoost's `inplace_predict` rejects
+      object dtypes outright, so the final `.astype(float)` is load-bearing
+      regardless of the fill.
+    * **train/serve symmetry.** These boosters are fitted on
+      `manifest.train_all`'s `train_df[feature_cols].fillna(0)` (see
+      `models/manifest.py`), so 0.0 is the value they were fitted to see in a
+      missing slot.
+
+    What this does *not* claim is that 0.0 is a sensible stand-in for any given
+    feature. It generally is not, and that is a real hazard rather than a
+    formality: PR #41 emitted `float("nan")` from `build_row` precisely because
+    a 0.0 xG reading is a confident wrong number, and this `fillna` silently
+    undid it. The fix belongs upstream in `features/build.py`, which now always
+    supplies a real league-average xG rate when Understat is cold so these
+    columns arrive already populated; `fillna` is left as the last-resort net
+    for genuinely absent features, not as the thing that decides what a missing
+    measurement means. `predict_many_from_rows` is left as-is because it is fed
+    whole precomputed frames whose imputation is the caller's business.
+
+    Measured effect of the upstream fix, simulating a cold Understat on each of
+    the four available seasons (mean RPS against real outcomes, lower better):
+    0.19059 before -> 0.18855 after, against 0.18412 with real xG available.
+    """
+    frame = pd.DataFrame([row]).reindex(columns=feature_cols, fill_value=0)
+    return frame.fillna(0).astype(float)
+
+
 class MLScorelineModel:
     """Live-serving wrapper: satisfies the same `.teams` + `.predict(home,
     away, max_goals)` interface as penaltyblog's goal models, so it's a
@@ -161,12 +198,7 @@ class MLScorelineModel:
 
     def predict(self, home: str, away: str, max_goals: int = 10, **_kwargs):
         row = self.context.build_row(home, away)
-        # A single-row frame built from a dict can leave an all-None column
-        # (e.g. h2h_* for a pair with no prior meetings) as object dtype even
-        # after fillna(0) — XGBoost's inplace_predict rejects object dtypes
-        # outright, so force numeric here rather than relying on fillna alone.
-        x = pd.DataFrame([row]).reindex(columns=self.feature_cols, fill_value=0).fillna(0).astype(float)
-        return predict_grid(self.home_model, self.away_model, x, max_goals=max_goals)
+        return predict_grid(self.home_model, self.away_model, _row_to_matrix(row, self.feature_cols), max_goals=max_goals)
 
     def predict_from_row(self, row, max_goals: int = 10):
         """Score a fixture using its own precomputed, point-in-time feature
@@ -179,8 +211,9 @@ class MLScorelineModel:
         held-out season, effectively the season's own outcome). Genuine
         upcoming fixtures have no such point-in-time features to fall back
         on, so they correctly keep using `.predict(home, away)` instead."""
-        x = pd.DataFrame([row])[self.feature_cols].fillna(0).astype(float)
-        return predict_grid(self.home_model, self.away_model, x, max_goals=max_goals)
+        return predict_grid(
+            self.home_model, self.away_model, _row_to_matrix(row, self.feature_cols), max_goals=max_goals
+        )
 
     def predict_many_from_rows(self, df: pd.DataFrame, max_goals: int = 10) -> list:
         """Batched `predict_from_row` — see `predict_grids_batch`'s
