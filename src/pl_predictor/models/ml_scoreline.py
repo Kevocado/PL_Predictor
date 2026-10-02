@@ -71,7 +71,9 @@ MIN_LAMBDA = 0.05  # create_dixon_coles_grid requires strictly positive lambdas
 #:   The booster learned one thing from this column -- "0.0 means no prior-season
 #:   data" -- and reading 0.844 as a promoted team instead costs +0.00038 RPS on
 #:   the affected rows because it makes a promoted club look like an established
-#:   one. See `features/build.py::_apply_missing_value_encoding` docs.
+#:   one. See also `_apply_missing_value_encoding` below, and the squad-continuity
+#:   merge in `features/build.py::build_training_frame`, which carries the same
+#:   measurement from the feature side.
 #: * `h2h_*`: 0.0 is a *reachable* value of both (no goal difference; never won
 #:   in five meetings), sits +0.05 and -1.16 SD from the mean, and is inside the
 #:   observed range for both. Substituting the present-rows mean moves the
