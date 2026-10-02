@@ -58,33 +58,41 @@ def test_build_row_accepts_tz_aware_commence_time(matches, no_other_competitions
     assert row["rest_days_home"] is not None or row["is_first_match_of_season_home"]
 
 
-def test_build_row_degrades_to_nan_when_understat_xg_is_unavailable(monkeypatch, matches, no_other_competitions):
-    """`build_row` must not raise when Understat xG is missing entirely.
+def test_build_row_degrades_to_the_league_xg_rate_when_understat_is_unavailable(
+    monkeypatch, matches, no_other_competitions
+):
+    """`build_row` must not raise when Understat xG is missing entirely, and must
+    not serve a confident wrong number either.
 
     `xg_form.latest_xg_form` documents that it returns an empty frame "if
-    Understat data wasn't available", and `FixtureFeatureContext.__init__` says the
-    same of squad continuity a few lines earlier -- "Degrades to an empty series
-    (NaN for every team, same as a promoted team's own no-prior-season case)
-    rather than raising". `build_row` did neither. With no xG at all,
-    `xg_league_avg` is an empty Series, so `.get(stat_col)` returns `None` rather
-    than NaN, the cold-start blend's `else current_val` branch propagates that
-    `None` into `row`, and the xG-delta loop two lines later evaluates it:
+    Understat data wasn't available". `build_row` did neither: with no xG at all,
+    `xg_league_avg` was an empty Series, so `.get(stat_col)` returned `None`
+    rather than NaN, the cold-start blend propagated that `None` into `row`, and
+    the xG-delta loop two lines later evaluated it:
 
         TypeError: unsupported operand type(s) for -: 'float' and 'NoneType'
 
     That is a 500 on the live fixtures path for any deployment whose Understat
-    fetch is cold, blocked, or has changed schema, and it is the one genuine
-    failure this file has on a cold checkout of `origin/main` (measured: the other
-    nine tests pass, and all ten pass once `data/cache/` is warm -- so the existing
-    test only passed by accident of a warm cache, never by construction).
+    fetch is cold, blocked, or has changed schema.
 
-    Driven through the real `build_row` with the loader patched to return nothing,
-    which is what a genuinely unavailable upstream looks like. Asserted as NaN and
-    not as "does not raise": a mutant that substituted `0.0` would satisfy the
-    latter while claiming this team created and conceded zero expected goals all
-    season, which is a real number and a wrong answer. `float('nan') - float('nan')`
-    is `nan`, so the delta columns have to be checked separately -- the subtraction
-    is where the crash was, so that is where the value has to be right.
+    The follow-up fix made it NaN, on the reasoning that NaN is honest and XGBoost
+    consumes it natively. That reasoning was wrong about the second half: the NaN
+    never reached XGBoost, because the serving path
+    (`ml_scoreline.MLScorelineModel.predict`) ends in `.fillna(0)`. So every cold
+    xG column was still served as `0.0` -- asserting the team created exactly zero
+    expected goals, and (worse, via the deltas) that it scored exactly to
+    expectation. A loud 500 had become a quiet wrong number.
+
+    So the requirement is stronger than "does not raise" and stronger than "is
+    NaN": the value has to be a real number that means something. The league's
+    expected-goals rate is that value -- it says "unmeasurable right now, league
+    average is the best estimate" instead of asserting zero. The delta then
+    becomes goals-minus-league-expectation, a genuine over/under-performance
+    reading rather than a flat 0.0.
+
+    Asserted against the rate derived from `matches_df` itself, not a hardcoded
+    constant. `float('nan') - float('nan')` is `nan`, so the delta columns are
+    checked separately -- the subtraction is where the crash was.
     """
     from pl_predictor.data import understat as understat_module
     from pl_predictor.features import xg_form
@@ -95,18 +103,24 @@ def test_build_row_degrades_to_nan_when_understat_xg_is_unavailable(monkeypatch,
     home, away = matches["team_home"].iloc[-1], matches["team_away"].iloc[-1]
     row = ctx.build_row(home, away, commence_time=pd.Timestamp.now(tz="UTC") + pd.Timedelta(days=3))
 
+    league_rate = float(pd.concat([matches["goals_home"], matches["goals_away"]], ignore_index=True).mean())
+
     for w in xg_form.WINDOWS:
         for side in ("home", "away"):
             for stat in ("for", "against"):
                 stat_key = f"{side}_xg_{stat}_last_{w}"
-                assert pd.isna(row[stat_key]), (
-                    f"{stat_key} is {row[stat_key]!r}, not NaN: with no Understat data "
-                    f"there is no xG to report, and 0.0 would assert a real expectation"
+                assert row[stat_key] == pytest.approx(league_rate, abs=1e-9), (
+                    f"{stat_key} is {row[stat_key]!r}, expected the league xG rate "
+                    f"{league_rate}: with no Understat data there is no team xG to "
+                    f"report, but the league rate is a real estimate and 0.0 asserts "
+                    f"a team that creates and concedes zero expected goals"
                 )
                 delta_key = f"{side}_xg_delta_{stat}_last_{w}"
-                assert pd.isna(row[delta_key]), (
-                    f"{delta_key} is {row[delta_key]!r}, not NaN: goals-for is known "
-                    f"even with no xG, so the delta is unknown rather than zero"
+                assert np.isfinite(row[delta_key]), (
+                    f"{delta_key} is {row[delta_key]!r}: goals-for is known even with "
+                    f"no xG, so goals-minus-expectation is computable and must not "
+                    f"degrade to NaN (which the serving path would report as 0.0, "
+                    f"i.e. 'scored exactly to expectation')"
                 )
 
 
