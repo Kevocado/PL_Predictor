@@ -1,11 +1,20 @@
 """store.py — SQLite persistence for the live prediction track record.
 
-Snapshots each fixture's core-market predictions *before* kickoff, then
-reconciles them against actual results once matches are played. This is the
-only way to honestly measure "how good are the predictions really" going
-forward — a model re-evaluated after the fact against its own current
-(possibly retrained) state would just be grading itself on data it may have
-since trained on.
+Snapshots each fixture's core-market predictions, then reconciles them against
+actual results once matches are played. A pick is RECORDED whenever it is
+computed — before kickoff or after — and the track record counts every recorded
+pick, one per fixture, the earliest recorded one (`_counted_picks`). Whether a
+pick was made before its own kickoff is DERIVED per read from the pick's two
+timestamps (`_made_before_kickoff`), never read from a stored flag and never
+stored itself, and it is published beside the headline as `pre_kickoff` rather
+than used to exclude the pick.
+
+Recording the pick as it stood is the only way to honestly measure "how good
+are the predictions really" going forward — a model re-evaluated after the fact
+against its own current (possibly retrained) state would just be grading itself
+on data it may have since trained on — and keeping the late picks in, labelled,
+is what makes the difference between the two figures visible rather than
+arguable.
 
 Markets tracked: the same core set already in `FixtureSummary` — 1X2, total
 goals O/U 2.5, and BTTS. Corners/cards/player markets aren't tracked here
@@ -125,23 +134,28 @@ def _instants(frame: pd.DataFrame) -> pd.Series:
 def _counted_picks(fixtures: pd.DataFrame) -> pd.DataFrame:
     """The fixture rows that count: one per fixture, the EARLIEST recorded.
 
-    **The counting key is the fixture.** All four graded markets (match result,
-    exact score, O/U 2.5, BTTS) live as COLUMNS on one row of
-    `_fixture_market_hit_table`, so `(fixture, market)` reduces to the fixture
-    and the four markets are read off that single counted row. This function
-    must therefore NOT collapse the row to one market — a `drop_duplicates` over
-    a column-per-market shape would delete three of the four, and the by_market
-    block would report the right keys with silently wrong n.
+    **The counting key is the fixture's `event_id`** — the same key, and only
+    the key, every other sport uses: NFL `drop_duplicates(subset=["game_id"])`,
+    CFB `_earliest_recorded(labelled, ("game_id", ...))`, NBA grouping by
+    `game_id`. PL used to re-derive identity from
+    `(team_home, team_away, _utc_instant(commence_time).date())`; that is gone,
+    and `_fixture_hit_table` says at length what it cost.
 
-    `_fixture_hit_table` already dedupes by `(team_home, team_away, kickoff
-    date)` keeping the earliest snapshot — two event_ids for one match is a real
-    case here (Odds API hex id vs FPL numeric when the fixture feed falls back).
-    So on today's data this function is a no-op, and it is written anyway for
-    the same reason NFL's is: a rule enforced only by an upstream `drop_duplicates`
-    (or by the table's `UNIQUE(event_id, market, outcome_name)`) stops being
-    enforced the moment the key changes, and the failure when it does is
-    invisible — the accuracy simply improves and a rerun of the model gets to
-    grade a second time.
+    All four graded markets (match result, exact score, O/U 2.5, BTTS) live as
+    COLUMNS on one row of `_fixture_market_hit_table`, so `(fixture, market)`
+    reduces to the fixture and the four markets are read off that single counted
+    row. This function must therefore NOT collapse the row to one market — a
+    `drop_duplicates` over a column-per-market shape would delete three of the
+    four, and the by_market block would report the right keys with silently
+    wrong n.
+
+    So on today's data this function is a no-op (`_fixture_market_hit_table`
+    already yields one row per `event_id`, and `predictions` is
+    `UNIQUE(event_id, market, outcome_name)`), and it is written anyway for
+    the same reason NFL's is: a rule enforced only by an upstream
+    `drop_duplicates` (or by that `UNIQUE`) stops being enforced the moment the
+    key changes, and the failure when it does is invisible — the accuracy simply
+    improves and a rerun of the model gets to grade a second time.
 
     "Earliest" is by UTC instant, so which row wins does not depend on how its
     timestamp is spelled. An unreadable timestamp cannot be proven earliest, so
@@ -159,17 +173,7 @@ def _counted_picks(fixtures: pd.DataFrame) -> pd.DataFrame:
         return fixtures
     ordered = fixtures.assign(_instant=_instants(fixtures))
     ordered = ordered.sort_values("_instant", na_position="last", kind="stable", ignore_index=True)
-    # A fixture identity, not the event_id: the same match is legitimately
-    # snapshotted under two event_ids when the fixture feed falls back from the
-    # Odds API hex id to the FPL numeric one, and two ids for one match must not
-    # be two counted picks.
-    kickoff_date = ordered["commence_time"].map(
-        lambda v: None if _utc_instant(v) is None else _utc_instant(v).date()
-    )
-    ordered = ordered.assign(_kickoff_date=kickoff_date)
-    return ordered.drop_duplicates(
-        subset=["team_home", "team_away", "_kickoff_date"], keep="first"
-    ).drop(columns=["_instant", "_kickoff_date"])
+    return ordered.drop_duplicates(subset=["event_id"], keep="first").drop(columns=["_instant"])
 
 
 def _connect() -> sqlite3.Connection:
@@ -656,13 +660,17 @@ def backfill_missing_predictions(
     a future context rebuild, that's fine — this function has already
     logged the prediction it needs to for reconciliation, and later
     rebuilds don't retroactively change what was recorded here. Always
-    marked `backfilled=True` (see `_connect`'s docstring note) so the
-    Recent Results view can keep these visually distinct from predictions
-    actually captured live before kickoff — a live-captured prediction
-    proves no hindsight was even possible in principle; a backfilled one
-    is honestly computed the same way but wasn't literally there before
-    kickoff, and that distinction is worth keeping legible rather than
-    blurring the two."""
+    marked `backfilled=True` so the Recent Results view can keep these
+    visually distinct from rows the live path wrote — but that flag is
+    provenance ("this row came from the backfill job"), NOT proof of timing.
+    This docstring used to go further and call a live-captured prediction
+    one that "proves no hindsight was even possible in principle", which was
+    simply false: the five-minute tracking tick writes `backfilled=False`
+    whenever it happens to run, so a pick written an hour after its own
+    kickoff is labelled live-captured. The question "was this pick made
+    before the match?" is answered by comparing `snapshotted_at` to
+    `commence_time` (`_made_before_kickoff`), on every read, and never by this
+    flag."""
     if finished_matches.empty:
         return 0
 
@@ -769,20 +777,27 @@ def _fixture_hit_table() -> pd.DataFrame:
                 "backfilled": bool(first["backfilled"]),
             }
         )
+    # One row per event_id, which IS the fixture key here and in every other
+    # sport (NFL/CFB/NBA group by `game_id`). This used to re-derive identity
+    # from `(team_home, team_away, kickoff date)` on the theory that one match
+    # can be snapshotted under two ids when the fixture feed falls back from
+    # the Odds API hex id to the FPL numeric one. That guess was measured
+    # against the shipped `data/public_snapshot.json` (50 finished fixtures,
+    # 2026-10-01) and found ZERO (teams, date) pairs carrying two ids — so it
+    # bought nothing and cost two real things, so it is gone:
+    #
+    # - a kickoff straddling UTC midnight under two ids became two counted
+    #   picks, i.e. one match graded twice;
+    # - an unreadable `commence_time` yields `kickoff_date=None`, and
+    #   `drop_duplicates` treats every null as equal, so two genuinely distinct
+    #   fixtures sharing a team pair were silently collapsed into one.
+    #
+    # If one match ever really is snapshotted under two ids, the fix is
+    # upstream — de-duplicate the fixture feed — not a date heuristic in the
+    # reader that cannot tell "one match, two ids" from "two matches, no date".
     table = pd.DataFrame(rows)
     if not table.empty:
-        # The same fixture can be snapshotted under two event_ids (Odds API
-        # hex id vs FPL numeric id when the fixture feed falls back), so
-        # group-by-event_id above yields two rows for one match. Dedupe by
-        # (teams, kickoff date), keeping the earliest snapshot — the most
-        # honest pre-match prediction.
-        table["_kickoff_date"] = pd.to_datetime(table["commence_time"]).dt.date
-        table = (
-            table.sort_values("snapshotted_at")
-            .drop_duplicates(subset=["team_home", "team_away", "_kickoff_date"], keep="first")
-            .drop(columns=["_kickoff_date"])
-            .reset_index(drop=True)
-        )
+        table = table.reset_index(drop=True)
     return table
 
 
@@ -852,6 +867,25 @@ def _market_reliability(fixtures: pd.DataFrame, column: str) -> dict:
     }
 
 
+def _iso(value) -> str | None:
+    """A timestamp as an ISO string, or None when it is not one.
+
+    A NaT is a timestamp nobody can read, and `pd.NaT.isoformat()` returns "NaT"
+    — a string that looks like a timestamp to whatever consumes it and is not
+    one. None is the honest answer, and it is also the one that makes
+    `_made_before_kickoff` fail closed if the row is ever re-read.
+    """
+    if value is None:
+        return None
+    if isinstance(value, str):
+        return value
+    isoformat = getattr(value, "isoformat", None)
+    if isoformat is None:
+        return str(value)
+    text = isoformat()
+    return None if text == "NaT" else text
+
+
 def _per_pick_rows(fixtures: pd.DataFrame) -> list[dict]:
     """One row per COUNTED pick, each labelled with when it was made.
 
@@ -886,13 +920,14 @@ def _per_pick_rows(fixtures: pd.DataFrame) -> list[dict]:
             "event_id": r.get("event_id"),
             "team_home": r.get("team_home"),
             "team_away": r.get("team_away"),
-            "commence_time": ct.isoformat() if hasattr(ct, "isoformat") else ct,
+            "commence_time": _iso(ct),
             "gameweek": int(r["gameweek"]) if pd.notna(r.get("gameweek")) else None,
             "hit": bool(r["hit"]) if pd.notna(r.get("hit")) else None,
             # The disclosure, derived and never stored.
             "made_before_kickoff": made_before_kickoff,
             # The time the pick was made, so the label above can be checked.
-            "snapshotted_at": snap.isoformat() if hasattr(snap, "isoformat") else snap,
+            # None when it is unreadable, never the string "NaT".
+            "snapshotted_at": _iso(snap),
             # Retained name, now meaning "made at or after kickoff" and nothing
             # more: this pick is still counted.
             "rebuilt": not made_before_kickoff,
@@ -1007,11 +1042,12 @@ def get_track_record() -> dict:
 
     **The counting key is per record type, not one key.** Fixture-level markets
     (result, exact score, O/U 2.5, BTTS) are keyed `(fixture, market)`, which
-    reduces to the fixture because all four live as columns on one row. Player
-    picks are keyed `(fixture, player_id, market)` — many players share a
-    market, so collapsing a pick to game level deletes the player record — and
-    they are graded by a separate entry point, `get_scorer_accuracy`. See
-    `_counted_picks` and `_counted_player_picks`.
+    reduces to the fixture's `event_id` because all four live as columns on one
+    row. Player picks are keyed `(event_id, player_id)` — many players share a
+    fixture, so collapsing a pick to game level deletes the player record — and
+    they are graded by a separate entry point, `get_scorer_accuracy`, which
+    applies that dedupe for real. See `_counted_picks` and
+    `_counted_player_picks`.
     """
     resolved = _fixture_market_hit_table()
 
@@ -1106,15 +1142,26 @@ def get_results_by_gameweek() -> list[dict]:
     groups = []
     for gameweek, group in fixtures.groupby(fixtures["gameweek"].fillna(-1)):
         gw_value = None if gameweek == -1 else int(gameweek)
-        # Every resolved pick in the group counts, rebuilt or not; n_rebuilt
-        # stays as an informational split so the mix remains visible.
-        n_rebuilt_group = int(group["backfilled"].astype(bool).sum())
+        # Every resolved pick in the group counts, rebuilt or not; `n_rebuilt` is
+        # the informational split, and it is the SAME derivation the track
+        # record reports as `n_rebuilt_fixtures` — each fixture's own two
+        # timestamps compared as UTC instants, never the stored `backfilled`
+        # flag. It used to be `group["backfilled"].sum()`, which is a different
+        # population: `record_predictions` takes `backfilled=` as an argument,
+        # so a group could report `n_rebuilt` that disagrees with the headline
+        # it sits beside. `made_before_kickoff` on each fixture row is the same
+        # derivation again, so a reader can check the count instead of taking
+        # it. `n_rebuilt + n_made_before_kickoff == n_fixtures` holds.
+        made_pre = group.apply(_made_before_kickoff_row, axis=1)
+        n_made_pre = int(made_pre.sum())
+        n_rebuilt_group = int(len(group)) - n_made_pre
         groups.append(
             {
                 "gameweek": gw_value,
                 "pct_correct": float(group["hit"].mean()),
                 "n_fixtures": int(len(group)),
                 "n_rebuilt": n_rebuilt_group,
+                "n_made_before_kickoff": n_made_pre,
                 "pct_correct_by_market": {
                     "exact_score": _market_reliability(group, "exact_score_hit")["pct_correct"],
                     "match_result": float(group["hit"].mean()),
@@ -1126,7 +1173,7 @@ def get_results_by_gameweek() -> list[dict]:
                         "event_id": r["event_id"],
                         "team_home": r["team_home"],
                         "team_away": r["team_away"],
-                        "commence_time": r["commence_time"].isoformat(),
+                        "commence_time": _iso(r["commence_time"]),
                         "predicted_scoreline": r["predicted_scoreline"],
                         "actual_goals_home": r["actual_goals_home"],
                         "actual_goals_away": r["actual_goals_away"],
@@ -1135,9 +1182,18 @@ def get_results_by_gameweek() -> list[dict]:
                         "predicted_away_win": r["predicted_away_win"],
                         "actual_outcome": r["actual_outcome"],
                         "hit": r["hit"],
+                        # The derivation, on every read, failing closed to False.
+                        # `backfilled` is kept below for the fixtures that were
+                        # reconstructed; nothing reads it to decide timing.
+                        "made_before_kickoff": bool(pre),
+                        # Carried so the label above can be checked rather
+                        # than taken. `_iso` because a string column reaches
+                        # this path from a cached frame and `pd.NaT` must not
+                        # be published as the literal string "NaT".
+                        "snapshotted_at": _iso(r["snapshotted_at"]),
                         "backfilled": r["backfilled"],
                     }
-                    for _, r in group.iterrows()
+                    for (_, r), pre in zip(group.iterrows(), made_pre)
                 ],
             }
         )
@@ -1153,7 +1209,14 @@ def get_fixture_prediction(event_id: str) -> dict | None:
     for an already-played match, live recomputation risks that match's
     own result having fed back into "current model state," which would
     make the "prediction" shown partly hindsight. None if this event_id
-    was never logged."""
+    was never logged.
+
+    Carries `made_before_kickoff`, DERIVED from the fixture's earliest recorded
+    `snapshotted_at` against its kickoff, so `/facts` can label the pick's
+    timing without ever reading the stored `backfilled` flag. Fails closed to
+    `False` when either timestamp is unreadable — and `False` is what a reader
+    must act on, so it withholds the "pre-kickoff" claim rather than inventing
+    one. It is derived on this read and never stored."""
     with _connect() as conn:
         rows = pd.read_sql(
             "SELECT * FROM predictions WHERE event_id = ?", conn, params=(event_id,), parse_dates=["commence_time"]
@@ -1163,6 +1226,10 @@ def get_fixture_prediction(event_id: str) -> dict | None:
 
     probs = {r["outcome_name"]: float(r["predicted_prob"]) for _, r in rows.iterrows()}
     first = rows.iloc[0]
+    # One event_id is one fixture and one counted pick, so the timing label
+    # reads the EARLIEST row's stamp — the same rule `_counted_picks` applies.
+    stamps = rows["snapshotted_at"].map(_utc_instant).dropna()
+    earliest = stamps.min() if not stamps.empty else None
     return {
         "event_id": event_id,
         "team_home": first["team_home"],
@@ -1175,6 +1242,7 @@ def get_fixture_prediction(event_id: str) -> dict | None:
         "under_2_5": probs.get("under", 0.0),
         "btts_yes": probs.get("yes", 0.0),
         "predicted_scoreline": first["predicted_scoreline"],
+        "made_before_kickoff": _made_before_kickoff(earliest, first["commence_time"]),
     }
 
 
@@ -1536,46 +1604,56 @@ def get_fixture_player_review(event_id: str) -> dict | None:
 
 
 def _counted_player_picks(resolved: pd.DataFrame) -> pd.DataFrame:
-    """The player rows that count: one per `(fixture, player_id, market)`, the
-    EARLIEST recorded.
+    """The player rows that count: one per `(event_id, player_id)`, the EARLIEST
+    recorded.
 
     **This is a DIFFERENT counting key from `_counted_picks`, and the difference
-    is not cosmetic.** The decision doc's "(game, market)" is destructive here:
-    many players share a market in one fixture, so a pick keyed on the game alone
-    keeps one player per market and DELETES the rest of the player record
-    outright — not mis-measures it, removes it. So player picks are keyed
-    `(fixture, player_id, market)` and counted here, in their own function,
-    rather than sharing the fixture frame's key.
+    is not cosmetic.** Keying a player pick on the game alone keeps one player
+    per fixture and DELETES the rest of the player record outright — not
+    mis-measures it, removes it. So player picks are counted here, in their own
+    function, rather than sharing the fixture frame's key.
 
-    `player_prediction_snapshots` has PRIMARY KEY `(event_id, player_id)` and
-    carries all three player markets (goal, assist, G+A) as COLUMNS, so as with
-    fixtures the market reduces to the row and the row must not be collapsed to
-    one market.
+    **The key is `(event_id, player_id)` and NOT `(event_id, player_id,
+    market)`.** The docstring used to claim the latter, and it was false in a way
+    that crashed: `player_prediction_snapshots` has PRIMARY KEY
+    `(event_id, player_id)` and carries all three player markets (goal, assist,
+    G+A) as COLUMNS — there is no `market` column to key on, and
+    `drop_duplicates(subset=[..., "market"])` raised
+    `KeyError: Index(['market'])` on every real `SELECT *` this table returns.
+    As with fixtures, the market reduces to the row, so the row must not be
+    collapsed to one market: keying on the market column would have deleted the
+    assist column off every player row.
 
-    The table has no `snapshotted_at` column — provenance is recorded as
-    `snapshot` vs `reconstructed` instead — so "earliest" is a no-op there today
-    and the sort is stable, which keeps the first row encountered. It is written
-    anyway because a rule enforced only by a primary key stops being enforced the
-    moment the key changes, and a re-keyed or restored history is exactly the case
-    where a player pick would be graded twice.
+    `player_prediction_snapshots` has no `snapshotted_at` column — provenance is
+    recorded as `snapshot` vs `reconstructed` instead — so "earliest" cannot
+    order anything today and the stable sort keeps the first row encountered.
+    It is written anyway because a rule enforced only by a primary key stops
+    being enforced the moment the key changes, and a re-keyed or restored
+    history is exactly the case where a player pick would be graded twice.
+
+    **Called from `get_scorer_accuracy`**, the serving path. It used to be
+    reachable only from tests, which is how a `KeyError` on real data could sit
+    in a module that ships: a rule asserted in a test and enforced nowhere.
     """
     if resolved.empty:
         return resolved
     ordered = resolved.assign(_instant=_instants(resolved))
     ordered = ordered.sort_values("_instant", na_position="last", kind="stable", ignore_index=True)
     return ordered.drop_duplicates(
-        subset=["event_id", "player_id", "market"], keep="first"
+        subset=["event_id", "player_id"], keep="first"
     ).drop(columns=["_instant"])
 
 
 def get_scorer_accuracy() -> dict:
     """Accuracy and calibration for confirmed-starter scorer probabilities.
 
-    **Counted on its own key, `(fixture, player_id, market)`** — see
-    `_counted_player_picks`. This grader mixes player picks into one summariser
-    where the fixture grader does not, and the two must not share a counting key:
-    many players share a market in one fixture, so keying a player pick by game
-    would keep one player per market and delete the rest of the record.
+    **Counted on its own key, `(event_id, player_id)`** — see
+    `_counted_player_picks`, which this function calls. The fixture grader's key
+    would keep one player per fixture and delete the rest of the record, so the
+    two must not share a key. The dedupe used to be dead code reachable only
+    from tests; it runs here, before the snapshot/reconstructed split, so the
+    COUNTED pick for a (fixture, player) pair is the one graded and its own
+    provenance is the one that labels it.
 
     Deliberately NOT relaxed the way the track record was: the `snapshot` vs
     `reconstructed` split here is a statement about how the probability was
@@ -1585,7 +1663,8 @@ def get_scorer_accuracy() -> dict:
     """
     with _connect() as conn:
         rows = pd.read_sql("SELECT * FROM player_prediction_snapshots WHERE resolved = 1", conn)
-    result = {"snapshot": _scorer_accuracy_group(rows[rows["provenance"] == "snapshot"]), "reconstructed": _scorer_accuracy_group(rows[rows["provenance"] == "reconstructed"])} if not rows.empty else {"snapshot": _scorer_accuracy_group(rows), "reconstructed": _scorer_accuracy_group(rows)}
+    counted = _counted_player_picks(rows)
+    result = {"snapshot": _scorer_accuracy_group(counted[counted["provenance"] == "snapshot"]), "reconstructed": _scorer_accuracy_group(counted[counted["provenance"] == "reconstructed"])} if not counted.empty else {"snapshot": _scorer_accuracy_group(counted), "reconstructed": _scorer_accuracy_group(counted)}
     return result
 
 

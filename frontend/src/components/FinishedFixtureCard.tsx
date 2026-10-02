@@ -21,6 +21,12 @@ interface Props {
   draw_signal?: boolean;
   hit: boolean | null;
   backfilled: boolean;
+  // Derived per read by the backend from this pick's own `snapshotted_at` vs
+  // its kickoff, as UTC instants. `backfilled` is provenance and cannot answer
+  // that. Absent from a payload baked before the field existed, which reads
+  // falsy and so shows the badge — the claim-hiding direction, which is right
+  // for a label that says "made after kickoff".
+  made_before_kickoff?: boolean;
   home_player_events?: FixturePlayerEvent[];
   away_player_events?: FixturePlayerEvent[];
   player_events_pending?: boolean;
@@ -50,7 +56,7 @@ export function FinishedFixtureCard({
   predicted_away_win,
   draw_signal = false,
   hit,
-  backfilled,
+  made_before_kickoff,
   home_player_events = [],
   away_player_events = [],
   onClick,
@@ -66,7 +72,7 @@ export function FinishedFixtureCard({
       tabIndex={0}
       onKeyDown={(e) => e.key === "Enter" && onClick()}
       title={draw_signal ? "The scoreline model also leaned towards a draw." : undefined}
-      className={`clip-corner flex cursor-pointer flex-col gap-3 rounded-xl border bg-pl-850/70 ${backfilled ? "border-pl-border" : hit ? "border-win/30" : "border-loss/30"} p-4 transition hover:border-pl-pink/40`}
+      className={`clip-corner flex cursor-pointer flex-col gap-3 rounded-xl border bg-pl-850/70 ${!made_before_kickoff ? "border-pl-border" : hit ? "border-win/30" : "border-loss/30"} p-4 transition hover:border-pl-pink/40`}
     >
       <div className="flex flex-wrap items-center justify-between gap-1.5 text-xs font-medium uppercase tracking-wide text-pl-text-faint">
         <span>
@@ -83,7 +89,13 @@ export function FinishedFixtureCard({
               thing worth saying. The `rebuilt` PROP is kept: it is a published
               field name, and renaming it would break every call site to change
               nothing a reader sees. */}
-          {backfilled && (
+          {/* The DERIVED label, not `backfilled`. The badge says when the pick
+              was made, and `backfilled` only says which job wrote the row — the
+              five-minute tracking tick writes `false` whenever it runs, so a
+              pick written long after kickoff used to render as "Called it ✓"
+              with no badge at all. Fails closed: an absent flag shows the badge,
+              so the card never claims a pick was in time. */}
+          {!made_before_kickoff && (
             <span
               title="Made from the model after this match finished. Counted in the track record like any other pick."
               className="rounded border border-pl-border px-1.5 py-0.5 text-xs font-semibold normal-case tracking-normal text-pl-text-dim"
@@ -91,8 +103,8 @@ export function FinishedFixtureCard({
               Made after kickoff
             </span>
           )}
-          {/* A rebuilt pick is shown, never judged: one badge, not two. */}
-          {!backfilled && (
+          {/* A pick not made in time is shown, never judged: one badge, not two. */}
+          {made_before_kickoff && (
             <span className={`text-xs font-semibold ${hit ? "text-win" : "text-loss"}`}>{hit ? "Called it ✓" : "Missed ✗"}</span>
           )}
         </div>

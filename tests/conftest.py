@@ -105,7 +105,17 @@ def facts_detail(**over):
 
 
 def facts_card(**over):
-    """A fixture card as the public snapshot carries it."""
+    """A fixture card as the public snapshot carries it.
+
+    `made_before_kickoff` is the field the backend now derives per read, by
+    comparing this pick's own `snapshotted_at` to `commence_time` as UTC
+    instants (`store::_made_before_kickoff`). The default is `True` because
+    this card stands for a genuine pre-kickoff capture.
+
+    `backfilled` stays on the card, and deliberately defaults to something a
+    reader could confuse it with, because `pick_timing` must be decided by the
+    timestamps and not by it.
+    """
     card = {
         "event_id": FACTS_EVENT_ID,
         "team_home": "Sunderland",
@@ -118,6 +128,7 @@ def facts_card(**over):
         "predicted_draw": 0.26,
         "predicted_away_win": 0.38,
         "backfilled": False,
+        "made_before_kickoff": True,
         "has_live_odds": False,
         "value_bet_flags": [],
     }

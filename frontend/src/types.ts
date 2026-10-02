@@ -67,6 +67,12 @@ export interface CurrentGameweekFixture {
   draw_signal: boolean;
   hit: boolean | null;
   backfilled: boolean;
+  // DERIVED per read by the backend from this pick's own `snapshotted_at` vs
+  // its fixture's kickoff, as UTC instants. Never `backfilled`, and never a
+  // stored column. Absent from a snapshot baked before the field existed; the
+  // gameweek tally then contributes nothing for this fixture, which is the
+  // fail-closed direction (the label is withheld, never invented).
+  made_before_kickoff?: boolean;
   has_live_odds: boolean;
   value_bet_flags: string[];
   home_player_events?: FixturePlayerEvent[];
@@ -618,6 +624,11 @@ export interface GameweekResult {
   actual_outcome: "home_win" | "draw" | "away_win" | null;
   hit: boolean;
   backfilled: boolean;
+  // Derived per read from this pick's own timestamps as UTC instants, exactly
+  // as the summary's `pre_kickoff` and `/facts`'s `pick_timing`. `backfilled` is
+  // provenance and answers a different question.
+  made_before_kickoff?: boolean;
+  snapshotted_at?: string | null;
 }
 
 export interface GameweekGroup {
@@ -626,6 +637,10 @@ export interface GameweekGroup {
   pct_correct: number | null;
   n_fixtures: number;
   n_rebuilt?: number;
+  // The same derivation as the summary's `n_rebuilt_fixtures`: counted picks
+  // made at or after their own kickoff, per gameweek. `n_rebuilt +
+  // n_made_before_kickoff === n_fixtures`. Optional for the same reason.
+  n_made_before_kickoff?: number;
   // Optional: absent from a public_snapshot.json baked before this field
   // existed, until the next scheduled snapshot rebuild catches up.
   pct_correct_by_market?: {

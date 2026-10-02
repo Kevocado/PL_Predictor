@@ -29,22 +29,35 @@ Four properties are pinned here, and none of them is "the headline got bigger":
    timestamps do not prove may be labelled so either.
 
 **The counting key is NOT one key.** The decision doc's "(game, market)" is
-destructive for player picks, because many players share a market: collapsing a
+destructive for player picks, because many players share a fixture: collapsing a
 pick to game level deletes the player record entirely. So the two record types
 are keyed apart and the split is pinned here:
 
 - fixture-level markets (match result, exact score, O/U 2.5, BTTS) -> one counted
-  pick per `(fixture, market)`, which reduces to one row per fixture because all
-  four markets live as columns on that row;
-- player picks -> one counted pick per `(fixture, player_id, market)`.
+  pick per `(fixture, market)`, which reduces to one row per fixture's
+  `event_id` because all four markets live as columns on that row;
+- player picks -> one counted pick per `(event_id, player_id)`.
+
+Neither key names a `market`, and both tables have no such column: the markets
+are columns on the row. Both keys are also the id keys NFL/CFB/NBA use, so
+"which fixture is this" is answered the same way in every sport.
+
+**A rule is only enforced where it is called.** Both dedupes used to be
+asserted here and reachable from serving in one case only:
+`_counted_player_picks` was called from no production path at all, and
+`get_scorer_accuracy` graded every resolved row. The tests below now go through
+the entry points.
 """
+import sqlite3
+
 import pandas as pd
 import pytest
 
 from pl_predictor.tracking import store
 
 
-def _frame(hits, snapshotted_at, kickoff="2026-09-13T14:00:00Z", gameweeks=None, event_ids=None):
+def _frame(hits, snapshotted_at, kickoff="2026-09-13T14:00:00Z", gameweeks=None,
+           event_ids=None, teams=None):
     """A resolved-fixture frame in the shape `get_track_record` reads.
 
     `snapshotted_at` and `commence_time` are the ONLY inputs to
@@ -54,25 +67,34 @@ def _frame(hits, snapshotted_at, kickoff="2026-09-13T14:00:00Z", gameweeks=None,
 
     Team names are derived from `event_id`, so two rows carrying the same
     `event_id` are one fixture (the rerun case) and different ids are different
-    fixtures. Teams and not ids because `_fixture_hit_table` dedupes on
-    `(team_home, team_away, kickoff date)` — the same match is legitimately
-    snapshotted under two event_ids (Odds API hex vs FPL numeric).
+    fixtures. Pass `teams` to override that and pin the case where identity
+    must NOT come from team names.
     """
     n = len(hits)
     ids = event_ids if event_ids is not None else [f"e{i}" for i in range(n)]
+    pairs = teams if teams is not None else [(f"Home {i}", f"Away {i}") for i in ids]
     return pd.DataFrame({
         "hit": hits,
         "snapshotted_at": snapshotted_at,
         "commence_time": [kickoff] * n,
         "event_id": ids,
-        "team_home": [f"Home {i}" for i in ids],
-        "team_away": [f"Away {i}" for i in ids],
+        "team_home": [p[0] for p in pairs],
+        "team_away": [p[1] for p in pairs],
         "gameweek": gameweeks if gameweeks is not None else [1] * n,
+        # `_fixture_market_hit_table`'s real column set, so a payload read off
+        # this frame exercises the same field accesses a real one does.
+        "predicted_scoreline": [f"{2 if h else 1}-0" for h in hits],
+        "actual_goals_home": [2 if h else 0 for h in hits],
+        "actual_goals_away": [0 if h else 1 for h in hits],
         "exact_score_hit": hits,
         "over_under_hit": hits,
         "btts_hit": hits,
+        "predicted_home_win": [0.6] * n,
+        "predicted_draw": [0.25] * n,
+        "predicted_away_win": [0.15] * n,
         "actual_outcome": ["home_win"] * n,
         "predicted_prob_actual": [0.6] * n,
+        "resolved_at": ["2026-09-13T18:00:00"] * n,
     })
 
 
@@ -83,6 +105,77 @@ AFTER = "2026-09-13T15:00:00Z"
 def _pinned(monkeypatch, frame):
     monkeypatch.setattr(store, "_fixture_market_hit_table", lambda: frame)
     return store.get_track_record()
+
+
+def _player_frame(rows, order_by_instant=None):
+    """A resolved-player frame in the shape `get_scorer_accuracy` really reads.
+
+    Columns are exactly `player_prediction_snapshots`'s — `event_id`,
+    `player_id`, `name`, `team`, the three probabilities, `confirmed_starter`,
+    `qualifies_call`, `is_recommended`, `provenance`, the two actuals and
+    `resolved`. Built here rather than against a live table so a primary-key
+    violation can be staged, which is the only way to exercise a reader-side
+    dedupe: `INSERT OR IGNORE` on `(event_id, player_id)` makes duplicates
+    unreachable through the writer.
+
+    `rows` are `(event_id, player_id, goal_probability, actual_goals)`.
+    `order_by_instant` lists the rows as latest-first, so an entry at index `i`
+    is stamped BEFORE when `True` and AFTER when False.
+    """
+    order = order_by_instant or [True] * len(rows)
+    return pd.DataFrame({
+        "event_id": [r[0] for r in rows],
+        "player_id": [r[1] for r in rows],
+        "name": [f"P{r[1]}" for r in rows],
+        "team": ["Home"] * len(rows),
+        "goal_probability": [r[2] for r in rows],
+        "assist_probability": [0.10] * len(rows),
+        "contribution_probability": [max(0.30, r[2]) for r in rows],
+        "confirmed_starter": [1] * len(rows),
+        "qualifies_call": [1] * len(rows),
+        "is_recommended": [1] * len(rows),
+        "provenance": ["snapshot"] * len(rows),
+        "actual_goals": [r[3] for r in rows],
+        "actual_assists": [0] * len(rows),
+        "resolved": [1] * len(rows),
+        # The table carries no `snapshotted_at`, so this column is what
+        # `_instants` orders on when present and is absent in production. Kept
+        # here so "earliest wins" is testable.
+        "snapshotted_at": [BEFORE if early else AFTER for early in order],
+    })
+
+
+def _unkeyed_player_db(tmp_path, frame):
+    """A real SQLite connection holding `frame`, with the table's PRIMARY KEY
+    deliberately left off.
+
+    `_connect` is monkeypatched over this, so `get_scorer_accuracy` runs its own
+    `SELECT * FROM player_prediction_snapshots WHERE resolved = 1` and its own
+    grading logic against it. Only the schema is arranged: the columns are
+    `frame`'s, and the constraint is not, because the point of these tests is
+    rows the table's own key forbids. A reader-side dedupe has nothing to defend
+    against when the writer already makes duplicates unreachable, which is
+    exactly why the gap between the two went unnoticed.
+    """
+    conn = sqlite3.connect(str(tmp_path / "tracking.db"))
+    sql_types = {
+        "object": "TEXT",
+        "int64": "INTEGER",
+        "int32": "INTEGER",
+        "float64": "REAL",
+        "bool": "INTEGER",
+    }
+    schema = ", ".join(
+        f"{name} {sql_types.get(str(dtype), 'REAL')}" for name, dtype in frame.dtypes.items()
+    )
+    conn.execute(f"CREATE TABLE player_prediction_snapshots ({schema})")
+    placeholders = ",".join("?" * len(frame.columns))
+    conn.executemany(
+        f"INSERT INTO player_prediction_snapshots VALUES ({placeholders})",
+        [tuple(row) for row in frame.itertuples(index=False)],
+    )
+    conn.commit()
+    return conn
 
 
 # --- THE CASE THAT PROVES THE DECISION: PL's shipped, EMPTY headline --------
@@ -188,7 +281,8 @@ def test_a_later_rerun_neither_replaces_nor_doubles_the_counted_pick(monkeypatch
 
     assert out["n_resolved_fixtures"] == 1, (
         f"headline counts {out['n_resolved_fixtures']} picks for one fixture's one market. The "
-        f"key is one counted pick per (fixture, market); a rerun must not grade it twice."
+        f"key is one counted pick per (fixture, market), which reduces to one row per "
+        f"`event_id`; a rerun must not grade it twice."
     )
     assert out["pct_correct_overall"] == 1.0, (
         f"headline is {out['pct_correct_overall']!r}. The EARLIEST recorded pick is the counted "
@@ -267,6 +361,95 @@ def test_a_fixture_with_only_an_unparseable_timestamp_is_still_counted(monkeypat
     )
 
 
+# --- 2b. the fixture key is the event_id, like every other sport ------------
+
+def test_the_fixture_counting_key_is_the_event_id_and_nothing_derived_from_it(monkeypatch):
+    """Two fixtures are two fixtures, even when they share a team pair.
+
+    The key used to be `(team_home, team_away, kickoff date)` — a guess about
+    fixture identity re-derived from team names and a date. Both halves of that
+    guess are lossy, and this test is the case where they lose a fixture
+    outright: an UNREADABLE `commence_time` yields `kickoff_date=None`, and
+    pandas' `drop_duplicates` treats every null as equal, so two genuinely
+    distinct matches between the same two teams collapsed into one counted pick.
+
+    Same teams, no readable kickoff, two event_ids, opposite verdicts. If the
+    key is `event_id`, both count.
+    """
+    frame = _frame(
+        [True, False],
+        [BEFORE, BEFORE],
+        kickoff="not-a-date",
+        event_ids=["e1", "e2"],
+        teams=[("Arsenal", "Chelsea"), ("Arsenal", "Chelsea")],
+    )
+    out = _pinned(monkeypatch, frame)
+
+    assert out["n_resolved_fixtures"] == 2, (
+        f"two distinct event_ids between the same teams collapsed to {out['n_resolved_fixtures']} "
+        f"counted pick. Identity is the event_id; a null kickoff date is not a shared identity."
+    )
+    assert out["pct_correct_overall"] == 0.5
+    assert len(out["per_pick"]) == 2, (
+        "per_pick must list what produced the headline, so a reader tallying it gets 2"
+    )
+
+
+def test_two_event_ids_straddling_a_UTC_midnight_are_two_fixtures(monkeypatch):
+    """The other half of the same guess, stated so the choice is visible.
+
+    One kickoff at 23:50 UTC and another at 00:10 UTC are different matches. If
+    identity were still partly date-derived they would land on adjacent calendar
+    dates and the earlier one would swallow the later one; keyed on `event_id`
+    they are simply two ids.
+
+    This is a deliberate choice, not an oversight: PL is the only sport that
+    treated two ids for one match as one fixture, and the cost was that a real
+    double-booking — the same two teams twice in a day, or a replay — became one
+    counted pick, or none at all when the kickoff could not be read at all. The
+    upstream fix for genuinely-duplicated fixtures is to de-duplicate the fixture
+    feed, which is a place where the two ids can be compared with their odds and
+    kickoff in hand. A reader-side date heuristic has neither.
+    """
+    frame = pd.DataFrame({
+        "hit": [True, False],
+        "snapshotted_at": [BEFORE, BEFORE],
+        "commence_time": ["2026-09-13T23:50:00Z", "2026-09-14T00:10:00Z"],
+        "event_id": ["e_late_night", "e_after_midnight"],
+        "team_home": ["Arsenal", "Arsenal"],
+        "team_away": ["Chelsea", "Chelsea"],
+        "gameweek": [1, 1],
+        "exact_score_hit": [True, False],
+        "over_under_hit": [True, False],
+        "btts_hit": [True, False],
+        "actual_outcome": ["home_win", "away_win"],
+        "predicted_prob_actual": [0.6, 0.6],
+    })
+    out = _pinned(monkeypatch, frame)
+
+    assert out["n_resolved_fixtures"] == 2, (
+        f"a kickoff at 23:50Z and one at 00:10Z the next day are two matches, and they count "
+        f"as {out['n_resolved_fixtures']}."
+    )
+    assert [r["event_id"] for r in out["per_pick"]] == ["e_late_night", "e_after_midnight"]
+
+
+def test_a_rerun_under_one_event_id_still_counts_once_after_the_key_change(monkeypatch):
+    """Aligning the key must not have cost the rerun rule.
+
+    This is the invariant the event_id key exists to preserve, so it is asserted
+    against the key itself rather than inferred: two rows, one id, opposite
+    verdicts, and the EARLIEST is the counted one.
+    """
+    frame = _frame([True, False], [BEFORE, AFTER], event_ids=["e1", "e1"])
+    out = _pinned(monkeypatch, frame)
+
+    assert out["n_resolved_fixtures"] == 1
+    assert out["pct_correct_overall"] == 1.0, (
+        "the earliest row is the hit; the later rerun that missed must not displace it"
+    )
+
+
 # --- 3. the counting key differs BY RECORD TYPE ------------------------------
 
 def test_fixture_markets_are_keyed_by_fixture_and_market(monkeypatch):
@@ -302,54 +485,113 @@ def test_fixture_markets_are_keyed_by_fixture_and_market(monkeypatch):
     )
 
 
-def test_player_picks_are_keyed_by_fixture_player_and_market_not_by_fixture_alone():
-    """The destructive-key check, pinned where it can be got wrong.
+def test_player_picks_are_keyed_by_fixture_and_player_not_by_fixture_alone():
+    """The destructive-key check, pinned against the real schema's columns.
 
-    Many players share one market in one fixture. Keyed by `(fixture, market)`,
-    every player but one is dropped and the player record is deleted outright.
-    PL's scorer grader keys player picks separately, on
-    `(fixture, player_id, market)`; this asserts it stays that way, so a future
-    "just use one counting key everywhere" refactor cannot silently delete it.
+    Many players share one fixture. Keyed by `event_id` alone, every player but
+    one is dropped and the player record is deleted outright.
+
+    The frame below carries exactly the columns a real
+    `SELECT * FROM player_prediction_snapshots` returns — no `market`, because
+    that table has PRIMARY KEY `(event_id, player_id)` and keeps goal/assist/G+A
+    as COLUMNS. This was written against a hand-built frame that had a `market`
+    column, so `_counted_player_picks`'s `drop_duplicates(subset=[..., "market"])`
+    passed in tests and raised `KeyError: Index(['market'])` on every real read.
+    A test whose fixture invents a column the table does not have cannot catch
+    that, which is why the columns here come from the schema.
     """
-    counted = store._counted_player_picks(pd.DataFrame({
-        "event_id": ["e1", "e1", "e1"],
-        "player_id": [1, 2, 1],
-        "market": ["goal", "goal", "assist"],
-        "snapshotted_at": [BEFORE, BEFORE, BEFORE],
-        "hit": [True, True, True],
-    }))
+    frame = _player_frame([
+        ("e1", 1, 0.30, 1),
+        ("e1", 2, 0.45, 1),
+    ])
 
-    keys = set(zip(counted["event_id"], counted["player_id"], counted["market"]))
-    assert keys == {("e1", 1, "goal"), ("e1", 2, "goal"), ("e1", 1, "assist")}, (
-        f"player picks collapsed to {sorted(keys)}. Two players share the `goal` market in one "
-        f"fixture and both must survive — the player record is the record."
+    counted = store._counted_player_picks(frame)
+
+    keys = set(zip(counted["event_id"], counted["player_id"]))
+    assert keys == {("e1", 1), ("e1", 2)}, (
+        f"player picks collapsed to {sorted(keys)}. Two players in one fixture must both "
+        f"survive — the player record is the record."
+    )
+    assert set(counted.columns).issuperset({"goal_probability", "assist_probability"}), (
+        "keying on a market column, or collapsing a player row to one market, would have "
+        "dropped the other markets off the row. They are columns; all three must survive."
     )
 
 
-def test_a_player_rerun_also_counts_once_and_the_earliest_wins():
-    frame = pd.DataFrame({
-        "event_id": ["e1", "e1"],
-        "player_id": [1, 1],
-        "market": ["goal", "goal"],
-        "snapshotted_at": [BEFORE, AFTER],
-        "hit": [True, False],
-    })
-    counted = store._counted_player_picks(frame)
+def test_a_player_rerun_counts_once_and_the_earliest_row_wins():
+    """Otherwise a re-keyed or restored history grades one pick twice."""
+    # Listed latest-first, so a dedupe that simply kept the first row it saw
+    # would keep the 0.60 miss. The 0.25 row is stamped BEFORE, so it must win.
+    counted = store._counted_player_picks(_player_frame([
+        ("e1", 1, 0.60, 0),  # stamped AFTER -- a missed goal call
+        ("e1", 1, 0.25, 1),  # stamped BEFORE -- the counted pick, a hit
+    ], order_by_instant=[False, True]))
 
     assert len(counted) == 1
-    assert bool(counted.iloc[0]["hit"]) is True, "the earliest recorded player pick is the counted one"
+    assert float(counted.iloc[0]["goal_probability"]) == 0.25, (
+        f"the counted row is the 0.60 one, stamped AFTER. The earliest recorded player pick is "
+        f"the counted one, whatever order the rows arrived in."
+    )
 
 
-def test_the_two_record_types_are_counted_separately_not_by_one_summariser():
-    """PL's grader mixes both populations in one payload, so the keys must differ.
+def test_the_player_grader_deduplicates_on_the_real_schema(monkeypatch, tmp_path):
+    """The dead-code defect, as behaviour rather than as a docstring.
 
-    `get_track_record` summarises fixtures; `get_scorer_accuracy` summarises
-    player picks. Asserted as two distinct entry points with distinct keys
-    because a single shared key applied to both is exactly the destructive case.
+    `_counted_player_picks` was asserted in this file and called from NOTHING in
+    serving: `get_scorer_accuracy` read every resolved row and never deduped. So
+    the key it enforced did not exist as far as any consumer was concerned, and
+    it happened to be a key the table has no column for.
+
+    Two rows for one `(event_id, player_id)` cannot happen today — the primary
+    key forbids it — which is precisely why the rule has to be written in the
+    reader and precisely why a silent gap here goes unnoticed. So they are
+    staged through a frame that bypasses the constraint, and the assertion is on
+    what `get_scorer_accuracy` RETURNS: one call graded, not two.
     """
-    assert store._counted_picks(pd.DataFrame()).empty
-    assert store._counted_player_picks(pd.DataFrame()).empty
-    assert store.get_scorer_accuracy.__doc__, "the player grader is a separate entry point"
+    rows = _player_frame([
+        ("e1", 1, 0.60, 1),   # late rerun: a MISSED goal call
+        ("e1", 1, 0.25, 1),   # earliest: a HIT
+        ("e1", 2, 0.40, 1),   # a different player in the same fixture: also HIT
+    ], order_by_instant=[False, True, True])
+    monkeypatch.setattr(store, "_connect", lambda: _unkeyed_player_db(tmp_path, rows))
+
+    out = store.get_scorer_accuracy()
+
+    snapshot = out["snapshot"]
+    assert snapshot["calls"] == 2, (
+        f"the grader reports {snapshot['calls']} calls for 2 counted picks out of 3 rows. "
+        f"The duplicate (event_id, player_id) must be deduped to the EARLIEST row."
+    )
+    assert snapshot["call_hits"] == 2, (
+        "the earliest row for player 1 is the HIT. Grading the later 0.60 rerun instead "
+        "would report a miss and quietly understate the model."
+    )
+    assert snapshot["call_hit_rate"] == 1.0
+    # The calibration buckets are graded over the same counted rows.
+    assert sum(bucket["n"] for bucket in snapshot["calibration"]) == 2, (
+        "calibration must describe the same counted population as `calls`, or the two "
+        f"disagree about how many picks exist: {snapshot['calibration']}"
+    )
+
+
+def test_the_player_grader_survives_a_table_that_lacks_the_market_column(monkeypatch, tmp_path):
+    """The KeyError, asserted directly against real columns.
+
+    Before the fix, `drop_duplicates(subset=["event_id", "player_id", "market"])`
+    raised `KeyError: Index(['market'])` on the frame this grader actually
+    reads. Asserted on the same `SELECT *` column set `_connect` produces.
+    """
+    rows = _player_frame([("e1", 1, 0.30, 1)])
+    assert "market" not in rows.columns, (
+        "precondition: the real table has no `market` column. If this fails the fixture no "
+        "longer reproduces the schema the defect lived in."
+    )
+
+    counted = store._counted_player_picks(rows)
+
+    assert len(counted) == 1
+    monkeypatch.setattr(store, "_connect", lambda: _unkeyed_player_db(tmp_path, rows))
+    assert store.get_scorer_accuracy()["snapshot"]["calls"] == 1
 
 
 # --- 4. pre_kickoff is the honest read, and its n is exact -------------------
@@ -400,6 +642,92 @@ def test_pre_kickoff_is_null_when_no_counted_pick_was_made_in_time(monkeypatch):
     assert out["pre_kickoff"]["pct_correct_overall"] is None, (
         f"pre_kickoff reports {out['pre_kickoff']['pct_correct_overall']!r} over zero picks. "
         f"0.0% would be a rate computed over nothing."
+    )
+
+
+def test_the_gameweek_group_and_the_track_record_agree_on_pre_kickoff(monkeypatch):
+    """One derivation, three surfaces — asserted across all three at once.
+
+    `get_track_record`'s `pre_kickoff.n_resolved_fixtures`, the gameweek
+    group's `n_made_before_kickoff`, and each fixture row's `made_before_kickoff`
+    are three readings of the same question. `get_results_by_gameweek` used to
+    answer it from the stored `backfilled` flag, so a gameweek could report a
+    `n_rebuilt` that disagreed with the headline printed right above it, and the
+    gameweek card rendered that as "picks made before kickoff correct" on a
+    surface nobody thought to check against the record.
+
+    `backfilled` is deliberately set INCONSISTENTLY with the timestamps below:
+    the pre-kickoff pick is flagged `backfilled=True` and the post-kickoff pick
+    `backfilled=False`, which is exactly what a live tracking tick produces. A
+    reading of the flag gets both answers wrong.
+    """
+    frame = _frame(
+        [True, True, False],
+        [BEFORE, AFTER, BEFORE],
+        gameweeks=[4, 4, 4],
+    )
+    frame["backfilled"] = [True, False, False]
+    monkeypatch.setattr(store, "_fixture_market_hit_table", lambda: frame)
+
+    record = store.get_track_record()
+    groups = store.get_results_by_gameweek()
+    group = next(g for g in groups if g["gameweek"] == 4)
+
+    # 2 picks made before their own kickoff, 1 after.
+    assert record["pre_kickoff"]["n_resolved_fixtures"] == 2
+    assert group["n_made_before_kickoff"] == 2, (
+        f"the gameweek group reports {group['n_made_before_kickoff']} picks made in time against "
+        f"the track record's {record['pre_kickoff']['n_resolved_fixtures']} for the same fixtures. "
+        f"`n_rebuilt` used to count the `backfilled` flag instead, so the two could disagree."
+    )
+    assert group["n_rebuilt"] == 1
+    assert group["n_rebuilt"] == record["n_rebuilt_fixtures"], (
+        "same meaning on both surfaces: counted picks made at or after their own kickoff"
+    )
+    assert group["n_rebuilt"] + group["n_made_before_kickoff"] == group["n_fixtures"], (
+        "the group's own arithmetic must reconcile, or the split is not a split"
+    )
+
+    # And every fixture row carries its own derived label, checkable against the
+    # timestamp beside it.
+    labels = {r["event_id"]: r["made_before_kickoff"] for r in group["fixtures"]}
+    assert labels == {"e0": True, "e1": False, "e2": True}, (
+        f"per-fixture labels are {labels}. They come from each pick's own two timestamps, and "
+        f"the `backfilled` flags on this frame disagree with them on purpose."
+    )
+    for row in group["fixtures"]:
+        assert row["snapshotted_at"], (
+            "a timing label nobody can check is a timing label nobody can audit"
+        )
+
+
+def test_an_unreadable_timestamp_does_not_invent_a_gameweek_pre_kickoff_figure(monkeypatch):
+    """Fails closed, at group level.
+
+    One pick in this gameweek has an unreadable `snapshotted_at`. It cannot be
+    placed in time, so it is counted (rule 1) but not in the pre-kickoff figure,
+    and the group's arithmetic still has to reconcile — a figure invented to
+    make the numbers balance would be worse than the absence.
+    """
+    frame = _frame([True, True], ["not-a-date", "also-not-a-date"], gameweeks=[2, 2])
+    # `_frame` omits `backfilled` on purpose everywhere else; the gameweek
+    # payload carries it through, so this test supplies it explicitly — and
+    # deliberately sets it to False on both rows, which is the case a reader of
+    # the flag would get wrong in the optimistic direction.
+    frame["backfilled"] = [False, False]
+    monkeypatch.setattr(store, "_fixture_market_hit_table", lambda: frame)
+
+    record = store.get_track_record()
+    group = next(g for g in store.get_results_by_gameweek() if g["gameweek"] == 2)
+
+    assert record["n_resolved_fixtures"] == 2, "recorded stays recorded"
+    assert record["pre_kickoff"]["n_resolved_fixtures"] == 0
+    assert record["pre_kickoff"]["pct_correct_overall"] is None, (
+        "0.0% over zero provable picks is a rate computed over nothing"
+    )
+    assert group["n_made_before_kickoff"] == 0
+    assert group["n_rebuilt"] == 2, (
+        "an unprovable pick is reported under the late side rather than quietly counted as in-time"
     )
 
 

@@ -3,8 +3,10 @@ record: did the fixtures actually flagged as "Value bet" in the app go on
 to be profitable, not just whether the model's calibration looks fine in
 the abstract?
 
-Same honesty discipline as `tracking/store.py`'s match-prediction ledger:
-every flagged (fixture, market) pair is snapshotted once, the first time
+Same honesty discipline as `tracking/store.py`'s match-prediction ledger: one
+counted row per `(event_id, market)`, keyed on the id exactly as that store now
+keys its own counted picks — every flagged (fixture, market) pair is
+snapshotted once, the first time
 `odds/value_bets.py::build_value_bet_table` flags it — including the raw
 bookmaker price at that moment, not just the de-vigged implied probability
 used for edge detection, since price is what a real bet actually pays out

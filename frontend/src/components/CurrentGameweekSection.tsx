@@ -15,18 +15,27 @@ interface Props {
 // "X/Y picks made before kickoff correct", which is exactly what it is. It is
 // NOT the track record's headline — since the 2026-10-01 reversal that headline
 // counts every recorded pick, whenever it was made (see
-// `TrackRecordPanel.tsx`). Deliberately unchanged, for one reason: the label is
-// accurate, so this figure is a true statement about a subset rather than a
-// claim about the record. Changing the count without changing the shared
-// `RoundNavigator` wording would make the two disagree, and the wording is not
-// ours to change — it arrives with the next re-vendor.
+// `TrackRecordPanel.tsx`).
+//
+// The filter reads `made_before_kickoff`, which the backend DERIVES per read by
+// comparing each pick's own `snapshotted_at` to its fixture's kickoff as UTC
+// instants (`tracking/store.py::_made_before_kickoff`) — the same derivation the
+// track record's `pre_kickoff.n_resolved_fixtures` and `/facts`'s
+// `pick_timing` use. It used to read `!f.backfilled`, which is a different
+// question with the same-looking answer: `backfilled` is a provenance flag
+// ("this row came from the backfill job") whose writer takes it as an argument,
+// so a pick captured by the five-minute tick AFTER its own kickoff is labelled
+// live-captured. Two surfaces, two definitions of "before kickoff", one
+// product.
 //
 // Picks recorded after their own kickoff are still listed on their cards (with
 // the moment badge) and are still counted in the record; they are simply not in
-// this particular figure.
-export function prekickoffTally(fixtures: { finished: boolean; hit: boolean | null; backfilled: boolean }[]) {
+// this particular figure. A payload that omits the field entirely — an older
+// baked snapshot — contributes nothing here, which is the fail-closed
+// direction: the label is withheld, never invented.
+export function prekickoffTally(fixtures: { finished: boolean; hit: boolean | null; made_before_kickoff?: boolean }[]) {
   const finished = fixtures.filter((f) => f.finished);
-  const counted = finished.filter((f) => !f.backfilled);
+  const counted = finished.filter((f) => f.made_before_kickoff);
   return { hits: counted.filter((f) => f.hit).length, settled: counted.length, rebuilt: finished.length - counted.length };
 }
 

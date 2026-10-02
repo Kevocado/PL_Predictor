@@ -187,3 +187,113 @@ def test_draw_signal_present_on_both_finished_and_upcoming_fixtures(monkeypatch)
     by_team = {(f["team_home"], f["team_away"]): f["draw_signal"] for f in result["fixtures"]}
     assert by_team[("Crystal Palace", "Man City")] is False
     assert by_team[("Chelsea", "Brighton")] is True
+
+
+def _stub_gameweek(monkeypatch, fixture_feed, tracked_rows):
+    """`current_gameweek_fixtures` with every external read stubbed.
+
+    Shared by the two timing tests below so each states only its own case:
+    a tracked (finished) fixture, a live-odds match, and a model-only fixture.
+    """
+    monkeypatch.setattr(routes, "_run_tracking_bookkeeping", lambda _table: None)
+    monkeypatch.setattr(routes, "_get_fd_org_matches", lambda: pd.DataFrame())
+    monkeypatch.setattr(routes, "_get_remaining_fixtures_df", lambda: pd.DataFrame())
+    monkeypatch.setattr(routes.fixtures_mod, "_fixtures_from_fpl_api", lambda: fixture_feed)
+    monkeypatch.setattr(routes.tracking_store, "get_track_record", lambda: {"current_gameweek": 2})
+    monkeypatch.setattr(routes.tracking_store, "get_results_by_gameweek", lambda: tracked_rows)
+    monkeypatch.setattr(routes.tracking_store, "has_fixture_player_outcomes", lambda _id: True)
+    monkeypatch.setattr(
+        routes.tracking_store, "get_fixture_player_events", lambda _id, _b: {"home": [], "away": []}
+    )
+    monkeypatch.setattr(routes, "_get_bootstrap", lambda: {"elements": []})
+    monkeypatch.setattr(routes, "_get_models", lambda: {"scoreline": object()})
+    monkeypatch.setattr(
+        routes.scoreline,
+        "predict_fixtures_batch",
+        lambda _model, rows, market_overrides=None: [
+            {"home_win": 0.5, "draw": 0.25, "away_win": 0.25, "top_scorelines": [{"home": 1, "away": 0}]}
+            for _ in range(len(rows))
+        ],
+    )
+
+
+def test_an_unstarted_model_only_prediction_is_derived_pre_kickoff(monkeypatch):
+    """CodeRabbit's first Major, pinned: a fresh prediction's timing is derived.
+
+    `made_before_kickoff` on an upcoming row was hardcoded True, and
+    `upcoming_rows` filters on the feed's `finished` flag, which can lag a
+    kickoff that has already happened. So a pick computed *after* kickoff could
+    be labelled pre-kickoff and judged. It is now derived from the moment of
+    computation against the kickoff, which fails closed.
+    """
+    kickoff = pd.Timestamp.now(tz="UTC") + pd.Timedelta(days=3)
+    feed = pd.DataFrame([{
+        "event_id": 16, "gameweek": 2, "commence_time": kickoff,
+        "team_home": "Chelsea", "team_away": "Brighton", "has_odds": False,
+    }])
+    _stub_gameweek(monkeypatch, feed, [])
+    monkeypatch.setattr(routes, "_value_bet_table", lambda: pd.DataFrame())
+
+    fixtures = routes.current_gameweek_fixtures()["fixtures"]
+
+    assert [(f["team_home"], f["made_before_kickoff"]) for f in fixtures] == [("Chelsea", True)], (
+        f"got {fixtures}. A pick computed now for a kickoff three days out was made in time, "
+        f"and that must be derived rather than assumed."
+    )
+
+
+def test_a_model_only_prediction_computed_after_kickoff_is_not_called_pre_kickoff(monkeypatch):
+    """The fail-closed direction, and the reason it is derived rather than stated.
+
+    Same code path, kickoff already past. The feed still says `finished` is
+    False, so the fixture is built as "upcoming" — but this prediction was
+    computed after the match started, so the flag must be False. This is what
+    "cannot prove it was made before kickoff" has to mean in practice: not an
+    unreachable branch, but the common case of a feed that has not caught up.
+    """
+    kickoff = pd.Timestamp.now(tz="UTC") - pd.Timedelta(hours=2)
+    feed = pd.DataFrame([{
+        "event_id": 16, "gameweek": 2, "commence_time": kickoff,
+        "team_home": "Chelsea", "team_away": "Brighton", "has_odds": False,
+    }])
+    _stub_gameweek(monkeypatch, feed, [])
+    monkeypatch.setattr(routes, "_value_bet_table", lambda: pd.DataFrame())
+
+    fixtures = routes.current_gameweek_fixtures()["fixtures"]
+
+    assert [(f["team_home"], f["made_before_kickoff"]) for f in fixtures] == [("Chelsea", False)], (
+        f"got {fixtures}. This prediction was computed two hours after kickoff; labelling it "
+        f"pre-kickoff would publish a verdict for a model that could already see the result."
+    )
+
+
+def test_a_cached_live_odds_row_keeps_its_own_capture_time(monkeypatch):
+    """CodeRabbit's counter-point, which is the reason the live-odds branch differs.
+
+    Its source table is a cached value-bet table, so a row captured before
+    kickoff is still a pre-kickoff prediction once the match is live. Deriving
+    from `odds_fetched_at` — the moment that table's inputs were captured — is
+    what keeps it so; deriving from "is the fixture live now" would throw away
+    exactly the provenance the cache exists to preserve.
+    """
+    kickoff = pd.Timestamp.now(tz="UTC") - pd.Timedelta(hours=1)
+    captured = kickoff - pd.Timedelta(hours=5)
+    table = pd.DataFrame([{
+        "event_id": "odds-9", "team_home": "Chelsea", "team_away": "Brighton",
+        "home_win_prob": 0.5, "draw_prob": 0.25, "away_win_prob": 0.25,
+        "top_scoreline": "1-0", "home_win_implied": 0.48, "value_bet_flags": [],
+        "odds_fetched_at": captured,
+    }])
+    feed = pd.DataFrame([{
+        "event_id": 16, "gameweek": 2, "commence_time": kickoff,
+        "team_home": "Chelsea", "team_away": "Brighton", "has_odds": True,
+    }])
+    _stub_gameweek(monkeypatch, feed, [])
+    monkeypatch.setattr(routes, "_value_bet_table", lambda: table)
+
+    fixtures = routes.current_gameweek_fixtures()["fixtures"]
+
+    assert [(f["event_id"], f["made_before_kickoff"]) for f in fixtures] == [("odds-9", True)], (
+        f"got {fixtures}. This row was captured five hours before kickoff, an hour before the "
+        f"match started. It is a pre-kickoff prediction and the flag has to say so."
+    )

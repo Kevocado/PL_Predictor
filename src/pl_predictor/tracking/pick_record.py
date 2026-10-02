@@ -37,9 +37,15 @@ accuracy figure, so it belongs in the repository rather than in an artefact
 store nobody can diff.
 
 **Format:** one JSON object per line, one line per `predictions` row, keyed
-`(event_id, market, outcome_name)`. De-duplication is on that key, so a re-run
-appends nothing and the EARLIEST recorded pick for a unit is the one on disk —
-the same counting key `store._counted_picks` uses. Loading those keys is
+`(event_id, market, outcome_name)` — the row's own `UNIQUE` constraint, which
+is the finest key this store has. De-duplication is on that key, so a re-run
+appends nothing and the EARLIEST recorded pick for a unit is the one on disk.
+That is NOT the same key `store._counted_picks` uses: the track record counts
+one row per FIXTURE (`event_id`, with all four markets as columns on it),
+because a row of `predictions` is a market outcome and there are six of them per
+fixture. The two keys deliberately disagree — the file is an append-only record
+of what was written, the track record is one counted pick per fixture — and
+neither one is derived from the other. Loading the file's keys is
 `load_recorded_picks()`, below.
 """
 from __future__ import annotations
