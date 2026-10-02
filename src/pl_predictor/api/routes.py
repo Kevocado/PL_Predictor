@@ -956,6 +956,13 @@ def current_gameweek_fixtures(gameweek: int | None = None):
                     ) == "draw",
                     "hit": r["hit"],
                     "backfilled": r["backfilled"],
+                    # Derived per read from this pick's own timestamps, never
+                    # from `backfilled`. The gameweek tally reads it, so it has
+                    # to travel with the card. `.get` so a group row lacking it
+                    # -- an older cached snapshot, a stub -- reads False, which
+                    # is the fail-closed direction: the pick is listed and not
+                    # claimed as pre-kickoff.
+                    "made_before_kickoff": bool(r.get("made_before_kickoff")),
                     "has_live_odds": False,
                     "value_bet_flags": [],
                     "home_player_events": player_events["home"],

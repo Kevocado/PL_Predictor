@@ -22,7 +22,9 @@ const props = (over: Partial<CardProps> = {}): CardProps => ({
   actual_goals_home: 2, actual_goals_away: 3,
   predicted_scoreline: "1-1",
   predicted_home_win: 0.36, predicted_draw: 0.26, predicted_away_win: 0.38,
-  hit: true, backfilled: true, onClick: () => {}, ...over,
+  // `backfilled` is deliberately NOT what this card reads. It is set to the
+  // value that would be wrong, so a regression back to the flag shows up here.
+  hit: true, backfilled: false, made_before_kickoff: false, onClick: () => {}, ...over,
 });
 
 describe("FinishedFixtureCard timing copy", () => {
@@ -38,9 +40,19 @@ describe("FinishedFixtureCard timing copy", () => {
     expect(document.body.textContent).not.toMatch(/Rebuilt after/i);
   });
 
-  it("still judges a pick made before kickoff", () => {
-    render(<FinishedFixtureCard {...props({ backfilled: false })} />);
+  it("still judges a pick made before kickoff, even when the flag says rebuilt", () => {
+    // `backfilled: true` is the backfill job's mark. This pick's own timestamps
+    // put it before kickoff, which is the only thing that decides the badge.
+    render(<FinishedFixtureCard {...props({ backfilled: true, made_before_kickoff: true })} />);
     expect(screen.getByText(/Called it|Missed/)).toBeInTheDocument();
     expect(screen.queryByText("Made after kickoff")).toBeNull();
+  });
+
+  it("fails closed on a payload with no derived flag", () => {
+    // A snapshot baked before `made_before_kickoff` existed. Showing the badge
+    // is right: the alternative is claiming a pick was in time on no evidence.
+    render(<FinishedFixtureCard {...props({ made_before_kickoff: undefined })} />);
+    expect(screen.getByText("Made after kickoff")).toBeInTheDocument();
+    expect(screen.queryByText(/Called it|Missed/)).toBeNull();
   });
 });

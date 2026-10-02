@@ -27,6 +27,7 @@ from pl_predictor.api.main import app
 # from it cannot depend on cwd or on any path the repo does not declare.
 from conftest import (  # noqa: E402  (path set by pytest's rootdir insertion)
     FACTS_EVENT_ID as EVENT_ID,
+    facts_card as _card,
     facts_snapshot as _snapshot,
 )
 
@@ -93,3 +94,50 @@ def test_a_null_rate_over_zero_picks_does_not_become_zero(monkeypatch):
     })
     body = client.get(f"/facts/{EVENT_ID}").json()
     assert body["record"] is None
+
+
+def test_the_record_block_and_the_fixtures_pick_timing_agree_on_one_derivation(monkeypatch):
+    """Two claims about the same subset, both in one payload.
+
+    `record` says how many picks were made before kick-off, and `pick_timing`
+    says whether THIS fixture's pick was one of them. Both used to read the
+    stored `backfilled` flag, which is provenance — a column whose writer takes
+    it as an argument — so the two could describe different populations under one
+    heading, and neither had to agree with `get_track_record`'s `pre_kickoff`.
+
+    Asserted with a flag that disagrees with the derived timing in both
+    directions: the card is `backfilled=True` (the backfill job wrote it) yet its
+    timestamps put it before kickoff. `pick_timing` follows the timestamps, and
+    the record block still reports the pre-kickoff subset the summary declared.
+    """
+    client = _client(monkeypatch, PAYLOAD)
+    card = _card(commence_time="2026-11-01T14:00:00Z", finished=True, backfilled=True)
+    monkeypatch.setattr(facts_mod, "_snapshot", lambda: _snapshot(cards=[card]))
+
+    body = client.get(f"/facts/{EVENT_ID}").json()
+
+    assert body["pick_timing"] == "pre_kickoff", (
+        f"pick_timing is {body['pick_timing']!r}. This card is flagged backfilled, but "
+        f"made_before_kickoff says its own timestamps put the pick before the start, and that "
+        f"is the question the field answers."
+    )
+    assert body["record"] == {"label": "Picks made before kick-off", "hits": 6, "settled": 12}
+    assert body["record"]["settled"] == PAYLOAD["pre_kickoff"]["n_resolved_fixtures"], (
+        "the block and the summary must be the same population, so a fixture labelled "
+        "pre_kickoff here is counted among the picks `record` says were made in time"
+    )
+
+
+def test_a_late_pick_is_not_counted_in_the_block_it_contradicts(monkeypatch):
+    """The other direction: a graded-looking pick must not sit under a pre-kickoff heading."""
+    client = _client(monkeypatch, PAYLOAD)
+    card = _card(commence_time="2026-11-01T14:00:00Z", finished=True, backfilled=False)
+    card["made_before_kickoff"] = False
+    monkeypatch.setattr(facts_mod, "_snapshot", lambda: _snapshot(cards=[card]))
+
+    body = client.get(f"/facts/{EVENT_ID}").json()
+
+    assert body["pick_timing"] == "rebuilt"
+    assert "pick_won" not in (body["result"] or {}), (
+        "this pick was not made before kickoff, so it is shown and never judged"
+    )

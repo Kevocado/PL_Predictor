@@ -219,13 +219,70 @@ def test_upcoming_fixture_with_no_card_still_uses_the_current_read(api, monkeypa
     assert body["pick_timing"] == "pre_kickoff"
 
 
-def test_pick_timing_is_rebuilt_when_the_fixture_is_backfilled(api, monkeypatch):
-    monkeypatch.setattr(facts_mod, "_snapshot", lambda: _snapshot(cards=[_card(backfilled=True)]))
+def test_pick_timing_is_rebuilt_when_the_pick_was_not_made_before_kickoff(api, monkeypatch):
+    # The DERIVED label, not the flag. This card is a real pre-kickoff-shaped
+    # card whose pick was nonetheless made after the start, so its timing reads
+    # rebuilt. `backfilled` is still False here — deliberately, because a
+    # reading of that flag would have called this pre_kickoff.
+    monkeypatch.setattr(
+        facts_mod, "_snapshot",
+        lambda: _snapshot(cards=[_card(made_before_kickoff=False, backfilled=False)]),
+    )
 
     body = api.get(f"/facts/{EVENT_ID}").json()
 
     assert body["pick_timing"] == "rebuilt"
     assert body["pick"] is not None
+
+
+def test_pick_timing_ignores_backfilled_and_reads_the_derived_flag(api, monkeypatch):
+    """The defect, both directions.
+
+    `pick_timing` read `backfilled`. That is provenance — which job wrote the row
+    — so a pick the backfill job made BEFORE kickoff was labelled "rebuilt" and
+    shown but never judged, while a pick the five-minute tick wrote an hour
+    AFTER kickoff was labelled "pre_kickoff" and graded. Both are backwards, and
+    the second is the dangerous one: it publishes a `pick_won` for a pick that
+    could not have been made on the night.
+    """
+    # Made in time, yet flagged as reconstructed by the backfill job.
+    monkeypatch.setattr(
+        facts_mod, "_snapshot",
+        lambda: _snapshot(cards=[_card(made_before_kickoff=True, backfilled=True)]),
+    )
+    assert api.get(f"/facts/{EVENT_ID}").json()["pick_timing"] == "pre_kickoff", (
+        "this pick's own timestamps put it before kickoff. `backfilled=True` says which job "
+        "wrote the row, not when the pick was made, and it must not decide this."
+    )
+
+    # Made late, yet unflagged because the tracking tick happened to write it.
+    monkeypatch.setattr(
+        facts_mod, "_snapshot",
+        lambda: _snapshot(cards=[_card(made_before_kickoff=False, backfilled=False)]),
+    )
+    assert api.get(f"/facts/{EVENT_ID}").json()["pick_timing"] == "rebuilt", (
+        "`backfilled=False` here means only that the tick wrote it, and it wrote it after "
+        "kickoff. Grading this pick would be grading a model that already knew the result."
+    )
+
+
+def test_a_card_with_no_derived_flag_fails_closed_to_rebuilt(api, monkeypatch):
+    """Absent must never default to the optimistic answer.
+
+    A public snapshot baked before `made_before_kickoff` existed has no such key.
+    Defaulting it to True would publish `pick_won` for picks nobody can place in
+    time — a graded-looking verdict built from a missing field.
+    """
+    card = _card()
+    del card["made_before_kickoff"]
+    monkeypatch.setattr(facts_mod, "_snapshot", lambda: _snapshot(cards=[card]))
+
+    body = api.get(f"/facts/{EVENT_ID}").json()
+
+    assert body["pick_timing"] == "rebuilt"
+    assert "pick_won" not in (body["result"] or {}), (
+        "with the timing label withheld, the verdict it gates must be withheld too"
+    )
 
 
 # --- THE RULE: a started fixture uses the stored pre-kickoff record ------
@@ -286,12 +343,12 @@ def test_started_fixture_omits_pick_won_when_the_stored_pick_lost(api, monkeypat
     assert body["result"]["pick_won"] is False
 
 
-def test_started_fixture_omits_pick_won_for_a_backfilled_card(api, monkeypatch):
+def test_started_fixture_omits_pick_won_for_a_pick_made_after_kickoff(api, monkeypatch):
     started = _card(
         commence_time="2026-11-01T14:00:00Z", finished=True,
         actual_goals_home=2, actual_goals_away=1,
         predicted_home_win=0.57, predicted_draw=0.23, predicted_away_win=0.20,
-        backfilled=True,
+        made_before_kickoff=False,
     )
     monkeypatch.setattr(facts_mod, "_snapshot", lambda: _snapshot(cards=[started]))
 

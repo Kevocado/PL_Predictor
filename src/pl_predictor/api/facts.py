@@ -12,7 +12,11 @@ Two rules shape this module, both learned the hard way in Tasks 8-10:
    the detail would be hindsight dressed as a prediction, so for a fixture
    that has started the pick, its timing and its ``pick_won`` all come from
    the card — the pre-kickoff record the tracking store actually captured.
-   A backfilled card is ``rebuilt``: shown, never judged.
+   A pick not made before kickoff is ``rebuilt``: shown, never judged. That
+   label is DERIVED from the card's own ``snapshotted_at`` and kickoff, never
+   read from the stored ``backfilled`` flag (see ``pick_timing`` below), so
+   this bundle and ``get_track_record``'s ``pre_kickoff`` figure describe the
+   same population by construction rather than by agreement.
 
 2. **No per-request state in module globals.** These are sync endpoints and
    FastAPI runs them in a thread pool, so every id is passed explicitly.
@@ -396,12 +400,38 @@ def get_facts(event_id: str) -> dict:
     if probs is not None and all(p is not None for p in probs):
         pick = match_pick(probs[0], probs[1], probs[2], team_home, team_away)
 
+    # Two different derivations, because there are two different situations, and
+    # both are derived rather than read from a flag.
+    #
+    # WITH a stored card, the pick's timing is the card's own
+    # `made_before_kickoff`: the backend compares the fixture's earliest
+    # recorded `snapshotted_at` to its kickoff as UTC instants
+    # (`store::_made_before_kickoff`, shipped by `get_fixture_prediction` and
+    # by `current_gameweek_fixtures`). `backfilled` is what this used to read,
+    # and it is provenance — "this row came from the backfill job" — whose
+    # writer takes it as an argument, so it cannot answer "was the pick made
+    # before the match". A pick the five-minute tick wrote an hour after
+    # kickoff is `backfilled=False`, and one whole product said it was
+    # pre-kickoff while another said it was not.
+    #
+    # FAILS CLOSED. A card without the field — a public snapshot baked before
+    # it existed, a stub, unreadable timestamps — reads falsy, so the timing
+    # is "rebuilt" and `_result` withholds `pick_won`. Shown, never judged.
+    # Defaulting the other way is the one failure nothing downstream can catch,
+    # because `pick_won` would simply look like a graded pick.
+    #
+    # WITHOUT a card, the pick was computed on this very request for a fixture
+    # that has not kicked off (`status == "upcoming"` means
+    # `commence_time > now`, established above). Made now, kicking off later: it
+    # is pre-kickoff by the clock, and no stored row is involved to consult.
     if pick is None:
         pick_timing = "none"
-    elif _field(card, "backfilled"):
-        pick_timing = "rebuilt"
-    else:
+    elif card is None and status == "upcoming":
         pick_timing = "pre_kickoff"
+    elif _field(card, "made_before_kickoff") is True:
+        pick_timing = "pre_kickoff"
+    else:
+        pick_timing = "rebuilt"
 
     # Once a fixture has started, the detail (totals, BTTS, odds, form) and
     # the player block are post-kickoff rebuilds — form can even include this

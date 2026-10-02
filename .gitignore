@@ -5,9 +5,20 @@ __pycache__/
 .DS_Store
 data/cache/*
 !data/cache/.gitkeep
-data/tracking.db
-data/tracking.db-shm
-data/tracking.db-wal
+# Every tracking-database file, whatever it is called. These used to be three
+# literal `data/tracking.db*` lines, which covered the one name in active use
+# and nothing else -- so `data/tracking 2.db-shm` and `data/tracking 3.db-wal`
+# (copies a developer made on a machine where the path has a space in it) were
+# tracked in git, WAL journals included. Tracked too, a reviewer reads them as
+# data: a WAL is a pending-transaction log, and what it contains depends on
+# whoever last opened the database. Ignoring is strictly safer than deleting --
+# a local copy stays on disk for whoever made it.
+data/tracking*.db
+data/tracking*.db-shm
+data/tracking*.db-wal
+data/*.db
+data/*.db-shm
+data/*.db-wal
 .ipynb_checkpoints/
 *.egg-info/
 build/
