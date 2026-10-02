@@ -58,12 +58,34 @@ const finished = (provenance: "snapshot" | "reconstructed") => ({
   post_match: { final_score: "1-0", provenance, verdicts: REVIEW_VERDICTS, player_calls: [] },
 });
 
-/** `summary.n_resolved_fixtures` and `pct_correct_overall` are the two fields
- *  the strip reads. Both are scoped to picks made BEFORE kickoff -- the
- *  `TrackRecordSummary` comment at types.ts:517-521 says the headline counts
- *  only those, so a pick rebuilt after the match can never inflate it. */
-const trackRecord = (n_resolved_fixtures: number, pct_correct_overall: number | null) =>
-  ({ summary: { n_resolved_fixtures, pct_correct_overall } }) as unknown as TrackRecordResponse;
+/** The strip reads `summary.pre_kickoff` -- the made-before-kickoff SUBSET.
+ *
+ *  Since the 2026-10-01 reversal the headline (`n_resolved_fixtures` /
+ *  `pct_correct_overall`) counts every recorded pick, whenever it was made, so
+ *  reading it under a label that says "made before kickoff" would put
+ *  post-kickoff picks under that heading. The headline and the subset are given
+ *  DIFFERENT numbers here so reading the wrong one cannot pass.
+ *
+ *  The headline is supplied anyway, deliberately: `pre_kickoff` is optional in
+ *  the type, so a payload without it (a snapshot baked before the field existed)
+ *  is a real state and the strip must not fall back to the headline.
+ */
+const trackRecord = (
+  n_resolved_fixtures: number,
+  pct_correct_overall: number | null,
+  pre: { n_resolved_fixtures: number; pct_correct_overall: number | null } = {
+    n_resolved_fixtures,
+    pct_correct_overall,
+  },
+) =>
+  ({
+    summary: {
+      n_resolved_fixtures,
+      pct_correct_overall,
+      n_rebuilt_fixtures: n_resolved_fixtures - pre.n_resolved_fixtures,
+      pre_kickoff: pre,
+    },
+  }) as unknown as TrackRecordResponse;
 
 function mockApi(over: Record<string, unknown> = {}) {
   vi.mocked(api.fixtureDetail).mockResolvedValue(detail);
@@ -132,18 +154,28 @@ describe("FixtureModal's instant block, before any request", () => {
     // The two ad-hoc chips this replaces: the timing is now stated once, by the
     // block that governs how every figure below it should be read.
     expect(screen.queryByText("Pre-match snapshot")).toBeNull();
-    expect(screen.queryByText("Made after kickoff")).toBeNull();
+    expect(screen.queryByText("Rebuilt after kickoff")).toBeNull();
   });
 
-  it("shows the timing badge for a reconstructed review, naming when the pick was made", async () => {
+  it("shows the moment badge for a reconstructed review, once, from the shared block", async () => {
     mockApi();
     await openModal(finished("reconstructed"));
 
-    // predictor-ui reworded this badge from "Rebuilt after kickoff" to
-    // "Made after kickoff": since the track record began counting the earliest
-    // recorded pick whatever moment it was made, when it was made is the honest
-    // description of the state. The `rebuilt` key and its meaning are unchanged.
-    expect(screen.getByText("Made after kickoff")).toBeInTheDocument();
+    // The badge words come from the VENDORED `InstantBlock`/`StatusBadge`, so
+    // their exact wording is predictor-hub's to change — #67 renames them to
+    // "Made after kickoff" and drops "not counted". Asserting either wording here
+    // would break on a re-vendor this repo does not control, so what is asserted
+    // is what THIS site owns: the shared block renders the rebuilt state, and the
+    // modal adds no second claim of its own about whether the pick counts. Two
+    // claims about the same count may not differ, and after the 2026-10-01
+    // reversal the pick IS counted.
+    expect(await screen.findByTestId("instant-block")).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/excluded from the record/i);
+    expect(document.body.textContent).not.toMatch(/no honest score/i);
+    // The quiet chip for a pick made before the start is absent: this fixture's
+    // pick was reconstructed, so the badge is the only timing statement, and it
+    // must not appear alongside a chip claiming the opposite moment.
+    expect(screen.queryByText("Made before kickoff")).toBeNull();
   });
 
   it("no longer repeats the market bars below the panel, and keeps the figures that are not repeats", async () => {
@@ -163,16 +195,38 @@ describe("FixtureModal's instant block, before any request", () => {
   });
 
   it("carries the record as hits over settled picks made before kickoff", async () => {
-    mockApi();
+    // Headline 71 at 53.5% (every counted pick); the pre-kickoff subset is 12 at
+    // 50%. The strip must show the SUBSET -- 6/12 -- because its label says
+    // "made before kickoff". Reading the headline would print 38/71 under that
+    // heading, which is the mislabel the 2026-10-01 reversal makes possible.
+    vi.mocked(api.trackRecord).mockResolvedValue(trackRecord(71, 0.535, { n_resolved_fixtures: 12, pct_correct_overall: 0.5 }));
     await openModal();
 
-    // hits = Math.round(pct_correct_overall * n_resolved_fixtures) = 38,
-    // settled = n_resolved_fixtures = 71. The strip prints the two counts and
-    // never a derived percentage.
+    // hits = Math.round(0.5 * 12) = 6, settled = 12. The strip prints the two
+    // counts and never a derived percentage.
     expect(await screen.findByTestId("record-fill")).toBeInTheDocument();
-    expect(screen.getByText("38/71")).toBeInTheDocument();
+    expect(screen.getByText("6/12")).toBeInTheDocument();
+    expect(screen.queryByText("38/71")).toBeNull();
     expect(screen.getByText("Picks made before kickoff")).toBeInTheDocument();
-    expect(screen.queryByText(/53\.5%/)).toBeNull();
+    // Scoped to the STRIP, not the page: a bare "50%" is a model probability
+    // elsewhere on this modal. The point is that the strip derives no
+    // percentage of its own from its two counts.
+    const strip = screen.getByText("Picks made before kickoff").parentElement!;
+    expect(strip).not.toHaveTextContent(/%/);
+  });
+
+  it("shows no record strip when the payload predates the pre_kickoff field", async () => {
+    // `pre_kickoff` is optional in the type, so a public_snapshot.json baked
+    // before the reversal can be live for minutes after a deploy. Falling back
+    // to the headline here would print every counted pick under a heading
+    // saying they were made before kickoff -- so it renders nothing instead.
+    vi.mocked(api.trackRecord).mockResolvedValue(
+      ({ summary: { n_resolved_fixtures: 71, pct_correct_overall: 0.535 } }) as unknown as TrackRecordResponse,
+    );
+    await openModal();
+
+    expect(screen.queryByText("Picks made before kickoff")).toBeNull();
+    expect(screen.queryByText("38/71")).toBeNull();
   });
 
   it("shows no record strip when the track record has resolved nothing", async () => {

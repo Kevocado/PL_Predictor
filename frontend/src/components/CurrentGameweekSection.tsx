@@ -11,8 +11,19 @@ interface Props {
   onNavigate: (gameweek: number | undefined) => void;
 }
 
-// Only picks captured before kickoff count; ones rebuilt after the match
-// (backfilled) are listed on their cards but never scored here.
+// A PRE-KICKOFF tally, and it says so: `RoundNavigator` renders this as
+// "X/Y picks made before kickoff correct", which is exactly what it is. It is
+// NOT the track record's headline — since the 2026-10-01 reversal that headline
+// counts every recorded pick, whenever it was made (see
+// `TrackRecordPanel.tsx`). Deliberately unchanged, for one reason: the label is
+// accurate, so this figure is a true statement about a subset rather than a
+// claim about the record. Changing the count without changing the shared
+// `RoundNavigator` wording would make the two disagree, and the wording is not
+// ours to change — it arrives with the next re-vendor.
+//
+// Picks recorded after their own kickoff are still listed on their cards (with
+// the moment badge) and are still counted in the record; they are simply not in
+// this particular figure.
 export function prekickoffTally(fixtures: { finished: boolean; hit: boolean | null; backfilled: boolean }[]) {
   const finished = fixtures.filter((f) => f.finished);
   const counted = finished.filter((f) => !f.backfilled);

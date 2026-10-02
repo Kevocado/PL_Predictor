@@ -43,7 +43,9 @@ export const GLOSSARY = {
   projectedTable:
     "Current actual points plus each team's *expected* points (3×P(win) + 1×P(draw), summed) from the scoreline model over every fixture left in the season — not a single simulated run, but the mathematical average across all the ways the rest of the season could go.",
   trackRecordScore:
-    "Whether the model's highest-probability result (home win / draw / away win) matched what actually happened — computed on every resolved prediction, including picks rebuilt after kickoff. Not a backtest on old seasons: a live, ongoing record.",
+    "Whether the model's highest-probability result (home win / draw / away win) matched what actually happened — computed on every recorded pick, one per fixture, counted from the earliest one recorded for it. Not a backtest on old seasons: a live, ongoing record.",
+  trackRecordPreKickoff:
+    "The subset of the record that was made BEFORE its fixture kicked off — the honest read of what the model would have done on the night, since a pick made after the result was known cannot be one. This is the figure to quote for live performance; the headline beside it counts every recorded pick, whenever it was made.",
   trackRecordByMarket:
     "The same live track record, broken out by what's actually being predicted: the exact scoreline, the match result (home/draw/away), Over/Under 2.5 total goals, and both teams to score. Exact score is always the hardest to call — a low number there doesn't mean the model is bad, it means scorelines are inherently harder to nail than a 3-way or 2-way market.",
   biggestMisses:

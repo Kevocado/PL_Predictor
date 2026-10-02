@@ -97,7 +97,7 @@ export function LiveValueBetPanel() {
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6">
             <StatCard label="Flagged" value={String(data.n_flagged)} info="Every fixture/market ever flagged as a value bet, resolved or not." />
             <StatCard label="Confirmed W-L" value={`${data.confirmed_wins}-${data.confirmed_losses}`} info="Only final scores confirmed by the result feed count here." />
-            <StatCard label="Pending" value={String(data.n_pending)} info="Flagged fixtures that haven't kicked off / finished yet — open positions, not counted in the results below." />
+            <StatCard label="Pending" value={String(data.n_pending)} info="Flagged fixtures that haven't kicked off / finished yet — still open, so they are not yet settled in the results below." />
             <StatCard label="Win rate" value={data.confirmed_win_rate === null ? "—" : `${data.confirmed_win_rate.toFixed(1)}%`} info="Actual wins divided by every confirmed value-bet result, independent of staking or odds caps." />
             <StatCard
               label="ROI"

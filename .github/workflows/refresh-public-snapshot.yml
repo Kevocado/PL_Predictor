@@ -132,9 +132,13 @@ jobs:
       # The durable record, written AFTER the snapshot build so the picks the
       # build just recorded are included, and committed below with it.
       #
-      # Appends only, and only picks whose snapshotted_at precedes their own
-      # kickoff. A re-run appends nothing, so a no-op run is an empty diff.
-      - name: Record durable pre-kickoff picks
+      # Appends every stored pick, with `made_before_kickoff` derived per row
+      # from its own `snapshotted_at` and its own `commence_time` as UTC
+      # instants. Since the 2026-10-01 reversal this is ALL of them: the record
+      # used to skip picks made after their own kickoff, which is why it shipped
+      # empty (0 lines) and the headline shipped null. A re-run still appends
+      # nothing, so a no-op run is an empty diff.
+      - name: Record durable picks
         run: |
           python - <<'PY'
           import sqlite3
@@ -151,7 +155,7 @@ jobs:
               "predicted_prob, commence_time, snapshotted_at FROM predictions")]
           conn.close()
           n = append_picks(rows)
-          print(f"recorded {n} new pre-kickoff pick(s) of {len(rows)} stored")
+          print(f"recorded {n} new pick(s) of {len(rows)} stored")
           PY
 
       - name: Commit and push if changed
