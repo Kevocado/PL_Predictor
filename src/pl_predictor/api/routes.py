@@ -1029,6 +1029,16 @@ def current_gameweek_fixtures(gameweek: int | None = None):
                             ) == "draw",
                             "hit": None,
                             "backfilled": False,
+                            # An upcoming row's pick is computed here, now, for a
+                            # fixture that has not kicked off -- there is no
+                            # recorded row to consult, and by construction the
+                            # pick precedes its kickoff. Stated rather than
+                            # derived, so `/facts` labels it "pre_kickoff"
+                            # instead of failing closed to "rebuilt" and
+                            # refusing to judge a forecast made in time. The
+                            # FINISHED branch above reads the store's derived
+                            # value; only this one has nothing to read.
+                            "made_before_kickoff": True,
                             "has_live_odds": bool(vb_row["home_win_implied"] is not None and not pd.isna(vb_row["home_win_implied"])),
                             "value_bet_flags": list(vb_row["value_bet_flags"]),
                         }
@@ -1054,6 +1064,8 @@ def current_gameweek_fixtures(gameweek: int | None = None):
                         ) == "draw",
                         "hit": None,
                         "backfilled": False,
+                        # Same reasoning as the live-odds branch above.
+                        "made_before_kickoff": True,
                         "has_live_odds": False,
                         "value_bet_flags": [],
                     }

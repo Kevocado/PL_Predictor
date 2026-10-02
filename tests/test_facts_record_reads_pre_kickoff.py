@@ -111,7 +111,11 @@ def test_the_record_block_and_the_fixtures_pick_timing_agree_on_one_derivation(m
     the record block still reports the pre-kickoff subset the summary declared.
     """
     client = _client(monkeypatch, PAYLOAD)
-    card = _card(commence_time="2026-11-01T14:00:00Z", finished=True, backfilled=True)
+    card = _card(
+        commence_time="2026-11-01T14:00:00Z", finished=True, backfilled=True,
+        actual_goals_home=2, actual_goals_away=1,
+        predicted_home_win=0.57, predicted_draw=0.23, predicted_away_win=0.20,
+    )
     monkeypatch.setattr(facts_mod, "_snapshot", lambda: _snapshot(cards=[card]))
 
     body = client.get(f"/facts/{EVENT_ID}").json()
@@ -131,7 +135,11 @@ def test_the_record_block_and_the_fixtures_pick_timing_agree_on_one_derivation(m
 def test_a_late_pick_is_not_counted_in_the_block_it_contradicts(monkeypatch):
     """The other direction: a graded-looking pick must not sit under a pre-kickoff heading."""
     client = _client(monkeypatch, PAYLOAD)
-    card = _card(commence_time="2026-11-01T14:00:00Z", finished=True, backfilled=False)
+    card = _card(
+        commence_time="2026-11-01T14:00:00Z", finished=True, backfilled=False,
+        actual_goals_home=2, actual_goals_away=1,
+        predicted_home_win=0.57, predicted_draw=0.23, predicted_away_win=0.20,
+    )
     card["made_before_kickoff"] = False
     monkeypatch.setattr(facts_mod, "_snapshot", lambda: _snapshot(cards=[card]))
 

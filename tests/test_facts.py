@@ -219,6 +219,61 @@ def test_upcoming_fixture_with_no_card_still_uses_the_current_read(api, monkeypa
     assert body["pick_timing"] == "pre_kickoff"
 
 
+def test_an_upcoming_fixture_with_a_card_is_pre_kickoff_even_without_the_flag(api, monkeypatch):
+    """CodeRabbit finding, pinned.
+
+    `current_gameweek_fixtures` states `made_before_kickoff` on its upcoming
+    rows, but a public snapshot baked before the field existed carries none — and
+    a card of any kind used to knock an upcoming fixture into the fail-closed
+    branch, labelling a forecast made in time as "rebuilt" and refusing to judge
+    it. An unstarted fixture's pick is computed on this request for a match that
+    has not kicked off; there is no recorded row whose timing could contradict
+    the clock.
+
+    The fail-closed rule stays, and stays reachable: it is about a STARTED
+    fixture, and the tests below pin that.
+    """
+    card = _card()  # unfinished: `finished` False, kickoff in the future
+    card.pop("made_before_kickoff", None)
+    monkeypatch.setattr(facts_mod, "_snapshot", lambda: _snapshot(cards=[card]))
+
+    body = api.get(f"/facts/{EVENT_ID}").json()
+
+    assert body["status"] == "upcoming"
+    assert body["pick_timing"] == "pre_kickoff", (
+        f"an unstarted fixture's forecast was labelled {body['pick_timing']!r} purely because a "
+        f"card existed without the derived field. Made now, kicking off later."
+    )
+
+
+def test_a_live_fixture_still_fails_closed_without_the_derived_field(api, monkeypatch):
+    """The counterpart: fail-closed is for fixtures that have started."""
+    card = _started()
+    card.pop("made_before_kickoff", None)
+    monkeypatch.setattr(facts_mod, "_snapshot", lambda: _snapshot(cards=[card]))
+
+    body = api.get(f"/facts/{EVENT_ID}").json()
+
+    assert body["status"] == "final"
+    assert body["pick_timing"] == "rebuilt"
+    assert "pick_won" not in (body["result"] or {})
+
+
+# Started fixtures only, from here down. An UPCOMING fixture's pick is computed
+# on this request for a match that has not kicked off, so it is pre-kickoff by
+# the clock and there is no stored row to consult — that case is covered by
+# `test_upcoming_fixture_with_no_card_still_uses_the_current_read`. The
+# fail-closed rule is about a STARTED fixture with a stored card, and these all
+# need to be in that state to reach it.
+def _started(**over):
+    return _card(
+        commence_time="2026-11-01T14:00:00Z", finished=True,
+        actual_goals_home=2, actual_goals_away=1,
+        predicted_home_win=0.57, predicted_draw=0.23, predicted_away_win=0.20,
+        **over,
+    )
+
+
 def test_pick_timing_is_rebuilt_when_the_pick_was_not_made_before_kickoff(api, monkeypatch):
     # The DERIVED label, not the flag. This card is a real pre-kickoff-shaped
     # card whose pick was nonetheless made after the start, so its timing reads
@@ -226,11 +281,12 @@ def test_pick_timing_is_rebuilt_when_the_pick_was_not_made_before_kickoff(api, m
     # reading of that flag would have called this pre_kickoff.
     monkeypatch.setattr(
         facts_mod, "_snapshot",
-        lambda: _snapshot(cards=[_card(made_before_kickoff=False, backfilled=False)]),
+        lambda: _snapshot(cards=[_started(made_before_kickoff=False, backfilled=False)]),
     )
 
     body = api.get(f"/facts/{EVENT_ID}").json()
 
+    assert body["status"] == "final", "precondition: the fixture must have started"
     assert body["pick_timing"] == "rebuilt"
     assert body["pick"] is not None
 
@@ -248,7 +304,7 @@ def test_pick_timing_ignores_backfilled_and_reads_the_derived_flag(api, monkeypa
     # Made in time, yet flagged as reconstructed by the backfill job.
     monkeypatch.setattr(
         facts_mod, "_snapshot",
-        lambda: _snapshot(cards=[_card(made_before_kickoff=True, backfilled=True)]),
+        lambda: _snapshot(cards=[_started(made_before_kickoff=True, backfilled=True)]),
     )
     assert api.get(f"/facts/{EVENT_ID}").json()["pick_timing"] == "pre_kickoff", (
         "this pick's own timestamps put it before kickoff. `backfilled=True` says which job "
@@ -258,7 +314,7 @@ def test_pick_timing_ignores_backfilled_and_reads_the_derived_flag(api, monkeypa
     # Made late, yet unflagged because the tracking tick happened to write it.
     monkeypatch.setattr(
         facts_mod, "_snapshot",
-        lambda: _snapshot(cards=[_card(made_before_kickoff=False, backfilled=False)]),
+        lambda: _snapshot(cards=[_started(made_before_kickoff=False, backfilled=False)]),
     )
     assert api.get(f"/facts/{EVENT_ID}").json()["pick_timing"] == "rebuilt", (
         "`backfilled=False` here means only that the tick wrote it, and it wrote it after "
@@ -273,7 +329,7 @@ def test_a_card_with_no_derived_flag_fails_closed_to_rebuilt(api, monkeypatch):
     Defaulting it to True would publish `pick_won` for picks nobody can place in
     time — a graded-looking verdict built from a missing field.
     """
-    card = _card()
+    card = _started()
     del card["made_before_kickoff"]
     monkeypatch.setattr(facts_mod, "_snapshot", lambda: _snapshot(cards=[card]))
 

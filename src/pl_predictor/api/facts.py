@@ -414,19 +414,25 @@ def get_facts(event_id: str) -> dict:
     # kickoff is `backfilled=False`, and one whole product said it was
     # pre-kickoff while another said it was not.
     #
-    # FAILS CLOSED. A card without the field — a public snapshot baked before
-    # it existed, a stub, unreadable timestamps — reads falsy, so the timing
-    # is "rebuilt" and `_result` withholds `pick_won`. Shown, never judged.
-    # Defaulting the other way is the one failure nothing downstream can catch,
-    # because `pick_won` would simply look like a graded pick.
+    # FAILS CLOSED, but only where there is something to fail closed ON. A card
+    # for a fixture that has STARTED, carrying no `made_before_kickoff` — a
+    # public snapshot baked before the field existed, a stub, unreadable
+    # timestamps — reads falsy, so the timing is "rebuilt" and `_result`
+    # withholds `pick_won`. Shown, never judged. Defaulting the other way is
+    # the one failure nothing downstream can catch, because `pick_won` would
+    # simply look like a graded pick.
     #
-    # WITHOUT a card, the pick was computed on this very request for a fixture
-    # that has not kicked off (`status == "upcoming"` means
+    # WITHOUT a card, or with a card for a fixture that has NOT started, the
+    # pick was computed on this very request (`status == "upcoming"` means
     # `commence_time > now`, established above). Made now, kicking off later: it
-    # is pre-kickoff by the clock, and no stored row is involved to consult.
+    # is pre-kickoff by the clock, and no recorded row is involved to consult.
+    # `current_gameweek_fixtures` states this on its upcoming rows for the same
+    # reason. What must not happen is reaching this case for a STARTED fixture
+    # with a stored card — that is the fail-closed one, and the ordering above
+    # puts it there.
     if pick is None:
         pick_timing = "none"
-    elif card is None and status == "upcoming":
+    elif not started:
         pick_timing = "pre_kickoff"
     elif _field(card, "made_before_kickoff") is True:
         pick_timing = "pre_kickoff"
