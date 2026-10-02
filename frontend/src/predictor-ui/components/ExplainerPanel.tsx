@@ -1,4 +1,4 @@
-// Synced from predictor-ui@b2040a541944. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@7745af88d34b. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 import { useEffect, useId, useState } from "react";
 import { ErrorState, Skeleton } from "./States";
 import { StatusBadge, type Moment } from "./StatusBadge";
