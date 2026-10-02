@@ -19,6 +19,7 @@ import pytest
 import xgboost as xgb
 
 from pl_predictor.data import other_competitions, understat as understat_module, understat_shots
+from pl_predictor.features import squad_change
 from pl_predictor.features.build import FixtureFeatureContext, build_training_frame
 from pl_predictor.features import xg_form
 from pl_predictor.models import ml_scoreline
@@ -60,42 +61,62 @@ def _synthetic_matches(n_teams: int = 6, n_seasons: int = 3) -> pd.DataFrame:
 
 @pytest.fixture
 def synthetic(monkeypatch):
-    """Synthetic league with the calendar loader stubbed out."""
+    """Synthetic league, with every loader that could reach the network stubbed.
+
+    Not just the calendar: `_tiny_models` builds a real training frame, which
+    calls the Understat and understat-shot loaders, and the shot loader fetches
+    one file per match. On a cold checkout that would take this module to the
+    network (and take minutes doing it), so all of them are stubbed here and
+    every test in this file is hermetic regardless of cache state.
+    """
     monkeypatch.setattr(
         other_competitions,
         "get_team_fixture_calendar",
         lambda: other_competitions._EMPTY.copy(),
     )
+    # Cold by default: `_warm_context` re-patches this per test when it needs
+    # Understat-shaped data.
+    monkeypatch.setattr(understat_module, "load_xg_data", lambda **_: pd.DataFrame())
+    monkeypatch.setattr(understat_shots, "load_shot_situation_data", lambda **_: pd.DataFrame())
+    # Empty but correctly-shaped, so `build_training_frame` can merge it and
+    # `build_row` gets NaN continuity -- the same degradation the real loader
+    # produces when vaastav has no data, and what these tests already expect
+    # for a feature with nothing to report.
+    monkeypatch.setattr(
+        squad_change,
+        "team_season_continuity_table",
+        lambda seasons: pd.DataFrame(columns=["season", "team", "squad_continuity"]),
+    )
     return _synthetic_matches()
 
 
-def _cold_context(monkeypatch, matches) -> FixtureFeatureContext:
-    """A context built with Understat (and the shot loader) yielding nothing."""
-    monkeypatch.setattr(understat_module, "load_xg_data", lambda **_: pd.DataFrame())
-    monkeypatch.setattr(understat_shots, "load_shot_situation_data", lambda **_: pd.DataFrame())
+def _cold_context(matches) -> FixtureFeatureContext:
+    """A context built with Understat (and the shot loader) yielding nothing.
+
+    Relies on the `synthetic` fixture having already stubbed those loaders.
+    """
     return FixtureFeatureContext(matches)
 
 
-def _warm_context(matches) -> FixtureFeatureContext:
-    """A context with real Understat-shaped xG, so nothing is cold."""
-    xg_rows = []
-    for _, r in _synthetic_matches().iterrows():
-        xg_rows.append(
-            {
-                "date": r["date"],
-                "team_home": r["team_home"],
-                "team_away": r["team_away"],
-                "xg_home": 1.4 + 0.1 * (r["goals_home"] % 3),
-                "xg_away": 1.2 + 0.1 * (r["goals_away"] % 3),
-            }
-        )
+def _warm_context(monkeypatch, matches) -> FixtureFeatureContext:
+    """A context with real Understat-shaped xG, so nothing is cold.
+
+    Takes `monkeypatch` rather than restoring by hand so the override is
+    undone automatically and cannot leak into the next test.
+    """
+    xg_rows = [
+        {
+            "date": r["date"],
+            "team_home": r["team_home"],
+            "team_away": r["team_away"],
+            "xg_home": 1.4 + 0.1 * (r["goals_home"] % 3),
+            "xg_away": 1.2 + 0.1 * (r["goals_away"] % 3),
+        }
+        for _, r in matches.iterrows()
+    ]
     warm = pd.DataFrame(xg_rows)
-    original = understat_module.load_xg_data
-    try:
-        understat_module.load_xg_data = lambda **_: warm
-        return FixtureFeatureContext(matches)
-    finally:
-        understat_module.load_xg_data = original
+    monkeypatch.setattr(understat_module, "load_xg_data", lambda **_: warm)
+    return FixtureFeatureContext(matches)
 
 
 def _tiny_models(matches, n=60):
@@ -134,7 +155,7 @@ def test_cold_understat_does_not_serve_xg_as_zero(monkeypatch, synthetic):
     a plausible, confident, wrong number claiming the team created zero
     expected goals and (via the deltas) scored exactly to expectation.
     """
-    ctx = _cold_context(monkeypatch, synthetic)
+    ctx = _cold_context(synthetic)
     home, away = "T0", "T1"
     row = ctx.build_row(home, away, commence_time=pd.Timestamp("2024-08-01", tz="UTC"))
 
@@ -165,7 +186,7 @@ def test_cold_understat_xg_is_the_league_average_rate(monkeypatch, synthetic):
     Asserted against the value derived from the data itself, not a hardcoded
     constant, so this stays true if the synthetic league changes.
     """
-    ctx = _cold_context(monkeypatch, synthetic)
+    ctx = _cold_context(synthetic)
     row = ctx.build_row("T0", "T1", commence_time=pd.Timestamp("2024-08-01", tz="UTC"))
 
     league_rate = float(
@@ -185,7 +206,7 @@ def test_cold_understat_delta_is_a_real_over_under_performance_reading(monkeypat
     league rate this is goals-scored-minus-league-expectation, which varies
     per team. Before the fix it was a flat 0.0 for every team on earth.
     """
-    ctx = _cold_context(monkeypatch, synthetic)
+    ctx = _cold_context(synthetic)
     deltas = set()
     for home, away in [("T0", "T1"), ("T2", "T3"), ("T4", "T5")]:
         row = ctx.build_row(home, away, commence_time=pd.Timestamp("2024-08-01", tz="UTC"))
@@ -206,7 +227,7 @@ def test_h2h_object_dtype_still_predicts_without_raising(monkeypatch, synthetic)
     `_row_to_matrix` is load-bearing, not decorative. `weight` is set so the
     blend genuinely produces an object column.
     """
-    ctx = _cold_context(monkeypatch, synthetic)
+    ctx = _cold_context(synthetic)
     # T0/T1 have met; force a pair that has not.
     home, away = "T0", "T2"
     h2h_cols = ["h2h_home_goal_diff_avg", "h2h_home_win_rate"]
@@ -234,7 +255,7 @@ def test_fully_populated_prediction_is_unchanged_by_this_fix(monkeypatch, synthe
     rather than a stored number, so this stays a real check if the fixtures
     change.
     """
-    ctx = _warm_context(synthetic)
+    ctx = _warm_context(monkeypatch, synthetic)
     home, away = "T0", "T1"
     row = ctx.build_row(home, away, commence_time=pd.Timestamp("2024-08-01", tz="UTC"))
 
@@ -272,7 +293,7 @@ def test_serving_matrix_is_never_object_dtype(monkeypatch, synthetic):
     This is the invariant that actually matters to XGBoost, and it is cheap to
     check on both entry points.
     """
-    for label, ctx in [("warm", _warm_context(synthetic))]:
+    for label, ctx in [("warm", _warm_context(monkeypatch, synthetic))]:
         row = ctx.build_row("T0", "T1", commence_time=pd.Timestamp("2024-08-01", tz="UTC"))
         served = _matrix_for(row, ["h2h_home_win_rate", "xg_for_last_5"])
         assert served.select_dtypes(include=["object"]).empty, (
