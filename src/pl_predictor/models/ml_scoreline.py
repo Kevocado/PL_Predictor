@@ -19,6 +19,8 @@ plugs into every existing call site with no changes there.
 
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
 import pandas as pd
 import penaltyblog as pb
@@ -26,6 +28,91 @@ import xgboost as xgb
 from sklearn.metrics import log_loss
 
 MIN_LAMBDA = 0.05  # create_dixon_coles_grid requires strictly positive lambdas
+
+#: Every feature column that can legitimately arrive missing at serving, and
+#: the value the fitted boosters were trained to see in that slot.
+#:
+#: This is a property of the *fitted model*, not of the feature, which is why it
+#: lives here rather than in `features/`: it is what `manifest.train_all`'s
+#: `train_df[feature_cols].fillna(0)` taught the boosters, and it is therefore
+#: the only value serving may substitute without creating a train/serve
+#: disagreement. Every entry is 0.0 because that is what training fills; the
+#: dict exists so the set of columns that rely on it is *named*, and so a
+#: feature added to `feature_cols` that arrives NaN does not silently inherit
+#: an encoding nobody chose.
+#:
+#: Measured on the shipped `models/ml_scoreline_{home,away}.json` fitted over
+#: its own 2,700-row training window (`n_train` in `models/manifest.json`);
+#: "0.0 share" is the share of those rows the booster sees a literal 0.0 in,
+#: which equals the training NaN share unless noted.
+#:
+#:   feature                      NaN%    0.0 share   present mean / sd / min / max    z(0)
+#:   squad_continuity (x2)        46.88%    46.88%     0.8442 / 0.1084 / 0.539 / 1.000  -7.79
+#:   h2h_home_win_rate            12.70%    36.64%     0.3720 / 0.3198 / 0.000 / 1.000  -1.16
+#:   h2h_home_goal_diff_avg       12.70%    21.35%    -0.0646 / 1.3092 / -6.00 / 5.000  +0.05
+#:   rest_days_home                0.46%     0.46%    10.6989 / 33.2257 / 2.00 / 813     -0.32
+#:   rest_days_away                0.53%     0.53%     9.4904 / 16.7784 / 2.00 / 454     -0.57
+#:   xg_{for,against}_last_{5,10} (x8)
+#:                                 0.46-0.53%  same      ~1.48 / ~0.47 / ~0.29 / ~3.9  -2.8..-3.5
+#:   xg_delta_*_last_{5,10} (x8)
+#:                                 0.46-0.53%  same     ~-0.06 / ~0.39 / -2.7 / 2.2  +0.12..0.21
+#:
+#: Why these stay 0.0 rather than being imputed, in one line each — the full
+#: reasoning, with the RPS measurements behind it, is in
+#: `features/build.py`'s module docstring and in this PR's description:
+#:
+#: * `squad_continuity` is the only one where 0.0 is *semantically* impossible
+#:   (no club in nine seasons retained under 53.9% of its minutes), so it looks
+#:   like the worst offender at -7.79 SD. It is the best-protected column in the
+#:   set, though, and "fixing" it is a measured regression: 46.88% of the rows
+#:   the boosters were fitted on carry exactly that 0.0, every learned split on
+#:   it sits inside [0.585, 0.968] (none below the observed minimum), and its
+#:   response is *flat* to five decimal places across continuity = 0.0 .. 0.539.
+#:   The booster learned one thing from this column -- "0.0 means no prior-season
+#:   data" -- and reading 0.844 as a promoted team instead costs +0.00038 RPS on
+#:   the affected rows because it makes a promoted club look like an established
+#:   one. See also `_apply_missing_value_encoding` below, and the squad-continuity
+#:   merge in `features/build.py::build_training_frame`, which carries the same
+#:   measurement from the feature side.
+#: * `h2h_*`: 0.0 is a *reachable* value of both (no goal difference; never won
+#:   in five meetings), sits +0.05 and -1.16 SD from the mean, and is inside the
+#:   observed range for both. Substituting the present-rows mean moves the
+#:   shipped boosters by 0.00000 and -0.00001 RPS respectively.
+#: * `rest_days_*`: 0.0 means "played the same day", which no PL team can --
+#:   the observed minimum is 2 days -- but it is the encoding for "no prior match
+#:   in the window", which is exactly the condition that produces the NaN, and
+#:   `is_first_match_of_season_*` sits beside it carrying the same fact. Every
+#:   learned split is >= 4.0, so 0.0 lands in the leftmost region the booster
+#:   has for it. Substituting the league mean measured worse (+0.00526 RPS on
+#:   the affected rows).
+#: * the 16 xG columns are already handled upstream: `build_row` substitutes the
+#:   league-average rate (see `features/build.py`'s xG loop), so they only reach
+#:   here when `matches_df` carries no goals either. Training still encodes them
+#:   as 0.0; that disagreement is #43's, measured at ~0.0003 RPS, and aligning
+#:   it needs a retrain.
+MISSING_VALUE_ENCODING: dict[str, float] = {
+    # Promotion / no prior-season squad data. See the note above: this is a
+    # learned encoding, not an unrepresentable value.
+    "home_squad_continuity": 0.0,
+    "away_squad_continuity": 0.0,
+    # Pair has never met in the loaded window; 0.0 is a real reading of both.
+    "h2h_home_goal_diff_avg": 0.0,
+    "h2h_home_win_rate": 0.0,
+    # Team has no match in the loaded window at all (see `build._current_rest_days`).
+    "rest_days_home": 0.0,
+    "rest_days_away": 0.0,
+}
+MISSING_VALUE_ENCODING.update(
+    {f"{side}_xg_{stat}_last_{w}": 0.0 for side in ("home", "away") for stat in ("for", "against") for w in (5, 10)}
+)
+MISSING_VALUE_ENCODING.update(
+    {
+        f"{side}_xg_delta_{stat}_last_{w}": 0.0
+        for side in ("home", "away")
+        for stat in ("for", "against")
+        for w in (5, 10)
+    }
+)
 
 # `DEFAULT_HYPERPARAMS` is the single source of truth both `_regressor()`
 # and `evaluate/tune_hyperparams.py` (the Optuna search space) start from.
@@ -143,13 +230,73 @@ def evaluate_on_holdout(home_model, away_model, X_val: pd.DataFrame, val_df: pd.
     }
 
 
+def _apply_missing_value_encoding(frame: pd.DataFrame) -> pd.DataFrame:
+    """Resolve every missing cell in a serving frame to a value the fitted
+    boosters were fitted to see in that column, and say so loudly for the ones
+    nobody chose.
+
+    Two populations, deliberately handled differently:
+
+    * **Columns in `MISSING_VALUE_ENCODING`.** Their NaN is a real, expected
+      state with a measured reason (see that constant's docstring). They are
+      filled with their documented value, which is 0.0 for every one of them --
+      identical to what `manifest.train_all` filled during fitting, which is
+      the whole point: substituting anything else is a train/serve
+      disagreement, and for `squad_continuity` a measured regression.
+
+    * **Every other column.** These are supposed to arrive populated. A NaN
+      here is new behaviour nobody tested -- a newly added feature, or a
+      degraded loader (a `matches_df` with no shot/corner columns leaves the
+      whole `*_last_{3,5,10}_shots*` family missing) -- and the old behaviour
+      was to absorb it into the same `fillna(0)` as the contract columns,
+      silently, with no record that a number had been invented. That is the
+      failure mode this function exists to stop.
+
+      It warns and fills with 0.0 rather than raising. Raising would be louder
+      and is tempting, but it converts "a slightly wrong number in an
+      otherwise-working degraded mode" into a 500 for the whole /facts
+      endpoint -- and a caller passing a `matches_df` without `hs`/`as`/`hc`/`ac`
+      is enough to trigger it, so the guard would fire on legitimate input.
+      A named warning is the strongest signal that does not have a worse
+      failure mode than the bug it replaces; `tests/test_missing_value_encoding.py`
+      pins it, and says plainly what would be needed to close it properly
+      (recording each column's fit-time NaN rate in the manifest, which needs
+      the model artefacts and a retrain).
+
+    No cell that is already populated is touched, so a fully-populated row
+    reaches the booster byte-identically -- asserted with `assert_frame_equal`
+    in that test module, against a transcription of the pre-change expression.
+    """
+    contract = {c: v for c, v in MISSING_VALUE_ENCODING.items() if c in frame.columns}
+    if contract:
+        frame[list(contract)] = frame[list(contract)].fillna(contract)
+
+    still_missing = frame.columns[frame.isna().any()].tolist()
+    if still_missing:
+        warnings.warn(
+            "features/build.py emitted NaN for %d feature column(s) that are not "
+            "in ml_scoreline.MISSING_VALUE_ENCODING, so they are being filled "
+            "with 0.0 -- a number no training run ever chose for them, and not "
+            "the one a fitted booster was fitted to see: %s. If this is a new "
+            "feature, add it to MISSING_VALUE_ENCODING with the encoding "
+            "manifest.train_all will use (currently 0.0 for everything, via "
+            "`train_df[feature_cols].fillna(0)`) and retrain, or drop it from "
+            "`feature_cols`."
+            % (len(still_missing), ", ".join(map(repr, still_missing))),
+            UserWarning,
+            stacklevel=2,
+        )
+        frame = frame.fillna(0.0)
+    return frame
+
+
 def _row_to_matrix(row, feature_cols: list[str]) -> pd.DataFrame:
     """Shape one feature row into the numeric matrix the fitted boosters
     require. Shared by both single-row serving entry points below so they
     cannot drift apart on what "missing" means.
 
-    Why `.fillna(0)` is still here, now that it is easy to misread as
-    "unknown means zero":
+    Why a fill is here at all, now that it is easy to misread as "unknown means
+    zero":
 
     * **dtype, not semantics.** A single-row frame built from a dict leaves an
       all-`None` column (e.g. `h2h_*` for a pair with no prior meetings) as
@@ -159,25 +306,27 @@ def _row_to_matrix(row, feature_cols: list[str]) -> pd.DataFrame:
     * **train/serve symmetry.** These boosters are fitted on
       `manifest.train_all`'s `train_df[feature_cols].fillna(0)` (see
       `models/manifest.py`), so 0.0 is the value they were fitted to see in a
-      missing slot.
+      missing slot. `_apply_missing_value_encoding` is what applies it, named
+      per column in `MISSING_VALUE_ENCODING` and measured column by column.
 
     What this does *not* claim is that 0.0 is a sensible stand-in for any given
-    feature. It generally is not, and that is a real hazard rather than a
-    formality: PR #41 emitted `float("nan")` from `build_row` precisely because
-    a 0.0 xG reading is a confident wrong number, and this `fillna` silently
-    undid it. The fix belongs upstream in `features/build.py`, which now always
-    supplies a real league-average xG rate when Understat is cold so these
-    columns arrive already populated; `fillna` is left as the last-resort net
-    for genuinely absent features, not as the thing that decides what a missing
-    measurement means. `predict_many_from_rows` is left as-is because it is fed
-    whole precomputed frames whose imputation is the caller's business.
+    feature. For most of the 22 it genuinely is not -- `squad_continuity` can
+    never be 0.0 for an established club -- and that was measured rather than
+    assumed: see `MISSING_VALUE_ENCODING`. The fix that is right lives
+    upstream in `features/build.py`, which now supplies a real league-average
+    xG rate when Understat is cold so those 16 columns arrive already
+    populated; the fill stays as the contract, not as the thing that decides
+    what a missing measurement means. `predict_many_from_rows` routes through
+    the same helper for the same reason: it used to be a second, independent
+    copy of this fill, which is exactly the kind of drift that let #43 fix one
+    side of the xG encoding and not the other.
 
-    Measured effect of the upstream fix, simulating a cold Understat on each of
+    Measured effect of that upstream fix, simulating a cold Understat on each of
     the four available seasons (mean RPS against real outcomes, lower better):
     0.19059 before -> 0.18855 after, against 0.18412 with real xG available.
     """
     frame = pd.DataFrame([row]).reindex(columns=feature_cols, fill_value=0)
-    return frame.fillna(0).astype(float)
+    return _apply_missing_value_encoding(frame).astype(float)
 
 
 class MLScorelineModel:
@@ -220,5 +369,10 @@ class MLScorelineModel:
         docstring for why this matters. Used wherever a whole historical
         frame (calibration, backtest) needs scoring at once instead of
         fixture-by-fixture."""
-        X = df[self.feature_cols].fillna(0).astype(float)
+        # Same `_apply_missing_value_encoding` the single-row path uses. It
+        # used to be a bare `fillna(0)` of its own — a second, independent
+        # copy of the one decision that has to match training, which is how
+        # #43's xG fix landed on one side of a serving/serving boundary it
+        # should never have been able to straddle.
+        X = _apply_missing_value_encoding(df[self.feature_cols].copy()).astype(float)
         return predict_grids_batch(self.home_model, self.away_model, X, max_goals=max_goals)
