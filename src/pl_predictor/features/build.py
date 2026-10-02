@@ -129,8 +129,36 @@ def build_training_frame(
     # keyed by (season, team), not row-position like the rolling-form/Elo
     # blocks below, so it's merged onto df directly rather than concatenated.
     # NaN for a team-season with no prior-season data (promotion) is left
-    # as-is, same as h2h/rest-days elsewhere in this function — XGBoost
-    # handles missing values natively.
+    # as-is, same as h2h/rest-days elsewhere in this function.
+    #
+    # CORRECTION to what this comment used to claim here: it said "XGBoost
+    # handles missing values natively", which is false and was load-bearing
+    # to get wrong. It does not: `manifest.train_all` fits on
+    # `train_df[feature_cols].fillna(0)` and `val_df[feature_cols].fillna(0)`
+    # (see models/manifest.py), so these boosters have never seen a missing
+    # value in any of these columns and there is no native missing-value
+    # direction to route one by. What they HAVE seen is 0.0: on this project's
+    # own data 46.88% of the rows the shipped `ml_scoreline` boosters are
+    # fitted on carry a literal 0.0 in `*_squad_continuity` — a promoted team's
+    # row — and every learned split on the column sits inside [0.585, 0.968],
+    # with none below the nine-season observed minimum of 0.539. The booster
+    # therefore learned exactly one thing from this column ("0.0 means no
+    # prior-season squad data"), and its response is flat to five decimal
+    # places across continuity = 0.0 .. 0.539.
+    #
+    # That is worth stating because the naive reading of this column is
+    # seductive and wrong. 0.0 is -7.79 standard deviations below the
+    # present-rows mean, and no club in nine seasons retained less than 53.9%
+    # of its minutes, so 0.0 is a value this feature cannot really take — which
+    # makes it look like the worst silent-wrong-number in the whole feature set.
+    # It is the best-protected one. Substituting the league mean (0.8442) at
+    # serving instead was measured against real outcomes on the shipped
+    # boosters and made things *worse*: +0.00038 RPS on the affected rows for
+    # the home side, +0.00008 for the away side, because reading a promoted
+    # club as "average squad continuity" tells the model it is an established
+    # one. The encoding, measured column by column, is
+    # `models.ml_scoreline.MISSING_VALUE_ENCODING`; see that constant and
+    # `models/manifest.py` for the training side of the same contract.
     continuity = squad_change.team_season_continuity_table(sorted(matches_df["season"].unique()))
     df = df.merge(
         continuity.rename(columns={"team": "team_home", "squad_continuity": "home_squad_continuity"}),

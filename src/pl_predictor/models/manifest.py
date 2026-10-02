@@ -332,6 +332,17 @@ def train_all(seasons: list[str] | None = None, include_current_season: bool = T
 
     current_partial = football_data.fetch_current_season_partial() if include_current_season else None
     df, feature_cols, train_df, val_df, n_current_season_matches = _build_frame(default_seasons, current_partial)
+    # `.fillna(0)` here is not a neutral default: it is the *encoding*, and it
+    # is what teaches the boosters that a missing feature is 0.0. On this
+    # project's data 46.88% of fitted rows carry a literal 0.0 in
+    # `*_squad_continuity` (a promoted team has no prior-season squad data) and
+    # every learned split on that column sits inside [0.585, 0.968] with none
+    # below the observed minimum of 0.539 -- so the model has learned "0.0 here
+    # means promoted", and serving a league mean instead reads as "established
+    # squad" and measurably regresses RPS. The serving half of the same
+    # contract is `ml_scoreline.MISSING_VALUE_ENCODING`; every value in it is
+    # 0.0 precisely because of this line, and if this fill ever changes, that
+    # dict has to change with it or train and serve will disagree silently.
     X_train, X_val = train_df[feature_cols].fillna(0), val_df[feature_cols].fillna(0)
 
     # fouls (`*_fouls_for`/`*_fouls_against`) are in `feature_cols` for
