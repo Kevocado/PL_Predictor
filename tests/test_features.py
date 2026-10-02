@@ -58,6 +58,58 @@ def test_build_row_accepts_tz_aware_commence_time(matches, no_other_competitions
     assert row["rest_days_home"] is not None or row["is_first_match_of_season_home"]
 
 
+def test_build_row_degrades_to_nan_when_understat_xg_is_unavailable(monkeypatch, matches, no_other_competitions):
+    """`build_row` must not raise when Understat xG is missing entirely.
+
+    `xg_form.latest_xg_form` documents that it returns an empty frame "if
+    Understat data wasn't available", and `FixtureFeatureContext.__init__` says the
+    same of squad continuity a few lines earlier -- "Degrades to an empty series
+    (NaN for every team, same as a promoted team's own no-prior-season case)
+    rather than raising". `build_row` did neither. With no xG at all,
+    `xg_league_avg` is an empty Series, so `.get(stat_col)` returns `None` rather
+    than NaN, the cold-start blend's `else current_val` branch propagates that
+    `None` into `row`, and the xG-delta loop two lines later evaluates it:
+
+        TypeError: unsupported operand type(s) for -: 'float' and 'NoneType'
+
+    That is a 500 on the live fixtures path for any deployment whose Understat
+    fetch is cold, blocked, or has changed schema, and it is the one genuine
+    failure this file has on a cold checkout of `origin/main` (measured: the other
+    nine tests pass, and all ten pass once `data/cache/` is warm -- so the existing
+    test only passed by accident of a warm cache, never by construction).
+
+    Driven through the real `build_row` with the loader patched to return nothing,
+    which is what a genuinely unavailable upstream looks like. Asserted as NaN and
+    not as "does not raise": a mutant that substituted `0.0` would satisfy the
+    latter while claiming this team created and conceded zero expected goals all
+    season, which is a real number and a wrong answer. `float('nan') - float('nan')`
+    is `nan`, so the delta columns have to be checked separately -- the subtraction
+    is where the crash was, so that is where the value has to be right.
+    """
+    from pl_predictor.data import understat as understat_module
+    from pl_predictor.features import xg_form
+
+    monkeypatch.setattr(understat_module, "load_xg_data", lambda **_: pd.DataFrame())
+
+    ctx = FixtureFeatureContext(matches)
+    home, away = matches["team_home"].iloc[-1], matches["team_away"].iloc[-1]
+    row = ctx.build_row(home, away, commence_time=pd.Timestamp.now(tz="UTC") + pd.Timedelta(days=3))
+
+    for w in xg_form.WINDOWS:
+        for side in ("home", "away"):
+            for stat in ("for", "against"):
+                stat_key = f"{side}_xg_{stat}_last_{w}"
+                assert pd.isna(row[stat_key]), (
+                    f"{stat_key} is {row[stat_key]!r}, not NaN: with no Understat data "
+                    f"there is no xG to report, and 0.0 would assert a real expectation"
+                )
+                delta_key = f"{side}_xg_delta_{stat}_last_{w}"
+                assert pd.isna(row[delta_key]), (
+                    f"{delta_key} is {row[delta_key]!r}, not NaN: goals-for is known "
+                    f"even with no xG, so the delta is unknown rather than zero"
+                )
+
+
 def test_date_keyed_merges_survive_mismatched_datetime_resolutions(no_other_competitions):
     """The bug CI found and a warm local cache hid.
 

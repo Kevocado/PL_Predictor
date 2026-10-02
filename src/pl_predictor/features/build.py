@@ -454,6 +454,18 @@ class FixtureFeatureContext:
                 current_val = team_xg.get(stat_col)
                 if pd.isna(current_val):
                     current_val = avg
+                # `avg` and `current_val` are both `None` when Understat yielded
+                # nothing at all: `xg_league_avg` is then an empty Series, and
+                # `.get()` on an empty Series returns None rather than NaN. Left
+                # as None it reached the xG-delta loop below as
+                # `float - None` -> TypeError, i.e. a 500 on the live fixtures
+                # path for any deployment with a cold or unavailable Understat
+                # cache. NaN is the honest answer and is what every other feature
+                # here already degrades to; XGBoost consumes it natively. 0.0
+                # would instead claim the team created/conceded zero expected
+                # goals, which is a real number and a wrong one.
+                if current_val is None or pd.isna(current_val):
+                    current_val = float("nan")
                 blended = weight * current_val + (1 - weight) * avg if avg is not None and not pd.isna(avg) else current_val
                 row[f"{prefix}_{stat_col}"] = blended
 
