@@ -1554,7 +1554,15 @@ def get_fixture_post_match(event_id: str) -> dict | None:
 
 
 def get_fixture_player_review(event_id: str) -> dict | None:
-    """Return every resolved, qualifying confirmed-starter call for one fixture.
+    """Resolved confirmed-starter calls, plus resolved scorers who did not
+    qualify, for one fixture.
+
+    Both populations, not just the qualifying calls: the `elif hit` arm below
+    labels a player who scored while clearing no threshold as
+    `"Overperformer"`, and those land in the `overperformed` bucket rather than
+    being dropped. Anyone reading only the qualifying threshold would
+    under-count what this returns, and would conclude the view is filtered to
+    calls when a third of its output is not.
 
     **No dedupe here, and that is a measured decision, not an oversight.** #44
     flagged this view and `get_fixture_post_match` as the two readers still

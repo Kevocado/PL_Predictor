@@ -862,9 +862,17 @@ def test_detail_views_and_counting_path_share_one_key(clean_db):
         "actual_goals": 1, "actual_assists": 0,
     }
     counted = store._counted_player_picks(
-        pd.DataFrame([row, dict(row, goal_probability=0.99), row])
+        pd.DataFrame([
+            row,
+            dict(row, goal_probability=0.99),
+            row,
+            # Same player, DIFFERENT fixture. Both halves of the key earn their
+            # place: a dedupe on `player_id` alone would delete a legitimate
+            # row, and this is the only assertion that would notice.
+            dict(row, event_id="e2"),
+        ])
     )
-    assert list(counted["player_id"]) == [7]
+    assert list(zip(counted["event_id"], counted["player_id"])) == [("e1", 7), ("e2", 7)]
     # Same key, and it resolves to the same key the schema enforces.
     assert set(counted.columns) >= {"event_id", "player_id"}
 
