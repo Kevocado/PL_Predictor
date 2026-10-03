@@ -1,4 +1,4 @@
-// Synced from predictor-ui@af3a01f66dd2. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@f7dc1e08ee2f. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 /**
  * `Signal[]` as the facts block renders it: one compact row per finding, a
  * headline of at most 12 words, and a collapsed evidence line a keyboard can
@@ -21,13 +21,35 @@
  *   - `headline.text` — the one line a reader reads, at most 12 words.
  *   - `headline.figures` — the numbers the visual draws.
  *
- * They are separate so the two can disagree, and the test file asserts they do
- * not by reading both back out of the rendered DOM rather than by trusting that
- * they came from one variable. Merging them into one formatted string was
- * considered and rejected: a component that *parsed* its own headline to find
- * the figure would make that assertion vacuous — the number on the chip and the
- * number in the sentence would be the same string by construction, so "they are
- * equal" would hold for every possible implementation, including a wrong one.
+ * They are separate so the two can disagree, and `signalIsDrawn` is where that
+ * disagreement is caught: **every render path checks that the figure the visual
+ * draws appears in the headline's words, and refuses the row when it does not**
+ * (`HeadlineFigureMismatchError` — see `assertFigureIsStated`).
+ *
+ * "Appears in the words" is decided by comparing NUMBERS, not by comparing words
+ * or strings — `headlineStatesFigure`, and the long history of why that is not a
+ * detail is on `STATED_FIGURE`. The three ways a figure can be stated wrongly
+ * that a string comparison gets wrong, each found by review against this code:
+ * `1%` is not `61%`; `<1%` is not `1%`; and `−1.6` is not `+1.6`.
+ *
+ * Merging the two into one formatted string was considered and rejected: a
+ * component that *parsed* its own headline to find the figure would make the
+ * assertion vacuous — the number on the chip and the number in the sentence would
+ * be the same string by construction, so "they are equal" would hold for every
+ * possible implementation, including a wrong one.
+ *
+ * **THAT ENFORCEMENT WAS MISSING, and it was missing in the place this file's
+ * own header describes.** The first version promised the rule above and enforced
+ * it only on the clipping path: `clipHeadline` returns any headline of 12 words or
+ * fewer unchanged, so those rows were never compared against `headline.figures`
+ * at all. CodeRabbit caught it against the vendored copy in F1
+ * (`F1_Predictor#31`, comment `4172144009`) — "Backed by 61% of 30 picks" beside a
+ * drawn 74%. That is the defect the split `headline` exists to make impossible,
+ * reintroduced through the one branch that did not look. The test that should
+ * have caught it did the opposite: it rendered a deliberately mismatched headline
+ * and asserted the bar came out at 73.8%, which recorded the defect as expected
+ * behaviour. A test that proves a thing is broken is not the same as a test that
+ * catches it breaking, and this one was the former.
  *
  * ## What this component refuses, and why
  *
@@ -45,6 +67,8 @@
  *     and `projected_vs_actual` (phase 3) are refused rather than rendered
  *     without their marker, which is the one failure mode that both tests and
  *     screenshots miss.
+ *  4. **A headline that does not state the figure its visual draws**
+ *     (`HeadlineFigureMismatchError`). See `assertFigureIsStated`.
  *
  * ## What this component drops rather than refuses
  *
@@ -180,6 +204,343 @@ const FIGURE: Record<SignalVisual, "gap" | "rate" | null> = {
   projected_vs_actual: null,
 };
 
+/**
+ * A number a writer put in a headline, read out of the text.
+ *
+ * `cmp` is the boundary the writer stated (`<` or `>`) or `null` for a plain
+ * number; `sign` is `+1`, `-1` or `0` for unsigned. Both are kept because both
+ * carry meaning a renderer must not flatten — see `denotes`.
+ */
+type StatedFigure = { value: number; pct: boolean; cmp: "<" | ">" | null; sign: number };
+
+/** The rate a bar row is about, in percent. Carried alongside `StatedFigure`
+ *  because a drawn `<1%` needs BOTH its bound (what the reader sees) and the rate
+ *  behind it (0.4) to judge a stated inequality: "is this claim true of the rate
+ *  the bar draws" is a different question from "does this bound match that
+ *  bound", and only the first one is the property the file cares about. */
+type DrawnBar = StatedFigure & { rate: number };
+
+/**
+ * Every number in a piece of text, with its boundary and sign.
+ *
+ * **Matched with a scanner, not by splitting on whitespace and stripping
+ * punctuation off each word.** Three CodeRabbit Majors on this rule, in order,
+ * and each was the same mistake — a word was treated as the unit of a figure:
+ *
+ *  - `4171835614`: substring matching let `1%` satisfy `61%`.
+ *  - `4171902960` / `4171924918`: normalising one side only let `<1%` stop
+ *    matching itself.
+ *  - `4172215626`: normalising BOTH sides discarded the boundary symbol, so a
+ *    headline saying `1%` passed a row the chip labels `<1%` — which asserts a
+ *    rate the bar does not draw.
+ *  - `4172215627`: whitespace splitting left `74%—based` as one token, so a
+ *    headline that plainly states `74%` was refused.
+ *
+ * Stripping punctuation off words cannot fix the last two and causes the third:
+ * the boundary and the sign are *inside* the number, and a figure can be glued to
+ * a word by an em dash without either of them being altered. So the text is
+ * scanned for numbers and each is read whole, and the unit of comparison is the
+ * NUMBER rather than the word. `1%` can no longer satisfy `61%` because the
+ * scanner yields `61`, not `1`.
+ *
+ * Non-figure text is simply not matched and is therefore ignored, which is what
+ * lets "Right 74%—based on 42 games" pass and "42 games" alone not count.
+ *
+ * **The sign is `+`, U+2212 or a hyphen-minus, and it is glued to its digits.**
+ * An en dash and an em dash are typography, not arithmetic: with either in the
+ * class, "a 5—3 record" parsed as a negative three and "a — 42 point swing"
+ * parsed as −42, so a correct headline was refused because the figure it plainly
+ * stated had been read with a sign nobody wrote. Removing them costs nothing —
+ * no writer types an em dash to mean minus — and `\s*` between sign and digits
+ * goes with them, because a spaced hyphen is a dash in prose ("Right — 74%"),
+ * not a negative. The remaining three marks are unambiguous and always sit
+ * against the number: `+1.6`, `−1.6`, `-1.6`.
+ */
+const STATED_FIGURE =
+  /([<>])\s*([+−-]?)(\d+(?:\.\d+)?)\s*(%?)|([+−-]?)(\d+(?:\.\d+)?)\s*(%?)/g;
+
+/** Every number in `text`, in order. */
+function statedFigures(text: string): StatedFigure[] {
+  const found: StatedFigure[] = [];
+  for (const m of text.matchAll(STATED_FIGURE)) {
+    // The group INDICES DIFFER per branch, and both branches capture a group 4:
+    //
+    //   branch 1 (has a comparator): m1=cmp  m2=sign  m3=digits  m4=%
+    //   branch 2 (no comparator):    m5=sign m6=digits  m7=%
+    //
+    // Four groups each, so the two branches read DIFFERENT indices, and the
+    // discriminator is `m[1] !== undefined`: a group that did not participate is
+    // `undefined`, while a group that participated and matched an empty string is
+    // `""`. Getting those indices wrong is not a subtle degradation — the first
+    // version of this scanner read branch 2's digits from the group that holds
+    // the sign, so `stated.value` was `Number("")` on every plain number and no
+    // headline could state anything. Every case of the
+    // headline-states-figure test failed at once, which is what made it obvious
+    // rather than a rounding bug found in production.
+    //
+    // `??` is wrong here for the same reason and it is worth stating once: it
+    // cannot tell "did not participate" from "participated and is empty", so it
+    // reads the empty string from whichever branch lost.
+    const withCmp = m[1] !== undefined;
+    const cmp = (withCmp ? m[1] : null) as "<" | ">" | null;
+    const raw = withCmp ? (m[2] ?? "") : (m[5] ?? "");
+    const digits = (withCmp ? m[3] : m[6]) as string;
+    const isPct = (withCmp ? m[4] : m[7]) === "%";
+    found.push({
+      value: Number(digits),
+      pct: isPct,
+      cmp,
+      // A U+2212 MINUS, an en dash and a hyphen are all "negative" to a writer;
+      // `fmt.signed` uses U+2212, and a headline may type any of the three.
+      sign: /[+−–—-]/.test(raw) ? (raw === "+" ? 1 : -1) : 0,
+    });
+  }
+  return found;
+}
+
+/**
+ * The figure a visual draws, as the number a reader compares against.
+ *
+ * A rate is compared in PERCENT because that is how it is displayed: `0.738`
+ * draws as `74%`, so a headline saying `74%` states it and one saying `0.738`
+ * does not. A gap is compared as drawn, in the sport's own units, and its SIGN is
+ * part of the figure — the chip reads `+1.6`, so `−1.6` is a different claim.
+ */
+function drawnAs(signal: Signal, figure: number): DrawnBar {
+  if (signal.visual !== "reliability_bar") {
+    // A gap's magnitude is its ABSOLUTE value and its sign is separate, because
+    // "wants 1.6 fewer" states −1.6 with no minus sign in front of the number.
+    // Comparing magnitudes as signed would refuse that, and the sign check below
+    // is what compares direction.
+    return {
+      value: Math.abs(figure),
+      pct: false,
+      cmp: null,
+      sign: figure > 0 ? 1 : figure < 0 ? -1 : 0,
+      // Unused for a gap — it has no rate and no bound — but present so
+      // `denotes` reads one shape rather than narrowing on `visual`.
+      rate: Math.abs(figure),
+    };
+  }
+  // A rate's own display carries the boundary: `pct` prints `<1%` and `>99%` at
+  // its edges, and those are the symbols the reader sees — so the comparator AND
+  // its bound are read back out of `pct`'s output rather than derived from the
+  // value. That matters at the low edge: `pct(0.004)` prints `<1%`, where the bound
+  // is 1 and the value is 0.4. Computing the bound as `Math.round(0.4)` gives 0,
+  // which would refuse the headline's own `<1%` — the figure failing to match
+  // itself, the same class as 4171902960, one level in. `pct` decides what the page
+  // says, so reading it is the only source that cannot disagree with the page.
+  const shown = pct(figure);
+  const cmp = shown.startsWith("<") ? ("<" as const) : shown.startsWith(">") ? (">" as const) : null;
+  const bound = cmp === null ? null : Number(shown.replace(/^[<>]/, "").replace("%", ""));
+  // `rate` is the rate itself in percent, ALWAYS present for a bar row. `value` is
+  // the BOUND when the display is an inequality and the percent otherwise, and
+  // having both is what lets a stated inequality be evaluated rather than
+  // pattern-matched — see `denotes`.
+  return { value: cmp === null ? figure * 100 : (bound as number), pct: true, cmp, sign: 0, rate: figure * 100 };
+}
+
+/**
+ * Does this stated number denote the drawn figure?
+ *
+ * Three conditions, each from a finding that a looser rule got wrong:
+ *
+ *  - **Magnitude, at the display's own rounding.** A rate is matched against
+ *    `pct`'s whole percent AND its floored percent, because at `0.738` the chip
+ *    says 74% and a writer may say 73% — both are the same rate at the precision
+ *    the page shows.
+ *  - **A stated boundary must be TRUE OF THE DRAWN RATE.** The chip's `<1%` and
+ *    `>99%` are not decoration: `<1%` means *less than* one percent, so a
+ *    headline claiming `1%` states a rate the bar does not draw and is refused
+ *    (4172215626). A boundaryless `0%` is consistent with `<1%` and is accepted.
+ *    **The test is truth, not equality with the drawn bound** — a rate of 0.004
+ *    drawn as `<1%` also makes `<5%` and `<0.5%` true, and both are accepted.
+ *    Requiring the bounds to be *equal* (review comment 4172902588) would reject
+ *    those two true claims, which trades a false positive for a false negative:
+ *    the defect this file exists to prevent is a headline stating something
+ *    untrue of the drawn figure, and an over-tight rule manufactures exactly that
+ *    by rejecting what is merely more precise than the display's granularity.
+ *    The claims that genuinely cannot be true of a share — `<0%` and `>100%` —
+ *    are refused earlier on the domain, where `drawn.pct` is known, so they never
+ *    reach the comparator branches at all.
+ *  - **A stated sign must agree with the drawn one, for a gap.** The chip reads
+ *    `+1.6`; a headline saying `−1.6` is claiming the opposite direction and is
+ *    refused (4172215630). An UNSIGNED `1.6` is accepted, because a chip figure
+ *    is routinely stated without its sign in prose and that is not a
+ *    contradiction.
+ */
+function denotes(drawn: DrawnBar, stated: StatedFigure): boolean {
+  // A percent and a bare number are different quantities. "Right 74%" does not
+  // state a gap of 74, and "Wants 1.6 more" does not state a rate.
+  if (drawn.pct !== stated.pct) return false;
+
+  // A RATE is a share, so it is never negative. A headline stating `<−5%` or
+  // `−0%` is describing a rate that cannot exist, and the inequality branches
+  // below read `stated.value` without its sign — which is why this is checked
+  // here rather than folded into them.
+  if (drawn.pct && stated.sign < 0) return false;
+  // Nor above 100%. `<1%`'s mirror image, and the same class as the bound cases.
+  if (drawn.pct && stated.value > 100) return false;
+
+  if (drawn.cmp !== null) {
+    // **A bounded rate is EVALUATED, not pattern-matched.** The question is
+    // whether the headline's claim is TRUE OF THE RATE THE BAR DRAWS, and the bar
+    // draws `drawn.rate` — which is why `DrawnBar` carries the rate and not only
+    // the bound. Three earlier shapes of this rule compared the drawn bound with
+    // the stated one, and each admitted a claim that is false of the rate:
+    //
+    //  - value-inside-bound accepted `<0%` under `<1%` (0 is inside 1) and
+    //    `>100%` under `>99%` (100 is outside 99, read as "more"). Both are
+    //    impossible for a share: a rate is never negative and never above 100%
+    //    (CodeRabbit review comment 4172902588).
+    //  - accepting the bound with the same direction accepted `<0%`, because
+    //    `<` matched `<`.
+    //  - accepting any bound that was not WEAKER accepted `<50%` under `<1%`,
+    //    which is a different rate entirely.
+    //
+    // So the stated figure is checked as a claim:
+    //
+    //  - **with the drawn comparator** — `<1%` — it must be TRUE of the rate,
+    //    which for a rate of 0.4 means the bound must exceed it.
+    //  - **with the other comparator** — `>0%` under a `<1%` bar — the rate is not
+    //    above the stated bound, so the claim is false. A share is never above
+    //    100%, which is why `>100%` is refused here rather than by a special case.
+    //  - **unsigned** — it must be inside the drawn bound at display precision,
+    //    which is what makes `0%` acceptable under `<1%` and `1%` not.
+    const rate = drawn.rate;
+    if (stated.cmp === drawn.cmp) {
+      const holds = drawn.cmp === "<" ? rate < stated.value : rate > stated.value;
+      if (!holds) return false;
+    } else if (stated.cmp !== null) {
+      // The opposite inequality, evaluated against the same rate.
+      const holds = stated.cmp === "<" ? rate < stated.value : rate > stated.value;
+      if (!holds) return false;
+    } else {
+      const inside = drawn.cmp === "<" ? stated.value < drawn.value : stated.value > drawn.value;
+      if (!inside) return false;
+    }
+  } else if (drawn.pct) {
+    // An unbounded RATE is compared at the display's own precision, and BOTH the
+    // rounded and the floored value are reachable: `0.738` draws as `74%` and a
+    // writer may say `73%`, which is the same rate at the precision the page
+    // shows. `pct` prints whole percents, so one is the granularity.
+    const magnitudes = [Math.round(drawn.value), Math.floor(drawn.value)];
+    if (!magnitudes.some((m) => Math.abs(m - stated.value) < 0.5)) return false;
+  } else {
+    // A GAP is compared at ITS OWN precision, which is one decimal: `fmt.signed`
+    // prints `+1.6` and never `+1.62`. Sharing the rate's whole-number tolerance
+    // here accepted `2` and `1.2` for a chip drawing `+1.6` (CodeRabbit review
+    // comment 4172337758) — the same defect as 4172215630, in the other
+    // direction: not the wrong sign but the wrong magnitude, and a headline
+    // claiming a 2.0-point gap beside a chip reading 1.6 is a wrong number on the
+    // page in exactly the way this file exists to prevent.
+    //
+    // **The tolerance is the DISPLAY's granularity, never a fudge factor.** It is
+    // derived from `fmt.signed` rather than written as `0.05`, because the rule
+    // being enforced is "the words state the figure the chip draws" and the chip's
+    // precision is defined by the formatter — a constant here would drift the day
+    // `signed` changes.
+    // **Both sides go through `toFixed`, because `toFixed` is what `fmt.signed`
+    // uses to draw the chip**, AND the stated value must ROUND-TRIP at that
+    // precision. Two separate requirements, and dropping the second is the trap
+    // the suite already guards: rounding both sides alone makes `1.65` beside a
+    // `+1.6` chip compare as `1.6 === 1.6` and be ACCEPTED, when `1.65` is a
+    // different figure wearing more decimals than the page shows. The
+    // round-trip is what keeps it a different figure.
+    //
+    // Rounding with `Math.round` instead was the bug: `signed(1.65)` prints
+    // `+1.6` (1.65 sits below 1.65 in binary) while `Math.round(1.65 * 10)` is
+    // 17, so a headline copying the chip's own `+1.6` was refused for failing to
+    // match a chip reading `+1.6` — the figure disagreeing with itself.
+    const decimals = (signed(drawn.value).split(".")[1] ?? "").length;
+    const atDisplay = Number(stated.value.toFixed(decimals));
+    if (atDisplay !== stated.value) return false;
+    if (atDisplay !== Number(signed(drawn.value))) return false;
+  }
+
+  // A stated comparator on an UNBOUNDED drawn rate is refused outright: `<2` on a
+  // chip that draws `2` narrows the claim, and this component cannot tell a
+  // legitimate hedge from a wrong number. The bounded branch above has already
+  // handled the other direction, by evaluating the claim against the rate rather
+  // than requiring the symbols to match — which is why this is not simply
+  // `stated.cmp !== drawn.cmp`: that refused `>0%` under a `<1%` bar, which is a
+  // true statement about a rate of 0.4.
+  if (drawn.cmp === null && stated.cmp !== null) return false;
+
+  // A gap's sign is the direction; a rate's is not (a rate has no direction).
+  if (!drawn.pct && stated.sign !== 0 && stated.sign !== drawn.sign) return false;
+  return true;
+}
+
+/** Does this headline state this figure, in any of the words a writer would use?
+ *
+ * The unit of comparison is the NUMBER, not the word — see `STATED_FIGURE`.
+ */
+export function headlineStatesFigure(text: string, signal: Signal, figure: number): boolean {
+  const drawn = drawnAs(signal, figure);
+  return statedFigures(text).some((stated) => denotes(drawn, stated));
+}
+
+/**
+ * Does the LAST figure in this text state the drawn one?
+ *
+ * A separate question from `headlineStatesFigure`, and the clipper needs this
+ * one. It walks a headline word by word asking whether a figure ENDS at this word
+ * (a comparator and its number may straddle a space — `below < 1%` — so the span
+ * it offers can be more than one word). If the span carries a figure anywhere,
+ * "any figure in the span" would keep `b c 74%` whole and drag two ordinary words
+ * in with it; the figure the span ends with is the one that starts at it.
+ *
+ * Without the distinction the two halves of this rule disagree: the validator
+ * accepts a headline because a figure appears SOMEWHERE in it, and the clipper
+ * then protects far more than that figure, which is prose the reader did not ask
+ * to keep.
+ */
+/**
+ * Where the drawn figure sits in this text, as character offsets into it.
+ *
+ * **A RANGE, and that is the third shape this question has taken.** It was first
+ * "which words state the figure" (a list), then "does this span state it" (a
+ * predicate), and both are the wrong interface: a predicate cannot say *which
+ * words* to keep, so the clipper had to re-derive it by asking about prefixes,
+ * and asking "does this span END with the figure" matches `b c 74%` — three words
+ * for a figure that is one (CodeRabbit review comment 4172337760 and the two
+ * regressions it produced, where the figure came out printed twice).
+ *
+ * A range says it exactly: the clipper keeps the words this range covers and
+ * nothing else. `below < 1%` is one range across two words because the scanner
+ * read it as one figure; `1.6` in `1.6 more` is one word because it is one.
+ *
+ * The FIRST figure in the text is the one returned, so a headline that states it
+ * twice protects the first occurrence — which is where the reader reads it, and
+ * keeping the second would cost prose for nothing.
+ */
+export function figureRange(
+  headline: string,
+  signal: Signal,
+  figure: number,
+): { start: number; end: number } | null {
+  // **Offsets are into the TRIMMED headline**, because that is the string
+  // `clipHeadline` walks. The first version took the caller's text and returned
+  // offsets into it, and `clipHeadline` applied them to `text.trim()` — so a
+  // headline with a leading space had every offset shifted by one and the range
+  // could protect `tail` instead of `74%`, silently clipping away the figure the
+  // validator had just accepted (CodeRabbit review comment 4172902590).
+  //
+  // Trimming HERE is what makes the two agree, and `clipHeadline` trims the same
+  // way for the same reason. The alternative — passing the untrimmed string in and
+  // having the clipper re-derive the offset — is a second place to get it wrong.
+  const text = headline.trim();
+  const drawn = drawnAs(signal, figure);
+  const matches = [...text.matchAll(STATED_FIGURE)];
+  for (let i = 0; i < matches.length; i++) {
+    if (denotes(drawn, statedFigures(text)[i])) {
+      return { start: matches[i].index, end: matches[i].index + matches[i][0].length };
+    }
+  }
+  return null;
+}
+
 /** A visual this package cannot draw. */
 export class UndrawableSignalVisualError extends Error {
   constructor(gameId: string, visual: string, kind: string) {
@@ -269,15 +630,100 @@ export function rateIsDrawable(signal: Signal, minN: number = SPEC_MIN_N): boole
   return Number.isInteger(n) && (n as number) >= floorOf(minN);
 }
 
+/** A headline that does not state the figure its own row draws. */
+export class HeadlineFigureMismatchError extends Error {
+  constructor(gameId: string, kind: string, visual: string, name: string, drawn: string, stated: string) {
+    super(
+      `SignalRows: signal ${gameId} (${kind}) draws "${visual}" from headline.figures.${name} as ` +
+        `${drawn}, but its headline never states that figure — it reads "${stated}". A figure on ` +
+        `the page that the row's own words do not carry is the one thing this component exists to ` +
+        `prevent, so the row is refused rather than rendered beside words that disagree with it.`,
+    );
+    this.name = "HeadlineFigureMismatchError";
+  }
+}
+
+/**
+ * THE RULE, enforced on every path: the figure this visual draws must appear in
+ * this headline's words.
+ *
+ * **WHY THIS THROWS RATHER THAN DROPPING THE HEADLINE.** Both were considered and
+ * the cost is stated here because it is real: a throw takes the whole list down,
+ * so one adapter that mis-states a figure takes out every other signal on that
+ * fixture's page.
+ *
+ * It throws anyway, for three reasons, and the third is the one that settles it.
+ *
+ *  1. **The precedent is two-for-two in this package.** `RowKindMismatchError` and
+ *     `OutPlayerInRankingError` in `PicksList.tsx` both throw, for the same shape
+ *     of mistake: a caller passed something the component must not draw. A third
+ *     component answering the same question differently would mean a caller had
+ *     to learn which rule applied where.
+ *  2. **The bug is in the CALLER, and the caller has tests.** An adapter that
+ *     writes "61%" beside `figures.rate = 0.74` is broken, and it is broken in
+ *     that adapter's own suite before it reaches a reader. Throwing is what puts
+ *     the failure in front of whoever can fix it, which is the adapter's author,
+ *     and it names the game and both readings.
+ *  3. **Dropping the headline does not degrade quietly — it degrades to the very
+ *     thing the rule forbids.** A row whose bar draws 74% with no words beside it
+ *     is a bare number with no claim attached and no sample size in words. The
+ *     reader cannot tell a 74% from a 61% because neither is on the page. That is
+ *     not a lesser version of the defect; it is the same reader-facing outcome
+ *     with the part that made the number checkable removed. The only reason
+ *     dropping would be better is that the page survives — and a page that loses
+ *     a row because an author made a typo is a page that ships the typo's
+ *     consequence silently, which is the failure mode every refusal in this file
+ *     exists to avoid.
+ *
+ * **A throw in a shared UI is recoverable**, because this family already renders
+ * failures: `States.tsx`'s `ErrorState` is a `role="alert"` with a retry, and
+ * `ExplainerPanel` uses it. A site that would rather lose the row can catch this
+ * at its own boundary; what it must not do is catch it and render the figure
+ * beside words that disagree with it.
+ *
+ * **What it cannot catch, stated rather than implied.** This checks that the
+ * figure appears, not that the sentence is *true*. A headline saying "the model
+ * has been right 74% of the time" with `figures.rate = 0.74` passes, and that
+ * sentence is the adapter's claim about what the number means. Nothing in a
+ * renderer can check that; it is the adapter's own test, and it is the reason
+ * `figures` and `text` are both in the payload rather than one derived from the
+ * other.
+ */
+export function assertFigureIsStated(signal: Signal): void {
+  const figure = signalFigure(signal, signal.visual);
+  if (!headlineStatesFigure(signal.headline.text, signal, figure)) {
+    const name = FIGURE[signal.visual]!;
+    const drawn = signal.visual === "reliability_bar" ? pct(figure) : signed(figure);
+    throw new HeadlineFigureMismatchError(
+      signal.game_id, signal.kind, signal.visual, name, drawn, signal.headline.text,
+    );
+  }
+}
+
 /**
  * Is this signal a row at all?
  *
- * Three of the spec's own rules, all "no data, no row": a blank headline says
- * nothing; a rate under the floor says nothing (spec §4); and a visual this
- * package cannot draw is not a row **this** component is willing to draw, so it
- * throws rather than answering false. Silently omitting that last one would be a
- * signal vanishing for no stated reason — the failure `KeyNumberTile`'s comment
- * about a machine key printed in the wrong slot describes.
+ * Four of the spec's own rules, three of them "no data, no row" and one a refusal:
+ * a blank headline says nothing; a rate under the floor says nothing (spec §4); a
+ * visual this package cannot draw is not a row **this** component is willing to
+ * draw, so it throws rather than answering false; and a headline that does not
+ * state the drawn figure throws rather than rendering a bare number with no words.
+ *
+ * **The order is load-bearing, and it is the floor interaction, settled
+ * deliberately.** The floor is checked BEFORE the figure is validated, so a
+ * below-floor rate is **dropped, never rejected**: the figure it carries is
+ * suppressed and its headline goes with it, so there is nothing on the page for
+ * the figure to contradict. Validating first would make every sub-floor bucket a
+ * thrown error — a sport with twelve games of history could not render its panel
+ * at all — which is spec §4's answer inverted: §4 says a sub-floor rate says
+ * nothing, and "nothing" is not a crash. The two rules therefore never meet: a
+ * dropped row is not a contradicted row, because it has no figure to state.
+ *
+ * The flip side is stated because it is a real limit: a headline that
+ * mis-states a figure on a row that the floor drops anyway is **not** caught. That
+ * is accepted — the row was going to be invisible, and a validation that fires on
+ * invisible rows converts a suppressed row into a broken page for no reader-facing
+ * gain. The adapter's own test is where that payload is caught.
  */
 export function signalIsDrawn(signal: Signal, minN: number = SPEC_MIN_N): boolean {
   if (FIGURE[signal.visual] === null) {
@@ -285,6 +731,7 @@ export function signalIsDrawn(signal: Signal, minN: number = SPEC_MIN_N): boolea
   }
   if (signal.headline.text.trim() === "") return false;
   if (!rateIsDrawable(signal, minN)) return false;
+  assertFigureIsStated(signal);
   return true;
 }
 
@@ -314,87 +761,83 @@ export function signalIsDrawn(signal: Signal, minN: number = SPEC_MIN_N): boolea
  * longer mentioned 74%: exactly the dishonesty the split `headline` exists to
  * make impossible, reintroduced by the cap.
  *
- * So the rule is now: **keep the first `max` ORDINARY words, plus every word
- * that states a protected figure, in document order.** The protected forms are
- * passed in by the caller from the figure it is about to draw — this function
- * does not format, because the two formatters (`fmt.signed` for a gap,
- * `fmt.pct` for a rate) differ and guessing here would protect the wrong string.
+ * So the rule is now: **keep the first `max` ORDINARY words, plus every word the
+ * drawn figure occupies, in document order.**
  *
- * **THREE forms are protected for a rate, because `fmt.pct` has boundaries.** At
- * `p <= 0.005` it prints `<1%` and at `p >= 0.995` it prints `>99%`, never `0%`
- * and `100%`. A headline is written in plain words, so it can say `0%`, `100%`,
- * `+1%` or `<1%` where the formatter says something else, and protecting only
- * `pct(figure)` would leave the boundary rate as the one thing the clip removes.
- * `pct(figure)`, the rounded percent and the floored percent are all protected,
- * and BOTH sides of the comparison are normalised — a leading `+`, `−`, `<`, `>`
- * and any trailing punctuation are dropped — so a `<1%` in the text matches a
- * protected `<1%` instead of stripping one side only (CodeRabbit review comments
- * 4171835614 and 4171902960).
+ * **Protection is a RANGE of character offsets, supplied by the caller, and this
+ * is the third interface this question has had.** That history is worth keeping
+ * because each shape failed in the same direction — it could say WHETHER the
+ * figure was stated but not WHICH WORDS to keep:
  *
- * The match is on a WHOLE word, never a substring: protecting `1%` must not also
- * protect `61%`, which would keep a clause unrelated to the figure and could
- * still drop the one that carries it. `norm` strips surrounding punctuation, so
- * `(74%`, `74%)` and `74%.` are all the protected word; it can over-protect, which
- * costs a little prose, and that is the safe direction — under-protecting is the
- * defect this rule exists to prevent.
+ *  - a `protectedWords: string[]`, matched by stripping punctuation off each
+ *    word. Substring matching let `1%` satisfy `61%` (4171835614); normalising one
+ *    side only let `<1%` stop matching itself (4171902960, 4171924918); stripping
+ *    both threw the boundary away so `1%` satisfied `<1%` (4172215626); and
+ *    splitting on whitespace left `74%—based` unrecognised so a headline plainly
+ *    stating `74%` was clipped away (4172215627). Root cause of all four: the unit
+ *    was the WORD, and a figure is not a word.
+ *  - a PREDICATE over spans of up to three words, which fixed the straddling case
+ *    but could not say which words the figure covered — so the clipper asked about
+ *    prefixes of itself and kept `b c 74%` whole (4172337760), and a scan that
+ *    resumed one word at a time re-found the same figure and printed it twice.
  *
- * **What is given up.** A clipped row can exceed `max` words, so the cap is
- * "12 ordinary words" rather than "12 words", and a headline that names its
- * figure on every one of forty words stays forty words long. That is an adapter
- * copy bug rather than something this component can repair, and `data-clipped`
- * is the signal for it — the fix is the adapter's shorter wording.
+ * A range says exactly which characters are the figure, so the clipper keeps the
+ * words those characters sit in and re-derives nothing. It is built by
+ * `figureRange` from the same `denotes` the validator uses, which is what makes
+ * the two halves of this rule one rule: the validator asks "does the headline
+ * state the figure at all", the clipper asks "which words is it".
  *
- * **What would make this a refusal instead: a NEGATION.** "Out: J. Jacobs is
- * **not** projected" clipped to "Out: J. Jacobs is" inverts the claim, and no
- * amount of figure-protection helps. None of the four spec §4 signals can produce
- * one from their own fields — `kind` says which claim a row is making — so it is
- * not reachable here. The note is here so the next person checks it before
- * adding a `kind` that can.
+ * **And the figure being protected must be one the headline actually stated.**
+ * `signalIsDrawn` → `assertFigureIsStated` runs first, so the range is never null
+ * for a row that reaches the screen: a row whose words omit the figure is refused
+ * rather than clipped.
+ *
+ * **Where the cap sits.** The cap is on the sentence AROUND the figure, so a
+ * clipped row can exceed `max` words, and a headline that names its figure on
+ * every one of forty words stays forty words long. That is an adapter copy bug
+ * with an adapter fix, and `data-clipped` is the signal for it. The words BESIDE a
+ * protected figure are ordinary and spend the budget like any other — pinned by a
+ * test, because an earlier interface swept them in.
  */
 export function clipHeadline(
   text: string,
   max: number = MAX_HEADLINE_WORDS,
-  protectedWords: readonly string[] = [],
+  keep?: { start: number; end: number } | null,
 ): { text: string; clipped: boolean } {
   const trimmed = text.trim();
   const words = trimmed.split(/\s+/).filter(Boolean);
   if (words.length <= max) return { text: trimmed, clipped: false };
-  // WHOLE-WORD matching, not `includes`.
+
+  // Which words does the protected range touch? Character offsets become word
+  // indices ONCE here, so the clipper never re-asks what the figure is — that was
+  // the defect in the two previous interfaces, where it asked about prefixes of
+  // itself and kept `b c 74%` whole for a figure that is one word.
   //
-  // Substring matching protects the wrong word: protecting the rate `1%` would
-  // also protect `61%`, `21%` and every other word ending in it, so a headline
-  // could keep a clause that has nothing to do with the figure and lose the one
-  // that does. (CodeRabbit review comment 4171835614 raised this and the boundary
-  // form below; both are here.)
-  // **BOTH SIDES go through `norm`, or the match fails on its own output.**
-  // Normalising only the token was a real defect (CodeRabbit review comment
-  // 4171902960): `<1%` strips its angle bracket to `1%` while the protected form
-  // kept its own, so the drawn boundary rate stopped matching itself. Same for a
-  // signed `+1.6` in the text against an unsigned protected `1.6`.
-  //
-  // `norm` therefore strips surrounding punctuation — a leading sign or boundary
-  // symbol or open bracket, and any trailing punctuation — and leaves digits, the
-  // decimal point and `%` alone.
-  //
-  // **It can over-protect, and that is the direction that is safe.** Dropping the
-  // sign means a headline containing both `+1.6` and `−1.6` would protect both,
-  // so a row could keep a word it did not need to. Keeping too much prose is a
-  // cosmetic cost; keeping too little is the honesty defect this whole rule
-  // exists to prevent. The alternative — keeping the sign, so only `+1.6` matches
-  // an unsigned `1.6` — is what 4171902960 was about, and it fails the wrong way.
-  const norm = (w: string) => w.trim().replace(/^[^\w.%]+/, "").replace(/[^\w%]+$/, "");
-  const marks = new Set(protectedWords.filter(Boolean).map(norm));
-  const protectedIndex = (word: string): boolean => marks.has(norm(word));
+  // Overlap rather than containment, because the range can start INSIDE a word
+  // when an adapter writes `74%—based`, and because a two-word figure
+  // (`below < 1%`) must keep both of its words.
+  const protectedWords = new Set<number>();
+  if (keep) {
+    // `trimmed` is what the offsets are into, so this walks that same string.
+    let at = 0;
+    for (let i = 0; i < words.length; i++) {
+      const start = trimmed.indexOf(words[i], at);
+      const end = start + words[i].length;
+      if (start < keep.end && end > keep.start) protectedWords.add(i);
+      at = end;
+    }
+  }
+
   const kept: string[] = [];
   let ordinary = 0;
-  for (const word of words) {
-    // A protected word is kept wherever it is and does not spend the budget: the
-    // cap is on the sentence AROUND the figure, not on the figure.
-    if (protectedIndex(word)) {
-      kept.push(word);
+  for (let i = 0; i < words.length; i++) {
+    if (protectedWords.has(i)) {
+      // A protected figure is kept wherever it is and does not spend the budget:
+      // the cap is on the sentence AROUND the figure, not on the figure.
+      kept.push(words[i]);
       continue;
     }
-    if (ordinary < max) kept.push(word);
+    if (ordinary < max) kept.push(words[i]);
     ordinary++;
   }
   return { text: kept.join(" "), clipped: ordinary > max };
@@ -433,25 +876,19 @@ function SignalRow({ signal, rowId }: { signal: Signal; rowId: string }) {
   // never read "of null games"; the floor means a bar-drawing row always has one.
   const count = n === null ? "" : `n=${n}`;
   const figure = signalFigure(signal, signal.visual);
-  // Clipped with the figure PROTECTED, and the protected forms are the ones this
-  // row is about to draw.
-  //
-  // A rate has THREE forms, because `fmt.pct` is not injective: `0.004` draws
-  // as `<1%`, `1` draws as `>99%`, and a headline written by a human says `0%`
-  // or `100%` for those. Protecting only `pct(figure)` would let the drawn
-  // boundary rate be the one thing the clip removes. So the rounded plain form
-  // and the floored percent are protected alongside the formatter's own, and the
-  // match is whole-word so `1%` cannot also match `61%` (CodeRabbit review
-  // comments 4171835614 and 4171902960).
-  //
-  // A gap has ONE: the sign is dropped because a headline says "1.6" where the
-  // chip says "+1.6", and `clipHeadline`'s `norm` strips a leading sign anyway, so
-  // a headline that writes `+1.6` matches the same figure (4171902960).
-  const protectedForms: string[] =
-    signal.visual === "reliability_bar"
-      ? [pct(figure), `${Math.round(figure * 100)}%`, `${Math.floor(figure * 100)}%`]
-      : [signed(figure).replace(/^[+−-]/, "")];
-  const { text, clipped } = clipHeadline(signal.headline.text, MAX_HEADLINE_WORDS, protectedForms);
+  // Clipped with the figure PROTECTED, and the protection is the SAME question
+  // `assertFigureIsStated` just asked about the whole headline — asked again per
+  // word, so a figure the clip would otherwise drop is kept. That function ran
+  // first and refused the row if no word stated the figure, so at least one word
+  // here is protected whenever this row reaches the screen.
+  const { text, clipped } = clipHeadline(
+    signal.headline.text,
+    MAX_HEADLINE_WORDS,
+    // The RANGE of the drawn figure, so the clipper keeps the words it covers and
+    // re-derives nothing. `assertFigureIsStated` has already established that one
+    // exists, so this is never null for a row that reaches the screen.
+    figureRange(signal.headline.text, signal, figure),
+  );
 
   return (
     <li

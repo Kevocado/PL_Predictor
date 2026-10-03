@@ -1,4 +1,4 @@
-// Synced from predictor-ui@af3a01f66dd2. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@f7dc1e08ee2f. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 import { record as fmtRecord } from "../fmt";
 import type { Moment } from "./StatusBadge";
 
