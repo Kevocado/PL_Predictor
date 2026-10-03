@@ -821,3 +821,192 @@ def test_overall_pct_can_never_disagree_with_the_match_result_market(clean_db, t
     assert rebuilt_record["pre_kickoff"]["pct_correct_overall"] is None
     assert rebuilt_record["all_picks"]["n_resolved"] == 1
     assert rebuilt_record["all_picks"]["pct_correct"] == pytest.approx(0.0)
+
+
+# --- The two detail views' counting key -------------------------------------
+#
+# #44 aligned PL's counting keys and left `get_fixture_player_review` /
+# `get_fixture_post_match` reading every player row without the dedupe,
+# flagged as follow-up on the theory that a detail view rendering a player's
+# scored picks is part of that player's record. The theory does not hold: a
+# duplicate `(event_id, player_id)` row is unreachable, because the table is
+# keyed on it and written only by `INSERT OR IGNORE`. So there is deliberately
+# no dedupe in those readers (see their docstrings), and what is pinned here
+# is the invariant that makes the dedupe unnecessary -- plus the proof that the
+# detail view and the counting path agree per player today.
+
+
+def test_detail_views_and_counting_path_share_one_key(clean_db):
+    """The detail views' key IS the counting path's key, read from the schema.
+
+    The detail views do not dedupe, so the key that bounds them is the table's
+    own `PRIMARY KEY`. Read it out of the live schema rather than asserted
+    about the two functions, and read the counting path's key out of what
+    `_counted_player_picks` actually does rather than its source text, so that
+    the two cannot drift apart unnoticed: a mismatch here is exactly the silent
+    hole #44 fixed elsewhere.
+    """
+    with store._connect() as conn:
+        (schema,) = conn.execute(
+            "SELECT sql FROM sqlite_master WHERE type = 'table' "
+            "AND name = 'player_prediction_snapshots'"
+        ).fetchone()
+    assert "PRIMARY KEY (event_id, player_id)" in " ".join(schema.split())
+
+    # What the counting path keeps, shown by feeding it the duplicate it would
+    # exist to resolve: one row per (event_id, player_id), first surviving.
+    row = {
+        "event_id": "e1", "player_id": 7, "provenance": "snapshot",
+        "goal_probability": 0.5, "assist_probability": 0.2,
+        "contribution_probability": 0.6, "qualifies_call": 1,
+        "actual_goals": 1, "actual_assists": 0,
+    }
+    counted = store._counted_player_picks(
+        pd.DataFrame([
+            row,
+            dict(row, goal_probability=0.99),
+            row,
+            # Same player, DIFFERENT fixture. Both halves of the key earn their
+            # place: a dedupe on `player_id` alone would delete a legitimate
+            # row, and this is the only assertion that would notice.
+            dict(row, event_id="e2"),
+        ])
+    )
+    assert list(zip(counted["event_id"], counted["player_id"])) == [("e1", 7), ("e2", 7)]
+    # Same key, and it resolves to the same key the schema enforces.
+    assert set(counted.columns) >= {"event_id", "player_id"}
+
+    # And the schema refuses the duplicate outright -- which is what makes the
+    # detail views' absent dedupe unreachable rather than merely untested.
+    store.record_player_prediction_snapshots("e1", [{
+        "player_id": 7, "name": "Saka", "team": "Arsenal", "confirmed_starter": True,
+        "anytime_goal_prob": 0.5, "anytime_assist_prob": 0.2,
+        "anytime_goal_contribution_prob": 0.6,
+    }])
+    with store._connect() as conn:
+        with pytest.raises(sqlite3.IntegrityError):
+            conn.execute(
+                "INSERT INTO player_prediction_snapshots (event_id, player_id, name,"
+                " team, goal_probability, assist_probability, contribution_probability,"
+                " confirmed_starter, qualifies_call, provenance)"
+                " VALUES ('e1', 7, 'Saka', 'Arsenal', 0.5, 0.2, 0.6, 1, 1, 'snapshot')"
+            )
+
+
+def test_rerun_cannot_show_one_player_twice_in_either_detail_view(clean_db):
+    """The reachable duplicate attempt: the model is re-run constantly.
+
+    The refresh workflow re-runs every 20 minutes on matchdays against a
+    restored `tracking.db`, so "the model recomputed and wrote again" is
+    routine. Every write below is a real writer call, and none may leave two
+    rows for one `(event_id, player_id)` -- the only way a detail view could
+    render one player's run twice. The reruns carry CHANGED probabilities,
+    because that is what a re-run of a changed model actually looks like.
+    """
+    table = pd.DataFrame([
+        {"event_id": "e1", "team_home": "Arsenal", "team_away": "Chelsea",
+         "commence_time": pd.Timestamp("2020-01-01T15:00:00Z"), "home_win_prob": 0.6,
+         "draw_prob": 0.25, "away_win_prob": 0.15, "over_2_5_prob": 0.7,
+         "under_2_5_prob": 0.3, "btts_yes_prob": 0.55, "top_scoreline": "2-1"},
+    ])
+    store.record_predictions(table)
+    starters = [
+        {"player_id": 7, "name": "Saka", "team": "Arsenal", "confirmed_starter": True,
+         "anytime_goal_prob": 0.32, "anytime_assist_prob": 0.24, "anytime_goal_contribution_prob": 0.48},
+        {"player_id": 8, "name": "Odegaard", "team": "Arsenal", "confirmed_starter": True,
+         "anytime_goal_prob": 0.24, "anytime_assist_prob": 0.20, "anytime_goal_contribution_prob": 0.36},
+    ]
+
+    store.record_player_prediction_snapshots("e1", starters)
+    # A rerun that recomputed and disagreed with itself, twice over.
+    store.record_player_prediction_snapshots("e1", [
+        dict(player, anytime_goal_prob=0.05, anytime_goal_contribution_prob=0.06)
+        for player in starters
+    ])
+    store.record_player_prediction_snapshots("e1", starters)
+    # And the after-the-fact reconstruction, which routes through the same key.
+    store.record_player_prediction_snapshots(
+        "e1", starters, provenance="reconstructed"
+    )
+    store.reconcile_predictions(pd.DataFrame([{
+        "team_home": "Arsenal", "team_away": "Chelsea", "date": pd.Timestamp("2020-01-01"),
+        "goals_home": 2, "goals_away": 1, "ftr": "H",
+    }]))
+    store.reconcile_player_prediction_snapshots(
+        "e1", {7: {"goals": 1, "assists": 0}, 8: {"goals": 0, "assists": 0}}
+    )
+
+    with store._connect() as conn:
+        rows = conn.execute(
+            "SELECT player_id, goal_probability, provenance "
+            "FROM player_prediction_snapshots ORDER BY player_id"
+        ).fetchall()
+    # Two players, four writes each: still two rows.
+    assert [row[0] for row in rows] == [7, 8]
+    # The EARLIEST recorded pick survives, and stays immutable -- the same rule
+    # the counting path keeps, enforced by INSERT OR IGNORE rather than by a
+    # dedupe. The rerun's 0.05 must not have overwritten the original 0.32.
+    assert [row[1] for row in rows] == pytest.approx([0.32, 0.24])
+    assert {row[2] for row in rows} == {"snapshot"}
+
+    # Each view renders each player exactly once -- never twice, and never zero.
+    review = store.get_fixture_player_review("e1")
+    shown = [p["name"] for p in review["correct"] + review["missed"] + review["overperformed"]]
+    assert sorted(shown) == ["Odegaard", "Saka"]
+    assert len(shown) == len(set(shown))
+
+    post_match = store.get_fixture_post_match("e1")
+    names = [call["name"] for call in post_match["player_calls"]]
+    assert sorted(names) == ["Saka"]
+    assert len(names) == len(set(names))
+
+
+def test_detail_view_total_agrees_with_the_counting_path_for_the_same_fixture(clean_db):
+    """The two paths must not report different totals for one fixture.
+
+    They are independent readers, so nothing makes their totals agree but the
+    key and the filter. `get_fixture_post_match` shows `qualifies_call AND
+    (goals > 0 OR assists > 0)`, which is `_scorer_accuracy_group`'s
+    `call_hits` population -- so the counted hits and the rendered calls are
+    the same rows. If either filter moves, this is what notices.
+    """
+    table = pd.DataFrame([
+        {"event_id": "e1", "team_home": "Arsenal", "team_away": "Chelsea",
+         "commence_time": pd.Timestamp("2020-01-01T15:00:00Z"), "home_win_prob": 0.6,
+         "draw_prob": 0.25, "away_win_prob": 0.15, "over_2_5_prob": 0.7,
+         "under_2_5_prob": 0.3, "btts_yes_prob": 0.55, "top_scoreline": "2-1"},
+    ])
+    store.record_predictions(table)
+    store.record_player_prediction_snapshots("e1", [
+        # qualifies, scored -> a counted hit
+        {"player_id": 7, "name": "Saka", "team": "Arsenal", "confirmed_starter": True,
+         "anytime_goal_prob": 0.55, "anytime_assist_prob": 0.30, "anytime_goal_contribution_prob": 0.70},
+        # qualifies, blank -> counted, not a hit
+        {"player_id": 8, "name": "Odegaard", "team": "Arsenal", "confirmed_starter": True,
+         "anytime_goal_prob": 0.50, "anytime_assist_prob": 0.28, "anytime_goal_contribution_prob": 0.65},
+        # does NOT qualify, scored -> shown by the review, never counted
+        {"player_id": 9, "name": "Rice", "team": "Arsenal", "confirmed_starter": True,
+         "anytime_goal_prob": 0.05, "anytime_assist_prob": 0.05, "anytime_goal_contribution_prob": 0.06},
+    ])
+    store.reconcile_predictions(pd.DataFrame([{
+        "team_home": "Arsenal", "team_away": "Chelsea", "date": pd.Timestamp("2020-01-01"),
+        "goals_home": 2, "goals_away": 1, "ftr": "H",
+    }]))
+    store.reconcile_player_prediction_snapshots("e1", {
+        7: {"goals": 1, "assists": 0}, 8: {"goals": 0, "assists": 0}, 9: {"goals": 1, "assists": 0},
+    })
+
+    counted = store.get_scorer_accuracy()["snapshot"]
+    rendered = store.get_fixture_post_match("e1")["player_calls"]
+
+    assert counted["calls"] == 2          # Saka and Odegaard qualify
+    assert counted["call_hits"] == 1      # only Saka scored
+    assert len(rendered) == counted["call_hits"]
+    assert [call["name"] for call in rendered] == ["Saka"]
+
+    # The review view is a per-market review, not a count, and deliberately
+    # keeps Rice -- but still once each, and never a player the store does not
+    # hold exactly one row for.
+    review = store.get_fixture_player_review("e1")
+    shown = [p["name"] for p in review["correct"] + review["missed"] + review["overperformed"]]
+    assert sorted(shown) == ["Odegaard", "Rice", "Saka"]

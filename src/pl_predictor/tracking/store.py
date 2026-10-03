@@ -1521,6 +1521,16 @@ def get_fixture_post_match(event_id: str) -> dict | None:
         verdicts.append({"label": f"{market['market'].title()} O/U {market['line']:g}", "prediction": "over" if predicted_over else "under", "actual": f"{market['actual_total']:g}", "hit": predicted_over == actual_over})
     player_calls = []
     if not players.empty:
+        # Same no-dedupe decision as `get_fixture_player_review`, and the same
+        # reason: `player_prediction_snapshots` is keyed
+        # `PRIMARY KEY (event_id, player_id)` and written only by
+        # `INSERT OR IGNORE`, so this loop sees at most one row per player. It
+        # does agree with the counting path by construction — the filter below
+        # is `qualifies_call AND (goals > 0 OR assists > 0)`, which is exactly
+        # `_scorer_accuracy_group`'s `call_hits` population, so these rows and
+        # the counted hits are the same rows rather than two derivations that
+        # happen to match. Read that function's docstring before adding a
+        # dedupe here; it explains why one would discard a row arbitrarily.
         for _, player in players.iterrows():
             if not bool(player["resolved"]):
                 continue
@@ -1544,7 +1554,55 @@ def get_fixture_post_match(event_id: str) -> dict | None:
 
 
 def get_fixture_player_review(event_id: str) -> dict | None:
-    """Return every resolved, qualifying confirmed-starter call for one fixture."""
+    """Resolved confirmed-starter calls, plus resolved scorers who did not
+    qualify, for one fixture.
+
+    Both populations, not just the qualifying calls: the `elif hit` arm below
+    labels a player who scored while clearing no threshold as
+    `"Overperformer"`, and those land in the `overperformed` bucket rather than
+    being dropped. Anyone reading only the qualifying threshold would
+    under-count what this returns, and would conclude the view is filtered to
+    calls when a third of its output is not.
+
+    **No dedupe here, and that is a measured decision, not an oversight.** #44
+    flagged this view and `get_fixture_post_match` as the two readers still
+    taking every player row without `_counted_player_picks`' dedupe, on the
+    theory that a detail view showing a player's scored picks is part of that
+    player's record and would render one player's run twice. Traced, that
+    theory does not hold: a duplicate `(event_id, player_id)` row is
+    UNREACHABLE, so a dedupe here could never fire.
+
+    What holds the key is structural, not incidental:
+
+    - the table is `PRIMARY KEY (event_id, player_id)` and has carried it since
+      it was introduced; its only migrations are `ALTER TABLE ADD COLUMN`,
+      which cannot drop a PK;
+    - its only writer is `INSERT OR IGNORE`, so a rerun can neither append a
+      second row nor overwrite the first. Measured: five identical writes, a
+      rerun carrying changed probabilities, and snapshot-then-reconstructed all
+      leave exactly one row. The refresh workflow reruns every 20 minutes on
+      matchdays, so that rerun is routine, not hypothetical;
+    - #46 is a `frontend/src/predictor-ui/` re-vendor and writes no row at all.
+
+    Worth being precise about why the COUNTING path dedupes anyway when the
+    same PK holds there too: the two defend against different failures. This
+    view is bounded by the PK, so a re-key degrades it VISIBLY — a player
+    listed twice is obvious on screen. The counting path's answer is a bare
+    accuracy number, so a re-key there inflates it invisibly and nothing
+    downstream can catch it. That asymmetry is the whole argument for
+    `_counted_player_picks`, and it is the one thing that does not transfer.
+
+    **So do not "fix" this by calling `_counted_player_picks` here.** On this
+    table it could not pick the EARLIEST row even if a duplicate existed: the
+    table carries no timestamp column at all, which is why `_instants` yields
+    all-NaT for it and `_counted_player_picks`' own docstring says "earliest"
+    cannot order anything here. Such a dedupe would discard one of two rows on
+    an arbitrary storage-order basis while appearing to apply the standing
+    earliest-recorded rule — strictly worse than showing both.
+    `test_detail_views_and_counting_path_share_one_key` is the real guard: it
+    reads the key out of the live schema, so a re-key fails a test instead of
+    quietly changing what this renders.
+    """
     with _connect() as conn:
         players = pd.read_sql(
             "SELECT * FROM player_prediction_snapshots WHERE event_id = ? AND resolved = 1",
