@@ -1,4 +1,4 @@
-// Synced from predictor-ui@f7dc1e08ee2f. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@490df2925aaf. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 /**
  * `Signal[]` as the facts block renders it: one compact row per finding, a
  * headline of at most 12 words, and a collapsed evidence line a keyboard can
@@ -345,10 +345,16 @@ function drawnAs(signal: Signal, figure: number): DrawnBar {
  *
  * Three conditions, each from a finding that a looser rule got wrong:
  *
- *  - **Magnitude, at the display's own rounding.** A rate is matched against
- *    `pct`'s whole percent AND its floored percent, because at `0.738` the chip
- *    says 74% and a writer may say 73% — both are the same rate at the precision
- *    the page shows.
+ *  - **Magnitude, at the display's own rounding, by EQUALITY.** A rate is matched
+ *    against the whole percent `pct` PRINTS and, where that percent was rounded up
+ *    off a real fraction, against the whole percent below it — because at `0.738`
+ *    the chip says 74% and a writer may say 73%, both being the same rate at the
+ *    precision the page shows. Those candidates are read out of `pct`'s output and
+ *    nothing else, and there is no tolerance on either side of the comparison: the
+ *    candidates are already at the display's granularity, so a stated figure
+ *    between them is a figure the bar does not draw. See the branch for why
+ *    floating-point arithmetic cannot supply them and why `74.4%` is not a near
+ *    miss of `74%`.
  *  - **A stated boundary must be TRUE OF THE DRAWN RATE.** The chip's `<1%` and
  *    `>99%` are not decoration: `<1%` means *less than* one percent, so a
  *    headline claiming `1%` states a rate the bar does not draw and is refused
@@ -420,22 +426,58 @@ function denotes(drawn: DrawnBar, stated: StatedFigure): boolean {
       if (!inside) return false;
     }
   } else if (drawn.pct) {
-    // An unbounded RATE is compared at the display's own precision, and BOTH the
-    // rounded and the floored value are reachable: `0.738` draws as `74%` and a
-    // writer may say `73%`, which is the same rate at the precision the page
-    // shows. `pct` prints whole percents, so one is the granularity.
-    const magnitudes = [Math.round(drawn.value), Math.floor(drawn.value)];
-    if (!magnitudes.some((m) => Math.abs(m - stated.value) < 0.5)) return false;
+    // An unbounded RATE is compared at the DISPLAY's own precision, and `pct`
+    // prints whole percents — so one whole percent is the granularity and the
+    // stated figure must EQUAL one of the figures the bar can be read as.
+    //
+    // **The candidates come from the STRING THE PAGE PRINTS, not from float
+    // arithmetic on the value.** `0.29 * 100` is 28.999999999999996, and
+    // flooring that offered 28 as a figure the bar does not draw — a headline
+    // saying `28%` was accepted beside a bar reading `29%`. The floor half is the
+    // same arithmetic reading the wrong thing: 73.8 genuinely floors to 73, but
+    // 28.999999999999996 is 29.000000 to any decimal the reader could write, so
+    // its floor is a number no writer was ever stating. `pct(0.29)` is what the
+    // page prints and it resolves the noise — `Math.round` sends 28.999999999999996
+    // up to 29 — which is the whole reason `drawnAs` reads the comparator and the
+    // bound back out of `pct`'s output rather than deriving them. The rounded
+    // candidate is therefore READ OUT OF `pct`, and re-deriving it as
+    // `Math.round(drawn.value)` would put this defect straight back on the next
+    // rate that lands on a representable boundary.
+    const rendered = Number(pct(drawn.rate / 100).replace("%", ""));
+    //
+    // **The floored candidate is reachable only where there is a REAL fraction to
+    // truncate.** `pct` rounds 73.8 up to 74 and a writer truncating that same
+    // rate may say 73% — the same rate at the precision the page shows, and the
+    // one deliberate half of this rule. But when the value IS the rendered whole
+    // percent there is nothing below it to state, so the candidate is not offered
+    // at all. The test is `toFixed` rather than `Math.floor`, for the reason the
+    // gap branch below spells out: `toFixed` is what the formatter uses to draw,
+    // and it is what tells 29.000000 apart from 28.8. Read through `toFixed` the
+    // floor is `73`, so the candidates are exactly `{74, 73}`.
+    const truncated = Math.floor(Number(drawn.rate.toFixed(2)));
+    const magnitudes = truncated < rendered ? [rendered, truncated] : [rendered];
+    //
+    // **EQUALITY, never a tolerance.** `Math.abs(m - stated.value) < 0.5` made the
+    // rule half a percentage point wide, so at a rate of 0.738 — a bar reading
+    // `74%` — a headline saying `74.4%` passed: a different number wearing one
+    // decimal. That is the same defect as 4172337758 in the gap branch, in the
+    // other direction, and it fails in the one direction this component cannot
+    // afford: the reader is not told a wrong headline is wrong. The candidates are
+    // already at the display's granularity, so the comparison needs no slack —
+    // anything within half a point of them is a figure the bar does not draw.
+    if (!magnitudes.includes(stated.value)) return false;
   } else {
     // A GAP is compared at ITS OWN precision, which is one decimal: `fmt.signed`
-    // prints `+1.6` and never `+1.62`. Sharing the rate's whole-number tolerance
-    // here accepted `2` and `1.2` for a chip drawing `+1.6` (CodeRabbit review
-    // comment 4172337758) — the same defect as 4172215630, in the other
-    // direction: not the wrong sign but the wrong magnitude, and a headline
-    // claiming a 2.0-point gap beside a chip reading 1.6 is a wrong number on the
-    // page in exactly the way this file exists to prevent.
+    // prints `+1.6` and never `+1.62`. When both paths shared the rate path's
+    // whole-number tolerance this accepted `2` and `1.2` for a chip drawing `+1.6`
+    // (CodeRabbit review comment 4172337758) — the same defect as 4172215630, in
+    // the other direction: not the wrong sign but the wrong magnitude, and a
+    // headline claiming a 2.0-point gap beside a chip reading 1.6 is a wrong number
+    // on the page in exactly the way this file exists to prevent. Neither branch
+    // carries a tolerance now; each states the display's own figures and compares
+    // for equality, which is the same rule at two granularities.
     //
-    // **The tolerance is the DISPLAY's granularity, never a fudge factor.** It is
+    // **The granularity is the DISPLAY's, never a fudge factor.** It is
     // derived from `fmt.signed` rather than written as `0.05`, because the rule
     // being enforced is "the words state the figure the chip draws" and the chip's
     // precision is defined by the formatter — a constant here would drift the day

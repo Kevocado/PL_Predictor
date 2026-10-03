@@ -1,4 +1,4 @@
-// Synced from predictor-ui@f7dc1e08ee2f. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@490df2925aaf. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 // WCAG 2.x relative luminance and contrast ratio, for the token gate and for
 // picking readable ink on arbitrary team colours at runtime.
 
