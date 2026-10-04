@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-04T19:25:07.848792+00:00",
+  "generated_at": "2026-10-04T22:28:29.479735+00:00",
   "model_fingerprint": "38d8e310d6f6316d0951a40c95e0f4ed51eebba2ee04dd34a0c17d27ad09a9ad",
   "current_gameweek": 5,
   "min_gameweek": 1,
@@ -71732,7 +71732,7 @@
       "away_2plus_prob": 0.48285501972219813,
       "value_bet_flags": [],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-04T19:22:21.406158Z",
+      "odds_fetched_at": "2026-10-04T22:24:43.146975Z",
       "odds_is_stale": false,
       "recommended_bet": null,
       "score_grid": [
@@ -71907,7 +71907,7 @@
         "btts_no"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-04T19:22:21.406158Z",
+      "odds_fetched_at": "2026-10-04T22:24:43.146975Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "btts_no",
@@ -72134,18 +72134,18 @@
       "team_away": "Leeds",
       "home_win": {
         "prob": 0.7438482963947755,
-        "implied": 0.7067385602596961,
-        "edge": 0.037109736135079396
+        "implied": 0.7099999999998547,
+        "edge": 0.03384829639492071
       },
       "draw": {
         "prob": 0.15458511317890777,
-        "implied": 0.17774566856329982,
-        "edge": -0.023160555384392045
+        "implied": 0.17999999999958924,
+        "edge": -0.025414886820681465
       },
       "away_win": {
         "prob": 0.10156659042631667,
-        "implied": 0.11551577117601487,
-        "edge": -0.013949180749698198
+        "implied": 0.10999999999955416,
+        "edge": -0.008433409573237488
       },
       "over_2_5": {
         "prob": 0.66158950366594,
@@ -72172,7 +72172,7 @@
         "btts_yes"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-04T19:22:21.406158Z",
+      "odds_fetched_at": "2026-10-04T22:24:43.146975Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "over_2_5",
@@ -72419,7 +72419,7 @@
       "away_2plus_prob": 0.4919511609681899,
       "value_bet_flags": [],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-04T19:22:21.406158Z",
+      "odds_fetched_at": "2026-10-04T22:24:43.146975Z",
       "odds_is_stale": false,
       "recommended_bet": null,
       "score_grid": [
@@ -72588,28 +72588,28 @@
       "team_away": "Man City",
       "home_win": {
         "prob": 0.2659689116051089,
-        "implied": 0.36510034853428597,
-        "edge": -0.09913143692917709
+        "implied": 0.36983241232621195,
+        "edge": -0.10386350072110306
       },
       "draw": {
         "prob": 0.24542859878096193,
-        "implied": 0.2552360060780326,
-        "edge": -0.009807407297070664
+        "implied": 0.2531177188561568,
+        "edge": -0.007689120075194872
       },
       "away_win": {
         "prob": 0.4886024896139291,
-        "implied": 0.379663645386692,
-        "edge": 0.1089388442272371
+        "implied": 0.377049868816912,
+        "edge": 0.11155262079701711
       },
       "over_2_5": {
         "prob": 0.5243411150007672,
-        "implied": 0.601863421524222,
-        "edge": -0.07752230652345482
+        "implied": 0.609999999999805,
+        "edge": -0.08565888499903784
       },
       "under_2_5": {
         "prob": 0.47565888499923276,
-        "implied": 0.3981365784752883,
-        "edge": 0.07752230652394443
+        "implied": 0.389999999999698,
+        "edge": 0.08565888499953478
       },
       "btts_yes_prob": 0.5474733174144016,
       "top_scoreline": "1-1",
@@ -72627,13 +72627,13 @@
         "btts_no"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-04T19:22:21.406158Z",
+      "odds_fetched_at": "2026-10-04T22:24:43.146975Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "away_win",
         "probability": 0.4886024896139291,
-        "implied_probability": 0.379663645386692,
-        "edge": 0.1089388442272371,
+        "implied_probability": 0.377049868816912,
+        "edge": 0.11155262079701711,
         "price": 2.6,
         "bookmaker": "DRAFT_KINGS"
       },
@@ -72842,8 +72842,8 @@
           "won": null,
           "final_score": null,
           "result_source": null,
-          "closing_price": 2.33,
-          "clv_pct": 7.296137339055786
+          "closing_price": 2.5,
+          "clv_pct": 0.0
         }
       ]
     },
@@ -72891,7 +72891,7 @@
         "home_win"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-04T19:22:21.406158Z",
+      "odds_fetched_at": "2026-10-04T22:24:43.146975Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "home_win",
@@ -73082,13 +73082,13 @@
       },
       "over_2_5": {
         "prob": 0.5841766819857799,
-        "implied": 0.569999999999785,
-        "edge": 0.014176681985994866
+        "implied": 0.5639741878057463,
+        "edge": 0.020202494180033614
       },
       "under_2_5": {
         "prob": 0.41582331801422,
-        "implied": 0.42999999999971644,
-        "edge": -0.014176681985496431
+        "implied": 0.43602581219376013,
+        "edge": -0.02020249417954012
       },
       "btts_yes_prob": 0.5966907042832876,
       "top_scoreline": "1-1",
@@ -73104,7 +73104,7 @@
         "home_win"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-04T19:22:21.406158Z",
+      "odds_fetched_at": "2026-10-04T22:24:43.146975Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "home_win",
@@ -86807,7 +86807,7 @@
       "away_2plus_prob": 0.3078603503749774,
       "value_bet_flags": [],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-04T19:22:21.406158Z",
+      "odds_fetched_at": "2026-10-04T22:24:43.146975Z",
       "odds_is_stale": false,
       "recommended_bet": null,
       "score_grid": [
@@ -87027,13 +87027,13 @@
       },
       "over_2_5": {
         "prob": 0.5381451019306704,
-        "implied": 0.4765458937198067,
-        "edge": 0.06159920821086373
+        "implied": 0.4541895718804563,
+        "edge": 0.08395553005021417
       },
       "under_2_5": {
         "prob": 0.46185489806932944,
-        "implied": 0.5234541062801932,
-        "edge": -0.06159920821086373
+        "implied": 0.5458104281190466,
+        "edge": -0.08395553004971712
       },
       "btts_yes_prob": 0.5718683836514873,
       "top_scoreline": "1-1",
@@ -87050,13 +87050,13 @@
         "over_2_5"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-04T19:22:21.406158Z",
+      "odds_fetched_at": "2026-10-04T22:24:43.146975Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "over_2_5",
         "probability": 0.5381451019306704,
-        "implied_probability": 0.4765458937198067,
-        "edge": 0.06159920821086373,
+        "implied_probability": 0.4541895718804563,
+        "edge": 0.08395553005021417,
         "price": 2.07,
         "bookmaker": "BET_PARX"
       },
@@ -87277,13 +87277,13 @@
       },
       "over_2_5": {
         "prob": 0.5342810650581237,
-        "implied": 0.53999999999977,
-        "edge": -0.005718934941646325
+        "implied": 0.5449999999998133,
+        "edge": -0.010718934941689628
       },
       "under_2_5": {
         "prob": 0.46571893494187644,
-        "implied": 0.4599999999997309,
-        "edge": 0.005718934942145537
+        "implied": 0.4549999999997768,
+        "edge": 0.010718934942099634
       },
       "btts_yes_prob": 0.5228846710855801,
       "top_scoreline": "0-1",
@@ -87300,7 +87300,7 @@
         "btts_no"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-04T19:22:21.406158Z",
+      "odds_fetched_at": "2026-10-04T22:24:43.146975Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "away_win",
@@ -90033,26 +90033,6 @@
           "expected_saves": 0.0
         },
         {
-          "player_id": 588,
-          "name": "Khalaili",
-          "position": "DEF",
-          "anytime_goal_prob": 0.07699934372886197,
-          "anytime_assist_prob": 0.04837385528690008,
-          "anytime_goal_contribution_prob": 0.12164844390503571,
-          "status": "a",
-          "news": "",
-          "confidence": "position_avg",
-          "predicted_starter": true,
-          "confirmed_starter": false,
-          "expected_minutes": 71.85281501340484,
-          "is_penalty_taker": false,
-          "is_set_piece_taker": false,
-          "expected_shots": 0.10352436832955655,
-          "expected_shots_on_target": 0.0,
-          "anytime_shot_on_target_prob": 0.0,
-          "expected_saves": 0.0
-        },
-        {
           "player_id": 210,
           "name": "Wharton",
           "position": "MID",
@@ -90088,6 +90068,26 @@
           "is_penalty_taker": false,
           "is_set_piece_taker": true,
           "expected_shots": 0.0,
+          "expected_shots_on_target": 0.0,
+          "anytime_shot_on_target_prob": 0.0,
+          "expected_saves": 0.0
+        },
+        {
+          "player_id": 204,
+          "name": "Mitchell",
+          "position": "DEF",
+          "anytime_goal_prob": 0.059777020579880547,
+          "anytime_assist_prob": 0.0589303864063353,
+          "anytime_goal_contribution_prob": 0.11518472406522406,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": true,
+          "confirmed_starter": false,
+          "expected_minutes": 70.49174193548387,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false,
+          "expected_shots": 0.18373514109102657,
           "expected_shots_on_target": 0.0,
           "anytime_shot_on_target_prob": 0.0,
           "expected_saves": 0.0
@@ -91175,26 +91175,6 @@
           "expected_saves": 0.0
         },
         {
-          "player_id": 588,
-          "name": "Khalaili",
-          "position": "DEF",
-          "anytime_goal_prob": 0.13072312071749692,
-          "anytime_assist_prob": 0.08591123478631191,
-          "anytime_goal_contribution_prob": 0.20540377078784844,
-          "status": "a",
-          "news": "",
-          "confidence": "position_avg",
-          "predicted_starter": true,
-          "confirmed_starter": false,
-          "expected_minutes": 71.85281501340484,
-          "is_penalty_taker": false,
-          "is_set_piece_taker": false,
-          "expected_shots": 0.1960623204017131,
-          "expected_shots_on_target": 0.0,
-          "anytime_shot_on_target_prob": 0.0,
-          "expected_saves": 0.0
-        },
-        {
           "player_id": 211,
           "name": "Yeremy",
           "position": "MID",
@@ -91232,6 +91212,26 @@
           "expected_shots": 0.49749184082148273,
           "expected_shots_on_target": 0.1658306136071609,
           "anytime_shot_on_target_prob": 0.15281027555211746,
+          "expected_saves": 0.0
+        },
+        {
+          "player_id": 204,
+          "name": "Mitchell",
+          "position": "DEF",
+          "anytime_goal_prob": 0.10642661877021808,
+          "anytime_assist_prob": 0.10046923559179177,
+          "anytime_goal_contribution_prob": 0.19620325332754696,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": true,
+          "confirmed_starter": false,
+          "expected_minutes": 70.49174193548387,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false,
+          "expected_shots": 0.3479715808259413,
+          "expected_shots_on_target": 0.0,
+          "anytime_shot_on_target_prob": 0.0,
           "expected_saves": 0.0
         }
       ],
@@ -95901,26 +95901,6 @@
           "expected_saves": 0.0
         },
         {
-          "player_id": 588,
-          "name": "Khalaili",
-          "position": "DEF",
-          "anytime_goal_prob": 0.10177971937616515,
-          "anytime_assist_prob": 0.06426589987907527,
-          "anytime_goal_contribution_prob": 0.1595046540000915,
-          "status": "a",
-          "news": "",
-          "confidence": "position_avg",
-          "predicted_starter": true,
-          "confirmed_starter": false,
-          "expected_minutes": 71.85281501340484,
-          "is_penalty_taker": false,
-          "is_set_piece_taker": false,
-          "expected_shots": 0.13868646710008686,
-          "expected_shots_on_target": 0.0,
-          "anytime_shot_on_target_prob": 0.0,
-          "expected_saves": 0.0
-        },
-        {
           "player_id": 210,
           "name": "Wharton",
           "position": "MID",
@@ -95956,6 +95936,26 @@
           "is_penalty_taker": false,
           "is_set_piece_taker": true,
           "expected_shots": 0.0,
+          "expected_shots_on_target": 0.0,
+          "anytime_shot_on_target_prob": 0.0,
+          "expected_saves": 0.0
+        },
+        {
+          "player_id": 204,
+          "name": "Mitchell",
+          "position": "DEF",
+          "anytime_goal_prob": 0.07925639494301129,
+          "anytime_assist_prob": 0.07814552930129859,
+          "anytime_goal_contribution_prob": 0.15120839131097552,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": true,
+          "confirmed_starter": false,
+          "expected_minutes": 70.49174193548387,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false,
+          "expected_shots": 0.2461408652978508,
           "expected_shots_on_target": 0.0,
           "anytime_shot_on_target_prob": 0.0,
           "expected_saves": 0.0
@@ -98347,26 +98347,6 @@
           "expected_saves": 0.0
         },
         {
-          "player_id": 588,
-          "name": "Khalaili",
-          "position": "DEF",
-          "anytime_goal_prob": 0.10296705354670754,
-          "anytime_assist_prob": 0.06730235256818218,
-          "anytime_goal_contribution_prob": 0.1633394811741823,
-          "status": "a",
-          "news": "",
-          "confidence": "position_avg",
-          "predicted_starter": true,
-          "confirmed_starter": false,
-          "expected_minutes": 71.85281501340484,
-          "is_penalty_taker": false,
-          "is_set_piece_taker": false,
-          "expected_shots": 0.1520744762782939,
-          "expected_shots_on_target": 0.0,
-          "anytime_shot_on_target_prob": 0.0,
-          "expected_saves": 0.0
-        },
-        {
           "player_id": 211,
           "name": "Yeremy",
           "position": "MID",
@@ -98404,6 +98384,26 @@
           "expected_shots": 0.3858763427395931,
           "expected_shots_on_target": 0.12862544757986433,
           "anytime_shot_on_target_prob": 0.12069675096527122,
+          "expected_saves": 0.0
+        },
+        {
+          "player_id": 204,
+          "name": "Mitchell",
+          "position": "DEF",
+          "anytime_goal_prob": 0.0835801824935225,
+          "anytime_assist_prob": 0.07884476871751767,
+          "anytime_goal_contribution_prob": 0.15583509105297044,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": true,
+          "confirmed_starter": false,
+          "expected_minutes": 70.49174193548387,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false,
+          "expected_shots": 0.2699019159082271,
+          "expected_shots_on_target": 0.0,
+          "anytime_shot_on_target_prob": 0.0,
           "expected_saves": 0.0
         }
       ],
@@ -209264,26 +209264,6 @@
           "expected_saves": 0.0
         },
         {
-          "player_id": 588,
-          "name": "Khalaili",
-          "position": "DEF",
-          "anytime_goal_prob": 0.12342789100417373,
-          "anytime_assist_prob": 0.08099979472808239,
-          "anytime_goal_contribution_prob": 0.19443005189719786,
-          "status": "a",
-          "news": "",
-          "confidence": "position_avg",
-          "predicted_starter": true,
-          "confirmed_starter": false,
-          "expected_minutes": 71.85281501340484,
-          "is_penalty_taker": false,
-          "is_set_piece_taker": false,
-          "expected_shots": 0.1843662303094849,
-          "expected_shots_on_target": 0.0,
-          "anytime_shot_on_target_prob": 0.0,
-          "expected_saves": 0.0
-        },
-        {
           "player_id": 211,
           "name": "Yeremy",
           "position": "MID",
@@ -209321,6 +209301,26 @@
           "expected_shots": 0.46781398442115807,
           "expected_shots_on_target": 0.15593799480705267,
           "anytime_shot_on_target_prob": 0.14438775887161048,
+          "expected_saves": 0.0
+        },
+        {
+          "player_id": 204,
+          "name": "Mitchell",
+          "position": "DEF",
+          "anytime_goal_prob": 0.10040807652832928,
+          "anytime_assist_prob": 0.09476946819947363,
+          "anytime_goal_contribution_prob": 0.18566192471228116,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": true,
+          "confirmed_starter": false,
+          "expected_minutes": 70.49174193548387,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false,
+          "expected_shots": 0.32721334971587174,
+          "expected_shots_on_target": 0.0,
+          "anytime_shot_on_target_prob": 0.0,
           "expected_saves": 0.0
         }
       ],
@@ -219668,8 +219668,8 @@
           "name": "Mazraoui",
           "team": "Man United",
           "position": "DEF",
-          "status": "a",
-          "chance_of_playing": null,
+          "status": "d",
+          "chance_of_playing": 75,
           "minutes": 97,
           "starts": 1,
           "goals": 0,
@@ -219682,15 +219682,15 @@
           "ict": 6.4,
           "bps": 6,
           "bonus": 0,
-          "news": "",
+          "news": "Back injury - 75% chance of playing",
           "quality_rating": 71.1,
           "form_rating": 0.0,
           "live_form_rating": 21.2,
           "live_form_vs_quality": -49.9,
           "overall_rating": 71.1,
-          "current_impact_rating": 51.5,
+          "current_impact_rating": 29.0,
           "rating_driver": "Team Adjusted Prevention",
-          "rating_expected_minutes": 65.2,
+          "rating_expected_minutes": 48.9,
           "rating_status": "established",
           "rating_evidence_minutes": 3813.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -226836,8 +226836,8 @@
           "name": "Khalaili",
           "team": "Crystal Palace",
           "position": "DEF",
-          "status": "a",
-          "chance_of_playing": null,
+          "status": "d",
+          "chance_of_playing": 75,
           "minutes": 379,
           "starts": 4,
           "goals": 1,
@@ -226850,15 +226850,15 @@
           "ict": 22.5,
           "bps": 54,
           "bonus": 0,
-          "news": "",
+          "news": "Hamstring injury - 75% chance of playing",
           "quality_rating": null,
           "form_rating": 6.3,
           "live_form_rating": 66.2,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 48.7,
+          "current_impact_rating": 27.4,
           "rating_driver": "Bps",
-          "rating_expected_minutes": 66.2,
+          "rating_expected_minutes": 49.6,
           "rating_status": "provisional",
           "rating_evidence_minutes": 0.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -240801,7 +240801,7 @@
   "fpl": {
     "projections": {
       "gameweek": 6,
-      "generated_at": "2026-10-04T19:25:07.788866+00:00",
+      "generated_at": "2026-10-04T22:28:29.424176+00:00",
       "model_source": "hybrid_match_context_baseline",
       "data_freshness": "live official FPL API + independent pre-match scoreline model",
       "players": [
@@ -241734,38 +241734,6 @@
           ]
         },
         {
-          "player_id": 422,
-          "name": "Noussair Mazraoui",
-          "web_name": "Mazraoui",
-          "team": "Man Utd",
-          "team_id": 16,
-          "position": "DEF",
-          "price": 4.4,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 65.2,
-          "projected_points": 4.58,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 2,
-              "expected_goals": 2.02,
-              "clean_sheet_probability": 0.327,
-              "expected_minutes": 65.2,
-              "opponent": "Spurs",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "65 expected minutes",
-            "form 0.3",
-            "2.02 expected team goals"
-          ]
-        },
-        {
           "player_id": 480,
           "name": "Morgan Gibbs-White",
           "web_name": "Gibbs-White",
@@ -241827,38 +241795,6 @@
             "82 expected minutes",
             "form 2.7",
             "1.85 expected team goals"
-          ]
-        },
-        {
-          "player_id": 588,
-          "name": "Anan Khalaili",
-          "web_name": "Khalaili",
-          "team": "Crystal Palace",
-          "team_id": 8,
-          "position": "DEF",
-          "price": 5.0,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 66.2,
-          "projected_points": 4.52,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 3,
-              "expected_goals": 1.33,
-              "clean_sheet_probability": 0.223,
-              "expected_minutes": 66.2,
-              "opponent": "Nott'm Forest",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "66 expected minutes",
-            "form 5.3",
-            "1.33 expected team goals"
           ]
         },
         {
@@ -244134,6 +244070,38 @@
           ]
         },
         {
+          "player_id": 588,
+          "name": "Anan Khalaili",
+          "web_name": "Khalaili",
+          "team": "Crystal Palace",
+          "team_id": 8,
+          "position": "DEF",
+          "price": 5.0,
+          "status": "d",
+          "news": "Hamstring injury - 75% chance of playing",
+          "availability": 0.75,
+          "expected_minutes": 49.6,
+          "projected_points": 3.77,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 3,
+              "expected_goals": 1.33,
+              "clean_sheet_probability": 0.223,
+              "expected_minutes": 49.6,
+              "opponent": "Nott'm Forest",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "50 expected minutes",
+            "form 5.3",
+            "1.33 expected team goals"
+          ]
+        },
+        {
           "player_id": 579,
           "name": "Ronald Araujo",
           "web_name": "Araujo",
@@ -244707,6 +244675,38 @@
             "52 expected minutes",
             "form 3.7",
             "2.56 expected team goals"
+          ]
+        },
+        {
+          "player_id": 422,
+          "name": "Noussair Mazraoui",
+          "web_name": "Mazraoui",
+          "team": "Man Utd",
+          "team_id": 16,
+          "position": "DEF",
+          "price": 4.4,
+          "status": "d",
+          "news": "Back injury - 75% chance of playing",
+          "availability": 0.75,
+          "expected_minutes": 48.9,
+          "projected_points": 3.66,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 2,
+              "expected_goals": 2.02,
+              "clean_sheet_probability": 0.327,
+              "expected_minutes": 48.9,
+              "opponent": "Spurs",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "49 expected minutes",
+            "form 0.3",
+            "2.02 expected team goals"
           ]
         },
         {
