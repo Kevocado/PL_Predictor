@@ -85,11 +85,27 @@ MIN_LAMBDA = 0.05  # create_dixon_coles_grid requires strictly positive lambdas
 #:   learned split is >= 4.0, so 0.0 lands in the leftmost region the booster
 #:   has for it. Substituting the league mean measured worse (+0.00526 RPS on
 #:   the affected rows).
-#: * the 16 xG columns are already handled upstream: `build_row` substitutes the
-#:   league-average rate (see `features/build.py`'s xG loop), so they only reach
-#:   here when `matches_df` carries no goals either. Training still encodes them
-#:   as 0.0; that disagreement is #43's, measured at ~0.0003 RPS, and aligning
-#:   it needs a retrain.
+#: * the 16 xG columns are already handled upstream, on BOTH sides:
+#:   `xg_form.resolve_missing_xg` substitutes the league-average rate, called
+#:   from `build.build_training_frame` when fitting and from
+#:   `build.FixtureFeatureContext.build_row` when serving. They only reach this
+#:   dict when that imputation had nothing to work with -- a `matches_df`
+#:   carrying no goals at all, where the rate is unavailable and the frame stays
+#:   NaN. That is what these 0.0 encode, and it is why they are still 0.0 and
+#:   not the league rate: with no league rate in `matches_df` there is no rate
+#:   to substitute at serving either, so the two ends still meet at 0.0.
+#:
+#:   One residual difference worth naming, because it is a real property of
+#:   "one function" rather than one fixed number: the *rate* is a statistic of
+#:   whatever `matches_df` the caller holds, and training and serving do not
+#:   hold the same one. Serving's context includes the in-progress season, so
+#:   its league average differs from the fitted window's by a small amount
+#:   (measured on this project's data: 0.0023-0.0464 goals across the four
+#:   rates). So the two ends run identical code on slightly different inputs,
+#:   which is the honest and correct state for a statistic -- a frozen constant
+#:   would go stale as the league changes. This is categorically different from
+#:   the skew this replaced, where the two ends ran *different code* and one of
+#:   them invented a number (0.0) rather than measuring one.
 MISSING_VALUE_ENCODING: dict[str, float] = {
     # Promotion / no prior-season squad data. See the note above: this is a
     # learned encoding, not an unrepresentable value.
@@ -313,13 +329,14 @@ def _row_to_matrix(row, feature_cols: list[str]) -> pd.DataFrame:
     feature. For most of the 22 it genuinely is not -- `squad_continuity` can
     never be 0.0 for an established club -- and that was measured rather than
     assumed: see `MISSING_VALUE_ENCODING`. The fix that is right lives
-    upstream in `features/build.py`, which now supplies a real league-average
-    xG rate when Understat is cold so those 16 columns arrive already
-    populated; the fill stays as the contract, not as the thing that decides
-    what a missing measurement means. `predict_many_from_rows` routes through
-    the same helper for the same reason: it used to be a second, independent
-    copy of this fill, which is exactly the kind of drift that let #43 fix one
-    side of the xG encoding and not the other.
+    upstream, in `features/xg_form.py::resolve_missing_xg`, which supplies a real
+    league-average xG rate on the serving path (`build_row`) *and* on the
+    fitting path (`build_training_frame`), so those 16 columns arrive already
+    populated at both ends and this fill is not what decides what a missing
+    measurement means. `predict_many_from_rows` routes through the same helper
+    for the same reason: it used to be a second, independent copy of this fill,
+    which is exactly the kind of drift that let #43 fix one side of the xG
+    encoding and not the other.
 
     Measured effect of that upstream fix, simulating a cold Understat on each of
     the four available seasons (mean RPS against real outcomes, lower better):

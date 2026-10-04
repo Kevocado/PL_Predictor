@@ -108,13 +108,47 @@ def attach_xg_delta_features(df: pd.DataFrame, windows: tuple[int, ...] = WINDOW
     return pd.DataFrame(cols, index=df.index), feature_cols
 
 
+def resolve_missing_xg(reading, league_rate) -> float:
+    """**The** definition of what a missing expected-goals reading is worth: the
+    league-average expected-goals rate for that same stat and window.
+
+    One function, called from both ends of the pipeline, because the two ends
+    used to answer this separately and agreed only by accident. A promoted
+    team's first match of a season has no Understat history for `merge_asof` to
+    join, so the same gap appears on both sides:
+
+    * `build.build_training_frame` — the fitting side. Those cells used to reach
+      the boosters as `0.0` via `models/manifest.py::train_all`'s
+      `train_df[feature_cols].fillna(0)`, which asserts the club created
+      exactly zero expected goals and (via the `xg_delta_*` columns derived
+      from it) scored exactly to expectation.
+    * `build.FixtureFeatureContext.build_row` — the serving side, where #43
+      replaced that same silent `0.0` with the league-average rate.
+
+    Two implementations that agree today are two implementations that can stop
+    agreeing tomorrow, which is the entire failure mode this closes. Sharing
+    the function is the fix; the measured cost of the skew it removes is small
+    (~0.0003 RPS) and that is exactly why it would have survived unnoticed.
+
+    A reading that is already present is returned untouched. A missing reading
+    stays NaN when the league rate is unavailable too — there is nothing left
+    to substitute — and `models/ml_scoreline.MISSING_VALUE_ENCODING` is then the
+    only thing deciding what the booster sees.
+    """
+    if reading is None or pd.isna(reading):
+        return float("nan") if league_rate is None or pd.isna(league_rate) else float(league_rate)
+    return float(reading)
+
+
 def attach_xg_features(matches_df: pd.DataFrame, understat_df: pd.DataFrame, windows: tuple[int, ...] = WINDOWS) -> tuple[pd.DataFrame, list[str]]:
     """Left-joins each side's rolling xG form onto `matches_df` (by team,
     as-of the match date) via `merge_asof`. Returns a frame aligned to
     `matches_df`'s row order with `home_xg_*`/`away_xg_*` columns, plus the
-    feature-column list. Rows with no Understat coverage (older seasons, or
-    if the scrape failed) get NaN — callers should treat these the same as
-    any other missing feature (e.g. `.fillna(0)` before feeding a model)."""
+    feature-column list. Rows with no Understat coverage (a promoted team's
+    first match of a season, older seasons, or a failed scrape) get NaN here;
+    callers resolve them with `resolve_missing_xg` — `build.build_training_frame`
+    and `FixtureFeatureContext.build_row` both do, with the same league rate, so
+    the fitted boosters and the serving path agree on what "no xG" means."""
     if understat_df.empty:
         cols = [f"{side}_xg_{stat}_last_{w}" for side in ("home", "away") for stat in ("for", "against") for w in windows]
         empty = pd.DataFrame(index=matches_df.index, columns=cols, dtype=float)

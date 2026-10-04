@@ -9,6 +9,7 @@ inline instead of importing the shared module).
 
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 
 from ..data import football_data, other_competitions, understat, understat_shots
@@ -27,7 +28,7 @@ from . import (
     table_context,
     xg_form,
 )
-from .date_keys import as_date_key, drop_unmatchable
+from .date_keys import as_asof_key, as_date_key, drop_unmatchable
 
 # Targets / raw-outcome columns that must never appear in the feature list
 # (that would be leaking the match's own result into its own features).
@@ -61,6 +62,196 @@ def _league_goals_per_match(matches_df: pd.DataFrame) -> float | None:
     if goals.empty:
         return None
     return float(goals.mean())
+
+
+#: The stat/window keys the xG league average is keyed by — the keys
+#: `xg_form.latest_xg_form` returns, the keys `FixtureFeatureContext`'s blend
+#: looks up, and (after the side prefix) the columns
+#: `xg_form.attach_xg_features` produces.
+XG_STAT_COLS = tuple(f"{stat}_last_{w}" for stat in ("xg_for", "xg_against") for w in xg_form.WINDOWS)
+
+
+def _xg_league_avg_rates(xg_current: pd.DataFrame, matches_df: pd.DataFrame) -> pd.Series:
+    """The league-average expected-goals rate per `XG_STAT_COLS`, keyed the way
+    `resolve_missing_xg` and the cold-start blend look it up.
+
+    Understat's own cross-team mean when it has data; otherwise the
+    actual-goals rate from `matches_df` (`_league_goals_per_match`), so a cold
+    Understat still leaves both ends of the pipeline with a real number to
+    impute. Empty only when `matches_df` carries no goals either -- nothing
+    left to fall back on, and the xG columns then stay NaN rather than a number
+    being invented.
+
+    Module-level rather than a `FixtureFeatureContext` method because
+    `build_training_frame` needs the identical series to impute the same cells
+    the serving path imputes; a second derivation of "the league's xG rate"
+    would be one more pair of halves that can disagree.
+
+    Point-in-time caveat, and why the training path does not call this: every
+    row here is a function of the whole `matches_df`, so the value is only
+    valid as-of the end of that frame. Serving is fine -- a live fixture's date
+    is after everything in the context, so "the whole frame" is genuinely the
+    past. Training is not: one rate written into 3,040 historical rows puts
+    2025-26 xG into a 2018 fixture. Use `_xg_league_avg_rates_by_date` there,
+    which derives the same quantity per fixture date from strictly earlier data.
+    """
+    avg = _league_goals_per_match(matches_df)
+    if xg_current is not None and not xg_current.empty:
+        return xg_current.mean()
+    if avg is None:
+        return pd.Series(dtype=float)
+    return pd.Series({col: avg for col in XG_STAT_COLS}, dtype=float)
+
+
+def _xg_league_avg_rates_by_date(
+    understat_df: pd.DataFrame, matches_df: pd.DataFrame, dates: pd.Series
+) -> pd.DataFrame:
+    """`_xg_league_avg_rates` computed as of each row's own match date, indexed
+    by date — the no-lookahead form of the same quantity.
+
+    Same definition (Understat's cross-team mean of each team's rolling form
+    when available, else the actual-goals rate from `matches_df`), restricted to
+    matches strictly before each date, because a feature row for fixture F may
+    only contain information available before F kicks off. Serving needs no
+    equivalent: its context holds no data later than the fixture it prices, so
+    the whole-frame rate already is the as-of rate there.
+
+    Implemented as one backward `merge_asof` from the distinct fixture dates
+    onto Understat's per-team rolling form, rather than a filter-and-mean per
+    date — the same idiom `xg_form.attach_xg_features` uses, and the reason it
+    is affordable on 3,040 rows.
+
+    Dates before Understat's first match (or with no `matches_df` goals to fall
+    back on) get a NaN rate, which `resolve_missing_xg` declines to substitute.
+    That leaves the cell missing rather than filling it with a rate derived from
+    later matches, which is the same trade #43's `_league_goals_per_match`
+    fallback already makes and is why those contract entries stay 0.0.
+    """
+    dates = pd.to_datetime(pd.Series(dates)).reset_index(drop=True)
+    out = pd.DataFrame(index=dates.index, columns=list(XG_STAT_COLS), dtype=float)
+
+    if understat_df is None or understat_df.empty:
+        # Same fallback as `_xg_league_avg_rates`, made point-in-time: the
+        # actual-goals rate from matches strictly before each date, as an
+        # expanding mean. Computed this way rather than from the whole frame so
+        # a cold Understat does not reintroduce the look-ahead the Understat
+        # branch above exists to avoid — the fallback is a rate too, and a rate
+        # taken from the future is still the future.
+        if matches_df is None or matches_df.empty:
+            return out
+        if "goals_home" not in matches_df.columns or "goals_away" not in matches_df.columns:
+            return out
+        # Per-date team-goals AND per-date FIXTURES, from the same rows, so the
+        # two halves of the rate describe the same population. A date holds
+        # however many fixtures were played on it — a real Premier League
+        # matchday is 10 fixtures, not 1 — so counting dates as matches
+        # inflated this rate by roughly the fixtures-per-date (measured on this
+        # project's 8-season window: 3.23 fixtures per date on average, max 10,
+        # which put the end-of-window rate at 4.61 where the true league rate is
+        # 1.43 — a 3.2x error, and 1.43 is the value this now reproduces).
+        # Caught by CodeRabbit on #51.
+        #
+        # A fixture counts if EITHER of its goal values is known, which is
+        # exactly the set of rows contributing to the numerator: a fixture with
+        # `goals_home` NaN and `goals_away` = 2 contributes 2 team-goals and is
+        # 1 fixture, so it counts once. A date on which every fixture has both
+        # goal values NaN therefore contributes 0 to both — see the reindex
+        # below, which keeps such a date in the index as a zero row rather than
+        # dropping it — so the numerator and denominator can never describe
+        # different populations.
+        long_goals = pd.DataFrame(
+            {
+                "date": pd.to_datetime(matches_df["date"]),
+                "home": matches_df["goals_home"],
+                "away": matches_df["goals_away"],
+            }
+        )
+        long_goals = long_goals[long_goals[["home", "away"]].notna().any(axis=1)]
+        if long_goals.empty:
+            return out
+
+        team_goals = pd.concat(
+            [
+                long_goals.rename(columns={"home": "goals"})[["date", "goals"]],
+                long_goals.rename(columns={"away": "goals"})[["date", "goals"]],
+            ],
+            ignore_index=True,
+        )
+        per_date = pd.DataFrame(
+            {
+                "goals": team_goals.groupby("date")["goals"].sum(),
+                "fixtures": long_goals.groupby("date").size(),
+            }
+        ).sort_index()
+        if per_date.empty:
+            return out
+
+        # A matchday on which no fixture has a goal value still belongs in the
+        # index, as a zero-contribution row: it must not dilute either half of
+        # the rate. Dropping the row instead would be wrong in a way that is
+        # easy to miss -- the *next* date's shifted rate would then be read off
+        # the row before it, so a fixture played on an all-unplayed matchday
+        # would lose the rate that matchday's predecessors established.
+        all_match_dates = pd.DatetimeIndex(sorted(pd.to_datetime(matches_df["date"]).unique()))
+        per_date = per_date.reindex(all_match_dates).fillna(0.0)
+        if per_date.empty:
+            return out
+
+        # Cumulative team-goals / (2 x cumulative fixtures), evaluated STRICTLY
+        # BEFORE each date — hence the shift on both columns. Without it the
+        # first matchday's own 0-0 would seed the series and a 2020-08-01
+        # fixture would be imputed 0.0, which is the very encoding this change
+        # exists to remove, reintroduced through the fallback. The shifted
+        # first row is NaN (0/0) because no prior match exists, which is the
+        # honest answer and also avoids dividing by zero.
+        cumulative = per_date.cumsum()
+        # `shift(1)` then `fillna(0)`, NOT `shift(1)` alone: shift propagates a
+        # NaN one row forward, which would wipe out the next date's numerator and
+        # denominator. Filling the shifted gap with 0 gives the right answer on
+        # both counts -- the first date's row becomes 0/0, which pandas
+        # evaluates to NaN (the honest "no prior match" answer, and no
+        # ZeroDivisionError) -- while every later date gets the true prior
+        # cumulative. The `fillna(0.0)` on `per_date` above is likewise not
+        # optional: pandas' `cumsum` propagates NaN rather than skipping it
+        # (verified on 3.0.6), so a zero-contribution row left as NaN would
+        # poison every later cumulative, not just its own.
+        shifted = pd.DataFrame(
+            {
+                "goals": cumulative["goals"].shift(1).fillna(0.0),
+                "fixtures": cumulative["fixtures"].shift(1).fillna(0.0),
+            },
+            index=per_date.index,
+        )
+        shifted["rate"] = shifted["goals"] / (2 * shifted["fixtures"])
+        rates = shifted["rate"]
+        for key in XG_STAT_COLS:
+            out[key] = rates.reindex(pd.Series(dates).to_numpy()).to_numpy()
+        return out
+
+    long_df, base_cols = xg_form.build_rolling_xg(understat_df)
+    teams = long_df["team"].drop_duplicates().to_numpy()
+    unique_dates = pd.Series(dates).drop_duplicates().sort_values().to_numpy()
+    # One backward `merge_asof` per team, then a cross-team mean per date.
+    # `allow_exact_matches=False` is the no-lookahead guarantee, identical to
+    # the one `xg_form.attach_xg_features` relies on. Per-team rather than a
+    # single `by="team"` merge because pandas requires the left keys sorted
+    # within each group, and `merge_asof` will not sort them for you.
+    right = as_asof_key(long_df[["date", "team"] + list(base_cols)]).sort_values("date")
+    per_team = {}
+    for team, group in right.groupby("team", sort=False):
+        left = as_asof_key(pd.DataFrame({"date": unique_dates}))
+        per_team[team] = pd.merge_asof(
+            left, group, on="date", direction="backward", allow_exact_matches=False
+        )
+    merged = pd.concat(per_team.values(), axis=0, keys=per_team.keys())
+    per_date = merged.groupby("date", sort=True)[list(base_cols)].mean()
+
+    # Back out to one row per INPUT, in input order. `unique_dates` was
+    # de-duplicated and sorted above and `per_date` is indexed by those same
+    # dates, so reindexing on the input's own (unsorted, repeated) dates is
+    # what restores both the order and the row count -- positional indexing
+    # here would silently misalign every duplicate date.
+    return per_date.reindex(pd.Series(dates).to_numpy())[list(XG_STAT_COLS)].reset_index(drop=True)
 
 
 def _add_targets(matches_df: pd.DataFrame) -> pd.DataFrame:
@@ -194,6 +385,55 @@ def build_training_frame(
     xg_data = understat.load_xg_data(seasons=understat_seasons)
     xg_feats, xg_cols = xg_form.attach_xg_features(matches_df, xg_data)
     xg_feats = xg_feats.reset_index(drop=True)
+
+    # A promoted team's first match of a season has no Understat history for
+    # `merge_asof` to reach back to, so its xG columns arrive missing. On this
+    # project's own window that is 20 of 3,040 rows (0.46-0.53% per column) and
+    # every one of them is exactly that shape -- a new club's debut.
+    #
+    # They are resolved here, to the league-average rate, by the same
+    # `xg_form.resolve_missing_xg` that `FixtureFeatureContext.build_row` calls
+    # for the same gap on a live fixture. Before this, the serving half did it
+    # and the fitting half did not: `manifest.train_all`'s
+    # `train_df[feature_cols].fillna(0)` taught every booster that a missing xG
+    # is 0.0, meaning the club created exactly zero expected goals and (via the
+    # deltas) scored exactly to expectation, while serving supplied a rate. A
+    # ~0.0003 RPS disagreement, small enough to survive indefinitely and to get
+    # worse the moment either side moves.
+    #
+    # Three placement choices, all load-bearing:
+    #
+    # * Here rather than in `train_all`, because every consumer of this frame
+    #   scores these rows — the walk-forward folds, the backtest, the in-season
+    #   calibration — and filling only inside `train_all` would leave all of
+    #   them scoring the row the way the old boosters were fitted and serving
+    #   it the way it is served.
+    # * Before `attach_xg_delta_features` below rather than after, because the
+    #   deltas are then derived from the imputed rate — goals minus league
+    #   expectation is a real over/under-performance reading, whereas goals
+    #   minus 0.0 is the "exactly to expectation" fiction the imputation exists
+    #   to remove.
+    # * Per-row (`_xg_league_avg_rates_by_date`) rather than one rate for the
+    #   whole frame. The serving side can use a single whole-window rate because
+    #   its context holds nothing later than the fixture it prices. Training
+    #   cannot: one rate written into every historical row would put 2025-26 xG
+    #   into a 2018 fixture, which is look-ahead in a feature column. Measured
+    #   on this window, the two differ by 0.167 goals on average (max 0.413) on
+    #   exactly the 20 affected rows, so this is a real difference and not a
+    #   rounding artefact. A row whose date predates Understat's coverage gets
+    #   no rate at all and stays missing, which `train_all`'s fill then encodes
+    #   as 0.0 — the same encoding serving uses for that same case.
+    xg_league_avg = _xg_league_avg_rates_by_date(xg_data, matches_df, matches_df["date"])
+    for side in ("home", "away"):
+        for stat_key in XG_STAT_COLS:
+            col = f"{side}_{stat_key}"
+            if col not in xg_cols:
+                continue
+            rates = xg_league_avg[stat_key]
+            xg_feats[col] = [
+                xg_form.resolve_missing_xg(reading, rate)
+                for reading, rate in zip(xg_feats[col].to_numpy(), rates)
+            ]
 
     streak_feats, streak_cols = streaks.attach_streak_features(matches_df)
     streak_feats = streak_feats.reset_index(drop=True)
@@ -408,8 +648,10 @@ class FixtureFeatureContext:
         # `_league_goals_per_match` supplies the same quantity from actual goals
         # in `matches_df`, so the blend always has a real target instead of
         # degrading every xG column to NaN (which the serving line would then
-        # turn into a literal 0.0 — see that loop's comment).
-        self.xg_league_avg = self._xg_league_avg_series(self.xg_current)
+        # turn into a literal 0.0 — see that loop's comment). Same function
+        # `build_training_frame` uses, deliberately: the two ends impute the
+        # same cells with the same rate.
+        self.xg_league_avg = _xg_league_avg_rates(self.xg_current, self.matches_df)
 
         self.current_streaks = streaks.latest_streaks(self.matches_df)
 
@@ -457,22 +699,6 @@ class FixtureFeatureContext:
             self.shot_situation_current.mean() if not self.shot_situation_current.empty else pd.Series(dtype=float)
         )
         self.shot_situation_stat_cols = {f"set_piece_xg_share_last_{w}": w for w in shot_situation.WINDOWS}
-
-    def _xg_league_avg_series(self, xg_current: pd.DataFrame) -> pd.Series:
-        """Per-`xg_stat_cols` league-average expected-goals rate, keyed the way
-        `build_row`'s blend looks it up.
-
-        Understat's own cross-team mean when it has data; otherwise the
-        actual-goals rate from `matches_df` (`_league_goals_per_match`), so a
-        cold Understat still leaves the blend with a real target. Empty only
-        when `matches_df` carries no goals either -- nothing left to fall back
-        on, and the blend degrades to NaN rather than inventing a number."""
-        avg = _league_goals_per_match(self.matches_df)
-        if xg_current is not None and not xg_current.empty:
-            return xg_current.mean()
-        if avg is None:
-            return pd.Series(dtype=float)
-        return pd.Series({col: avg for col in self.xg_stat_cols}, dtype=float)
 
     def build_row(self, home: str, away: str, commence_time=None) -> dict:
         row = {"team_home": home, "team_away": away, "commence_time": commence_time}
@@ -527,73 +753,54 @@ class FixtureFeatureContext:
             for stat_col, w in self.xg_stat_cols.items():
                 weight = min(n_games / w, 1.0)
                 avg = self.xg_league_avg.get(stat_col)
-                current_val = team_xg.get(stat_col)
-                if current_val is None or pd.isna(current_val):
-                    # No Understat xG for this team (`team_xg` is an empty
-                    # Series when `xg_current` has no row for it, so `.get()`
-                    # returns None rather than NaN).
-                    #
-                    # Degrading straight to NaN here was the original defect,
-                    # and it was worse than it looked: the NaN did not stay
-                    # NaN. `ml_scoreline.MLScorelineModel.predict` ends in
-                    # `.fillna(0)` (see `_row_to_matrix`), so every one of
-                    # these columns reached the booster as a literal 0.0 --
-                    # asserting the team created exactly zero expected goals,
-                    # and (via the delta loop below) scored exactly to
-                    # expectation. 0.0 also sits 2.9-3.5 SD below these
-                    # columns' real means, far outside anything the fitted
-                    # boosters had support for.
-                    #
-                    # The substitute is the league-average expected-goals rate,
-                    # which `__init__` now always populates: Understat's own
-                    # cross-team mean when available, else the actual-goals
-                    # rate in `matches_df` (`_league_goals_per_match`). It is
-                    # a real, in-distribution number that says the honest
-                    # thing -- "this team's xG rate is not measurable right now;
-                    # the league average is the best available estimate" -- and
-                    # it leaves the delta loop below doing real work, since
-                    # goals minus the league rate is a genuine
-                    # over/under-performance reading rather than the "exactly
-                    # to expectation" fiction 0.0 asserted.
-                    #
-                    # Chosen by measurement, not taste: simulating a cold
-                    # Understat on each of the four available seasons and
-                    # scoring against real outcomes (mean RPS, lower better):
-                    #
-                    #     league-avg xG, deltas recomputed  0.18855  <- this
-                    #     league-avg xG, deltas zeroed       0.19035
-                    #     xG=0.0 (before this fix)            0.19059
-                    #     xG=NaN, routed natively             0.19152
-                    #     real xG (warm reference)            0.18412
-                    #
-                    # Re-deriving the deltas is what earns the 0.002 RPS:
-                    # zeroing them instead lands at 0.19035, barely better
-                    # than the 0.0 it replaces, because per-team
-                    # over/under-performance is exactly what those columns
-                    # carry. And routing NaN through XGBoost's native
-                    # missing-value handling is the WORST option tested --
-                    # these boosters are fitted on `fillna(0)`-imputed frames
-                    # (see `manifest.train_all`) and have never seen a missing
-                    # value in these columns, so there is no learned default
-                    # direction to route it by.
-                    #
-                    # Not fixed here: TRAINING still encodes a cold-missing xG
-                    # as 0.0, via `manifest.train_all`'s
-                    # `train_df[feature_cols].fillna(0)`, so train and serve now
-                    # disagree on what "no xG" means (0.0 vs the league rate).
-                    # Measured, that disagreement costs almost nothing: all
-                    # train/serve pairings scored within ~0.0003 RPS of each
-                    # other in a retrain-per-fold check, and the shipped
-                    # boosters see this path only when Understat is cold. The
-                    # serving side is kept because it is the side whose number
-                    # gets reported. Aligning training means editing
-                    # `manifest.py` and retraining, which is a separate change.
-                    current_val = avg
-                if current_val is None or pd.isna(current_val):
-                    # `matches_df` has no goals either: genuinely nothing to
-                    # say. NaN is honest here and is all that is left; it is
-                    # still not what the model sees (see `_row_to_matrix`).
-                    current_val = float("nan")
+                # No Understat xG for this team (`team_xg` is an empty Series
+                # when `xg_current` has no row for it, so `.get()` returns
+                # None rather than NaN).
+                #
+                # Degrading straight to NaN here was the original defect, and
+                # it was worse than it looked: the NaN did not stay NaN.
+                # `ml_scoreline.MLScorelineModel.predict` ends in `.fillna(0)`
+                # (see `_row_to_matrix`), so every one of these columns reached
+                # the booster as a literal 0.0 -- asserting the team created
+                # exactly zero expected goals, and (via the delta loop below)
+                # scored exactly to expectation. 0.0 also sits 2.9-3.5 SD below
+                # these columns' real means, far outside anything the fitted
+                # boosters had support for.
+                #
+                # The substitute is the league-average expected-goals rate,
+                # which `__init__` always populates: Understat's own
+                # cross-team mean when available, else the actual-goals rate in
+                # `matches_df` (`_league_goals_per_match`). It is a real,
+                # in-distribution number that says the honest thing -- "this
+                # team's xG rate is not measurable right now; the league average
+                # is the best available estimate" -- and it leaves the delta
+                # loop below doing real work, since goals minus the league rate
+                # is a genuine over/under-performance reading rather than the
+                # "exactly to expectation" fiction 0.0 asserted.
+                #
+                # `xg_form.resolve_missing_xg` is where that decision lives, and
+                # `build_training_frame` calls the same function for the same
+                # gap in the rows the boosters are fitted on. It used to encode
+                # a missing xG as 0.0 there (via `manifest.train_all`'s
+                # `fillna(0)`), which made train and serve disagree on what "no
+                # xG" means; the two halves now have one implementation.
+                #
+                # Chosen by measurement, not taste: simulating a cold Understat
+                # on each of the four available seasons and scoring against
+                # real outcomes (mean RPS, lower better):
+                #
+                #     league-avg xG, deltas recomputed  0.18855  <- this
+                #     league-avg xG, deltas zeroed       0.19035
+                #     xG=0.0 (before this fix)            0.19059
+                #     xG=NaN, routed natively             0.19152
+                #     real xG (warm reference)            0.18412
+                #
+                # Re-deriving the deltas is what earns the 0.002 RPS: zeroing
+                # them instead lands at 0.19035, barely better than the 0.0 it
+                # replaces, because per-team over/under-performance is exactly
+                # what those columns carry. And routing NaN through XGBoost's
+                # native missing-value handling is the WORST option tested.
+                current_val = xg_form.resolve_missing_xg(team_xg.get(stat_col), avg)
                 blended = weight * current_val + (1 - weight) * avg if avg is not None and not pd.isna(avg) else current_val
                 row[f"{prefix}_{stat_col}"] = blended
 
