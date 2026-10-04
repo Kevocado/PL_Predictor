@@ -46,6 +46,18 @@ ML_HOME_MODEL_PATH = MODELS_DIR / "ml_scoreline_home.json"
 ML_AWAY_MODEL_PATH = MODELS_DIR / "ml_scoreline_away.json"
 COVARIATE_POISSON_PATH = MODELS_DIR / "covariate_poisson.pkl"
 
+#: Bumped whenever a change alters the feature *values* the boosters are fitted
+#: on, rather than the features themselves. Recorded in `manifest.json` and
+#: checked against the committed artefact by
+#: `tests/test_missing_value_encoding.py::test_the_committed_artefacts_were_fitted_by_this_pipeline`,
+#: so the one failure mode this repo genuinely cannot detect on its own -- a
+#: refit that is skipped, or a booster committed from a checkout running
+#: different code -- fails a test instead of shipping a model fitted on values
+#: no serving path produces. `train_all` overwrites the key on every run, so
+#: the check is "does the committed manifest agree with the code", not a
+#: version comparison.
+FEATURE_PIPELINE_VERSION = "xg-league-rate-imputation"
+
 # Which model actually serves a given non-1X2 market, when a real,
 # multi-fold, most-recent-season-corroborated study found a different
 # model beats whichever wins the overall 1X2 comparison for that specific
@@ -343,6 +355,19 @@ def train_all(seasons: list[str] | None = None, include_current_season: bool = T
     # contract is `ml_scoreline.MISSING_VALUE_ENCODING`; every value in it is
     # 0.0 precisely because of this line, and if this fill ever changes, that
     # dict has to change with it or train and serve will disagree silently.
+    #
+    # The 16 xG columns are the deliberate exception to "every value is 0.0
+    # because of this line". They are resolved upstream, in
+    # `build_training_frame`, by `xg_form.resolve_missing_xg` -- the same
+    # function `FixtureFeatureContext.build_row` calls at serving, fed by the
+    # same league-average rate -- so by the time these fills run, a missing xG
+    # has already been given its real value and this fill never touches it.
+    # That is the single-source property: one implementation of "what a missing
+    # xG is", called from the fitting path and the serving path, instead of two
+    # that happened to agree. The entries for the xG columns in
+    # `MISSING_VALUE_ENCODING` are still right, and still 0.0: they cover the
+    # only case the imputation cannot reach, a `matches_df` with no goals at
+    # all, where the xG columns stay NaN and *this* line is what fills them.
     X_train, X_val = train_df[feature_cols].fillna(0), val_df[feature_cols].fillna(0)
 
     # fouls (`*_fouls_for`/`*_fouls_against`) are in `feature_cols` for
@@ -507,6 +532,7 @@ def train_all(seasons: list[str] | None = None, include_current_season: bool = T
         "n_current_season_matches": n_current_season_matches,
         "features": feature_cols,
         "market_training_windows": MARKET_TRAINING_WINDOWS,
+        "feature_pipeline_version": FEATURE_PIPELINE_VERSION,
         "scoreline": {
             "chosen_model": chosen,
             "market_overrides": market_overrides,

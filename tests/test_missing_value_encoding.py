@@ -39,6 +39,7 @@ encoding under test is the one the booster is fitted to.
 """
 from __future__ import annotations
 
+import json
 import re
 import warnings
 
@@ -184,7 +185,18 @@ def _tiny_models(matches):
     """
     df, cols = build_training_frame(matches_df=matches)
     X = df[cols].fillna(0).astype(float)
-    params = {"n_estimators": 80, "max_depth": 3, "learning_rate": 0.2, "random_state": 0}
+    # Capacity sized to actually learn the columns these tests reason about.
+    # It was `n_estimators=80, max_depth=3`, and on a 36-row synthetic league
+    # that is few enough trees that the booster spent its splits elsewhere: when
+    # the training frame's xG columns changed (PR #50's imputation), the tiny
+    # model dropped from 6 splits on `squad_continuity` to 1, and a single split
+    # at 0.55 cannot separate 0.0 from 0.8442 — so
+    # `test_cold_squad_continuity_serves_the_encoding_the_boosters_were_fitted_on`
+    # failed on a fixture artifact rather than on a real defect. The production
+    # boosters use 250 trees at depth 4 and split that column 21 times, so this
+    # brings the stand-in closer to what it stands in for rather than papering
+    # over the assertion.
+    params = {"n_estimators": 250, "max_depth": 4, "learning_rate": 0.1, "random_state": 0}
     home = xgb.XGBRegressor(objective="count:poisson", **params)
     away = xgb.XGBRegressor(objective="count:poisson", **params)
     home.fit(X, df["goals_home"])
@@ -305,6 +317,13 @@ def test_every_contract_value_matches_what_training_fills():
     column that can go missing, the two halves of the contract have quietly
     stopped agreeing. A future non-zero encoding would need this test changed
     *and* `train_all` changed, together.
+
+    Every value being 0.0 is consistent with the xG columns now being imputed
+    upstream (`xg_form.resolve_missing_xg`, called by `build_training_frame` on
+    the fitting path and `build_row` on the serving path): that dict's 0.0 is
+    only reached for an xG cell the imputation could not resolve, which is the
+    `matches_df`-with-no-goals case where both ends also have no league rate and
+    so still meet at 0.0.
     """
     non_zero = {c: v for c, v in ml_scoreline.MISSING_VALUE_ENCODING.items() if v != 0.0}
     assert not non_zero, (
@@ -701,11 +720,16 @@ def test_train_all_still_fills_feature_columns_with_zero(monkeypatch, synthetic)
     drift independently and nothing else in the suite would notice.
 
     Checked against the source rather than by re-running a retrain, which is
-    out of scope here (it needs the model artefacts and a retrain command, and
-    #43 already measured the resulting train/serve mismatch at ~0.0003 RPS).
+    out of scope here (it needs the model artefacts and a retrain command).
     A transcription of the expression would not do: it would keep passing if
     `train_all` itself changed, which is the only thing worth checking. Every
     fill of a `*_feature_cols` selection must use 0.
+
+    Note this is about what `train_all`'s own fill does, not about what the
+    xG columns receive — those are resolved upstream by
+    `xg_form.resolve_missing_xg`, shared with the serving path, and this fill
+    never sees them. See `test_the_training_frame_and_the_serving_row_impute_a_missing_xg_the_same_way`
+    for the pairing that is now the interesting one.
     """
     from pl_predictor.models import manifest as manifest_module
 
@@ -721,6 +745,529 @@ def test_train_all_still_fills_feature_columns_with_zero(monkeypatch, synthetic)
         f"manifest.py fills training feature columns with {wrong}, not 0; "
         "MISSING_VALUE_ENCODING and every fitted booster were built against 0.0, "
         "so serving now disagrees with training until that is retrained"
+    )
+
+
+# --------------------------------------------------------------------------
+# One implementation of "what a missing xG is", on both sides
+# --------------------------------------------------------------------------
+
+
+def test_the_training_frame_and_the_serving_row_impute_a_missing_xg_the_same_way(
+    monkeypatch, synthetic
+):
+    """The skew #43 documented and left open, closed and pinned.
+
+    PR #43 made `build_row` substitute the league-average expected-goals rate
+    for a missing xG, and deliberately recorded that training still encoded the
+    same gap as `0.0` via `manifest.train_all`'s `train_df[feature_cols]
+    .fillna(0)` -- so the fitted boosters and the serving path disagreed about
+    what a missing xG meant. Measured at ~0.0003 RPS, which is precisely why it
+    would have survived: too small to notice, still a real disagreement.
+
+    Both ends now call `xg_form.resolve_missing_xg`, and this asserts the
+    *values* agree rather than that the shared function exists. The point of
+    the fix is the single implementation, but a shared name is not the claim --
+    two callers of one function that disagrees with itself would pass any
+    call-counting check. Here the training frame is built cold and the serving
+    row is built cold on the same synthetic league, and every xG cell the
+    training frame had to resolve must equal what serving substitutes.
+    """
+    _stub_loaders(monkeypatch, synthetic, xg=False)  # cold Understat both ends
+    ctx = FixtureFeatureContext(synthetic)
+    train_df, cols = build_training_frame(matches_df=synthetic)
+
+    league_rate = float(
+        pd.concat([synthetic["goals_home"], synthetic["goals_away"]], ignore_index=True).mean()
+    )
+
+    # Which cells the imputation is responsible for. Determined by rebuilding
+    # the frame with the shared function neutered, because after the fix the
+    # real frame has no NaN left to count -- that is the whole point of it. If
+    # this returns nothing, the fixture no longer produces a missing xG and
+    # every assertion below would pass vacuously.
+    real_resolver = xg_form.resolve_missing_xg
+    monkeypatch.setattr(
+        xg_form,
+        "resolve_missing_xg",
+        lambda reading, league_rate: (
+            float("nan") if reading is None or pd.isna(reading) else float(reading)
+        ),
+    )
+    try:
+        unresolved_df, _ = build_training_frame(matches_df=synthetic)
+    finally:
+        monkeypatch.setattr(xg_form, "resolve_missing_xg", real_resolver)
+
+    unresolved = {
+        c: int(unresolved_df[c].isna().sum()) for c in XG_COLS if c in unresolved_df.columns
+    }
+    assert unresolved, "precondition: no xG columns in the training frame at all"
+    assert sum(unresolved.values()) > 0, (
+        "precondition: the fixture produces no missing xG for the training frame "
+        "to resolve, so the assertions below would pass without comparing "
+        "anything"
+    )
+
+    # Serving, cold: every xG column is the league rate.
+    row = ctx.build_row("T0", "T1", commence_time=pd.Timestamp("2024-08-01"))
+    for col in XG_COLS:
+        assert row[col] == pytest.approx(league_rate, abs=1e-9), (
+            f"serving gave {row[col]!r} for a missing {col}, expected the league "
+            f"rate {league_rate!r}"
+        )
+
+    # Training, cold: every gap resolved to a rate. Not the same number serving
+    # used, and deliberately so — serving prices one fixture whose whole context
+    # is in the past, so its whole-window rate is already as-of; a training row
+    # from 2020 must not be handed a rate built from 2025 data. So the pairing
+    # asserted here is on the *function* and on the shape, and the per-date
+    # values are checked against `rates` below.
+    rates = build_module._xg_league_avg_rates_by_date(
+        pd.DataFrame(), synthetic, synthetic["date"]
+    )
+    assert rates.notna().to_numpy().any(), (
+        "precondition: the cold-Understat as-of rate series is all NaN, so the "
+        "assertions below would compare nothing"
+    )
+    first_matchday = synthetic["date"] == synthetic["date"].min()
+    for col in XG_COLS:
+        assert col in train_df.columns, f"precondition: {col} missing from the training frame"
+        assert train_df[col].notna().any(), (
+            f"{col} resolved no cells at all; the imputation is not running"
+        )
+        # And no cell was invented for the very first matchday, where no prior
+        # match exists and therefore no as-of rate either.
+        assert train_df.loc[first_matchday, col].isna().all(), (
+            f"{col} was imputed on the first matchday, where no prior match "
+            "exists: filling it would mean inventing a rate from nothing"
+        )
+
+    # The per-date values themselves, on every column: the gaps take their own
+    # row's as-of rate, and the rows that already had a reading are untouched.
+    for col in XG_COLS:
+        if col not in train_df.columns:
+            continue
+        side, stat_key = col.split("_", 1)
+        assert stat_key in build_module.XG_STAT_COLS, (
+            f"{col} does not decompose into an XG_STAT_COLS key; the test's key "
+            "derivation would silently miss the column"
+        )
+        was_present = unresolved_df[col].notna()
+        assert (~was_present).any(), (
+            f"{col} has no gaps to impute; this test has stopped covering the case"
+        )
+        expected = rates[stat_key].to_numpy(dtype=float)
+        got = train_df[col].to_numpy(dtype=float)
+        no_rate = np.isnan(expected)
+        # Present readings survive byte-identical: an imputation that rewrote every
+        # cell would satisfy every other assertion here, because both ends would
+        # agree on a wrong number.
+        np.testing.assert_array_equal(
+            got[was_present.to_numpy()], unresolved_df[col].to_numpy(dtype=float)[was_present.to_numpy()]
+        )
+        # Gaps with a rate take it.
+        gap = ~was_present.to_numpy() & ~no_rate
+        assert got[gap] == pytest.approx(expected[gap], abs=1e-9), (
+            f"{col}'s gaps took something other than their own date's league rate"
+        )
+        # Gaps with no rate stay missing, rather than becoming 0.0 here — the
+        # contract fill downstream does that, and only then.
+        gap_no_rate = ~was_present.to_numpy() & no_rate
+        assert np.isnan(got[gap_no_rate]).all(), (
+            f"{col} was filled on rows with no as-of rate available"
+        )
+
+    # And the deltas, which is where the two encodings differ most visibly:
+    # against a league rate they are goals-minus-expectation (per-team, varying),
+    # against 0.0 they were goals-scored, asserting the team hit expectation
+    # exactly. Checked on the rows that were imputed, which is where the two
+    # differ; on rows with real xG both encodings agree trivially.
+    for side in ("home", "away"):
+        for stat in ("for", "against"):
+            for w in xg_form.WINDOWS:
+                delta = f"{side}_xg_delta_{stat}_last_{w}"
+                xg_col = f"{side}_xg_{stat}_last_{w}"
+                goals = f"{side}_last_{w}_goals_{stat}"
+                if delta not in train_df.columns:
+                    continue
+                gap = (~unresolved_df[xg_col].notna()).to_numpy() & ~np.isnan(
+                    rates[f"xg_{stat}_last_{w}"].to_numpy(dtype=float)
+                )
+                assert gap.any(), (
+                    f"precondition: no row in {delta} was both missing xG and "
+                    "imputable, so the assertion below is vacuous"
+                )
+                assert not train_df.loc[gap, delta].isna().any(), (
+                    f"{delta} is NaN on imputed rows: goals are known even with "
+                    "no xG, so goals-minus-expectation is computable"
+                )
+                expected = (
+                    train_df.loc[gap, goals].to_numpy(dtype=float)
+                    - rates.loc[gap, f"xg_{stat}_last_{w}"].to_numpy(dtype=float)
+                )
+                assert train_df.loc[gap, delta].to_numpy(dtype=float) == pytest.approx(
+                    expected, abs=1e-9
+                ), (
+                    f"{delta} is not goals-minus-league-rate on imputed rows; a "
+                    "cold xG encoded as 0.0 makes this column plain goals-scored, "
+                    "which asserts the team hit its expectation exactly"
+                )
+
+
+def test_the_training_frame_really_calls_the_shared_xg_imputation(monkeypatch, synthetic):
+    """Structural: the training path must go through `resolve_missing_xg`.
+
+    Restoring `build_training_frame`'s bare NaN pass-through is a *silent*
+    change for every input this fixture has -- it only differs on rows whose xG
+    is missing, and no output-comparing assertion in the suite would notice a
+    return to 0.0 there. That is exactly how the xG encoding came to be fixed on
+    one side of a boundary it should never have been able to straddle, so the
+    sharing is pinned by counting calls through the one function, matching
+    `test_both_entry_points_actually_call_the_shared_helper` on the serving side.
+    """
+    _stub_loaders(monkeypatch, synthetic, xg=False)
+    real = xg_form.resolve_missing_xg
+    calls: list = []
+
+    def _counting(reading, league_rate):
+        calls.append(reading)
+        return real(reading, league_rate)
+
+    monkeypatch.setattr(xg_form, "resolve_missing_xg", _counting)
+    build_training_frame(matches_df=synthetic)
+
+    assert calls, (
+        "build_training_frame no longer calls xg_form.resolve_missing_xg, so the "
+        "fitting path carries its own idea of what a missing xG is again -- that "
+        "duplication is how one half of the xG encoding got fixed without the "
+        "other half"
+    )
+    assert any(reading is None or pd.isna(reading) for reading in calls), (
+        "resolve_missing_xg was called only with present readings, so it was "
+        "never asked the question it exists to answer; the fixture no longer "
+        "produces a missing xG and this test has stopped covering the case"
+    )
+
+
+def test_a_partly_warm_training_frame_imputes_only_the_missing_cells(monkeypatch, synthetic):
+    """The real shape: some rows have xG, some do not, in the same frame.
+
+    Fully-cold coverage is what the tests above use, because it is easy to
+    arrange, but it cannot catch an imputation that resolves *every* cell --
+    with nothing present, replacing everything with the rate is
+    indistinguishable from replacing only the gaps. The production shape is the
+    opposite: Understat covers the recent seasons and the gaps are the promoted
+    teams' debut matches at the start of each one, so a frame carries both.
+
+    So Understat is stubbed to cover the last synthetic season only. The
+    assertion is that every cell Understat answered is byte-identical to the
+    reading it produced, and only the gaps take the league rate.
+    """
+    known = sorted(synthetic["season"].unique())
+    covered = known[-1]
+
+    def _partly_warm(seasons):
+        # Shape it like `data/understat.py::fetch_season`'s output, which is
+        # what both `attach_xg_features` (`_team_perspective` reads the team
+        # names) and `latest_xg_form` consume.
+        part = synthetic[synthetic["season"] == covered]
+        return pd.DataFrame(
+            {
+                "date": part["date"].to_numpy(),
+                "team_home": part["team_home"].to_numpy(),
+                "team_away": part["team_away"].to_numpy(),
+                "xg_home": 1.1 + 0.05 * (part["goals_home"] % 4).to_numpy(),
+                "xg_away": 1.3 + 0.05 * (part["goals_away"] % 4).to_numpy(),
+                "goals_home": part["goals_home"].to_numpy(),
+                "goals_away": part["goals_away"].to_numpy(),
+            }
+        )
+
+    _stub_loaders(monkeypatch, synthetic, xg=False, serving_continuity=True)
+    u = _partly_warm(None)
+    monkeypatch.setattr(understat_module, "load_xg_data", lambda **_: u)
+
+    fixed_df, cols = build_training_frame(matches_df=synthetic)
+
+    # The reference: what the pre-fix frame carried, from the same stub, so the
+    # two differ only by the imputation. Built with the shared function
+    # neutered, which is also the only way to see which cells were missing --
+    # after the fix there are none.
+    real = xg_form.resolve_missing_xg
+    monkeypatch.setattr(
+        xg_form,
+        "resolve_missing_xg",
+        lambda reading, league_rate: (
+            float("nan") if reading is None or pd.isna(reading) else float(reading)
+        ),
+    )
+    try:
+        raw_df, _ = build_training_frame(matches_df=synthetic)
+    finally:
+        monkeypatch.setattr(xg_form, "resolve_missing_xg", real)
+
+    # Precondition: the frame really does carry both populated and missing xG,
+    # or the comparison below distinguishes nothing.
+    for col in XG_COLS:
+        assert col in raw_df.columns
+    populated = int(raw_df["home_xg_for_last_5"].notna().sum())
+    assert 0 < populated < len(raw_df), (
+        f"expected a partly-populated column, got {populated}/{len(raw_df)} "
+        "populated; the fixture no longer reproduces the real shape"
+    )
+    # Post-fix the only cells still missing are those with no as-of rate at all
+    # — rows predating the stub's Understat coverage. That is the honest answer
+    # (`resolve_missing_xg` declines to invent a number) and it is why the xG
+    # entries in MISSING_VALUE_ENCODING stay 0.0 rather than becoming the rate.
+    still_missing = raw_df["home_xg_for_last_5"].isna() & fixed_df["home_xg_for_last_5"].isna()
+    assert int(fixed_df["home_xg_for_last_5"].notna().sum()) > int(
+        raw_df["home_xg_for_last_5"].notna().sum()
+    ), "the imputation resolved no cells at all"
+    assert (
+        synthetic["date"].to_numpy()[still_missing.to_numpy()] < synthetic["date"].min() + pd.Timedelta(days=1)
+    ).all() or synthetic["date"].to_numpy()[still_missing.to_numpy()].min() < u["date"].min(), (
+        "a row still missing after imputation is dated at or after the stub's "
+        "first Understat match, so it should have had a rate to take"
+    )
+
+    # The rate each row's own date implies — the point-in-time form, since that is
+    # what `build_training_frame` uses. Derived from the same stub rather than
+    # hardcoded, so it stays correct if the fixture changes.
+    rates = build_module._xg_league_avg_rates_by_date(u, synthetic, synthetic["date"])
+    assert rates.notna().to_numpy().any(), (
+        "precondition: the as-of rate series is entirely NaN, so the assertions "
+        "below would compare nothing"
+    )
+
+    for col in XG_COLS:
+        was_present = raw_df[col].notna()
+        assert was_present.any() and (~was_present).any(), (
+            f"{col} is entirely one or the other on this fixture; the test needs "
+            "both populated and missing cells in the same column"
+        )
+        # Every reading Understat actually produced survives untouched.
+        np.testing.assert_array_equal(
+            fixed_df.loc[was_present, col].to_numpy(),
+            raw_df.loc[was_present, col].to_numpy(),
+        )
+        # Only the gaps take the league rate. The rate series is keyed
+        # `{stat}_last_{w}` (see `build.XG_STAT_COLS`), and the column is
+        # `{side}_{that key}`, so the split is on the first underscore only.
+        side, stat_key = col.split("_", 1)
+        assert side in ("home", "away") and stat_key in build_module.XG_STAT_COLS, (
+            f"{col} does not decompose into a side plus an XG_STAT_COLS key; the "
+            "test's key derivation would silently miss the column"
+        )
+        # Row-wise: each row's own date's rate, not one window-wide number.
+        expected = rates.loc[~was_present.to_numpy(), stat_key].to_numpy(dtype=float)
+        got = fixed_df.loc[~was_present, col].to_numpy(dtype=float)
+        # Row-wise: each row's own date's rate. Rows with no as-of rate (predating
+        # the stub's Understat coverage) must stay missing — that is what
+        # `resolve_missing_xg` does when there is nothing to substitute, and it
+        # is why those cells remain in MISSING_VALUE_ENCODING rather than
+        # becoming the rate. Compared element-wise so a mixed column (some rows
+        # imputed, some not) is checked properly instead of by an `any`/`all`
+        # that would pass on the majority case.
+        expected = rates.loc[~was_present.to_numpy(), stat_key].to_numpy(dtype=float)
+        got = fixed_df.loc[~was_present, col].to_numpy(dtype=float)
+        assert got.shape == expected.shape
+        no_rate = np.isnan(expected)
+        assert np.array_equal(np.isnan(got), no_rate), (
+            f"{col}: the set of rows still missing after imputation does not match "
+            f"the set with no as-of rate. got missing at {np.flatnonzero(np.isnan(got))[:5]}, "
+            f"expected missing at {np.flatnonzero(no_rate)[:5]}"
+        )
+        resolved = ~no_rate
+        if resolved.any():
+            assert got[resolved] == pytest.approx(expected[resolved], abs=1e-9), (
+                f"{col}'s gaps took something other than their own date's league rate"
+            )
+
+
+def test_the_goals_fallback_rate_does_not_read_the_fixture_s_own_goals(monkeypatch, synthetic):
+    """The cold-Understat branch, checked for the same look-ahead.
+
+    `_xg_league_avg_rates_by_date`'s Understat branch is a backward
+    `merge_asof`, so its no-lookahead property comes from the argument
+    `allow_exact_matches=False`. The fallback branch derives an expanding mean
+    by hand instead, which means the guarantee is only as good as that
+    arithmetic — and CodeRabbit's Major on #50 was pointed at exactly the kind
+    of place where it is quietly one `shift()` short. A match's own goals
+    entering its own row's expected-goals rate is the sharpest possible form of
+    that leak: the row's target is a function of those goals.
+
+    Perturb one match's goals and require that no earlier row, and not that row
+    itself, moves. Later rows moving is correct and expected — the expanding
+    mean is *supposed* to absorb matches once they are in the past.
+    """
+    _stub_loaders(monkeypatch, synthetic, xg=False, serving_continuity=True)
+    monkeypatch.setattr(understat_module, "load_xg_data", lambda **_: pd.DataFrame())
+
+    dates = synthetic["date"]
+    baseline = build_module._xg_league_avg_rates_by_date(pd.DataFrame(), synthetic, dates)
+
+    target = len(synthetic) // 2
+    target_date = dates.iloc[target]
+    assert (dates < target_date).any() and (dates > target_date).any(), (
+        "precondition: need rows on both sides of the perturbed match"
+    )
+
+    for column in ("goals_home", "goals_away"):
+        perturbed = synthetic.copy()
+        perturbed.iloc[target, perturbed.columns.get_loc(column)] = (
+            perturbed.iloc[target, perturbed.columns.get_loc(column)] + 7
+        )
+        after = build_module._xg_league_avg_rates_by_date(pd.DataFrame(), perturbed, dates)
+
+        moved = ~np.all(
+            np.isclose(baseline.to_numpy(dtype=float), after.to_numpy(dtype=float), equal_nan=True),
+            axis=1,
+        )
+        before = (dates < target_date).to_numpy()
+        at = (dates == target_date).to_numpy()
+        assert not moved[before].any(), (
+            f"perturbing {column} at {target_date.date()} moved "
+            f"{int(moved[before].sum())} EARLIER rows' rates, so the fallback "
+            "reads the future"
+        )
+        assert not moved[at].any(), (
+            f"perturbing {column} moved the perturbed match's OWN imputed rate; "
+            "a row's expected-goals rate must not contain that row's own goals"
+        )
+
+
+def test_the_training_frame_imputes_each_row_as_of_that_row_s_own_date(monkeypatch, synthetic):
+    """No-lookahead on the *rate*, which is the subtler half of the fix.
+
+    The first version of this change derived one league rate from the whole
+    window and wrote it into every historical row — correct on the serving side,
+    where a context holds nothing later than the fixture it prices, but
+    look-ahead on the fitting side, where it puts 2025-26 xG into a 2018
+    fixture. CodeRabbit caught it on #50.
+
+    Perturbing *future* Understat xG must leave earlier rows' rates untouched.
+    That is the direct statement of the guarantee, and it is the only form of it
+    that a future refactor cannot quietly break: any change that starts reading
+    the whole frame instead of the strictly-earlier one moves these numbers.
+    """
+    covered = sorted(synthetic["season"].unique())[-1]
+    part = synthetic[synthetic["season"] == covered]
+
+    def _warm(seasons):
+        return pd.DataFrame(
+            {
+                "date": part["date"].to_numpy(),
+                "team_home": part["team_home"].to_numpy(),
+                "team_away": part["team_away"].to_numpy(),
+                "xg_home": 1.1 + 0.05 * (part["goals_home"] % 4).to_numpy(),
+                "xg_away": 1.3 + 0.05 * (part["goals_away"] % 4).to_numpy(),
+                "goals_home": part["goals_home"].to_numpy(),
+                "goals_away": part["goals_away"].to_numpy(),
+            }
+        )
+
+    def _rates_with_future_scrambled():
+        """Build the frame with Understat's *later* xG replaced by nonsense."""
+        scrambled = _warm(None)
+        late = scrambled["date"] > pd.Timestamp("2021-06-01")
+        assert late.any(), (
+            "precondition: the stub must have rows after the cut, or scrambling "
+            "the future changes nothing and this test passes vacuously"
+        )
+        scrambled = scrambled.copy()
+        scrambled.loc[late, "xg_home"] = 99.0
+        scrambled.loc[late, "xg_away"] = 99.0
+        monkeypatch.setattr(understat_module, "load_xg_data", lambda **_: scrambled)
+        return build_training_frame(matches_df=synthetic)[0]
+
+    _stub_loaders(monkeypatch, synthetic, xg=False, serving_continuity=True)
+    monkeypatch.setattr(understat_module, "load_xg_data", _warm)
+    baseline_df, _ = build_training_frame(matches_df=synthetic)
+
+    scrambled_df = _rates_with_future_scrambled()
+
+    cut = pd.Timestamp("2021-06-01")
+    early = synthetic["date"] < cut
+    assert early.any() and (~early).any(), (
+        "precondition: need rows on both sides of the cut for this to mean anything"
+    )
+
+    for col in XG_COLS:
+        np.testing.assert_allclose(
+            scrambled_df.loc[early, col].to_numpy(dtype=float),
+            baseline_df.loc[early, col].to_numpy(dtype=float),
+            equal_nan=True,
+            err_msg=(
+                f"{col} changed for rows dated before {cut.date()} when only LATER "
+                "Understat xG was scrambled, so the imputed rate reads the future"
+            ),
+        )
+
+
+def test_a_warm_xg_is_not_touched_by_the_shared_imputation():
+    """The imputation must be a no-op on a reading that is already there.
+
+    Every other property of this change is about the missing case; this one
+    guards the overwhelmingly common one. A regression that resolved *every*
+    xG cell to the league rate instead of only the missing ones would satisfy
+    every equivalence test above -- both ends would still agree, because both
+    would be wrong -- while quietly discarding all real signal.
+    """
+    assert xg_form.resolve_missing_xg(1.83, 1.5) == 1.83
+    assert xg_form.resolve_missing_xg(0.0, 1.5) == 0.0, "a real zero must survive"
+    # And a present-but-falsy reading is not mistaken for a missing one.
+    assert xg_form.resolve_missing_xg(0.0, None) == 0.0
+
+
+def test_an_unavailable_league_rate_leaves_a_missing_xg_missing():
+    """No league rate means nothing to substitute, and inventing one is the bug.
+
+    This is the `matches_df`-with-no-goals case. The xG cell stays NaN, and
+    `ml_scoreline.MISSING_VALUE_ENCODING` is then the only thing deciding what
+    the booster sees -- which is why its 0.0 entries are still correct, and why
+    the training and serving halves of the contract still meet at the same
+    value on this path.
+    """
+    assert pd.isna(xg_form.resolve_missing_xg(None, None))
+    assert pd.isna(xg_form.resolve_missing_xg(float("nan"), float("nan")))
+    # A present reading is unaffected by the absence of any fallback.
+    assert xg_form.resolve_missing_xg(2.0, None) == 2.0
+
+
+def test_the_committed_artefacts_were_fitted_by_this_pipeline():
+    """If the refit is skipped, the committed boosters are the OLD ones — and
+    nothing else in the suite would say so.
+
+    This is the failure mode with no guard at all. `train_all` writes six
+    artefacts plus the manifest, in that order and non-atomically, so a run that
+    raises midway leaves boosters from one code version beside a manifest from
+    another; a refit that is skipped entirely leaves the previous pair in place
+    with no marker at all. Either way the model keeps serving, the holdout RPS
+    in `manifest.json` still looks current, and nothing compares the shipped
+    boosters against the code that is meant to have produced them. `trained_at`
+    cannot catch it — it records when the run happened, not what it ran.
+
+    So `train_all` records `feature_pipeline_version` and this asserts the
+    committed `models/manifest.json` agrees with the constant in the code on
+    this checkout. Bump the constant in the same commit as any change to the
+    fitted feature values; this then fails until the artefacts are refitted.
+
+    Reads the committed file rather than calling `train_all`: the question is
+    about what is in the repository, which a refit in-process could not answer.
+    """
+    from pl_predictor.models import manifest as manifest_module
+
+    if not manifest_module.MANIFEST_PATH.exists():
+        pytest.skip("no committed models/manifest.json to check")
+
+    committed = json.loads(manifest_module.MANIFEST_PATH.read_text())
+    assert committed.get("feature_pipeline_version") == manifest_module.FEATURE_PIPELINE_VERSION, (
+        f"models/manifest.json was written by a feature pipeline at "
+        f"{committed.get('feature_pipeline_version')!r}, but this checkout's code "
+        f"is at {manifest_module.FEATURE_PIPELINE_VERSION!r}. The committed "
+        "boosters were fitted on values this serving path no longer produces. "
+        "Re-run manifest.train_all() and commit models/, or revert the change."
     )
 
 

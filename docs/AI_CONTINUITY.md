@@ -2177,6 +2177,159 @@ figure. The neutral weight is a holding position, not a resolution: it removes a
 number that was fitted against the wrong thing, and it leaves the underlying
 incoherence in place.
 
+## EXP-2026-29 — the xG imputation had two implementations, and training was the dishonest one
+
+### What the skew was
+
+PR #43 fixed `FixtureFeatureContext.build_row` serving Understat's absence as a
+literal `0.0` for all 16 xG features, replacing it with the league-average
+expected-goals rate. It measured the substitution (0.19059 -> 0.18855 mean RPS
+over four seasons with a simulated cold Understat) and documented, at the call
+site, the one thing it did not fix:
+
+> Not fixed here: TRAINING still encodes a cold-missing xG as 0.0, via
+> `manifest.train_all`'s `train_df[feature_cols].fillna(0)`, so train and serve
+> disagree on what "no xG" means.
+
+Confirmed on this checkout. `train_all` fills every feature column with `0.0`
+(`models/manifest.py`, three sites: `feature_cols`, `ml_feature_cols`, and
+corners' own window). The xG cells arrive from `xg_form.attach_xg_features` as
+NaN — a promoted team's first match of a season has no Understat history for
+`merge_asof` to reach back to — so the fitting side taught every booster that a
+missing xG means "this club created exactly zero expected goals", and, through
+the derived `xg_delta_*` columns, that it scored exactly to expectation. Serving
+said something else for the same fixture.
+
+Measured on the 8-season window: **20 of 3,040 rows** (0.46-0.53% per column,
+120 cells, all of them a promoted club's debut), and **16 of the 16 xG feature
+columns** carried the disagreement.
+
+### What was wrong with it, beyond the number
+
+The cost is ~0.0003 RPS, which is the whole problem. Too small to notice, and
+small enough to look like not-worth-fixing on its own terms. But the two sides
+did not merely compute slightly different values — they were two independent
+implementations of one question, which happened to be close. #43 is the proof:
+a deliberate, measured, well-documented fix landed cleanly on one side of a
+boundary, and the other side kept the old behaviour for a fortnight. Nothing
+about the shape of that change would have alerted anyone. A shared implementation
+is what makes the next divergence impossible to express; a matching number is
+just today's coincidence.
+
+### The fix
+
+One function, `xg_form.resolve_missing_xg(reading, league_rate)`, called from
+both ends. The league rate itself is also single-sourced:
+`_xg_league_avg_rates` was a `FixtureFeatureContext` method and is now
+module-level in `features/build.py`, because `build_training_frame` needs the
+identical series.
+
+Placed in `build_training_frame` rather than `train_all`, for two reasons:
+
+- Every consumer of that frame scores these rows — walk-forward folds, the
+  backtest, in-season calibration. Filling only inside `train_all` would leave
+  all of them scoring the row the way the old boosters were fitted.
+- Before `attach_xg_delta_features` rather than after, so the deltas are derived
+  from the imputed rate. Goals-minus-league-expectation is a real
+  over/under-performance reading; goals-minus-`0.0` is the "exactly to
+  expectation" fiction the imputation exists to remove.
+
+### Measured
+
+Single chronological holdout (the number `train_all` reports), both arms on
+byte-identical inputs with the in-progress season frozen:
+
+    RPS  0.207982 -> 0.208553   (+0.000571, worse)
+    Brier 0.616492 -> 0.617003 (+0.000511, worse)
+
+Walk-forward across all 5 folds (`evaluate/walk_forward.py`, the repo's own
+multi-fold instrument), which is the more trustworthy read since one season is
+not enough to justify a model change:
+
+    fold         n_train  RPS before   RPS after      delta
+    2021-2022       1140     0.199971     0.199924  -0.000047
+    2022-2023       1520     0.202210     0.202434  +0.000225
+    2023-2024       1900     0.191238     0.191289  +0.000051
+    2024-2025       2280     0.199188     0.198388  -0.000801
+    2025-2026       2660     0.208072     0.208164  +0.000092
+
+    mean RPS  0.200136 -> 0.200040 (-0.000096)
+    mean Brier 0.581296 -> 0.581169 (-0.000127)
+
+So: 2 folds better, 3 worse, mean slightly better, every individual delta
+smaller than the fold-to-fold spread. **The honest summary is that the two
+encodings are not measurably different in accuracy** — which is consistent with
+#43's own ~0.0003 estimate. This change is justified by removing a
+train/serve disagreement, not by an RPS win, and the walk-forward numbers are
+included precisely so nobody later mistakes it for one.
+
+### The rate must be point-in-time, and that is a second bug, not a detail
+
+The first version of the fix derived **one** league rate from the whole window
+and wrote it into every historical row. That is correct on the serving side —
+a context holds nothing later than the fixture it prices, so the whole-frame
+rate already *is* the as-of rate — and look-ahead on the fitting side, where it
+puts 2025-26 xG into a 2018 fixture. CodeRabbit caught it on #50, and it was
+right.
+
+Measured, the whole-window and as-of rates differ by **0.167 goals on average
+(max 0.413)** on exactly the 20 affected rows, so this is a real difference and
+not a rounding artefact.
+
+`_xg_league_avg_rates_by_date` is the no-lookahead form of the same quantity:
+per fixture date, from strictly earlier data, via one backward `merge_asof` per
+team — the same idiom and the same `allow_exact_matches=False` guarantee
+`xg_form.attach_xg_features` already relies on. Its cold-Understat branch is an
+expanding goals-per-match mean, and there the guarantee comes from hand-written
+arithmetic rather than an argument, which is exactly where it is quietly one
+`shift()` short: without the shift a match's own goals enter its own row's
+expected-goals rate, and the row's target is a function of those goals. Both
+halves now have a test that perturbs the future and requires the past not to
+move.
+
+### The guard against the next occurrence
+
+`train_all` now records `feature_pipeline_version` in `manifest.json`, and
+`tests/test_missing_value_encoding.py` asserts the committed manifest agrees with
+the constant in the code. Before this, the repo had **no** staleness guard at
+all: `train_all` writes six artefacts then the manifest, non-atomically, so a run
+that raised midway would leave boosters from one code version beside a manifest
+from another, and a skipped refit would leave the previous pair with no marker
+whatsoever. `trained_at` cannot catch that — it records when a run happened, not
+what it ran. `tests/test_missing_value_encoding.py::test_the_committed_artefacts_were_fitted_by_this_pipeline`
+red-checks on `origin/main`'s committed manifest (verified: fails there with
+`None != 'xg-league-rate-imputation'`).
+
+### A second, larger skew in the same pipeline — found, not fixed
+
+`features/cold_start.py::apply_cold_start_fallback` (training) and
+`FixtureFeatureContext.build_row`'s rolling-form loop (serving) implement the
+same cold-start blend with the same weight formula and **different league
+averages**:
+
+- training: `long_df[col].mean()` — every team's rolling reading, averaged over
+  the entire window
+- serving: `ctx.league_avg` — `latest_form(matches_df).mean()`, i.e. each team's
+  *current* form, averaged
+
+On this project's data those two averages differ on 117/117 base columns, mean
+absolute difference 0.43, max 2.19 (`last_3_shots_against`: 12.71 vs 14.90). On
+the 10,179 training cells where the blend actually rewrites a value, the two
+disagree on **100%** of them.
+
+That is the same bug class as the xG one, larger in scope (234 rolling-form
+columns rather than 16) and with a much larger measured disagreement. It is left
+alone here deliberately: unlike the xG case, the fix is a genuine modelling
+decision rather than a transcription — the two averages are each defensible for
+their own as-of date, and picking one changes 10k cells of real training data
+with no held-out measurement in hand to say which is right. That needs its own
+experiment, its own walk-forward evidence, and its own review.
+
+Also examined and **not** a skew: `shot_situation.py`'s
+`*_set_piece_xg_share_*` family has the identical structural shape (training
+leaves gaps NaN, serving blends toward a league average) but the columns are
+excluded from `feature_cols`, so no booster ever sees them.
+
 ## Change checklist for future agents
 
 - Read this file, `README.md`, and relevant tests before editing.
