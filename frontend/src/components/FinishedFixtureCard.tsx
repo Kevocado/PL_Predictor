@@ -70,7 +70,17 @@ export function FinishedFixtureCard({
       onClick={onClick}
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => e.key === "Enter" && onClick()}
+      onKeyDown={(e) => {
+          // Enter and Space, because this is announced as a button and must
+          // behave like one. Space's default action is to scroll the page, so
+          // preventDefault is part of the fix rather than a detail: without it
+          // the keypress that opens the fixture also jumps the reader down the
+          // page. `role="button"` on a div is the reason this is worth stating
+          // at all -- a real <button> would give both keys for free.
+          if (e.key !== "Enter" && e.key !== " ") return;
+          e.preventDefault();
+          onClick();
+        }}
       title={draw_signal ? "The scoreline model also leaned towards a draw." : undefined}
       className={`clip-corner flex cursor-pointer flex-col gap-3 rounded-xl border bg-pl-850/70 ${!made_before_kickoff ? "border-pl-border" : hit ? "border-win/30" : "border-loss/30"} p-4 transition hover:border-pl-pink/40`}
     >
