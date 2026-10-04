@@ -26,7 +26,17 @@ export function NextFixtureHero({ fixture, onClick }: { fixture: CurrentGameweek
       onClick={onClick}
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => e.key === "Enter" && onClick()}
+      onKeyDown={(e) => {
+          // Enter and Space, because this is announced as a button and must
+          // behave like one. Space's default action is to scroll the page, so
+          // preventDefault is part of the fix rather than a detail: without it
+          // the keypress that opens the fixture also jumps the reader down the
+          // page. `role="button"` on a div is the reason this is worth stating
+          // at all -- a real <button> would give both keys for free.
+          if (e.key !== "Enter" && e.key !== " ") return;
+          e.preventDefault();
+          onClick();
+        }}
       className="clip-corner-lg relative mb-6 cursor-pointer overflow-hidden rounded-2xl border border-pl-pink/30 bg-pl-850 p-6 transition hover:border-pl-pink/60 sm:p-8"
     >
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-medium uppercase tracking-wide text-pl-pink">

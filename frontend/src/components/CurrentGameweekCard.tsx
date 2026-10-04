@@ -18,7 +18,17 @@ export function CurrentGameweekCard({ fixture, onClick }: { fixture: CurrentGame
         onClick={onClick}
         role="button"
         tabIndex={0}
-        onKeyDown={(e) => e.key === "Enter" && onClick()}
+        onKeyDown={(e) => {
+          // Enter and Space, because this is announced as a button and must
+          // behave like one. Space's default action is to scroll the page, so
+          // preventDefault is part of the fix rather than a detail: without it
+          // the keypress that opens the fixture also jumps the reader down the
+          // page. `role="button"` on a div is the reason this is worth stating
+          // at all -- a real <button> would give both keys for free.
+          if (e.key !== "Enter" && e.key !== " ") return;
+          e.preventDefault();
+          onClick();
+        }}
         className={`clip-corner flex cursor-pointer flex-col gap-3 rounded-xl border bg-pl-850/70 p-4 transition hover:border-pl-pink/40 ${
           fixture.value_bet_flags.length > 0 ? "border-pl-pink/40 ring-1 ring-pl-pink/20" : "border-pl-border"
         }`}
