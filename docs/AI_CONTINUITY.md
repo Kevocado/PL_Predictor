@@ -2287,6 +2287,59 @@ expected-goals rate, and the row's target is a function of those goals. Both
 halves now have a test that perturbs the future and requires the past not to
 move.
 
+### And the denominator counted matchdays, not matches
+
+The same cold fallback then shipped with its denominator wrong in a way that
+CodeRabbit caught on #51. The numerator is a per-**date** sum of team-goals, so
+one entry holds every fixture played on that date, but the denominator counted
+*dates* as though each were one match. A real Premier League matchday is up to
+10 fixtures, so the rate came out inflated by roughly the fixtures-per-date.
+
+Measured on this project's 8-season window: 3.23 fixtures per date on average,
+max 10, with **68% of matchdates carrying more than one fixture** — so this was
+the common case, not an edge case. End-of-window rate **4.61** under the date
+count against a true league rate of **1.43**; a 3.2x error, median ratio 3.219
+across rows, changing 3,033 of the 3,039 rows that get a rate at all.
+
+Two further defects surfaced while fixing it, both in the same five lines and
+both of the "quietly NaN" kind:
+
+- `shift(1)` **propagates** a NaN one row forward. A matchday on which no
+  fixture has a goal value has to stay in the index as a zero-contribution row,
+  or the *next* date's numerator and denominator are wiped and that date loses
+  its rate entirely.
+- pandas' `cumsum` **propagates** NaN rather than skipping it (verified on
+  3.0.6), so that same zero-contribution row must be `fillna(0.0)` *before*
+  accumulating, not after. The comment above it originally claimed pandas'
+  `cumsum` was skipna by default; it is not, and that claim would have been the
+  next person to reintroduce this.
+
+The corrected rate reproduces the league figure to within 0.06% (1.4302 against
+`_league_goals_per_match`'s 1.4294), which is the check that says the quantity
+is right rather than merely different.
+
+Worth recording *why* it survived: the pre-existing `_synthetic_matches` test
+league spaces its matches 7 days apart, so it has exactly one fixture per date —
+on which the wrong denominator is accidentally right. Any test built on that
+fixture is blind to this by construction. The new tests use an explicit
+multi-fixture matchday and assert the arithmetic identity, not just that a
+number came out.
+
+### What this fix did and did not move
+
+Nothing in the fitted model. With Understat warm — which is the production
+path — the cold fallback contributes **zero cells** to the training frame, so
+the corrected rate cannot reach a booster. Verified rather than assumed: a
+refit on the corrected code produces **byte-identical** boosters
+(`ml_scoreline_{home,away}.json`, `cards_xgb.json`, `corners_xgb.json`) and an
+`ml_scoreline` RPS of 0.20855290549980895 — the same figure the holdout
+comparison above reports. The only `manifest.json` field that moves is
+`trained_at`.
+
+The blast radius is therefore confined to the cold-Understat path it was
+already wrong in: a retrain or walk-forward fold run with Understat blocked
+would previously have imputed ~4.6 into every gap, and now imputes ~1.43.
+
 ### The guard against the next occurrence
 
 `train_all` now records `feature_pipeline_version` in `manifest.json`, and

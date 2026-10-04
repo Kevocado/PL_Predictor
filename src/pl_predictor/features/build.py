@@ -141,39 +141,89 @@ def _xg_league_avg_rates_by_date(
             return out
         if "goals_home" not in matches_df.columns or "goals_away" not in matches_df.columns:
             return out
-        played = (
-            pd.concat(
-                [
-                    pd.DataFrame({"date": pd.to_datetime(matches_df["date"]), "goals": matches_df["goals_home"]}),
-                    pd.DataFrame({"date": pd.to_datetime(matches_df["date"]), "goals": matches_df["goals_away"]}),
-                ],
-                ignore_index=True,
-            )
-            .dropna(subset=["goals"])
-            .groupby("date")["goals"]
-            .sum()
-            .sort_index()
+        # Per-date team-goals AND per-date FIXTURES, from the same rows, so the
+        # two halves of the rate describe the same population. A date holds
+        # however many fixtures were played on it — a real Premier League
+        # matchday is 10 fixtures, not 1 — so counting dates as matches
+        # inflated this rate by roughly the fixtures-per-date (measured on this
+        # project's 8-season window: 3.23 fixtures per date on average, max 10,
+        # which put the end-of-window rate at 4.61 where the true league rate is
+        # 1.43 — a 3.2x error, and 1.43 is the value this now reproduces).
+        # Caught by CodeRabbit on #51.
+        #
+        # A fixture counts if EITHER of its goal values is known, which is
+        # exactly the set of rows contributing to the numerator: a fixture with
+        # `goals_home` NaN and `goals_away` = 2 contributes 2 team-goals and is
+        # 1 fixture, so it counts once. A date on which every fixture has both
+        # goal values NaN therefore contributes 0 to both — see the reindex
+        # below, which keeps such a date in the index as a zero row rather than
+        # dropping it — so the numerator and denominator can never describe
+        # different populations.
+        long_goals = pd.DataFrame(
+            {
+                "date": pd.to_datetime(matches_df["date"]),
+                "home": matches_df["goals_home"],
+                "away": matches_df["goals_away"],
+            }
         )
-        if played.empty:
+        long_goals = long_goals[long_goals[["home", "away"]].notna().any(axis=1)]
+        if long_goals.empty:
             return out
-        # Expanding mean of team-goals per match: cumulative goals / (2 x
-        # matches played), evaluated STRICTLY BEFORE each date — hence the
-        # shift. Without it the first matchday's own 0-0 would seed the series
-        # and a 2020-08-01 fixture would be imputed 0.0, which is the very
-        # encoding this change exists to remove, reintroduced through the
-        # fallback. The shifted first row is NaN because no prior match exists,
-        # which is the honest answer.
-        cumulative = played.cumsum()
-        matches_so_far = np.arange(1, len(cumulative) + 1)
+
+        team_goals = pd.concat(
+            [
+                long_goals.rename(columns={"home": "goals"})[["date", "goals"]],
+                long_goals.rename(columns={"away": "goals"})[["date", "goals"]],
+            ],
+            ignore_index=True,
+        )
         per_date = pd.DataFrame(
             {
-                "goals": cumulative.shift(1),
-                "matches": matches_so_far - 1,
+                "goals": team_goals.groupby("date")["goals"].sum(),
+                "fixtures": long_goals.groupby("date").size(),
+            }
+        ).sort_index()
+        if per_date.empty:
+            return out
+
+        # A matchday on which no fixture has a goal value still belongs in the
+        # index, as a zero-contribution row: it must not dilute either half of
+        # the rate. Dropping the row instead would be wrong in a way that is
+        # easy to miss -- the *next* date's shifted rate would then be read off
+        # the row before it, so a fixture played on an all-unplayed matchday
+        # would lose the rate that matchday's predecessors established.
+        all_match_dates = pd.DatetimeIndex(sorted(pd.to_datetime(matches_df["date"]).unique()))
+        per_date = per_date.reindex(all_match_dates).fillna(0.0)
+        if per_date.empty:
+            return out
+
+        # Cumulative team-goals / (2 x cumulative fixtures), evaluated STRICTLY
+        # BEFORE each date — hence the shift on both columns. Without it the
+        # first matchday's own 0-0 would seed the series and a 2020-08-01
+        # fixture would be imputed 0.0, which is the very encoding this change
+        # exists to remove, reintroduced through the fallback. The shifted
+        # first row is NaN (0/0) because no prior match exists, which is the
+        # honest answer and also avoids dividing by zero.
+        cumulative = per_date.cumsum()
+        # `shift(1)` then `fillna(0)`, NOT `shift(1)` alone: shift propagates a
+        # NaN one row forward, which would wipe out the next date's numerator and
+        # denominator. Filling the shifted gap with 0 gives the right answer on
+        # both counts -- the first date's row becomes 0/0, which pandas
+        # evaluates to NaN (the honest "no prior match" answer, and no
+        # ZeroDivisionError) -- while every later date gets the true prior
+        # cumulative. The `fillna(0.0)` on `per_date` above is likewise not
+        # optional: pandas' `cumsum` propagates NaN rather than skipping it
+        # (verified on 3.0.6), so a zero-contribution row left as NaN would
+        # poison every later cumulative, not just its own.
+        shifted = pd.DataFrame(
+            {
+                "goals": cumulative["goals"].shift(1).fillna(0.0),
+                "fixtures": cumulative["fixtures"].shift(1).fillna(0.0),
             },
-            index=played.index,
+            index=per_date.index,
         )
-        per_date["rate"] = per_date["goals"] / (2 * per_date["matches"])
-        rates = per_date["rate"]
+        shifted["rate"] = shifted["goals"] / (2 * shifted["fixtures"])
+        rates = shifted["rate"]
         for key in XG_STAT_COLS:
             out[key] = rates.reindex(pd.Series(dates).to_numpy()).to_numpy()
         return out

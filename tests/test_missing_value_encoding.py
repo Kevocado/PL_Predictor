@@ -1085,6 +1085,162 @@ def test_a_partly_warm_training_frame_imputes_only_the_missing_cells(monkeypatch
             )
 
 
+def test_the_goals_fallback_counts_fixtures_not_match_dates():
+    """The denominator is fixtures, not dates. CodeRabbit's Major on #51.
+
+    A real Premier League matchday is 10 fixtures, not 1, and the bug was that
+    `matches_so_far` counted *dates* while the numerator carried the team-goals
+    of every fixture on that date — so the rate came out inflated by roughly the
+    fixtures-per-date. Measured on this project's real 8-season window: the
+    rate ended at 4.61 where the true league rate is 0.78, a 6x error.
+
+    Written as an explicit arithmetic identity on a synthetic league where
+    several fixtures share one date, because that is the case the bug hides in:
+    with exactly one fixture per date, `len(dates)` and the fixture count
+    coincide and the wrong denominator is accidentally right. The `_synthetic_matches`
+    fixture used elsewhere in this module spaces its matches 7 days apart, so it
+    could never have caught this.
+
+    The identity asserted is the definition of the quantity:
+    cumulative team-goals / (2 x cumulative fixtures), strictly before the date.
+    """
+    dates = pd.to_datetime(
+        ["2024-08-10"] * 4 + ["2024-08-17"] * 4 + ["2024-08-24"] * 4 + ["2024-08-31"] * 4
+    )
+    matches = pd.DataFrame(
+        {
+            "date": dates,
+            "season": "2024-2025",
+            # Four fixtures per date, deliberately asymmetric, and the first
+            # matchday is 3+0, 1+2, 0+1, 0+0 -- seven team-goals -- so the
+            # correct rate is 7/8 while a date-count denominator gives 7/2.
+            "goals_home": [3, 1, 0, 0, 2, 0, 1, 0, 0, 0, 2, 0, 1, 0, 2, 0],
+            "goals_away": [0, 2, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 2, 0, 1],
+        }
+    )
+    rates = build_module._xg_league_avg_rates_by_date(
+        pd.DataFrame(), matches, matches["date"]
+    )["xg_for_last_5"].to_numpy(dtype=float)
+
+    # Precondition: this league must actually put several fixtures on one date,
+    # or the test is asserting the buggy denominator's own arithmetic.
+    fixtures_per_date = matches.groupby("date").size()
+    assert fixtures_per_date.max() > 1, (
+        "precondition: the fixture league must have shared matchdates, else the "
+        "date-count and fixture-count denominators coincide and this test is vacuous"
+    )
+
+    # The rate is per input ROW, so every fixture on a date carries that date's
+    # rate. Index by date rather than by position, which is what made the first
+    # draft of this test read NaN at index 1 (still the first matchday).
+    all_dates = sorted(pd.to_datetime(matches["date"]).unique())
+    first_row_of = [int(np.flatnonzero(pd.to_datetime(matches["date"]) == d)[0]) for d in all_dates]
+    got = rates[first_row_of]
+
+    # The first date has no prior match at all: no rate, and no ZeroDivisionError.
+    assert np.isnan(got[0]), (
+        f"the first matchday got rate {got[0]!r}; with zero prior fixtures the "
+        "honest answer is no rate, and 0/0 must not raise or produce 0.0"
+    )
+
+    # Explicit identity, evaluated by hand for each date from the fixtures
+    # strictly before it.
+    known = matches.assign(date=pd.to_datetime(matches["date"]))
+    expected = []
+    for date in all_dates:
+        prior = known[known["date"] < date]
+        team_goals = float(prior["goals_home"].sum() + prior["goals_away"].sum())
+        n_fixtures = len(prior)
+        expected.append(team_goals / (2 * n_fixtures) if n_fixtures else np.nan)
+
+    # The wrong denominator, computed the same way, for the contrast assertion
+    # below: date-count instead of fixture-count.
+    wrong = []
+    for date in all_dates:
+        n_prior_dates = sum(1 for d in all_dates if d < date)
+        prior = known[known["date"] < date]
+        team_goals = float(prior["goals_home"].sum() + prior["goals_away"].sum())
+        wrong.append(team_goals / (2 * n_prior_dates) if n_prior_dates else np.nan)
+
+    assert got[1:] == pytest.approx(np.array(expected[1:]), abs=1e-12), (
+        "the imputed rate is not cumulative team-goals / (2 x cumulative FIXTURES): "
+        f"got {got[1:]}, expected {np.array(expected[1:])}"
+    )
+    # And it must actually differ from the date-count version, or this test
+    # cannot tell the two denominators apart.
+    assert not np.allclose(got[1:], np.array(wrong[1:]), atol=1e-12), (
+        "the fixture-count and date-count denominators produced identical rates "
+        "on this payload, so the assertion above cannot distinguish them"
+    )
+
+    # Magnitude on a real multi-matchday date: after the first matchday of 4
+    # fixtures scoring 3+0, 1+2, 0+1, 0+0 (7 team-goals over 4 fixtures), the
+    # rate must be 7/8, NOT 7/2.
+    assert got[1] == pytest.approx(7 / 8, abs=1e-12), (
+        f"rate after one 4-fixture matchday is {got[1]}, expected 7 team-goals / "
+        f"(2 x 4 fixtures) = {7/8}. A rate of 7/2 would mean the denominator "
+        "counted the one matchdate as a single match"
+    )
+    # And the difference from the date-count denominator must be visible, not a
+    # floating-point hair: 7/8 = 0.875 versus 7/2 = 3.5.
+    assert abs(got[1] - 7 / 2) > 1.0, (
+        "the date-count denominator produced a rate within 1.0 of the correct "
+        f"one ({got[1]}); these denominators must be plainly distinguishable"
+    )
+
+
+def test_the_goals_fallback_drops_dates_whose_fixtures_all_lack_goals():
+    """A matchday whose fixtures are all unplayed contributes to neither half.
+
+    If such a date reached the numerator it would add nothing, but if it
+    reached the *denominator* the rate would be diluted by matches that never
+    happened — and if it reached only one of the two, the two would describe
+    different populations. All-NaN dates are dropped from both, which is what
+    this asserts.
+    """
+    dates = pd.to_datetime(["2024-08-10"] * 2 + ["2024-08-17"] * 2 + ["2024-08-24"] * 2)
+    matches = pd.DataFrame(
+        {
+            "date": dates,
+            "season": "2024-2025",
+            # The middle matchday is entirely unplayed.
+            "goals_home": [1, 2, np.nan, np.nan, 0, 1],
+            "goals_away": [0, 1, np.nan, np.nan, 2, 0],
+        }
+    )
+    rates = build_module._xg_league_avg_rates_by_date(
+        pd.DataFrame(), matches, matches["date"]
+    )["xg_for_last_5"].to_numpy(dtype=float)
+
+    all_dates = sorted(pd.to_datetime(matches["date"]).unique())
+    first_row_of = [int(np.flatnonzero(pd.to_datetime(matches["date"]) == d)[0]) for d in all_dates]
+    by_date = rates[first_row_of]
+
+    assert np.isnan(by_date[0]), "precondition: the first date must have no rate"
+    # 2024-08-17: the only prior fixtures are 2024-08-10's two, carrying 4
+    # team-goals -- 4 / (2 x 2) = 1.0. Note the all-NaN matchday sits ON this
+    # date, so it is excluded by the "strictly before" rule regardless.
+    assert by_date[1] == pytest.approx(1.0, abs=1e-12)
+    # 2024-08-24: the prior fixtures are still only 2024-08-10's two (the
+    # all-NaN matchday contributed no fixture) and 2024-08-24's own two are
+    # excluded as the future. Still 4 / (2 x 2) = 1.0.
+    #
+    # This is the assertion that matters: had the unplayed matchday reached the
+    # denominator it would read 4 / (2 x 3) = 0.667, and had it been dropped
+    # from the index before the shift, 2024-08-24 would have taken its shifted
+    # rate from the wrong row and come out with no rate at all.
+    assert by_date[2] == pytest.approx(1.0, abs=1e-12), (
+        f"rate on 2024-08-24 is {by_date[2]}; expected 4 team-goals over the 2 "
+        "played fixtures that precede it. 0.667 would mean the unplayed "
+        "matchday was counted in the denominator; NaN would mean it was "
+        "dropped from the index and shifted onto the wrong row"
+    )
+    assert abs(by_date[2] - 4 / 6) > 0.1, (
+        "the unplayed matchday leaked into the denominator; the two candidate "
+        "rates are 1.0 and 0.667 and must be plainly distinguishable"
+    )
+
+
 def test_the_goals_fallback_rate_does_not_read_the_fixture_s_own_goals(monkeypatch, synthetic):
     """The cold-Understat branch, checked for the same look-ahead.
 
