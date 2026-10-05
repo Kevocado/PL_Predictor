@@ -382,9 +382,9 @@ export function FixtureModal({ eventId, onClose, explain, sport = "pl" }: Props)
   // does the same at the same place, so "a fixture page shows its signals" is one
   // implementation and not one per sport.
   //
-  // `fetchSignals` rather than `api.signals`, because `api.signals` goes through
-  // the 45 s `readCache` and this row is worth fetching exactly when the reader
-  // opens the modal. See the client's own note.
+  // `fetchSignals`, which bypasses the 45 s `readCache` every other read on `api`
+  // goes through. See the client's own note for why this endpoint has no `api`
+  // entry at all.
   //
   // NOT fetched for a finished gameweek. `/api/signals/{event_id}` answers `[]` for
   // one, because `facts.game_context` empties the player pool once a fixture is
@@ -401,7 +401,19 @@ export function FixtureModal({ eventId, onClose, explain, sport = "pl" }: Props)
   useEffect(() => {
     let cancelled = false;
     setSignals([]);
-    if (!detail) return;
+    // `detail.event_id === eventId`, NOT `!detail`. Caught by CodeRabbit on #55.
+    //
+    // When the reader switches fixtures the modal KEEPS the previous `detail` in
+    // state until the new one lands (the reset is a `setDetail(null)` inside
+    // another effect, and an effect reads the value captured by ITS OWN render).
+    // So on the render where `eventId` has just changed, `detail` is the OLD
+    // fixture's -- and a gate of `!detail` or `detail.post_match` would read the
+    // previous fixture's status, fetch for the NEW id, and could put the OLD
+    // fixture's absence row on the new fixture's page.
+    //
+    // Comparing the id the detail was FOR against the id being asked about is the
+    // only gate that cannot be stale.
+    if (!detail || detail.event_id !== eventId) return;
     if (detail.post_match) return;
     fetchSignals(eventId)
       .then((response) => {

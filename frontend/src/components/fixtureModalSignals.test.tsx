@@ -26,7 +26,7 @@
  * before the row is ever reached, and a test that dies in setup tests nothing.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { act, render, screen, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 
 import { FixtureModal } from "./FixtureModal";
 import { api, fetchSignals } from "../api/client";
@@ -187,6 +187,43 @@ describe("PL's absence row on the fixture modal", () => {
     // Even when the endpoint WOULD have sent a row. A finished fixture's squad
     // list is the one known before kick-off; rendering it afterwards is hindsight.
     expect(screen.queryByTestId("signal-absence")).not.toBeInTheDocument();
+  });
+
+  it("does not read one fixture's status to decide about the next", async () => {
+    // Caught by CodeRabbit on #55, and the fix is `detail.event_id === eventId`
+    // rather than `!detail`. Switching fixtures leaves the PREVIOUS detail in state
+    // until the new one lands, and an effect reads the value captured by its OWN
+    // render -- so a `!detail` gate reads the OLD fixture's `post_match`.
+    //
+    // **What that costs is a redundant request, not a wrong row.** The fetch is
+    // keyed on `eventId` and every write is guarded by `cancelled`, so no data
+    // from the previous fixture can reach the page. It is asserted as a CALL COUNT
+    // because that is the whole of the defect: with a stale UPCOMING detail, a
+    // `!detail` gate fires for the new id immediately and again once its detail
+    // lands; the id comparison waits and fires once.
+    vi.mocked(fetchSignals).mockResolvedValue(envelope([ABSENCE]));
+    // `detail.event_id` is "e1" and UPCOMING (`post_match: null`), so it does not
+    // block on status -- only on being the wrong fixture.
+    mockApi(detail);
+    const { rerender } = render(
+      <FixtureModal eventId="e1" onClose={() => {}} explain={vi.fn().mockReturnValue(new Promise(() => {}))} />,
+    );
+    await screen.findByTestId("fixture-flow");
+    await waitFor(() => expect(fetchSignals).toHaveBeenCalledTimes(1));
+
+    // Switch to a different fixture WITHOUT letting the new detail land.
+    vi.mocked(api.fixtureDetail).mockReturnValue(new Promise(() => {}) as never);
+    rerender(
+      <FixtureModal eventId="e2" onClose={() => {}} explain={vi.fn().mockReturnValue(new Promise(() => {}))} />,
+    );
+    await act(async () => {
+      await Promise.resolve();
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    // Still exactly one: the stale "e1" detail did not authorise a fetch, and the
+    // new one has not arrived.
+    expect(fetchSignals).toHaveBeenCalledTimes(1);
+    expect(fetchSignals).toHaveBeenCalledWith("e1");
   });
 
   it("does not ask while the fixture detail is still in flight", async () => {

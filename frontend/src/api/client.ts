@@ -129,8 +129,21 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
 }
 
 /**
- * The signals for one fixture, uncached. See `api.signals` for why this is not
- * `get`.
+ * `GET /signals/{eventId}` -- spec §3's per-fixture signal payloads, rendered by
+ * the shared `SignalRows`.
+ *
+ * **The only entry point, and deliberately NOT on `api`.** Every read on `api`
+ * goes through `get`, which memoises in `readCache` for 45 s. That is right for
+ * data that changes slowly, and wrong here twice over: a signal list is worth
+ * fetching exactly when the reader opens the fixture page, so a warm cache would
+ * serve a list that was true when the page LOADED; and `FixtureModal` calls this
+ * from its own mount effect, where `api`'s shared cache would also collapse two
+ * different fixtures' signals into one key's worth of history.
+ *
+ * An `api.signals` existed alongside this for one commit and had no caller, which
+ * is the only thing that made it worth noticing: two functions for one endpoint,
+ * differing only in caching, is exactly the pair that later disagrees about which
+ * one is right. CodeRabbit flagged it on #55.
  */
 export function fetchSignals(eventId: string): Promise<SignalsResponse> {
   return fetchRead<SignalsResponse>(`/signals/${encodeURIComponent(eventId)}`);
@@ -156,15 +169,6 @@ export const api = {
   currentGameweek: (gameweek?: number) =>
     get<CurrentGameweekResponse>(gameweek ? `/fixtures/gameweek?gameweek=${gameweek}` : "/fixtures/gameweek"),
   fixtureDetail: (eventId: string) => get<FixtureDetail>(`/fixtures/${eventId}`),
-  // Spec §3's per-fixture signal payloads, rendered by the shared `SignalRows`.
-  //
-  // Deliberately NOT memoised in `readCache`, unlike every read above. A signal
-  // list changes when the page opens and never changes while it is open, and the
-  // one moment it is worth fetching is the one moment the reader opened the
-  // modal -- so a 45 s cache would serve a list that was true when the page
-  // loaded. `fetchSignals` is exported separately so the component can call it
-  // directly in its own mount effect and bypass `get`'s caching entirely.
-  signals: (eventId: string) => get<SignalsResponse>(`/signals/${encodeURIComponent(eventId)}`),
   fixturePlayers: (eventId: string) => get<FixturePlayers>(`/fixtures/${eventId}/players`),
   fixturePlayerReview: (eventId: string) => get<FixturePlayerReview | null>(`/fixtures/${eventId}/player-review`),
   manifest: (force = false) => get<ManifestResponse>("/manifest", force),
