@@ -1,4 +1,4 @@
-// Synced from predictor-ui@490df2925aaf. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@44435cd387a8. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 /**
  * `Signal[]` as the facts block renders it: one compact row per finding, a
  * headline of at most 12 words, and a collapsed evidence line a keyboard can
@@ -63,8 +63,8 @@
  *     (`SignalFigureError`). A `reliability_bar` with no `figures.rate` would
  *     draw an empty track, and an empty track reads as 0%.
  *  3. **A visual this package cannot draw** (`UndrawableSignalVisualError`).
- *     Phase 1 draws `delta_chip` and `reliability_bar`. `absence_strip` (phase 2)
- *     and `projected_vs_actual` (phase 3) are refused rather than rendered
+ *     Phase 1 drew `delta_chip` and `reliability_bar`; `absence_strip` joined them with
+ *     the phase-2 absence signal. `projected_vs_actual` (phase 3) is still refused rather than rendered
  *     without their marker, which is the one failure mode that both tests and
  *     screenshots miss.
  *  4. **A headline that does not state the figure its visual draws**
@@ -183,6 +183,13 @@ export const MAX_HEADLINE_WORDS = 12;
 const DRAWS_A_RATE: Record<SignalVisual, boolean> = {
   reliability_bar: true,
   delta_chip: false,
+  // FALSE, and load-bearing rather than convenient. An absence row's `n` counts
+  // INJURED PLAYERS, not graded observations -- so applying the `n >= 30` rate
+  // floor would refuse the row for having fewer than 30 injuries, which is a
+  // category error rather than a thin sample. The floor exists because a hit rate
+  // drawn from a handful of games misleads; a projection for one named player in
+  // one named fixture is not that claim. Same reasoning as `delta_chip`: the
+  // figures are this game's own.
   absence_strip: false,
   projected_vs_actual: false,
 };
@@ -197,10 +204,16 @@ const DRAWS_A_RATE: Record<SignalVisual, boolean> = {
  * yet" a fact this file can test rather than a comment. One map, so a caller
  * cannot reach a figure for a visual that has none.
  */
-const FIGURE: Record<SignalVisual, "gap" | "rate" | null> = {
+const FIGURE: Record<SignalVisual, "gap" | "rate" | "projection" | null> = {
   delta_chip: "gap",
   reliability_bar: "rate",
-  absence_strip: null,
+  // The player's OWN projection, in the sport's own units -- 78 rush yards for
+  // NFL, a scoring probability for PL. `projection` rather than `rate` because
+  // this component cannot know which sport it is drawing: a percentage would
+  // assert the figure is a share, which is true for PL and false for NFL's
+  // yards. The unit belongs in the headline, which already has to state the
+  // figure.
+  absence_strip: "projection",
   projected_vs_actual: null,
 };
 
@@ -218,7 +231,14 @@ type StatedFigure = { value: number; pct: boolean; cmp: "<" | ">" | null; sign: 
  *  behind it (0.4) to judge a stated inequality: "is this claim true of the rate
  *  the bar draws" is a different question from "does this bound match that
  *  bound", and only the first one is the property the file cares about. */
-type DrawnBar = StatedFigure & { rate: number };
+type DrawnBar = StatedFigure & {
+  rate: number;
+  /** True when this visual's figure carries a UNIT rather than a quantity, so a
+   *  stated `%` or its absence is the headline's business. Only `absence_strip`:
+   *  its projection is yards in one sport and a share in another. The MAGNITUDE
+   *  must still match — this waives the unit, never the number. */
+  unitAgnostic?: boolean;
+};
 
 /**
  * Every number in a piece of text, with its boundary and sign.
@@ -307,6 +327,22 @@ function statedFigures(text: string): StatedFigure[] {
  * part of the figure — the chip reads `+1.6`, so `−1.6` is a different claim.
  */
 function drawnAs(signal: Signal, figure: number): DrawnBar {
+  if (signal.visual === "absence_strip") {
+    // A projection is a MAGNITUDE, not a direction. `delta_chip` shares the
+    // non-bar branch below because a disagreement can point either way, but a
+    // projection has no sign to state: "−78 rush yards" is not a claim anyone
+    // makes, and requiring the headline to carry a minus would invent one. So
+    // `sign` is 0 and the value is the figure itself, drawn by `drawnText`.
+    return {
+      value: figure,
+      pct: false,
+      cmp: null,
+      sign: 0,
+      // Present so `denotes` reads one shape rather than narrowing on `visual`.
+      rate: figure,
+      unitAgnostic: true,
+    };
+  }
   if (signal.visual !== "reliability_bar") {
     // A gap's magnitude is its ABSOLUTE value and its sign is separate, because
     // "wants 1.6 fewer" states −1.6 with no minus sign in front of the number.
@@ -378,7 +414,16 @@ function drawnAs(signal: Signal, figure: number): DrawnBar {
 function denotes(drawn: DrawnBar, stated: StatedFigure): boolean {
   // A percent and a bare number are different quantities. "Right 74%" does not
   // state a gap of 74, and "Wants 1.6 more" does not state a rate.
-  if (drawn.pct !== stated.pct) return false;
+  //
+  // The one exception is an absence row, and it is not a loosening of the rule so
+  // much as an admission that this component cannot know the unit. An absence
+  // projection is 78 RUSH YARDS for NFL and 62% TO SCORE for PL, both carried as
+  // `figures.projection`, and only the adapter knows which sport it is drawing.
+  // So for `absence_strip` the MAGNITUDE must match and the trailing unit is the
+  // headline's business -- refusing "62% to score" would force PL to write "62 to
+  // score", which is worse English and no more honest, while accepting a
+  // mismatched NUMBER would still be refused below.
+  if (drawn.pct !== stated.pct && !drawn.unitAgnostic) return false;
 
   // A RATE is a share, so it is never negative. A headline stating `<−5%` or
   // `−0%` is describing a rate that cannot exist, and the inequality branches
@@ -589,9 +634,8 @@ export class UndrawableSignalVisualError extends Error {
     super(
       `SignalRows: signal ${gameId} (${kind}) asks for visual "${visual}", which this package does ` +
         `not draw. Rendering the row without its marker would put a headline on the page with the ` +
-        `figure beside it missing, so it is refused instead. Drawable today: delta_chip and ` +
-        `reliability_bar. absence_strip arrives with the absence signal, projected_vs_actual with ` +
-        `post_game.`,
+        `figure beside it missing, so it is refused instead. Drawable today: delta_chip, ` +
+        `reliability_bar and absence_strip. projected_vs_actual arrives with post_game.`,
     );
     this.name = "UndrawableSignalVisualError";
   }
@@ -735,11 +779,41 @@ export function assertFigureIsStated(signal: Signal): void {
   const figure = signalFigure(signal, signal.visual);
   if (!headlineStatesFigure(signal.headline.text, signal, figure)) {
     const name = FIGURE[signal.visual]!;
-    const drawn = signal.visual === "reliability_bar" ? pct(figure) : signed(figure);
     throw new HeadlineFigureMismatchError(
-      signal.game_id, signal.kind, signal.visual, name, drawn, signal.headline.text,
+      signal.game_id, signal.kind, signal.visual, name, drawnText(signal, figure), signal.headline.text,
     );
   }
+}
+
+/**
+ * The text a visual's figure is DRAWN as, for one place to name it.
+ *
+ * The comparator and the marker must agree on this or the component refuses rows
+ * its own marker would have rendered: the first version of `absence_strip` drew
+ * `stat(figure)` and compared against `signed(figure)`, so a projection of 62 was
+ * demanded in a headline as "+62.0" -- a sign and a decimal place that belong to
+ * a `delta_chip` and to nothing about an injured player. One function, so the
+ * two cannot drift.
+ */
+function drawnText(signal: Signal, figure: number): string {
+  if (signal.visual === "reliability_bar") return pct(figure);
+  if (signal.visual === "absence_strip") return projection(figure);
+  return signed(figure);
+}
+
+/**
+ * A projection, as a number of the sport's units.
+ *
+ * NOT `fmt.stat`, which always prints one decimal because the stats it formats
+ * need one. A 78-yard rush projection drawn as "78.0" claims a tenth of a yard
+ * the model never had, while the headline beside it says "78 yds" -- so the
+ * marker and the words would disagree about their own precision on one row. A
+ * whole number prints as a whole number; a genuinely fractional projection keeps
+ * its decimal.
+ */
+function projection(x: number): string {
+  if (!Number.isFinite(x)) return "—";
+  return Number.isInteger(x) ? String(x) : String(+x.toFixed(1));
 }
 
 /**
@@ -953,6 +1027,19 @@ function SignalRow({ signal, rowId }: { signal: Signal; rowId: string }) {
             className="shrink-0 rounded-pr border border-pr-rule px-1.5 py-0.5 font-pr-display text-xs font-semibold tabular-nums text-pr-text"
           >
             {signed(figure)}
+          </span>
+        )}
+        {signal.visual === "absence_strip" && (
+          // The player's own projection, plain and unsigned, in the sport's own
+          // units. Not a percentage (see `FIGURE`), and deliberately not
+          // `pr-win`/`pr-loss`: a player being out is not an outcome the model
+          // got right or wrong, and this package never carries direction in
+          // colour. Same neutral chip as `delta_chip` for the same reason.
+          <span
+            data-testid="signal-absence"
+            className="shrink-0 rounded-pr border border-pr-rule px-1.5 py-0.5 font-pr-display text-xs font-semibold tabular-nums text-pr-text"
+          >
+            {drawnText(signal, figure)}
           </span>
         )}
         <p

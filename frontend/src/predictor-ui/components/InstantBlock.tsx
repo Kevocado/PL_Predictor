@@ -1,4 +1,4 @@
-// Synced from predictor-ui@490df2925aaf. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@44435cd387a8. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 /** The facts, rendered before anything is asked for.
  *
  *  Every figure here comes from the site's own bundle or its `extras`. There
