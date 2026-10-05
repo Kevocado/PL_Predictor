@@ -1,4 +1,4 @@
-// Synced from predictor-ui@44435cd387a8. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@7bccedaf75d4. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 /**
  * `Signal[]` as the facts block renders it: one compact row per finding, a
  * headline of at most 12 words, and a collapsed evidence line a keyboard can
@@ -683,6 +683,26 @@ export function signalFigure(signal: Signal, visual: SignalVisual): number {
       signal.game_id, signal.kind, visual, name,
       `which must be a share in [0,1] — got ${value}. A yardage figure read as a hit rate is the ` +
         `defect this guard exists for`,
+    );
+  }
+  // A PROJECTION is a magnitude in the sport's own units, and a negative one is
+  // not a small projection -- it is a different claim. `projection(-78)` draws
+  // "-78", so without this an absence row would read "Out: J. Jacobs, our #2 rush
+  // projection (-78 yds)": a player who is out for MINUS 78 yards.
+  //
+  // Zero is allowed, and is not a corner case: a player the model expected
+  // nothing from is a true if unexciting absence, and `availability_multiplier`
+  // is 0.0 for an unavailable player in every sport that has one.
+  //
+  // `gap` stays UNCHECKED on purpose, and this is why the two are different
+  // figures: a `delta_chip` is a direction and can point either way, so -1.6 is a
+  // perfectly good gap. A projection has no direction to have.
+  if (name === "projection" && value < 0) {
+    throw new SignalFigureError(
+      signal.game_id, signal.kind, visual, name,
+      `which must not be negative — got ${value}. A projection is a magnitude in the sport's ` +
+        `own units (78 rush yards, 31.5 points, 62% to score) and none of them can be below zero. ` +
+        `A signed gap is a different figure and is allowed`,
     );
   }
   return value;
