@@ -22,6 +22,7 @@ import type {
   TrackRecordResponse,
   ValueBetTrackRecordResponse,
   WalkForwardBettingResponse,
+  SignalsResponse,
 } from "../types";
 
 // Same-origin is robust for both the production FastAPI static site and the
@@ -127,6 +128,14 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
   return res.json();
 }
 
+/**
+ * The signals for one fixture, uncached. See `api.signals` for why this is not
+ * `get`.
+ */
+export function fetchSignals(eventId: string): Promise<SignalsResponse> {
+  return fetchRead<SignalsResponse>(`/signals/${encodeURIComponent(eventId)}`);
+}
+
 export const api = {
   fixtures: () => get<FixtureSummary[]>("/fixtures"),
   // The plain-English summary. Same-origin, and proxied to the explainer by
@@ -147,6 +156,15 @@ export const api = {
   currentGameweek: (gameweek?: number) =>
     get<CurrentGameweekResponse>(gameweek ? `/fixtures/gameweek?gameweek=${gameweek}` : "/fixtures/gameweek"),
   fixtureDetail: (eventId: string) => get<FixtureDetail>(`/fixtures/${eventId}`),
+  // Spec §3's per-fixture signal payloads, rendered by the shared `SignalRows`.
+  //
+  // Deliberately NOT memoised in `readCache`, unlike every read above. A signal
+  // list changes when the page opens and never changes while it is open, and the
+  // one moment it is worth fetching is the one moment the reader opened the
+  // modal -- so a 45 s cache would serve a list that was true when the page
+  // loaded. `fetchSignals` is exported separately so the component can call it
+  // directly in its own mount effect and bypass `get`'s caching entirely.
+  signals: (eventId: string) => get<SignalsResponse>(`/signals/${encodeURIComponent(eventId)}`),
   fixturePlayers: (eventId: string) => get<FixturePlayers>(`/fixtures/${eventId}/players`),
   fixturePlayerReview: (eventId: string) => get<FixturePlayerReview | null>(`/fixtures/${eventId}/player-review`),
   manifest: (force = false) => get<ManifestResponse>("/manifest", force),

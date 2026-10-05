@@ -5,6 +5,13 @@ import { api } from "../api/client";
 import type { FixtureDetail } from "../types";
 
 vi.mock("../api/client", () => ({
+  // `fetchSignals` is a separate export because `FixtureModal` calls it directly,
+  // bypassing `api`'s 45s read cache. A mock that declares only `api` leaves it
+  // `undefined` and the modal's effect throws on open -- which is how 33 tests in
+  // five files failed when the absence row landed.
+  // Default: a valid, EMPTY signal list -- spec §2's "no data, no row". A bare
+  // `vi.fn()` returns `undefined` and the modal calls `.then` on it.
+  fetchSignals: vi.fn(async () => ({ sport: "pl", id: "", signals: [] })),
   api: {
     fixtureDetail: vi.fn(),
     fixturePlayers: vi.fn(),

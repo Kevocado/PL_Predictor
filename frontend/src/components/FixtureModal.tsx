@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Explanation } from "../predictor-ui";
-import { FixtureExplainer } from "../predictor-ui";
+import { FixtureExplainer, SignalRows, type Signal } from "../predictor-ui";
 import { panelFacts } from "../predictor-ui/lib/panelFacts";
 import type { FixtureDetail, FixturePlayerReview, FixturePlayers, FixturePostMatch, FixtureValueBetSnapshot, TrackRecordSummary } from "../types";
-import { api } from "../api/client";
+import {
+  fetchSignals,
+  api,
+} from "../api/client";
 import { TeamBadge } from "./TeamBadge";
 import { ScorelineHeatmap } from "./ScorelineHeatmap";
 import { FormStrip } from "./FormStrip";
@@ -174,6 +177,9 @@ export function FixtureModal({ eventId, onClose, explain, sport = "pl" }: Props)
   const [playerReviewError, setPlayerReviewError] = useState<string | null>(null);
   const [playerReviewLoading, setPlayerReviewLoading] = useState(false);
   const [recordSummary, setRecordSummary] = useState<TrackRecordSummary | null>(null);
+  // Spec §4's signal rows. `[]` and never null once settled, and `[]` is also what
+  // every failure leaves behind -- see the effect below.
+  const [signals, setSignals] = useState<Signal[]>([]);
   const postMatchVerdict = (label: string) => detail?.post_match?.verdicts.find((verdict) => verdict.label === label);
 
   // The panel's figures, derived rather than fetched, from the SHARED adapter.
@@ -364,6 +370,55 @@ export function FixtureModal({ eventId, onClose, explain, sport = "pl" }: Props)
   // mid-flight cannot setState. A failure here costs one strip -- the modal is
   // complete without it, so it says nothing rather than reporting an error
   // about a figure the reader never asked for.
+  // The signal rows (spec §4). Fetched here, on open, rather than from behind any
+  // paid control: §2 makes signals INSTANT — computed from stored data, "no model
+  // call" — so putting them behind a click would make a free computed row a paid
+  // one.
+  //
+  // EVERY failure is silence, and the failures are deliberately indistinguishable:
+  // a 404, a network error and an honest empty list all leave `[]`. Spec §2's "no
+  // data, no row" forbids a placeholder, and a signal is an enhancement on this
+  // page — it must never become the page's error state. Sports' `GameDetailModal`
+  // does the same at the same place, so "a fixture page shows its signals" is one
+  // implementation and not one per sport.
+  //
+  // `fetchSignals` rather than `api.signals`, because `api.signals` goes through
+  // the 45 s `readCache` and this row is worth fetching exactly when the reader
+  // opens the modal. See the client's own note.
+  //
+  // NOT fetched for a finished gameweek. `/api/signals/{event_id}` answers `[]` for
+  // one, because `facts.game_context` empties the player pool once a fixture is
+  // live or final — the squad list it holds is the one known BEFORE kick-off, and
+  // quoting it afterwards is hindsight. Asking for an answer already known is one
+  // request per finished gameweek for nothing, so this asks only when it can differ.
+  //
+  // GATED ON `detail` BEING LOADED, and that is the fix for a bug this effect had
+  // on its first run: `detail?.post_match` is `undefined` on the first render,
+  // which is falsy, so the fetch fired for EVERY fixture including finished ones
+  // and only the re-run after the detail landed suppressed it. One wasted request
+  // per finished gameweek, and — worse — a row that could arrive before the page
+  // knew whether it was allowed to show one.
+  useEffect(() => {
+    let cancelled = false;
+    setSignals([]);
+    if (!detail) return;
+    if (detail.post_match) return;
+    fetchSignals(eventId)
+      .then((response) => {
+        if (!cancelled) setSignals(response?.signals ?? []);
+      })
+      // Swallow, and do NOT repeat the clear: the head of this effect has already
+      // set `[]`, on this run and on every re-run, so a rejection lands on `[]`
+      // either way. Writing `setSignals([])` here as well would be a second place
+      // to keep the same rule, and a mutation deleting it proved it changed
+      // nothing -- 8 tests green either way. The `.catch` exists only so a 404 is
+      // not an unhandled rejection.
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [eventId, detail]);
+
   useEffect(() => {
     let cancelled = false;
     api
@@ -508,6 +563,20 @@ export function FixtureModal({ eventId, onClose, explain, sport = "pl" }: Props)
                     <p className="rounded-lg bg-pl-850/60 px-3 py-2 text-xs text-pl-text-faint">No value bet qualified before kickoff for this fixture, so no pre-match bet was recorded.</p>
                   </section>
                 )
+              )}
+
+              {/* The signal rows (spec §4), above the explainer and before the
+                  panels -- the same position Sports' `GameDetailModal` puts them,
+                  so a fixture page reads the same way in both places.
+
+                  `{signals.length > 0 && ...}` rather than a guard around the whole
+                  block: `SignalRows` already drops undrawable rows and throws on a
+                  figure it cannot render, and spec §2 says a fixture with nothing to
+                  say renders NO rows -- not an empty section, not a heading. */}
+              {signals.length > 0 && (
+                <section className="flex flex-col gap-2">
+                  <SignalRows signals={signals} />
+                </section>
               )}
 
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
