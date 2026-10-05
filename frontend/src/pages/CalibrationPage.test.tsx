@@ -18,6 +18,10 @@ vi.mock("../api/client", () => {
     scorerTrackRecord: () => Promise.resolve({ snapshot: {}, reconstructed: {} }),
   };
   return {
+    // `FixtureModal` calls `fetchSignals` directly rather than through `api`, so
+    // the Proxy below does not cover it. A valid EMPTY list is the right default
+    // here: spec §2's "no data, no row", and this page is not about signals.
+    fetchSignals: () => Promise.resolve({ sport: "pl", id: "", signals: [] }),
     api: new Proxy(target, {
       get: (t, prop) => {
         if (prop in t) return t[prop as keyof typeof t];

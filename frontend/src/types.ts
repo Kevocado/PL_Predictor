@@ -1,3 +1,5 @@
+import type { Signal } from "./predictor-ui";
+
 export interface MarketEdge {
   prob: number;
   implied: number | null;
@@ -768,4 +770,17 @@ export interface FPLTransfersResponse {
   bank: number;
   current_lineup: FPLCurrentLineup;
   recommendations: FPLTransferIdea[];
+}
+
+/**
+ * `GET /api/signals/{event_id}`'s envelope.
+ *
+ * `signals` is `[]`, never absent: spec §2's "no data, no signal" means a fixture
+ * with nothing to say returns an empty list, which the client renders as no rows
+ * rather than as an empty state or a placeholder.
+ */
+export interface SignalsResponse {
+  sport: string;
+  id: string;
+  signals: Signal[];
 }

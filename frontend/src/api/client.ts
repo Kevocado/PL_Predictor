@@ -22,6 +22,7 @@ import type {
   TrackRecordResponse,
   ValueBetTrackRecordResponse,
   WalkForwardBettingResponse,
+  SignalsResponse,
 } from "../types";
 
 // Same-origin is robust for both the production FastAPI static site and the
@@ -125,6 +126,27 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
     throw new Error(payload.detail ?? `${res.status} ${res.statusText}`);
   }
   return res.json();
+}
+
+/**
+ * `GET /signals/{eventId}` -- spec §3's per-fixture signal payloads, rendered by
+ * the shared `SignalRows`.
+ *
+ * **The only entry point, and deliberately NOT on `api`.** Every read on `api`
+ * goes through `get`, which memoises in `readCache` for 45 s. That is right for
+ * data that changes slowly, and wrong here twice over: a signal list is worth
+ * fetching exactly when the reader opens the fixture page, so a warm cache would
+ * serve a list that was true when the page LOADED; and `FixtureModal` calls this
+ * from its own mount effect, where `api`'s shared cache would also collapse two
+ * different fixtures' signals into one key's worth of history.
+ *
+ * An `api.signals` existed alongside this for one commit and had no caller, which
+ * is the only thing that made it worth noticing: two functions for one endpoint,
+ * differing only in caching, is exactly the pair that later disagrees about which
+ * one is right. CodeRabbit flagged it on #55.
+ */
+export function fetchSignals(eventId: string): Promise<SignalsResponse> {
+  return fetchRead<SignalsResponse>(`/signals/${encodeURIComponent(eventId)}`);
 }
 
 export const api = {

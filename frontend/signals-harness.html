@@ -1,0 +1,39 @@
+<!doctype html>
+<!--
+  PL's vendored `SignalRows`, rendering ONE ILLUSTRATIVE absence row.
+
+  WHY THIS PAGE EXISTS. PL has no upcoming gameweek — production's
+  `/facts/upcoming` answers `{"ids": []}` (international break), and every
+  fixture in the committed snapshot is finished. So there is no real PL absence
+  to photograph on a real fixture page.
+
+  Rather than present a finished fixture as upcoming to make a row appear, the
+  row is drawn here in isolation and LABELLED, below. The player, figure, rank and
+  `n` are invented for the purpose of showing the visual; nothing here is a real
+  PL observation, and the caption says so on the page itself.
+
+  What it does prove: the vendored copy in PL's build draws `absence_strip`,
+  states the figure beside the headline, carries the source and the count, and
+  keeps the `n >= 30` rate floor off a row whose `n` counts injured players.
+
+  Built by `npm run dev` alongside the app; not part of the deployed bundle.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PL · absence row (illustrative)</title>
+    <link rel="stylesheet" href="/src/index.css" />
+  </head>
+  <body class="bg-pl-950 text-pl-text">
+    <main id="case" class="mx-auto flex max-w-2xl flex-col gap-4 p-6">
+      <div class="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-200">
+        <strong>Illustrative.</strong> PL has no upcoming gameweek, so no real
+        absence exists to show. The player, rank, figure and count below are
+        invented to demonstrate the visual.
+      </div>
+      <div id="root"></div>
+    </main>
+    <script type="module" src="/src/signals-harness.tsx"></script>
+  </body>
+</html>
