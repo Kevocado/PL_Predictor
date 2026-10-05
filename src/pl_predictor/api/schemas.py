@@ -101,6 +101,12 @@ class PlayerPrediction(BaseModel):
     name: str
     position: str
     anytime_goal_prob: float
+    # What the model expected had this player been available. 0.0 in
+    # `anytime_goal_prob` for an unavailable player BY CONSTRUCTION, so the
+    # absence signal reads this instead. Optional + None so a public snapshot
+    # cached before it existed still validates -- and so `None` is a value
+    # consumers can refuse on rather than coerce to 0.
+    anytime_goal_prob_pre_availability: float | None = None
     anytime_assist_prob: float
     anytime_goal_contribution_prob: float
     status: str

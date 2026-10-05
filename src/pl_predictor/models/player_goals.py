@@ -553,14 +553,30 @@ def predict_player(
 
     lam_goals = goals_estimate * scale
     lam_assists = assists_estimate * scale
+    # The SAME two estimates with the availability factor LEFT OUT -- what the
+    # model expected of this player had they been available. Not a second model:
+    # one `goals_estimate`, two multipliers, so the pair cannot drift on a refit.
+    #
+    # This exists because `anytime_goal_prob` is 0.0 for every unavailable player
+    # (`scale` carries `availability`, and `fpl_api.availability_multiplier`
+    # returns 0.0 for i/s/u) -- so the absence signal, which is about exactly
+    # those players, cannot read it. See tests/test_pre_availability_projection.py.
+    scale_pre_availability = strength_multiplier * minutes_fraction
+    lam_goals_pre = goals_estimate * scale_pre_availability
+    lam_assists_pre = assists_estimate * scale_pre_availability
     shots_estimate = rates.get("shots_per90", 0.0) or 0.0
     shots_on_target_estimate = rates.get("shots_on_target_per90", 0.0) or 0.0
     lam_shots = shots_estimate * scale * shots_scale
     lam_shots_on_target = shots_on_target_estimate * scale * shots_scale
-    if is_penalty_taker:
-        lam_goals += 0.15 * minutes_fraction * availability
-    if is_set_piece_taker:
-        lam_assists += 0.10 * minutes_fraction * availability
+    penalty_bonus = 0.15 * minutes_fraction if is_penalty_taker else 0.0
+    set_piece_bonus = 0.10 * minutes_fraction if is_set_piece_taker else 0.0
+    # One term, written to both fences. Written twice it would drift: the bug this
+    # replaces was a figure read off the wrong fence, and a second literal is
+    # where the next one starts.
+    lam_goals += penalty_bonus * availability
+    lam_assists += set_piece_bonus * availability
+    lam_goals_pre += penalty_bonus
+    lam_assists_pre += set_piece_bonus
 
     # "saves" is one of RATE_STATS (features/player_form.py), so
     # blended_current_form already computes saves_per90 straight from FPL's
@@ -578,7 +594,12 @@ def predict_player(
     return {
         "expected_goals": lam_goals,
         "expected_assists": lam_assists,
+        "expected_goals_pre_availability": lam_goals_pre,
+        "expected_assists_pre_availability": lam_assists_pre,
         "anytime_goal_prob": anytime_probability(lam_goals),
+        # 0.0 for an unavailable player by construction, which is why the absence
+        # signal reads this one instead.
+        "anytime_goal_prob_pre_availability": anytime_probability(lam_goals_pre),
         "anytime_assist_prob": anytime_probability(lam_assists),
         "anytime_goal_contribution_prob": anytime_probability(lam_goals + lam_assists),
         "expected_shots": lam_shots,

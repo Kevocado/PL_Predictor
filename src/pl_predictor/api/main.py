@@ -18,6 +18,7 @@ from fastapi.staticfiles import StaticFiles
 from ..config import FRONTEND_DIST_DIR, PUBLIC_MODE, PUBLIC_SNAPSHOT_POLL_SECONDS, SPORTSBOOK_CACHE_TTL_SECONDS
 from .facts import router as facts_router
 from .explain import router as explain_router
+from .signals import router as signals_router
 from .routes import (
     background_tracking_tick,
     maybe_auto_retrain,
@@ -166,6 +167,10 @@ app.include_router(facts_router)
 # The browser's route to the plain-English summary. Caddy only reverse-proxies
 # this app, so the explainer is reached through here rather than directly.
 app.include_router(explain_router)
+# GET /api/signals/{event_id} -- spec §3's per-fixture signal payloads, rendered by
+# the shared predictor-ui component. A gameweek with nothing to say returns an
+# empty list rather than an empty state.
+app.include_router(signals_router)
 
 # Only present in the public Docker deployment (see repo-root Dockerfile),
 # which builds frontend/dist before starting the server — local dev never

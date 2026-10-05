@@ -462,6 +462,30 @@ def get_facts(event_id: str) -> dict:
     }
 
 
+def game_context(event_id: str) -> dict:
+    """This fixture's id, whether it has started, and its player pool.
+
+    Split out so `GET /api/signals/{event_id}` reads the SAME two things
+    `get_facts` does rather than its own copies of them. The two that matter are
+    the 404 (an unknown event id is unknown, and the id grammar belongs here) and
+    the started rule: `get_facts` already returns no players at all once a
+    fixture is live or final, because the squad list it holds is the one that was
+    known BEFORE kick-off and quoting it afterwards would dress hindsight as
+    information. `pre_kickoff_only` on a signal is the same claim made about a
+    payload, so it is answered here, once.
+    """
+    card = _card(event_id)
+    detail = _detail(event_id)
+    if card is None and detail is None:
+        raise HTTPException(status_code=404, detail=f"No fixture with event_id={event_id}")
+    started = _status(card, detail, _now()) in ("live", "final")
+    return {
+        "id": str(event_id),
+        "started": started,
+        "rows": [] if started else _players(event_id),
+    }
+
+
 def _current_gameweek():
     if PUBLIC_MODE:
         return _snapshot().get("current_gameweek")
