@@ -14,7 +14,16 @@ from pl_predictor.api.signals import MAX_SIGNALS, get_signals, signals_for_game
 
 
 def row(name: str, prob: float, status: str = "a") -> dict:
-    return {"name": name, "anytime_goal_prob": prob, "status": status}
+    """The PRE-AVAILABILITY projection -- the field `signals/absence.py` ranks on.
+    See tests/test_pre_availability_projection.py for why the other one cannot be
+    used (it is 0.0 for every unavailable player, by construction)."""
+    available = 0.0 if status in ("i", "s", "u") else 1.0
+    return {
+        "name": name,
+        "anytime_goal_prob_pre_availability": prob,
+        "anytime_goal_prob": prob * available,
+        "status": status,
+    }
 
 
 @pytest.fixture

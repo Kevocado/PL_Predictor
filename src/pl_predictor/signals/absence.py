@@ -49,6 +49,22 @@ from ..api.facts import _num
 #: module docstring, decision 1) and `a` is the ordinary case.
 OUT_STATUSES = frozenset({"i", "s", "u"})
 
+#: The projection this signal ranks on, NOT `anytime_goal_prob`.
+#:
+#: `player_goals.predict_player` folds the availability multiplier into its rate
+#: (`scale = strength_multiplier * minutes_fraction * availability`), and
+#: `fpl_api.availability_multiplier` returns 0.0 for i/s/u -- so
+#: `anytime_goal_prob` is **0.0 for exactly the players this signal is about**.
+#: The first version of this file read that field and produced, for every out
+#: player, "Out: Haaland, our #1 scorer, 0% to score", with all out players tied
+#: at zero so the rank came from whatever order the pool arrived in. Caught by
+#: CodeRabbit on PL_Predictor#53.
+#:
+#: Declared once, and read with no fallback. `anytime_goal_prob` is a REQUIRED
+#: field on `PlayerPrediction`, so a fallback would always be available and would
+#: always be the zero -- which is why a stale snapshot yields no signal instead.
+PRE_AVAILABILITY_PROB = "anytime_goal_prob_pre_availability"
+
 VISUAL = "absence_strip"
 PROJECTION_FIGURE = "projection"
 
@@ -83,7 +99,10 @@ def _ranked(rows: list[dict]) -> list[tuple[int, float, dict]]:
     for row in rows or []:
         if not isinstance(row, dict):
             continue
-        prob = _num(row.get("anytime_goal_prob"))
+        # `_num` handles `None` and a missing key identically, so a snapshot cached
+        # before `PRE_AVAILABILITY_PROB` existed drops out of the ranking here
+        # rather than arriving as a zero.
+        prob = _num(row.get(PRE_AVAILABILITY_PROB))
         if prob is None:
             continue
         usable.append((float(prob), row))

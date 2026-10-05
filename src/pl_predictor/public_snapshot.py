@@ -38,6 +38,7 @@ from fastapi.encoders import jsonable_encoder
 
 from .api import routes
 from .config import PUBLIC_SNAPSHOT_PATH
+from .signals.absence import PRE_AVAILABILITY_PROB
 
 
 # How many gameweeks past the current one still get freshly rebuilt every
@@ -50,6 +51,33 @@ from .config import PUBLIC_SNAPSHOT_PATH
 # rebuild regardless (see `model_changed` below), since a retrain can
 # move every prediction at once, not just the near-term ones.
 REBUILD_GAMEWEEKS_AHEAD = 5
+
+
+def player_block_is_current(block) -> bool:
+    """Whether a cached `FixturePlayers` block carries the pre-availability projection.
+
+    **A cached player block is reusable only if EVERY row in it carries
+    `PlayerPrediction.anytime_goal_prob_pre_availability`.** Without this check a
+    public snapshot written before that field existed keeps handing back the block
+    it already has, so the field never arrives: every absence signal off it is
+    refused indefinitely, and one that fell back to `anytime_goal_prob` would
+    report 0% for every out player. Re-fetching the block is the cheap repair;
+    carrying the stale rows forward is not.
+
+    `all` over BOTH sides rather than "any": a half-stale block is stale, because
+    the ranks it produces would mix two different projections.
+
+    An empty block IS current -- there is nothing in it to be wrong about, and the
+    loop's own comment at this call site is explicit that a missing block must
+    still get one real attempt rather than staying permanently empty.
+    """
+    if not isinstance(block, dict):
+        return False
+    return all(
+        isinstance(player, dict) and PRE_AVAILABILITY_PROB in player
+        for side in ("home_players", "away_players")
+        for player in (block.get(side) or [])
+    )
 
 
 def build_snapshot(previous: dict | None = None) -> dict:
@@ -185,7 +213,14 @@ def build_snapshot(previous: dict | None = None) -> dict:
         # finished (detail reusable) while one of these is still missing
         # from a prior partial failure; that must still get one real
         # attempt here rather than staying permanently empty forever after.
-        reused_players = reused_detail and event_id in previous_players
+        # A cached player block is reusable only if every row in it CARRIES the
+        # pre-availability projection. Without this a snapshot written before
+        # `PlayerPrediction.anytime_goal_prob_pre_availability` existed keeps being
+        # reused verbatim, and every absence signal off it is refused forever --
+        # or, worse, one that falls back to `anytime_goal_prob` reports 0% for
+        # every out player. Re-fetching the block is the cheap repair; carrying the
+        # stale rows forward is not.
+        reused_players = reused_detail and player_block_is_current(previous_players.get(event_id))
         if reused_players:
             fixture_players_by_event_id[event_id] = previous_players[event_id]
         # The frontend only ever requests player-review for a finished

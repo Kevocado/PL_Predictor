@@ -14,9 +14,15 @@ from pl_predictor.signals.absence import absence_signal, headline
 
 
 def row(name: str, prob: float, status: str = "a", **extra) -> dict:
+    """`prob` is the PRE-AVAILABILITY projection, which is the field this adapter
+    ranks on. `anytime_goal_prob` is carried alongside it at the matching
+    availability-scaled value where it differs, so a test cannot pass by reading
+    the wrong one -- see tests/test_pre_availability_projection.py."""
+    available = 0.0 if status in ("i", "s", "u") else 1.0
     return {
         "name": name,
-        "anytime_goal_prob": prob,
+        "anytime_goal_prob_pre_availability": prob,
+        "anytime_goal_prob": prob * available,
         "status": status,
         **extra,
     }
@@ -70,7 +76,7 @@ def test_suspended_and_unavailable_are_out_too():
 def test_a_missing_status_is_not_out():
     """An older cached snapshot has no `status` field at all. Reading that as
     'everyone is out' is the opposite of the truth, not a smaller claim."""
-    sig = absence_signal("7", [{"name": "Ghost", "anytime_goal_prob": 0.9}])
+    sig = absence_signal("7", [{"name": "Ghost", "anytime_goal_prob_pre_availability": 0.9}])
     assert sig is None
 
 
@@ -116,7 +122,8 @@ def test_refuses_to_name_a_player_it_cannot_name():
 def test_ignores_a_row_with_no_projection():
     """A player with no projection is not in the model's ranking, so calling them
     '#1' states a place in a table they are not in."""
-    pool = [{"name": "Nobody", "anytime_goal_prob": None, "status": "i"}, row("Real", 0.3, "a")]
+    pool = [{"name": "Nobody", "anytime_goal_prob_pre_availability": None, "status": "i"},
+            row("Real", 0.3, "a")]
     sig = absence_signal("7", pool)
     assert sig is None
 
