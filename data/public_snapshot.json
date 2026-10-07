@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-07T15:32:09.409861+00:00",
+  "generated_at": "2026-10-07T17:48:23.069905+00:00",
   "model_fingerprint": "38d8e310d6f6316d0951a40c95e0f4ed51eebba2ee04dd34a0c17d27ad09a9ad",
   "current_gameweek": 5,
   "min_gameweek": 1,
@@ -71734,7 +71734,7 @@
       "away_2plus_prob": 0.48285501972219813,
       "value_bet_flags": [],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-07T15:26:58.102781Z",
+      "odds_fetched_at": "2026-10-07T17:43:50.884775Z",
       "odds_is_stale": false,
       "recommended_bet": null,
       "score_grid": [
@@ -71909,13 +71909,13 @@
         "btts_no"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-07T15:26:58.102781Z",
+      "odds_fetched_at": "2026-10-07T17:43:50.884775Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "btts_no",
         "probability": 0.4467332880366789,
-        "implied_probability": 0.36551030668677725,
-        "edge": 0.08122298134990164,
+        "implied_probability": 0.36763236763229146,
+        "edge": 0.07910092040438743,
         "price": 2.6,
         "bookmaker": "DRAFT_KINGS"
       },
@@ -72151,13 +72151,13 @@
       },
       "over_2_5": {
         "prob": 0.66158950366594,
-        "implied": 0.5374418604648853,
-        "edge": 0.12414764320105476
+        "implied": 0.54,
+        "edge": 0.12158950366594001
       },
       "under_2_5": {
         "prob": 0.33841049633405995,
-        "implied": 0.4625581395346155,
-        "edge": -0.12414764320055555
+        "implied": 0.46,
+        "edge": -0.12158950366594007
       },
       "btts_yes_prob": 0.5267696632375817,
       "top_scoreline": "2-0",
@@ -72174,13 +72174,13 @@
         "btts_yes"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-07T15:26:58.102781Z",
+      "odds_fetched_at": "2026-10-07T17:43:50.884775Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "over_2_5",
         "probability": 0.66158950366594,
-        "implied_probability": 0.5374418604648853,
-        "edge": 0.12414764320105476,
+        "implied_probability": 0.54,
+        "edge": 0.12158950366594001,
         "price": 1.8518518518518516,
         "bookmaker": "OG_COM"
       },
@@ -72421,7 +72421,7 @@
       "away_2plus_prob": 0.4919511609681899,
       "value_bet_flags": [],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-07T15:26:58.102781Z",
+      "odds_fetched_at": "2026-10-07T17:43:50.884775Z",
       "odds_is_stale": false,
       "recommended_bet": null,
       "score_grid": [
@@ -72629,7 +72629,7 @@
         "btts_no"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-07T15:26:58.102781Z",
+      "odds_fetched_at": "2026-10-07T17:43:50.884775Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "away_win",
@@ -72871,13 +72871,13 @@
       },
       "over_2_5": {
         "prob": 0.5177451087577084,
-        "implied": 0.4717925892954627,
-        "edge": 0.04595251946224571
+        "implied": 0.4749999999997796,
+        "edge": 0.04274510875792881
       },
       "under_2_5": {
         "prob": 0.4822548912422915,
-        "implied": 0.5282074107045373,
-        "edge": -0.04595251946224577
+        "implied": 0.5249999999998004,
+        "edge": -0.04274510875750892
       },
       "btts_yes_prob": 0.5576242999384142,
       "top_scoreline": "1-1",
@@ -72893,7 +72893,7 @@
         "home_win"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-07T15:26:58.102781Z",
+      "odds_fetched_at": "2026-10-07T17:43:50.884775Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "home_win",
@@ -73057,8 +73057,8 @@
           "won": null,
           "final_score": null,
           "result_source": null,
-          "closing_price": 2.09,
-          "clv_pct": 5.2631578947368585
+          "closing_price": 2.0833333333333335,
+          "clv_pct": 5.600000000000005
         }
       ]
     },
@@ -73106,7 +73106,7 @@
         "home_win"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-07T15:26:58.102781Z",
+      "odds_fetched_at": "2026-10-07T17:43:50.884775Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "home_win",
@@ -73114,7 +73114,7 @@
         "implied_probability": 0.3578917749551363,
         "edge": 0.1284349110211621,
         "price": 2.7777777777777777,
-        "bookmaker": "KALSHI"
+        "bookmaker": "OG_COM"
       },
       "score_grid": [
         [
@@ -86774,18 +86774,18 @@
       "team_away": "Tottenham",
       "home_win": {
         "prob": 0.5809576302216605,
-        "implied": 0.572932302831831,
-        "edge": 0.008025327389829418
+        "implied": 0.5718396309880855,
+        "edge": 0.009117999233574925
       },
       "draw": {
         "prob": 0.2130718634652039,
-        "implied": 0.21963184987375597,
-        "edge": -0.006559986408552071
+        "implied": 0.22018099197320798,
+        "edge": -0.007109128508004076
       },
       "away_win": {
         "prob": 0.2059705063131356,
-        "implied": 0.2074358472944131,
-        "edge": -0.0014653409812775131
+        "implied": 0.20797937703770997,
+        "edge": -0.0020088707245743687
       },
       "over_2_5": {
         "prob": 0.606118549316908,
@@ -86811,14 +86811,14 @@
         "btts_no"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-07T15:26:58.102781Z",
+      "odds_fetched_at": "2026-10-07T17:43:50.884775Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "btts_no",
         "probability": 0.41642902387399683,
-        "implied_probability": 0.36274509803890875,
-        "edge": 0.053683925835088075,
-        "price": 2.55,
+        "implied_probability": 0.35897435897404606,
+        "edge": 0.05745466489995077,
+        "price": 2.6,
         "bookmaker": "DRAFT_KINGS"
       },
       "score_grid": [
@@ -87011,8 +87011,8 @@
           "won": null,
           "final_score": null,
           "result_source": null,
-          "closing_price": 2.55,
-          "clv_pct": -3.9215686274509665
+          "closing_price": 2.6,
+          "clv_pct": -5.769230769230771
         }
       ]
     },
@@ -87038,13 +87038,13 @@
       },
       "over_2_5": {
         "prob": 0.5381451019306704,
-        "implied": 0.4863054187191667,
-        "edge": 0.05183968321150373
+        "implied": 0.48790936786041206,
+        "edge": 0.05023573407025839
       },
       "under_2_5": {
         "prob": 0.46185489806932944,
-        "implied": 0.5136945812807454,
-        "edge": -0.051839683211415966
+        "implied": 0.5120906321395879,
+        "edge": -0.0502357340702585
       },
       "btts_yes_prob": 0.5718683836514873,
       "top_scoreline": "1-1",
@@ -87061,7 +87061,7 @@
         "over_2_5"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-07T15:26:58.102781Z",
+      "odds_fetched_at": "2026-10-07T17:43:50.884775Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "away_win",
@@ -87246,8 +87246,8 @@
           "won": null,
           "final_score": null,
           "result_source": null,
-          "closing_price": 2.03,
-          "clv_pct": 1.9704433497536922
+          "closing_price": 2.02,
+          "clv_pct": 2.4752475247524774
         },
         {
           "market": "away_win",
@@ -87288,13 +87288,13 @@
       },
       "over_2_5": {
         "prob": 0.5342810650581237,
-        "implied": 0.5484752120029256,
-        "edge": -0.014194146944801922
+        "implied": 0.5467857142859818,
+        "edge": -0.0125046492278581
       },
       "under_2_5": {
         "prob": 0.46571893494187655,
-        "implied": 0.4515247879966807,
-        "edge": 0.014194146945195829
+        "implied": 0.45321428571351857,
+        "edge": 0.012504649228357978
       },
       "btts_yes_prob": 0.5228846710855801,
       "top_scoreline": "0-1",
@@ -87311,7 +87311,7 @@
         "btts_no"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-07T15:26:58.102781Z",
+      "odds_fetched_at": "2026-10-07T17:43:50.884775Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "away_win",
@@ -248445,7 +248445,7 @@
   "fpl": {
     "projections": {
       "gameweek": 6,
-      "generated_at": "2026-10-07T15:32:09.363308+00:00",
+      "generated_at": "2026-10-07T17:48:23.022691+00:00",
       "model_source": "hybrid_match_context_baseline",
       "data_freshness": "live official FPL API + independent pre-match scoreline model",
       "players": [
