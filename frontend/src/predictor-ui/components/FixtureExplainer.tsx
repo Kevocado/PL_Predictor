@@ -1,4 +1,4 @@
-// Synced from predictor-ui@7bccedaf75d4. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@34ab2ed0f8d9. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 /** FixtureExplainer — the panel, three states.
  *
  *  The default state is the facts plus the flow: the instant block above (timing,
@@ -49,7 +49,7 @@ export interface FixtureExtras {
   tiles?: MarketTile[];
   segments?: Segment[];
   legend?: Segment[];
-  record?: { label: string; hits: number | null; settled: number };
+  record?: { label: string; hits: number | null; settled: number; rebuilt?: number; preTip?: { hits: number; settled: number } | null };
   players?: { name: string; projection: string }[];
   moment?: Moment;
 }

@@ -1,4 +1,4 @@
-// Synced from predictor-ui@7bccedaf75d4. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@34ab2ed0f8d9. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 /** The facts, rendered before anything is asked for.
  *
  *  Every figure here comes from the site's own bundle or its `extras`. There
@@ -87,7 +87,7 @@ export function InstantBlock({ sport, bundle, extras }: InstantBlockProps) {
         <ProbabilityBar segments={segments} legend={extras?.legend} minSegmentPx={2} pick={pick ? { label: pick } : null} />
       )}
       {extras?.record && (
-        <RecordStrip label={extras.record.label} hits={extras.record.hits} settled={extras.record.settled} />
+        <RecordStrip label={extras.record.label} hits={extras.record.hits} settled={extras.record.settled} rebuilt={extras.record.rebuilt} preTip={extras.record.preTip} />
       )}
     </div>
   );

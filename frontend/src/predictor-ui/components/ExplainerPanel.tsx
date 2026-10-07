@@ -1,4 +1,4 @@
-// Synced from predictor-ui@7bccedaf75d4. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@34ab2ed0f8d9. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 import { useEffect, useId, useState } from "react";
 import { ErrorState, Skeleton } from "./States";
 import { StatusBadge, type Moment } from "./StatusBadge";
@@ -128,7 +128,7 @@ export function ExplainerPanel({
    *  or withholds the figures, and the failure mode of a site that forgets this is
    *  a collision at 260px, which a screenshot catches. */
   expandable?: boolean;
-  record?: { label: string; hits: number | null; settled: number };
+  record?: { label: string; hits: number | null; settled: number; rebuilt?: number; preTip?: { hits: number; settled: number } | null };
   /** NFL's top player projections (§6). A list the facts already carry, so it
    *  costs the panel nothing to show. */
   players?: { name: string; projection: string }[];
@@ -329,7 +329,7 @@ export function ExplainerPanel({
               </ul>
             </div>
           )}
-          {record && <RecordStrip label={record.label} hits={record.hits} settled={record.settled} />}
+          {record && <RecordStrip label={record.label} hits={record.hits} settled={record.settled} rebuilt={record.rebuilt} preTip={record.preTip} />}
         </div>
       )}
 
