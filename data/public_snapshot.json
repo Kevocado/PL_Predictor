@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-09T17:26:23.936861+00:00",
+  "generated_at": "2026-10-09T21:59:42.965776+00:00",
   "model_fingerprint": "38d8e310d6f6316d0951a40c95e0f4ed51eebba2ee04dd34a0c17d27ad09a9ad",
   "current_gameweek": 6,
   "min_gameweek": 1,
@@ -237335,8 +237335,8 @@
           "name": "M.Bizot",
           "team": "Aston Villa",
           "position": "GK",
-          "status": "i",
-          "chance_of_playing": 0,
+          "status": "d",
+          "chance_of_playing": 75,
           "minutes": 90,
           "starts": 1,
           "goals": 0,
@@ -237349,15 +237349,15 @@
           "ict": 2.8,
           "bps": 1,
           "bonus": 0,
-          "news": "Back injury - Expected back 10 Oct",
+          "news": "Back injury - 75% chance of playing",
           "quality_rating": null,
           "form_rating": 0.0,
           "live_form_rating": 18.5,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 0.0,
+          "current_impact_rating": 7.9,
           "rating_driver": "Bonus Point System",
-          "rating_expected_minutes": 0.0,
+          "rating_expected_minutes": 51.2,
           "rating_status": "provisional",
           "rating_evidence_minutes": 585.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -248068,7 +248068,7 @@
   "fpl": {
     "projections": {
       "gameweek": 6,
-      "generated_at": "2026-10-09T17:26:23.907896+00:00",
+      "generated_at": "2026-10-09T21:59:42.921625+00:00",
       "model_source": "hybrid_match_context_baseline",
       "data_freshness": "live official FPL API + independent pre-match scoreline model",
       "players": [
@@ -255366,6 +255366,38 @@
             "73 expected minutes",
             "form 2.0",
             "1.37 expected team goals"
+          ]
+        },
+        {
+          "player_id": 29,
+          "name": "Marco Bizot",
+          "web_name": "M.Bizot",
+          "team": "Aston Villa",
+          "team_id": 2,
+          "position": "GK",
+          "price": 4.5,
+          "status": "d",
+          "news": "Back injury - 75% chance of playing",
+          "availability": 0.75,
+          "expected_minutes": 51.2,
+          "projected_points": 2.87,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 3,
+              "expected_goals": 1.75,
+              "clean_sheet_probability": 0.279,
+              "expected_minutes": 51.2,
+              "opponent": "Brentford",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "51 expected minutes",
+            "form 0.0",
+            "1.75 expected team goals"
           ]
         },
         {
@@ -264230,38 +264262,6 @@
             "0 expected minutes",
             "form 0.0",
             "2.56 expected team goals"
-          ]
-        },
-        {
-          "player_id": 29,
-          "name": "Marco Bizot",
-          "web_name": "M.Bizot",
-          "team": "Aston Villa",
-          "team_id": 2,
-          "position": "GK",
-          "price": 4.5,
-          "status": "i",
-          "news": "Back injury - Expected back 10 Oct",
-          "availability": 0.0,
-          "expected_minutes": 0.0,
-          "projected_points": 0.0,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 3,
-              "expected_goals": 1.75,
-              "clean_sheet_probability": 0.279,
-              "expected_minutes": 0.0,
-              "opponent": "Brentford",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "0 expected minutes",
-            "form 0.0",
-            "1.75 expected team goals"
           ]
         },
         {
