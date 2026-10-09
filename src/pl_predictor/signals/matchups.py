@@ -57,8 +57,12 @@ def _recent_means(xg_data: pd.DataFrame, matches_df: pd.DataFrame, as_of: pd.Tim
     if xg_data.empty or matches_df.empty:
         return pd.DataFrame()
     long_df = _team_perspective(xg_data)
+    # A date belongs to exactly ONE season, so this is a date -> season lookup. Several fixtures share a matchday date;
+    # without dropping the duplicates the merge below copied each team's row once per fixture on that date, so one
+    # match counted as several and passed MIN_GAMES.
     meta = matches_df[["date", "season"]].copy()
     meta["date"] = pd.to_datetime(meta["date"])
+    meta = meta.drop_duplicates("date")
     xg_idxed = long_df.merge(meta, on="date", how="left")
     xg = xg_idxed.assign(
         date=pd.to_datetime(xg_idxed["date"]),

@@ -108,3 +108,16 @@ def test_only_the_strongest_duel_of_a_proven_type_is_directed():
 def test_no_pick_directs_nothing_and_does_not_consume_the_slot():
     duels = [_duel("attack_vs_defence:home", "home", 0.9)]
     assert matchups.to_context(duels, pick_side=None, lift_gate={"attack_vs_defence": True})[0]["toward_pick"] is None
+
+
+def test_several_fixtures_on_one_date_do_not_duplicate_each_teams_rows():
+    """CodeRabbit Major: joining season metadata by DATE copied every team's xG row once per fixture on that date, so one
+    match counted as four and passed MIN_GAMES. Each team's rows must equal its real match count."""
+    xg = pd.DataFrame({
+        "date": pd.to_datetime(["2025-08-16"] * 4),
+        "team_home": ["A", "B", "C", "D"], "team_away": ["E", "F", "G", "H"],
+        "xg_home": [1.0, 2.0, 1.5, 0.5], "xg_away": [0.5, 1.0, 2.0, 1.0],
+    })
+    matches = pd.DataFrame({"date": pd.to_datetime(["2025-08-16"] * 4), "season": [2025] * 4})
+    means = matchups._recent_means(xg, matches, pd.Timestamp("2025-09-01"), 2025)
+    assert means.empty, "one match each is below MIN_GAMES; duplicated rows made it look like four"
