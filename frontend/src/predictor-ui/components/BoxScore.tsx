@@ -1,4 +1,4 @@
-// Synced from predictor-ui@8ca136bc075e. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@5a224096fc01. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 /**
  * A presentational box score. It renders a structure the caller has already
  * built; it never fetches, never reorders, and does not know what a touchdown
@@ -49,16 +49,7 @@ export interface BoxScoreProps {
   benchLabel?: string;
 }
 
-const EM_DASH = "—";
-
-function cellText(value: number | null | undefined): string {
-  // The finite check is not defensive padding. A consumer that computes a
-  // value from missing data produces NaN, and NaN here would render as the
-  // literal text "NaN" in a public table. Anything that is not a real number is
-  // "no value", so it gets the em-dash like any other absence.
-  if (value === null || value === undefined || !Number.isFinite(value)) return EM_DASH;
-  return Number.isInteger(value) ? String(value) : value.toFixed(1);
-}
+import { StickyStatTable, type StickyRow } from "./StickyStatTable";
 
 /**
  * The three starter states, decided across every row rather than per row.
@@ -82,36 +73,24 @@ function starterState(groups: BoxScoreGroup[]): "known" | "projected" | "none" {
   return "none";
 }
 
-function RowCells({
-  row,
-  columns,
-}: {
-  row: BoxScoreRow;
-  columns: BoxScoreColumn[];
-}) {
-  return (
-    <>
-      {columns.map((column, i) => {
-        const value = row.values[i] ?? null;
-        // The describe hook exists because the grid is terse: "17.9" alone is
-        // not a sentence. Without it a screen reader hears a bare number.
-        const description = column.describe?.(value, row);
-        return (
-          <td
-            key={column.key}
-            className={
-              (column.align === "left" ? "text-left " : "text-right ") +
-              (row.emphasisIndex === i ? "font-semibold " : "") +
-              "px-2 py-1.5 tabular-nums"
-            }
-            {...(description ? { "aria-label": description } : {})}
-          >
-            {cellText(value)}
-          </td>
-        );
-      })}
-    </>
-  );
+function toRow(row: BoxScoreRow, columns: BoxScoreColumn[]): StickyRow {
+  return {
+    key: row.key,
+    header: (
+      <>
+        <span>{row.name}</span>
+        {row.team && <span className="ml-1.5 text-xs text-pr-text-dim">{row.team}</span>}
+        {row.isStarter === null && <span className="sr-only"> — projected order, no depth-chart data</span>}
+      </>
+    ),
+    cells: columns.map((_, i) => row.values[i] ?? null),
+    // The describe hook exists because the grid is terse: "17.9" alone is not
+    // a sentence. Without it a screen reader hears a bare number.
+    cellLabels: columns.map((column, i) => column.describe?.(row.values[i] ?? null, row)),
+    emphasisIndex: row.emphasisIndex,
+    testId: "box-score-row",
+    attrs: { "data-starter": row.isStarter === null ? "projected" : row.isStarter ? "starter" : "bench" },
+  };
 }
 
 export function BoxScore({ columns, groups, title, starterLabel = "Starters", benchLabel = "Bench" }: BoxScoreProps) {
@@ -119,8 +98,6 @@ export function BoxScore({ columns, groups, title, starterLabel = "Starters", be
   const rowTotal = groups.reduce((n, g) => n + g.rows.length, 0);
 
   if (rowTotal === 0) return null;
-
-  const nameWidth = 30;
 
   return (
     <section className="mt-5" data-testid="box-score">
@@ -135,83 +112,24 @@ export function BoxScore({ columns, groups, title, starterLabel = "Starters", be
         </h3>
       )}
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm" data-testid="box-score-table">
-          <caption className="sr-only">
-            {title ?? "Predicted box score"}
-            {state === "projected" ? ", in projected order: this sport has no depth-chart feed" : ""}
-          </caption>
-          <thead>
-            <tr className="border-b border-pr-rule text-[0.6875rem] uppercase tracking-wide text-pr-text-dim">
-              <th scope="col" className={`w-[${nameWidth}%] px-2 py-1.5 text-left font-semibold`}>
-                Player
-              </th>
-              {columns.map((column) => (
-                <th
-                  key={column.key}
-                  scope="col"
-                  className={
-                    (column.align === "left" ? "text-left " : "text-right ") +
-                    "px-2 py-1.5 font-semibold"
-                  }
-                >
-                  {column.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-
-          {groups.map((group) => (
-            <tbody key={group.position}>
-              <tr>
-                <th
-                  scope="colgroup"
-                  colSpan={columns.length + 1}
-                  className="bg-pr-panel px-2 py-1 text-left font-display text-xs font-bold uppercase tracking-wider text-pr-text"
-                >
-                  {group.position}
-                </th>
-              </tr>
-              {group.rows.map((row) => (
-                <tr
-                  key={row.key}
-                  data-testid="box-score-row"
-                  data-starter={row.isStarter === null ? "projected" : row.isStarter ? "starter" : "bench"}
-                  className="border-b border-pr-rule/60"
-                >
-                  <th scope="row" className="px-2 py-1.5 text-left font-normal">
-                    <span>{row.name}</span>
-                    {row.team && <span className="ml-1.5 text-xs text-pr-text-dim">{row.team}</span>}
-                    {row.isStarter === null && (
-                      <span className="sr-only"> — projected order, no depth-chart data</span>
-                    )}
-                  </th>
-                  <RowCells row={row} columns={columns} />
-                </tr>
-              ))}
-              {group.subtotals?.map((total) => (
-                <tr key={total.label} data-testid="box-score-subtotal" className="border-t border-pr-rule">
-                  <th scope="row" className="px-2 py-1.5 text-left font-semibold">
-                    {total.label}
-                  </th>
-                  {total.values.map((value, i) => (
-                    <td
-                      key={columns[i]?.key ?? i}
-                      className={
-                        (columns[i]?.align === "left" ? "text-left " : "text-right ") +
-                        "px-2 py-1.5 font-semibold tabular-nums " +
-                        (total.strong ? "font-display text-base" : "")
-                      }
-                    >
-                      {cellText(value ?? null)}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          ))}
-        </table>
-      </div>
+      <StickyStatTable
+        tableTestId="box-score-table"
+        caption={`${title ?? "Predicted box score"}${state === "projected" ? ", in projected order: this sport has no depth-chart feed" : ""}`}
+        columns={columns}
+        sections={groups.map((group) => ({
+          label: group.position,
+          rows: [
+            ...group.rows.map((row) => toRow(row, columns)),
+            ...(group.subtotals ?? []).map((total) => ({
+              key: total.label,
+              header: total.label,
+              cells: columns.map((_, i) => total.values[i] ?? null),
+              total: true,
+              testId: "box-score-subtotal",
+            })),
+          ],
+        }))}
+      />
 
       {state === "known" && (
         <p className="mt-1 text-xs text-pr-text-dim">

@@ -1,4 +1,4 @@
-import { MAX_ROWS_PER_CATEGORY, PicksList, type OutPlayer, type PickRow } from "../predictor-ui";
+import { MAX_ROWS_PER_CATEGORY, PicksList, StickyStatTable, TeamSwitch, type OutPlayer, type PickRow, type StickyRow } from "../predictor-ui";
 import type { PlayerPrediction } from "../types";
 import { InfoTooltip } from "./InfoTooltip";
 
@@ -27,69 +27,59 @@ const STATUS_LABEL: Record<string, string> = {
  */
 export const SHOW_PLAYER_SHOTS = false;
 
-function PlayerRow({ player }: { player: PlayerPrediction }) {
+const pct = (probability: number) => `${(probability * 100).toFixed(0)}%`;
+
+/** The name cell: the full name (it wraps, never clips) with status dot, position and tags beneath. */
+function PlayerName({ player }: { player: PlayerPrediction }) {
+  return (
+    <>
+      <span className="flex items-start gap-2">
+        <span
+          className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${STATUS_COLOR[player.status] ?? "bg-pl-text-faint"}`}
+          title={`${STATUS_LABEL[player.status] ?? player.status}${player.news ? ` — ${player.news}` : ""}`}
+        />
+        <span className="font-semibold text-pl-text">{player.name}</span>
+      </span>
+      <span className="mt-0.5 flex flex-wrap items-center gap-1 pl-4 text-[0.6875rem] uppercase text-pl-text-faint">
+        <span>{player.position}</span>
+        {player.confirmed_starter ? (
+          <span className="rounded bg-win/20 px-1 font-semibold text-win">Confirmed XI</span>
+        ) : player.predicted_starter ? (
+          <span className="rounded bg-win/20 px-1 font-semibold text-win">XI</span>
+        ) : null}
+        {player.is_penalty_taker && <span className="rounded bg-pl-accent/20 px-1 font-semibold text-pl-accent">PK</span>}
+        {!player.is_penalty_taker && player.is_set_piece_taker && <span className="rounded bg-pl-700 px-1 font-semibold text-pl-text">SP</span>}
+      </span>
+    </>
+  );
+}
+
+function playerRow(player: PlayerPrediction): StickyRow {
   const isGoalkeeper = player.position === "GK";
-  // Goal/assist probability is essentially always ~0 for a goalkeeper --
-  // dimming on that basis would fade out every keeper regardless of how
-  // likely they are to start, which isn't a useful signal for this position.
-  const dimmed = !isGoalkeeper && player.anytime_goal_prob < 0.01 && player.anytime_assist_prob < 0.01;
-  const strongestProbability = Math.max(
+  const probabilities = [
     player.anytime_goal_contribution_prob,
     player.anytime_goal_prob,
     player.anytime_assist_prob,
-  );
-  const probabilityClass = (probability: number) =>
-    probability === strongestProbability ? "font-bold text-pl-text" : "font-semibold text-pl-text";
-  return (
-    // Below `sm` the name sits ABOVE the stats: side by side, the four non-shrinking stats took the whole row and
-    // the name truncated to nothing on a phone. From `sm` up it is the single line it always was.
-    <div className={`flex flex-col gap-1 rounded-lg bg-pl-850/60 px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between ${dimmed ? "opacity-50" : ""}`}>
-      <div className="flex min-w-0 items-center gap-2">
-        <span
-          className={`h-2 w-2 shrink-0 rounded-full ${STATUS_COLOR[player.status] ?? "bg-pl-text-faint"}`}
-          title={`${STATUS_LABEL[player.status] ?? player.status}${player.news ? ` — ${player.news}` : ""}`}
-        />
-        <span className="truncate text-pl-text">{player.name}</span>
-        <span className="shrink-0 text-xs uppercase text-pl-text-faint">{player.position}</span>
-        {player.confirmed_starter ? (
-          <span className="rounded bg-win/20 px-1.5 py-0.5 text-xs font-semibold text-win">Confirmed XI</span>
-        ) : player.predicted_starter ? (
-          <span className="rounded bg-win/20 px-1.5 py-0.5 text-xs font-semibold text-win">XI</span>
-        ) : null}
-        {player.is_penalty_taker && <span className="rounded bg-pl-accent/20 px-1.5 py-0.5 text-xs font-semibold text-pl-accent">PK</span>}
-        {!player.is_penalty_taker && player.is_set_piece_taker && <span className="rounded bg-pl-700 px-1.5 py-0.5 text-xs font-semibold text-pl-text">SP</span>}
-      </div>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 pl-4 text-xs sm:shrink-0 sm:flex-nowrap sm:gap-3 sm:pl-0">
-        {isGoalkeeper ? (
-          <span className="text-pl-text-faint">
-            Saves <span className="font-semibold text-pl-text">{player.expected_saves.toFixed(1)}</span>
-          </span>
-        ) : (
-          <>
-            <span className="text-pl-text-faint">
-              G+A <span className={probabilityClass(player.anytime_goal_contribution_prob)}>{(player.anytime_goal_contribution_prob * 100).toFixed(0)}%</span>
-            </span>
-            <span className="text-pl-text-faint">
-              Goal <span className={probabilityClass(player.anytime_goal_prob)}>{(player.anytime_goal_prob * 100).toFixed(0)}%</span>
-            </span>
-            <span className="text-pl-text-faint">
-              Assist <span className={probabilityClass(player.anytime_assist_prob)}>{(player.anytime_assist_prob * 100).toFixed(0)}%</span>
-            </span>
-            {SHOW_PLAYER_SHOTS && player.expected_shots != null && (
-              <span
-                className="text-pl-text-faint"
-                title={`Chance of at least one shot on target: ${player.anytime_shot_on_target_prob != null ? (player.anytime_shot_on_target_prob * 100).toFixed(0) + "%" : "—"}`}
-              >
-                Shots <span className="font-semibold text-pl-text">{player.expected_shots.toFixed(1)}</span>
-                <span className="ml-1">SoT {player.expected_shots_on_target?.toFixed(1) ?? "—"}</span>
-              </span>
-            )}
-          </>
-        )}
-      </div>
-    </div>
-  );
+  ];
+  return {
+    key: String(player.player_id),
+    header: <PlayerName player={player} />,
+    // Goal/assist probability is ~0 for a goalkeeper and Saves is a keeper-only
+    // figure, so each side shows a dash where the other applies.
+    cells: isGoalkeeper
+      ? [null, null, null, player.expected_saves.toFixed(1)]
+      : [...probabilities.map(pct), null],
+    emphasisIndex: isGoalkeeper ? 3 : probabilities.indexOf(Math.max(...probabilities)),
+  };
 }
+
+// Shots / SoT stay hidden (SHOW_PLAYER_SHOTS): no column is added for them.
+const COLUMNS = [
+  { key: "ga", label: "G+A" },
+  { key: "goal", label: "Goal" },
+  { key: "assist", label: "Assist" },
+  { key: "saves", label: "Saves" },
+];
 
 function TeamPlayerPredictions({ team, players }: { team: string; players: PlayerPrediction[] }) {
   const byContribution = [...players].sort(
@@ -97,7 +87,7 @@ function TeamPlayerPredictions({ team, players }: { team: string; players: Playe
   );
   const confirmed = players.some((player) => player.confirmed_starter);
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2">
         <span className="text-xs font-semibold text-pl-text-faint">{team}</span>
         {confirmed && <span className="text-xs font-semibold uppercase text-win">Official lineup</span>}
@@ -106,9 +96,13 @@ function TeamPlayerPredictions({ team, players }: { team: string; players: Playe
           text="Goal is the chance of scoring at least once. Assist is the chance of registering at least one assist. G+A is the chance of doing either (or both), so it is not the two percentages added together."
         />
       </div>
-      <div className="flex flex-col gap-1.5">
-        {byContribution.map((player) => <PlayerRow key={player.player_id} player={player} />)}
-      </div>
+      <StickyStatTable
+        caption={`${team} player predictions`}
+        // Saves is keeper-only: no keeper in the list, no column that could only be dashes.
+        columns={players.some((player) => player.position === "GK") ? COLUMNS : COLUMNS.slice(0, 3)}
+        sections={[{ rows: byContribution.map(playerRow) }]}
+        empty={`No box score for ${team} yet`}
+      />
     </div>
   );
 }
@@ -123,15 +117,17 @@ interface Props {
 }
 
 export function PlayerScorerList({ homeTeam, awayTeam, homePlayers, awayPlayers }: Props) {
+  // One team at a time (home first, the default): two rosters side by side
+  // clipped names on a phone.
+  const rosters: Record<string, PlayerPrediction[]> = { home: homePlayers, away: awayPlayers };
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      <div className="flex flex-col gap-1.5">
-        <TeamPlayerPredictions team={homeTeam} players={homePlayers} />
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <TeamPlayerPredictions team={awayTeam} players={awayPlayers} />
-      </div>
-    </div>
+    <TeamSwitch
+      teams={[{ key: "home", label: homeTeam }, { key: "away", label: awayTeam }]}
+      label="Player predictions team"
+      defaultKey={homePlayers.length === 0 && awayPlayers.length > 0 ? "away" : "home"}
+    >
+      {(key) => <TeamPlayerPredictions team={key === "home" ? homeTeam : awayTeam} players={rosters[key]} />}
+    </TeamSwitch>
   );
 }
 
