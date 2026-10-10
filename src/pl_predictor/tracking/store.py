@@ -760,12 +760,12 @@ def _fixture_hit_table() -> pd.DataFrame:
 
     rows = []
 
-    def _process_group(group: pd.DataFrame) -> dict | None:
+    def _process_event_id_group(group: pd.DataFrame) -> dict | None:
+        """Process a single event_id's 1x2 rows into one fixture row."""
         probs = {r["outcome_name"]: float(r["predicted_prob"]) for _, r in group.iterrows()}
         if set(probs) != {"home_win", "draw", "away_win"}:
             return None
-        # Pick the earliest recorded row (by snapshotted_at) as the canonical one
-        first = group.sort_values("snapshotted_at").iloc[0]
+        first = group.iloc[0]  # all rows in this group have same event_id, so same metadata
         hit_row = group[group["actual_outcome"] == 1]
         actual_side = hit_row.iloc[0]["outcome_name"] if not hit_row.empty else None
         predicted_side = max(probs, key=probs.get)
@@ -789,17 +789,23 @@ def _fixture_hit_table() -> pd.DataFrame:
             "backfilled": bool(first["backfilled"]),
         }
 
-    # Group readable fixtures by (team_home, team_away, commence_time)
+    # Group readable fixtures by (team_home, team_away, commence_time, event_id)
+    # to get each event_id's complete 1x2 set, then pick the earliest event_id's set.
     if not readable.empty:
         for _, group in readable.groupby(["team_home", "team_away", "commence_time"]):
-            row = _process_group(group)
-            if row:
-                rows.append(row)
+            # Within this (home, away, commence_time), pick the earliest event_id's complete set
+            event_id_groups = [g for _, g in group.groupby("event_id")]
+            event_id_rows = [_process_event_id_group(g) for g in event_id_groups]
+            event_id_rows = [r for r in event_id_rows if r is not None]
+            if event_id_rows:
+                # Pick the one with earliest snapshotted_at
+                earliest = min(event_id_rows, key=lambda r: r["snapshotted_at"])
+                rows.append(earliest)
 
     # Unreadable commence_time: fall back to event_id grouping (fail closed)
     if not unreadable.empty:
         for _, group in unreadable.groupby("event_id"):
-            row = _process_group(group)
+            row = _process_event_id_group(group)
             if row:
                 rows.append(row)
 
