@@ -137,6 +137,12 @@ def _detail(event_id: str) -> dict | None:
         return None
 
 
+def _stored_matchup_rows(event_id: str) -> list[dict]:
+    """Duel rows the snapshot job stored for this fixture; no network, no ranking at request time."""
+    rows = (_snapshot().get("matchups") or {}).get(str(event_id)) or []
+    return [r for r in rows if isinstance(r, dict)]
+
+
 def _players(event_id: str) -> list[dict]:
     if PUBLIC_MODE:
         block = (_snapshot().get("fixture_players_by_event_id") or {}).get(str(event_id)) or {}
@@ -455,11 +461,28 @@ def get_facts(event_id: str) -> dict:
         "pick": pick,
         "markets": markets,
         "drivers": _drivers(pre_start),
-        "context": {"gameweek": _current_gameweek()} if _current_gameweek() else {},
+        "context": _context(event_id, started),
         "players": [] if started else _players_out(_players(event_id), team_home, team_away),
         "record": _record(),
         "result": _result(card, status, pick_timing, pick["side"] if pick else None),
     }
+
+
+def _context(event_id: str, started: bool) -> dict:
+    context: dict[str, Any] = {}
+    gameweek = _current_gameweek()
+    if gameweek:
+        context["gameweek"] = gameweek
+    # Today's ranks describe a match that has not started; after kickoff they would be hindsight.
+    if PUBLIC_MODE and not started:
+        try:
+            rows = _stored_matchup_rows(event_id)
+        except Exception:
+            logger.info("stored matchups unavailable for event_id=%s", event_id)
+            rows = []
+        if rows:
+            context["matchups"] = rows
+    return context
 
 
 def game_context(event_id: str) -> dict:

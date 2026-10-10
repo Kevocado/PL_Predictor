@@ -39,6 +39,7 @@ from fastapi.encoders import jsonable_encoder
 from .api import routes
 from .config import PUBLIC_SNAPSHOT_PATH
 from .signals.absence import PRE_AVAILABILITY_PROB
+from .signals.matchups import build_hub_matchups
 
 
 # How many gameweeks past the current one still get freshly rebuilt every
@@ -273,6 +274,17 @@ def build_snapshot(previous: dict | None = None) -> dict:
         "players": routes.get_player_hub(),
     }
 
+    # Production serves facts from this artifact (PUBLIC_MODE) and never ranks teams per request, so the matchup
+    # duels are derived here from the hub tables just built (pure data, no network).
+    try:
+        matchups = build_hub_matchups(
+            [f for gw in fixtures_by_gameweek.values() for f in gw.get("fixtures", [])],
+            (hub["rankings"] or {}).get("rankings", []), (hub["teams"] or {}).get("teams", []),
+        )
+    except Exception as exc:  # noqa: BLE001 - context only; never fail a deploy over it
+        print(f"  ! skipped matchups ({exc}); keeping the previous snapshot's")
+        matchups = previous.get("matchups", {})
+
     print("Building FPL snapshot...")
     try:
         fpl = {
@@ -295,6 +307,7 @@ def build_snapshot(previous: dict | None = None) -> dict:
         "fixture_players_by_event_id": fixture_players_by_event_id,
         "player_review_by_event_id": player_review_by_event_id,
         "hub": hub,
+        "matchups": matchups,
         "fpl": fpl,
     }
 
