@@ -32,7 +32,9 @@ function PlayerRow({ player }: { player: PlayerPrediction }) {
   const probabilityClass = (probability: number) =>
     probability === strongestProbability ? "font-bold text-pl-text" : "font-semibold text-pl-text";
   return (
-    <div className={`flex items-center justify-between rounded-lg bg-pl-850/60 px-3 py-2 text-sm ${dimmed ? "opacity-50" : ""}`}>
+    // Below `sm` the name sits ABOVE the stats: side by side, the four non-shrinking stats took the whole row and
+    // the name truncated to nothing on a phone. From `sm` up it is the single line it always was.
+    <div className={`flex flex-col gap-1 rounded-lg bg-pl-850/60 px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between ${dimmed ? "opacity-50" : ""}`}>
       <div className="flex min-w-0 items-center gap-2">
         <span
           className={`h-2 w-2 shrink-0 rounded-full ${STATUS_COLOR[player.status] ?? "bg-pl-text-faint"}`}
@@ -48,7 +50,7 @@ function PlayerRow({ player }: { player: PlayerPrediction }) {
         {player.is_penalty_taker && <span className="rounded bg-pl-accent/20 px-1.5 py-0.5 text-xs font-semibold text-pl-accent">PK</span>}
         {!player.is_penalty_taker && player.is_set_piece_taker && <span className="rounded bg-pl-700 px-1.5 py-0.5 text-xs font-semibold text-pl-text">SP</span>}
       </div>
-      <div className="flex shrink-0 items-center gap-2 text-xs sm:gap-3 sm:text-xs">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 pl-4 text-xs sm:shrink-0 sm:flex-nowrap sm:gap-3 sm:pl-0">
         {isGoalkeeper ? (
           <span className="text-pl-text-faint">
             Saves <span className="font-semibold text-pl-text">{player.expected_saves.toFixed(1)}</span>
