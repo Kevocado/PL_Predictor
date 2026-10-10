@@ -7,6 +7,8 @@ dict. It is the check that would have caught the live 500 below.
 """
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -29,6 +31,10 @@ def test_facts_survives_the_apps_own_fixture_detail_shape(client, monkeypatch):
     double cannot catch this, so the double is the app's own route.
     """
     from pl_predictor.api.schemas import FixtureDetail
+
+    # The fixture's kickoff is a fixed date; pin "now" before it, or this test passes only until that date and then
+    # fails on every PR (a started fixture correctly gets no markets). It aged out on 2026-10-10 11:30Z.
+    monkeypatch.setattr(facts_mod, "_now", lambda: datetime(2026, 10, 9, 12, 0, tzinfo=timezone.utc))
 
     detail = FixtureDetail(
         event_id="51",
