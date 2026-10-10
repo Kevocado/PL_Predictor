@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { FixtureModal } from "./FixtureModal";
 import { api } from "../api/client";
 import type { FixtureDetail } from "../types";
@@ -105,6 +105,12 @@ describe("FixtureModal and the plain-English panel", () => {
     expect(screen.getByTestId("fixture-flow")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Writing…" })).toBeDisabled();
     expect(await screen.findByRole("heading", { name: /Scoreline/i })).toBeInTheDocument();
+  });
+
+  it("hands the loader this fixture's id as the fixtureId", async () => {
+    const loadContext = vi.fn().mockResolvedValue({ matchups: [] });
+    render(<FixtureModal eventId="e1" onClose={() => {}} explain={vi.fn()} loadContext={loadContext} />);
+    await waitFor(() => expect(loadContext).toHaveBeenCalledWith("e1"));
   });
 
   it("offers a retry that asks the explainer again", async () => {
