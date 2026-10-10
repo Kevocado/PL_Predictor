@@ -1,4 +1,4 @@
-// Synced from predictor-ui@eb2ea90eee19. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@955449e92e8f. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 /**
  * The Matchup section: how the two sides' units meet, as data, with no AI.
  *
@@ -67,11 +67,15 @@ const isInt = (v: unknown): v is number => typeof v === "number" && Number.isInt
 /** A duel the component can draw: both ranks and the league size are integers.
  *  Anything else is dropped rather than thrown on: this is context shown on every
  *  fixture, and one malformed row must not take the page down. */
+const isText = (v: unknown): v is string => typeof v === "string" && v.trim() !== "";
+
 const drawable = (m: MatchupRow) =>
-  !!m && isInt(m.attacker_rank) && isInt(m.defender_rank) && isInt(m.n_teams) && m.n_teams >= 2 &&
+  !!m && isText(m.id) && isText(m.attacker) && isText(m.defender) && isText(m.stat) && isText(m.foil) &&
+  isInt(m.attacker_rank) && isInt(m.defender_rank) && isInt(m.n_teams) && m.n_teams >= 2 &&
   m.attacker_rank >= 1 && m.attacker_rank <= m.n_teams && m.defender_rank >= 1 && m.defender_rank <= m.n_teams;
 
-const usableForm = (r: FormRow) => !!r && !!r.subject && !!r.label && !!r.value;
+// Strings only: a truthy object would pass a bare `!!` check and then throw when React renders it.
+const usableForm = (r: FormRow) => !!r && isText(r.id) && isText(r.subject) && isText(r.label) && isText(r.value);
 
 export function MatchupBrief({ matchups = [], formRows = [] }: { matchups?: MatchupRow[]; formRows?: FormRow[] }) {
   // `bundle.context` is untyped site data: anything that is not a list is nothing.
