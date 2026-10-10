@@ -18,6 +18,15 @@ const STATUS_LABEL: Record<string, string> = {
   u: "Unavailable",
 };
 
+/**
+ * Per-player Shots / SoT figures are HIDDEN until the model is fixed (2026-10-10).
+ * The walk-forward back-test (src/pl_predictor/evaluate/player_shots_backtest.py, PL#65) found them worse than a
+ * position-average and than the player's own trailing rate, badly calibrated, and exactly 0 for 23% of appearances.
+ * Plan: docs/superpowers/plans/2026-10-10-player-shots-fix.md. Flip this only after that plan's evaluation gate passes.
+ * The API still sends the fields; nothing else reads them.
+ */
+export const SHOW_PLAYER_SHOTS = false;
+
 function PlayerRow({ player }: { player: PlayerPrediction }) {
   const isGoalkeeper = player.position === "GK";
   // Goal/assist probability is essentially always ~0 for a goalkeeper --
@@ -66,7 +75,7 @@ function PlayerRow({ player }: { player: PlayerPrediction }) {
             <span className="text-pl-text-faint">
               Assist <span className={probabilityClass(player.anytime_assist_prob)}>{(player.anytime_assist_prob * 100).toFixed(0)}%</span>
             </span>
-            {player.expected_shots != null && (
+            {SHOW_PLAYER_SHOTS && player.expected_shots != null && (
               <span
                 className="text-pl-text-faint"
                 title={`Chance of at least one shot on target: ${player.anytime_shot_on_target_prob != null ? (player.anytime_shot_on_target_prob * 100).toFixed(0) + "%" : "—"}`}
