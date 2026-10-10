@@ -32,6 +32,35 @@ EXPLAINER_URL = os.getenv("EXPLAINER_URL", "http://predictor-explainer:8090").rs
 EXPLAINER_TIMEOUT_S = float(os.getenv("EXPLAINER_TIMEOUT_S", "15"))
 
 
+_UNAVAILABLE = "The summary service is not available."
+
+
+@router.get("/api/explain/{sport}/{explainer_id:path}/context")
+def explain_context(sport: str, explainer_id: str):
+    """Forward to the explainer's no-model `/context` route.
+
+    Declared BEFORE the catch-all, which would otherwise swallow `<id>/context`.
+    Stricter than `explain` below (that route is left untouched): `..` anywhere,
+    a `/` in the sport, and an empty or leading-`/` id are refused before any
+    request goes out; a non-dict 2xx body is a 502 rather than a bare 500. Every
+    failure is one fixed 502 and no upstream body is ever returned.
+    """
+    if ".." in sport or ".." in explainer_id or "/" in sport or not explainer_id or explainer_id.startswith("/"):
+        raise HTTPException(status_code=502, detail=_UNAVAILABLE)
+    url = f"{EXPLAINER_URL}/explain/{quote(sport, safe='')}/{quote(explainer_id, safe='')}/context"
+    try:
+        response = requests.get(url, timeout=EXPLAINER_TIMEOUT_S, allow_redirects=False)
+        if not (200 <= response.status_code < 300):
+            raise requests.HTTPError(f"upstream {response.status_code}")
+        body = response.json()
+        if not isinstance(body, dict):
+            raise requests.HTTPError(f"upstream 2xx body is a {type(body).__name__}")
+        return body
+    except requests.RequestException as exc:
+        # Also covers a non-JSON 2xx: `JSONDecodeError` subclasses `RequestException`.
+        raise HTTPException(status_code=502, detail=_UNAVAILABLE) from exc
+
+
 @router.get("/api/explain/{sport}/{explainer_id:path}")
 def explain(sport: str, explainer_id: str) -> dict:
     """Forward to the explainer, or say plainly that it could not be reached.
