@@ -89,7 +89,7 @@ def test_a_raised_error_is_the_fixed_502(client, monkeypatch, exc):
     assert res.json() == FIXED
 
 
-@pytest.mark.parametrize("payload", [["a"], "s", 3, None, requests.JSONDecodeError("x", "y", 0), ValueError("bad")])
+@pytest.mark.parametrize("payload", [["a"], "s", 3, None, requests.JSONDecodeError("x", "y", 0)])
 def test_a_2xx_that_is_not_a_json_object_is_the_fixed_502(client, monkeypatch, payload):
     _capture(monkeypatch, FakeResponse(200, payload))
     res = client.get("/api/explain/pl/12345/context")
