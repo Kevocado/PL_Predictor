@@ -1,18 +1,21 @@
-// Synced from predictor-ui@955449e92e8f. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@1b32485a6a33. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 /**
  * The Matchup section: how the two sides' units meet, as data, with no AI.
  *
  * Rendered above the AI panel and visible before anything is asked for. It draws
  * what the fixture's `context` carries: code-computed rank duels (`matchups`)
- * through `RankDuel`, and F1's labelled form rows (`form_rows`). Either, both or
- * neither may be present; with neither the component renders NOTHING, not a
- * heading over an empty list and not a placeholder.
+ * pivoted into a table via `pivotMatchups` and rendered with `MatchupTable`,
+ * and F1's labelled form rows (`form_rows`). Either, both or neither may be present;
+ * with neither the component renders NOTHING, not a heading over an empty list and
+ * not a placeholder.
  *
  * Duels stay neutral. `toward_pick` rides along on the row but is not drawn: no
  * "advantage", no "edge", until a lift-gate run proves a duel type predicts.
  * NFL player props are a different block and are not touched here.
  */
-import { RankDuel } from "./RankDuel";
+import { MatchupTable } from "./MatchupTable";
+import { pivotMatchups } from "../lib/pivotMatchups";
+import { rankTier } from "../lib/rankTier";
 
 /** One code-computed duel, in the shape `signals/matchups.to_context` emits. */
 export type MatchupRow = {
@@ -77,11 +80,28 @@ const drawable = (m: MatchupRow) =>
 // Strings only: a truthy object would pass a bare `!!` check and then throw when React renders it.
 const usableForm = (r: FormRow) => !!r && isText(r.id) && isText(r.subject) && isText(r.label) && isText(r.value);
 
+function FormRankBox({ rank, n }: { rank: number | null; n: number | null }) {
+  if (!isInt(rank) || !isInt(n)) return null;
+  const tier = rankTier(rank, n);
+  return (
+    <span
+      className={`pr-rank-box pr-rank-${tier} inline-block min-w-[2rem] text-center rounded-pr font-semibold text-sm`}
+      aria-label={`${rank === 1 ? "1st" : rank === 2 ? "2nd" : rank === 3 ? "3rd" : `${rank}th`} of ${n}`}
+    >
+      {rank}
+    </span>
+  );
+}
+
 export function MatchupBrief({ matchups = [], formRows = [] }: { matchups?: MatchupRow[]; formRows?: FormRow[] }) {
   // `bundle.context` is untyped site data: anything that is not a list is nothing.
   const duels = (Array.isArray(matchups) ? matchups : []).filter(drawable);
   const forms = (Array.isArray(formRows) ? formRows : []).filter(usableForm);
-  if (duels.length === 0 && forms.length === 0) return null;
+  
+  const pivot = pivotMatchups(duels);
+  
+  if (!pivot && forms.length === 0) return null;
+  
   return (
     <section aria-labelledby="matchup-heading" data-testid="matchup-section">
       <h3
@@ -90,28 +110,20 @@ export function MatchupBrief({ matchups = [], formRows = [] }: { matchups?: Matc
       >
         Matchup
       </h3>
-      <ul className="divide-y divide-pr-rule border-t border-pr-rule">
-        {duels.map((m) => (
-          <li key={m.id} className="py-2.5" data-testid={`matchup-${m.id}`}>
-            <RankDuel
-              attacker={m.attacker} attackerStat={m.stat} attackerRank={m.attacker_rank}
-              defender={m.defender} defenderStat={m.foil} defenderRank={m.defender_rank}
-              nTeams={m.n_teams}
-            />
-          </li>
-        ))}
-        {forms.map((r) => (
-          <li key={r.id} className="flex items-baseline justify-between gap-3 py-2 text-sm" data-testid={`form-${r.id}`}>
-            <span className="min-w-0 truncate text-pr-text-dim">{r.subject} · {r.label}</span>
-            <span className="shrink-0 tabular-nums font-semibold text-pr-text">
-              {r.value}
-              {isInt(r.rank) && (
-                <span className="font-normal text-pr-text-faint"> #{r.rank}{isInt(r.n) ? ` of ${r.n}` : ""}</span>
-              )}
-            </span>
-          </li>
-        ))}
-      </ul>
+      {pivot && <MatchupTable pivot={pivot} />}
+      {forms.length > 0 && (
+        <ul className="divide-y divide-pr-rule border-t border-pr-rule mt-3" data-testid="matchup-form-rows">
+          {forms.map((r) => (
+            <li key={r.id} className="flex items-baseline justify-between gap-3 py-2 text-sm" data-testid={`form-${r.id}`}>
+              <span className="min-w-0 truncate text-pr-text-dim">{r.subject} · {r.label}</span>
+              <span className="shrink-0 tabular-nums font-semibold text-pr-text flex items-center gap-2">
+                {r.value}
+                <FormRankBox rank={r.rank} n={r.n} />
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }
