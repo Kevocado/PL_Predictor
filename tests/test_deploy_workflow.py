@@ -268,13 +268,15 @@ def check_image(text: str) -> None:
     # `<image>:latest` appears twice (build and push) so it cannot be mutated
     # uniquely. The stack pins a sha in .env, so the tag the image is BUILT with
     # is the one that has to be right.
-    assert f"docker build -t {IMAGE}:${{{{ github.sha }}}} -t {IMAGE}:latest ." in body, (
-        f"the build must tag {IMAGE}:${{{{{{ github.sha }}}}}}}} and {IMAGE}:latest"
+    # The build is docker/build-push-action with `push: true` (registry layer cache), which tags and pushes every
+    # line under `tags:`. Anchored on the sha tag line, so a build that tags something else cannot pass on the
+    # strength of the azure job's mention of the same string.
+    assert re.search(r"uses:\s*docker/build-push-action@", body), "the build must use docker/build-push-action"
+    assert re.search(r"push:\s*true", body), "the build must push"
+    assert f"            {IMAGE}:${{{{ github.sha }}}}\n" in body, (
+        f"the build must tag {IMAGE}:${{{{{{ github.sha }}}}}} — the stack pins a sha"
     )
-    assert f"docker push {IMAGE}:${{{{ github.sha }}}}" in body, (
-        f"the build must push {IMAGE}:${{{{{{ github.sha }}}}}} — the stack pins a sha"
-    )
-    assert f"docker push {IMAGE}:latest" in body, f"the build must also push {IMAGE}:latest"
+    assert f"            {IMAGE}:latest\n" in body, f"the build must also tag {IMAGE}:latest"
 
 
 def check_vps(text: str) -> None:
@@ -542,8 +544,8 @@ def test_each_check_can_fail():
         # Retag the image the `build` line produces. Unique: the `push` lines
         # carry the same tag but not the same prefix.
         "image": (
-            f"docker build -t {IMAGE}:${{{{ github.sha }}}}",
-            f"docker build -t {IMAGE}:${{{{ github.head_sha }}}}",
+            f"          provenance: false\n          tags: |\n            {IMAGE}:${{{{ github.sha }}}}",
+            f"          provenance: false\n          tags: |\n            {IMAGE}:${{{{ github.head_sha }}}}",
         ),
         "vps": (f"deploy {SERVICE} ${{{{ github.sha }}}}", f"deploy {SERVICE}"),
         "azure": (GATE_AZURE, "vars.DEPLOY_AZURE != 'false'"),

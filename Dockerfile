@@ -18,8 +18,13 @@ RUN npm run build
 FROM python:3.13-slim AS backend
 WORKDIR /app
 
+# Dependencies FIRST, keyed on pyproject.toml and requirements-lock.txt alone. The dependency layer is large (xgboost, pandas, scipy,
+# scikit-learn) and used to sit AFTER `COPY src/`, so every commit rebuilt it with a new digest and the VPS kept a
+# full extra copy per deploy. Now an unchanged dependency set reuses the SAME layer digest across commits and a deploy
+# adds only the thin app layers.
+# `pip install -e .` needs the package directory to exist to resolve it, so a stub stands in for the real source;
+# the real source is copied right after and PYTHONPATH=/app/src (set below) is what the app imports from.
 COPY pyproject.toml requirements-lock.txt ./
-COPY src/ ./src/
 # Editable install, matching local dev exactly (README's own `pip install -e
 # . -c requirements-lock.txt`) — NOT a cosmetic choice: config.py derives
 # PROJECT_ROOT (and everything under it: MODELS_DIR, CACHE_DIR,
@@ -32,7 +37,10 @@ COPY src/ ./src/
 # Pinned to this project's own known-working versions rather than an
 # unconstrained install, to avoid a newer pandas/xgboost/etc. silently
 # changing behavior in the one environment nobody develops against directly.
-RUN pip install --no-cache-dir -e . -c requirements-lock.txt
+RUN mkdir -p src/pl_predictor && touch src/pl_predictor/__init__.py \
+    && pip install --no-cache-dir -e . -c requirements-lock.txt \
+    && rm -rf src
+COPY src/ ./src/
 
 # Ships with a real trained model immediately (models/*.json are
 # git-tracked) instead of needing a full historical fetch+train before the
