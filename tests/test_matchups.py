@@ -121,3 +121,74 @@ def test_several_fixtures_on_one_date_do_not_duplicate_each_teams_rows():
     matches = pd.DataFrame({"date": pd.to_datetime(["2025-08-16"] * 4), "season": [2025] * 4})
     means = matchups._recent_means(xg, matches, pd.Timestamp("2025-09-01"), 2025)
     assert means.empty, "one match each is below MIN_GAMES; duplicated rows made it look like four"
+
+
+# --- hub-derived duels + facts wiring (real data shapes from the committed public snapshot) ---------------------
+import json
+from pathlib import Path
+
+import pytest
+from fastapi.testclient import TestClient
+
+from conftest import FACTS_EVENT_ID, FACTS_NOW, facts_card, facts_detail, facts_snapshot
+from pl_predictor.api import facts as facts_mod
+from pl_predictor.api.main import app
+
+REAL = json.loads((Path(__file__).resolve().parents[1] / "data" / "public_snapshot.json").read_text())
+RANKINGS = REAL["hub"]["rankings"]["rankings"]
+TEAMS = REAL["hub"]["teams"]["teams"]
+ROW_KEYS = {"id", "attacker", "defender", "stat", "foil", "attacker_rank", "defender_rank", "n_teams", "toward_pick"}
+
+
+def test_real_hub_tables_yield_neutral_ranked_rows_among_20_teams():
+    duels = matchups.hub_matchups_for_game("Everton", "Chelsea", RANKINGS, TEAMS)
+    rows = matchups.to_context(duels, None, limit=8)
+    ids = {r["id"] for r in rows}
+    assert {"strength_attack_vs_defence:home", "strength_attack_vs_defence:away",
+            "goals_attack_vs_defence:home", "goals_attack_vs_defence:away", "form"} <= ids
+    for r in rows:
+        assert set(r) == ROW_KEYS and r["toward_pick"] is None and r["n_teams"] == 20
+        assert 1 <= r["attacker_rank"] <= 20 and 1 <= r["defender_rank"] <= 20
+    home = next(r for r in rows if r["id"] == "strength_attack_vs_defence:home")
+    assert (home["attacker"], home["defender"]) == ("Everton", "Chelsea")
+
+
+def test_xg_row_needs_enough_matches_with_xg():
+    assert not any(d.id.startswith("xg_") for d in matchups.hub_matchups_for_game("Everton", "Chelsea", RANKINGS, TEAMS))
+    teams = [{**t, "recent_matches": [{"xg_for": 1.0 + i / 10, "xg_against": 1.0, "date": "x"} for i in range(3)]} for i, t in enumerate(TEAMS)]
+    got = matchups.hub_matchups_for_game("Everton", "Chelsea", RANKINGS, teams)
+    assert {"xg_attack_vs_defence:home", "xg_attack_vs_defence:away"} <= {d.id for d in got}
+
+
+def test_unknown_team_gets_no_rows_and_finished_fixtures_are_skipped():
+    assert matchups.hub_matchups_for_game("ZZZ", "YYY", RANKINGS, TEAMS) == []
+    fixtures = [{"event_id": "1", "team_home": "Everton", "team_away": "Chelsea", "finished": False},
+                {"event_id": "2", "team_home": "Everton", "team_away": "Chelsea", "finished": True}]
+    assert list(matchups.build_hub_matchups(fixtures, RANKINGS, TEAMS)) == ["1"]
+
+
+def _serve(monkeypatch, snap, card=None):
+    monkeypatch.setattr(facts_mod, "PUBLIC_MODE", True)
+    monkeypatch.setattr(facts_mod, "_now", lambda: FACTS_NOW)
+    monkeypatch.setattr(facts_mod, "_snapshot", lambda: snap)
+    monkeypatch.setattr(facts_mod.routes.tracking_store, "get_track_record", lambda: {})
+
+
+def test_facts_route_serves_stored_matchups_with_no_network(monkeypatch):
+    # The conftest network guard fails this test on any outbound connect, so passing proves snapshot-only serving.
+    rows = matchups.to_context(matchups.hub_matchups_for_game("Sunderland", "Chelsea", RANKINGS, TEAMS), None, limit=8)
+    snap = {**facts_snapshot(), "matchups": {FACTS_EVENT_ID: rows}}
+    _serve(monkeypatch, snap)
+    body = facts_mod.get_facts(FACTS_EVENT_ID)
+    assert body["context"]["matchups"] == rows and body["context"]["gameweek"] == 9
+    assert all(r["toward_pick"] is None for r in body["context"]["matchups"])
+    assert TestClient(app).get(f"/facts/{FACTS_EVENT_ID}").json()["context"]["matchups"] == rows
+
+
+def test_facts_has_no_matchups_when_absent_or_after_kickoff(monkeypatch):
+    _serve(monkeypatch, facts_snapshot())
+    assert "matchups" not in facts_mod.get_facts(FACTS_EVENT_ID)["context"]
+    rows = [{"id": "form"}]
+    live = facts_snapshot(cards=[facts_card(commence_time="2026-11-08T11:00:00Z")], detail=facts_detail(commence_time="2026-11-08T11:00:00Z"))
+    _serve(monkeypatch, {**live, "matchups": {FACTS_EVENT_ID: rows}})
+    assert "matchups" not in facts_mod.get_facts(FACTS_EVENT_ID)["context"]

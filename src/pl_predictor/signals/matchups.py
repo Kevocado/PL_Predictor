@@ -138,3 +138,69 @@ def to_context(duels: list[Duel], pick_side: str | None, limit: int = 4,
             "toward_pick": toward_pick,
         })
     return out
+
+
+# --- Duels from the Data Hub tables (what the public snapshot already holds) -------------------------------------
+# The xG duels above need Understat match data, which the public host never loads. These are derived instead from
+# the hub tables the snapshot job has already computed: the Elo/Pi form-blended rankings (`attack`, `defence`;
+# defence is lower-is-better) and the team hub (goals per match, recent-match xG, form points). Always neutral.
+
+MIN_XG_MATCHES = 3  # recent matches with xG a team needs before it is ranked on xG
+
+
+def _recent_xg(team_row: dict) -> tuple[float, float] | None:
+    got = [(m["xg_for"], m["xg_against"]) for m in team_row.get("recent_matches") or []
+           if m.get("xg_for") is not None and m.get("xg_against") is not None]
+    if len(got) < MIN_XG_MATCHES:
+        return None
+    return sum(g[0] for g in got) / len(got), sum(g[1] for g in got) / len(got)
+
+
+def _col(rows: list[dict], key: str, fn=lambda r, k: r.get(k)) -> dict[str, float]:
+    out = {}
+    for r in rows:
+        v = fn(r, key)
+        if v is not None and v == v:
+            out[r["team"]] = float(v)
+    return out
+
+
+def hub_matchups_for_game(home: str, away: str, rankings: list[dict], teams: list[dict]) -> list[Duel]:
+    """Ranked duels for one game from the hub tables, strongest gap first. A team missing from a table, or a table
+    that cannot rank both sides, simply yields no duel of that kind."""
+    xg = {t["team"]: x for t in teams if (x := _recent_xg(t))}
+    kinds = [  # (id, attack values, defence values (lower = better), stat, foil)
+        ("strength_attack_vs_defence", _col(rankings, "attack"), _col(rankings, "defence"),
+         "attack strength", "defence strength"),
+        ("goals_attack_vs_defence", _col(teams, "goals_for_per_match"), _col(teams, "goals_against_per_match"),
+         "goals scored per match", "goals conceded per match"),
+        ("xg_attack_vs_defence", {t: v[0] for t, v in xg.items()}, {t: v[1] for t, v in xg.items()},
+         "xG created per match", "xG conceded per match"),
+    ]
+    out: list[Duel] = []
+    for duel_id, att, dfn, stat, foil in kinds:
+        a_rank, d_rank = ranks(att, True), ranks(dfn, False)
+        for side in ("home", "away"):
+            d = make_duel(f"{duel_id}:{side}", home=home, away=away, attacker_side=side,
+                          attack_ranks=a_rank, defence_ranks=d_rank, min_gap=0, stat=stat, foil=foil)
+            if d is not None:
+                out.append(d)
+    form = ranks(_col(teams, "form_points_per_match"), True)
+    d = make_duel("form", home=home, away=away, attacker_side="home", attack_ranks=form, defence_ranks=form,
+                  min_gap=0, stat="recent form (points per match)", foil="recent form (points per match)")
+    if d is not None:
+        out.append(d)
+    out.sort(key=lambda d: d.strength, reverse=True)
+    return out
+
+
+def build_hub_matchups(fixtures: list[dict], rankings: list[dict], teams: list[dict]) -> dict[str, list[dict]]:
+    """`{event_id: facts rows}` for every fixture not yet finished. Neutral rows (`toward_pick` null)."""
+    out: dict[str, list[dict]] = {}
+    for f in fixtures:
+        if f.get("finished") or not f.get("event_id"):
+            continue
+        rows = to_context(hub_matchups_for_game(f["team_home"], f["team_away"], rankings, teams), None, limit=8)
+        if rows:
+            out[str(f["event_id"])] = rows
+    return out
