@@ -1,4 +1,4 @@
-// Synced from predictor-ui@c08e5da5c56e. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@aee2767a43ec. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 import { rankTier } from "../lib/rankTier";
 
 function ordinal(n: number): string {
@@ -21,14 +21,16 @@ function RankBox({ rank, teamName, label, n, tier }: {
       </td>
     );
   }
+  const ord = ordinal(rank);
   return (
     <td className="pr-matchup-rank">
       <div 
         className={`pr-rank-box pr-rank-${tier}`}
         data-testid="rank-box"
-        aria-label={`${teamName}: ${ordinal(rank)} of ${n} for ${label}`}
+        aria-label={`${teamName}: ${ord} of ${n} for ${label}`}
       >
-        {rank}
+        <span className="pr-rank-value">{rank}</span>
+        <span className="pr-rank-ordinal" aria-hidden="true">{ord} of {n}</span>
       </div>
     </td>
   );

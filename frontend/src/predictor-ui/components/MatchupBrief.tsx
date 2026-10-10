@@ -1,4 +1,4 @@
-// Synced from predictor-ui@c08e5da5c56e. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@aee2767a43ec. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 /**
  * The Matchup section: how the two sides' units meet, as data, with no AI.
  *
@@ -80,14 +80,21 @@ const drawable = (m: MatchupRow) =>
 // Strings only: a truthy object would pass a bare `!!` check and then throw when React renders it.
 const usableForm = (r: FormRow) => !!r && isText(r.id) && isText(r.subject) && isText(r.label) && isText(r.value);
 
+function ordinal(n: number): string {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return `${n}${s[(v - 20) % 10] || s[v] || s[0]}`;
+}
+
 function FormRankBox({ rank, n }: { rank: number | null; n: number | null }) {
-  if (!isInt(rank) || !isInt(n)) return null;
+  // Validate rank bounds before calling rankTier: require n >= 2 and rank between 1 and n inclusive
+  if (!isInt(rank) || !isInt(n) || n < 2 || rank < 1 || rank > n) return null;
   const tier = rankTier(rank, n);
   return (
     <span
       className={`pr-rank-box pr-rank-${tier} inline-block min-w-[2rem] text-center rounded-pr font-semibold text-sm`}
       data-testid="rank-box"
-      aria-label={`${rank === 1 ? "1st" : rank === 2 ? "2nd" : rank === 3 ? "3rd" : `${rank}th`} of ${n}`}
+      aria-label={`${ordinal(rank)} of ${n}`}
     >
       {rank}
     </span>

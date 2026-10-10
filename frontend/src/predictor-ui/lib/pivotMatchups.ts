@@ -1,4 +1,4 @@
-// Synced from predictor-ui@c08e5da5c56e. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@aee2767a43ec. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 import type { MatchupRow } from "../components/MatchupBrief";
 
 const isText = (v: unknown): v is string => typeof v === "string" && v.trim() !== "";
@@ -147,19 +147,19 @@ export function pivotMatchups(rows: MatchupRow[]): {
         n,
       });
     } else if (!homeRow && awayRow) {
-      // Only :away row: offence (away has stat, home has foil)
+      // Only :away row: offence (away has stat rank, home null), defence (home has foil rank, away null)
       outRows.push({
         key: `${key}_offence`,
         label: capitalizeFirst(awayRow.stat),
-        homeRank: awayRow.defender_rank,
+        homeRank: null,
         awayRank: awayRow.attacker_rank,
         n,
       });
       outRows.push({
         key: `${key}_defence`,
         label: capitalizeFirst(awayRow.foil),
-        homeRank: awayRow.attacker_rank,
-        awayRank: awayRow.defender_rank,
+        homeRank: awayRow.defender_rank,
+        awayRank: null,
         n,
       });
     }

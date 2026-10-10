@@ -1,4 +1,4 @@
-// Synced from predictor-ui@c08e5da5c56e. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@aee2767a43ec. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 /** Shared v2 panelFacts adapter.
  *
  *  One function, two call sites.  Each call site passes an input tagged with
