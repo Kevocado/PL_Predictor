@@ -1,4 +1,4 @@
-// Synced from predictor-ui@1b32485a6a33. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@c08e5da5c56e. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 export type Status = "next" | "live" | "called" | "missed" | "nopick" | "rebuilt" | "unverified";
 /** The moment a pick must beat: "kickoff" for football, "tip-off" for
  *  basketball, "the session" for F1 (qualifying and races alike). */

@@ -1,4 +1,4 @@
-// Synced from predictor-ui@1b32485a6a33. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@c08e5da5c56e. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 import type { MatchupRow } from "../components/MatchupBrief";
 
 const isText = (v: unknown): v is string => typeof v === "string" && v.trim() !== "";
@@ -24,35 +24,21 @@ function stripSuffix(id: string): string {
   return id.replace(/:home$|:away$/, "");
 }
 
-// Label map for known stat keys (sentence case, matching the stat field)
-const LABEL_MAP: Record<string, string> = {
-  goals_scored_per_match: "Goals scored per match",
-  goals_conceded_per_match: "Goals conceded per match",
-  shots_on_target_per_match: "Shots on target per match",
-  shots_on_target_faced_per_match: "Shots on target faced per match",
-  possession_pct: "Possession %",
-  pass_off_vs_pass_def: "Pass off vs pass def",
-  rush_off_vs_rush_def: "Rush off vs rush def",
-  turnover_diff: "Turnover diff",
-};
-
-function labelFromKey(key: string): string {
-  if (LABEL_MAP[key]) return LABEL_MAP[key];
-  // Fallback: sentence case from snake_case
-  return key
-    .split("_")
-    .map((w, i) => (i === 0 ? w.charAt(0).toUpperCase() + w.slice(1) : w))
-    .join(" ");
+function capitalizeFirst(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 /**
  * Pivots matchup rows into a table structure with home on the left, away on the right.
  * Returns null when nothing drawable.
- * 
- * For each base key (id without :home/:away suffix):
- * - homeRank comes from the :home row's attacker_rank (home team's rank for that stat)
- * - awayRank comes from the :away row's attacker_rank (away team's rank for that stat)
- * - If a side's row is missing, that rank is null
+ *
+ * For each duel type (base key):
+ * - If both :home and :away rows exist: produces TWO rows (offence then defence)
+ *   - Offence: homeRank = :home.attacker_rank, awayRank = :away.attacker_rank, label = :home.stat
+ *   - Defence: homeRank = :away.defender_rank, awayRank = :home.defender_rank, label = :home.foil
+ * - If only one side exists: produces two rows with null for missing side
+ * - Unsuffixed rows (like `form`): produces ONE row with both ranks from that row
+ * - Row order: first appearance of each base key, offence before defence, unsuffixed last
  */
 export function pivotMatchups(rows: MatchupRow[]): {
   home: string;
@@ -65,10 +51,10 @@ export function pivotMatchups(rows: MatchupRow[]): {
   // Determine home/away from :home rows (attacker is home team in :home rows)
   const homeRow = valid.find(r => r.id.endsWith(":home"));
   const awayRow = valid.find(r => r.id.endsWith(":away"));
-  
+
   let home: string;
   let away: string;
-  
+
   if (homeRow) {
     home = homeRow.attacker;
     away = homeRow.defender;
@@ -82,44 +68,120 @@ export function pivotMatchups(rows: MatchupRow[]): {
     away = valid[0].defender;
   }
 
-  // Group by base key, track home/away ranks separately
-  const byKey = new Map<string, { homeRank: number | null; awayRank: number | null; n: number }>();
+  // Group by base key, track what we need for each
+  interface KeyData {
+    homeRow: MatchupRow | null;
+    awayRow: MatchupRow | null;
+    unsuffixedRows: MatchupRow[];
+    firstIndex: number;
+    n: number;
+  }
 
-  for (const row of valid) {
+  const byKey = new Map<string, KeyData>();
+
+  for (let i = 0; i < valid.length; i++) {
+    const row = valid[i];
     const key = stripSuffix(row.id);
-    const existing = byKey.get(key) ?? { homeRank: null, awayRank: null, n: row.n_teams };
-    
-    // :home row: attacker=home, defender=away
-    // :away row: attacker=away, defender=home
-    if (row.id.endsWith(":home")) {
-      if (row.attacker === home) existing.homeRank = row.attacker_rank;
-      if (row.defender === away) existing.awayRank = row.defender_rank;
-    } else if (row.id.endsWith(":away")) {
-      if (row.attacker === away) existing.awayRank = row.attacker_rank;
-      if (row.defender === home) existing.homeRank = row.defender_rank;
+    const isHome = row.id.endsWith(":home");
+    const isAway = row.id.endsWith(":away");
+    const existing = byKey.get(key) ?? {
+      homeRow: null,
+      awayRow: null,
+      unsuffixedRows: [],
+      firstIndex: i,
+      n: row.n_teams,
+    };
+
+    if (isHome) {
+      existing.homeRow = row;
+    } else if (isAway) {
+      existing.awayRow = row;
     } else {
-      // No suffix - try to match by team
-      if (row.attacker === home) existing.homeRank = row.attacker_rank;
-      else if (row.defender === home) existing.homeRank = row.defender_rank;
-      if (row.attacker === away) existing.awayRank = row.attacker_rank;
-      else if (row.defender === away) existing.awayRank = row.defender_rank;
+      existing.unsuffixedRows.push(row);
     }
-    
+
     byKey.set(key, existing);
   }
 
-  // Sort by key for deterministic output (alphabetical)
-  const sortedEntries = [...byKey.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  // Sort by first appearance for consistent output matching live data feed order
+  const sortedKeys = [...byKey.entries()].sort((a, b) => a[1].firstIndex - b[1].firstIndex);
+
+  const outRows: { key: string; label: string; homeRank: number | null; awayRank: number | null; n: number }[] = [];
+  const unsuffixedOut: { key: string; label: string; homeRank: number | null; awayRank: number | null; n: number }[] = [];
+
+  for (const [key, data] of sortedKeys) {
+    const { homeRow, awayRow, unsuffixedRows, n } = data;
+
+    if (homeRow && awayRow) {
+      // Both sides present: produce offence then defence
+      // Offence: home's stat rank vs away's stat rank
+      outRows.push({
+        key: `${key}_offence`,
+        label: capitalizeFirst(homeRow.stat),
+        homeRank: homeRow.attacker_rank,
+        awayRank: awayRow.attacker_rank,
+        n,
+      });
+      // Defence: home's foil rank vs away's foil rank
+      outRows.push({
+        key: `${key}_defence`,
+        label: capitalizeFirst(homeRow.foil),
+        homeRank: awayRow.defender_rank,
+        awayRank: homeRow.defender_rank,
+        n,
+      });
+    } else if (homeRow && !awayRow) {
+      // Only :home row: offence (home has stat, away has foil)
+      outRows.push({
+        key: `${key}_offence`,
+        label: capitalizeFirst(homeRow.stat),
+        homeRank: homeRow.attacker_rank,
+        awayRank: null,
+        n,
+      });
+      outRows.push({
+        key: `${key}_defence`,
+        label: capitalizeFirst(homeRow.foil),
+        homeRank: null,
+        awayRank: homeRow.defender_rank,
+        n,
+      });
+    } else if (!homeRow && awayRow) {
+      // Only :away row: offence (away has stat, home has foil)
+      outRows.push({
+        key: `${key}_offence`,
+        label: capitalizeFirst(awayRow.stat),
+        homeRank: awayRow.defender_rank,
+        awayRank: awayRow.attacker_rank,
+        n,
+      });
+      outRows.push({
+        key: `${key}_defence`,
+        label: capitalizeFirst(awayRow.foil),
+        homeRank: awayRow.attacker_rank,
+        awayRank: awayRow.defender_rank,
+        n,
+      });
+    }
+
+    // Unsuffixed rows (like form): collect to add at the end
+    for (const r of unsuffixedRows) {
+      unsuffixedOut.push({
+        key: r.id,
+        label: capitalizeFirst(r.stat),
+        homeRank: r.attacker === home ? r.attacker_rank : (r.defender === home ? r.defender_rank : null),
+        awayRank: r.attacker === away ? r.attacker_rank : (r.defender === away ? r.defender_rank : null),
+        n: r.n_teams,
+      });
+    }
+  }
+
+  // Append unsuffixed rows at the end
+  outRows.push(...unsuffixedOut);
 
   return {
     home,
     away,
-    rows: sortedEntries.map(([key, data]) => ({
-      key,
-      label: labelFromKey(key),
-      homeRank: data.homeRank,
-      awayRank: data.awayRank,
-      n: data.n,
-    })),
+    rows: outRows,
   };
 }

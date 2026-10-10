@@ -1,4 +1,4 @@
-// Synced from predictor-ui@1b32485a6a33. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@c08e5da5c56e. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 /**
  * Returns the colour tier for a rank within a field of size n.
  * Thirds: good (top third), mid (middle third), bad (bottom third).

@@ -1,4 +1,4 @@
-// Synced from predictor-ui@1b32485a6a33. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@c08e5da5c56e. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 /**
  * The Matchup section: how the two sides' units meet, as data, with no AI.
  *
@@ -86,6 +86,7 @@ function FormRankBox({ rank, n }: { rank: number | null; n: number | null }) {
   return (
     <span
       className={`pr-rank-box pr-rank-${tier} inline-block min-w-[2rem] text-center rounded-pr font-semibold text-sm`}
+      data-testid="rank-box"
       aria-label={`${rank === 1 ? "1st" : rank === 2 ? "2nd" : rank === 3 ? "3rd" : `${rank}th`} of ${n}`}
     >
       {rank}
