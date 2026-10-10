@@ -1,4 +1,4 @@
-// Synced from predictor-ui@c08e5da5c56e. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@8ca136bc075e. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 /** FixtureExplainer — the panel, three states.
  *
  *  The default state is the facts plus the flow: the instant block above (timing,
@@ -116,6 +116,9 @@ export function FixtureExplainer({ sport, state, bundle, request, extras, promis
   const [loadedFor, setLoadedFor] = useState<{ id: string; ctx: MatchupContext } | null>(null);
   const fixtureId = idProp ?? bundle?.id ?? bundle?.game_id ?? bundle?.fixture_id ?? bundle?.event_id;
   const loaded = loadedFor && fixtureId != null && loadedFor.id === String(fixtureId) ? loadedFor.ctx : null;
+  // `form_rows` counts here even though the panel draws no form row: its presence
+  // means the site already handed us this fixture's matchup context, so re-fetching
+  // it would only ever return what we have.
   const hasBundleContext = !!bundle?.context?.matchups || !!bundle?.context?.form_rows;
   useEffect(() => {
     if (!loadContext || fixtureId == null || hasBundleContext) return;
@@ -142,7 +145,7 @@ export function FixtureExplainer({ sport, state, bundle, request, extras, promis
       <InstantBlock sport={sport} bundle={bundle} extras={extras} />
       {/* The Matchup section is data from the bundle's `context`, not AI: it is
           there before the button is pressed and stays above the summary. */}
-      <MatchupBrief matchups={bundle?.context?.matchups ?? loaded?.matchups} formRows={bundle?.context?.form_rows ?? loaded?.form_rows} />
+      <MatchupBrief matchups={bundle?.context?.matchups ?? loaded?.matchups} />
       {panelState === "summary" && summary && <SummaryView summary={summary} extras={extras} />}
       <FixtureFlow sport={sport} state={state} bundle={bundle} request={request} />
       {panelState !== "summary" && (

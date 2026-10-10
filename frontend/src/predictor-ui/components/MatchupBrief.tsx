@@ -1,21 +1,26 @@
-// Synced from predictor-ui@c08e5da5c56e. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@8ca136bc075e. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 /**
  * The Matchup section: how the two sides' units meet, as data, with no AI.
  *
  * Rendered above the AI panel and visible before anything is asked for. It draws
  * what the fixture's `context` carries: code-computed rank duels (`matchups`)
- * pivoted into a table via `pivotMatchups` and rendered with `MatchupTable`,
- * and F1's labelled form rows (`form_rows`). Either, both or neither may be present;
- * with neither the component renders NOTHING, not a heading over an empty list and
- * not a placeholder.
+ * pivoted by `pivotMatchups` into a home-left / away-right table (`MatchupTable`) with rank
+ * boxes coloured by thirds of the field. With none the component renders NOTHING, not a heading over
+ * an empty list and not a placeholder.
+ *
+ * **Form rows (`form_rows`) are deliberately not drawn.** F1 emits one per driver
+ * and constructor per metric — recent form, qualifying pace, track history — which
+ * on a full grid is eighteen rows that pushed the fixture this section exists to
+ * frame off the screen. They stay in `context` because the AI read is built from
+ * them (`prompts.py`), and the read is the right place for them: dropping the draw
+ * here does not drop them from the read.
  *
  * Duels stay neutral. `toward_pick` rides along on the row but is not drawn: no
  * "advantage", no "edge", until a lift-gate run proves a duel type predicts.
  * NFL player props are a different block and are not touched here.
  */
-import { MatchupTable } from "./MatchupTable";
 import { pivotMatchups } from "../lib/pivotMatchups";
-import { rankTier } from "../lib/rankTier";
+import { MatchupTable } from "./MatchupTable";
 
 /** One code-computed duel, in the shape `signals/matchups.to_context` emits. */
 export type MatchupRow = {
@@ -30,7 +35,8 @@ export type MatchupRow = {
   toward_pick: boolean | null;
 };
 
-/** One labelled form fact (F1: driver/constructor form, quali pace, track history). */
+/** One labelled form fact (F1: driver/constructor form, quali pace, track history).
+ *  Never rendered — see the note at the top. Typed because the payload carries it. */
 export type FormRow = {
   id: string;
   subject: string;
@@ -40,7 +46,9 @@ export type FormRow = {
   n: number | null;
 };
 
-/** What `/explain/{sport}/{id}/context` returns; every key optional. */
+/** What `/explain/{sport}/{id}/context` returns; every key optional. `form_rows`
+ *  rides along as read input and as the client's "this fixture already has matchup
+ *  context, don't re-fetch it" signal; no panel reads it. */
 export type MatchupContext = { matchups?: MatchupRow[]; form_rows?: FormRow[]; player_context?: unknown[] };
 
 /**
@@ -77,32 +85,11 @@ const drawable = (m: MatchupRow) =>
   isInt(m.attacker_rank) && isInt(m.defender_rank) && isInt(m.n_teams) && m.n_teams >= 2 &&
   m.attacker_rank >= 1 && m.attacker_rank <= m.n_teams && m.defender_rank >= 1 && m.defender_rank <= m.n_teams;
 
-// Strings only: a truthy object would pass a bare `!!` check and then throw when React renders it.
-const usableForm = (r: FormRow) => !!r && isText(r.id) && isText(r.subject) && isText(r.label) && isText(r.value);
-
-function FormRankBox({ rank, n }: { rank: number | null; n: number | null }) {
-  if (!isInt(rank) || !isInt(n)) return null;
-  const tier = rankTier(rank, n);
-  return (
-    <span
-      className={`pr-rank-box pr-rank-${tier} inline-block min-w-[2rem] text-center rounded-pr font-semibold text-sm`}
-      data-testid="rank-box"
-      aria-label={`${rank === 1 ? "1st" : rank === 2 ? "2nd" : rank === 3 ? "3rd" : `${rank}th`} of ${n}`}
-    >
-      {rank}
-    </span>
-  );
-}
-
-export function MatchupBrief({ matchups = [], formRows = [] }: { matchups?: MatchupRow[]; formRows?: FormRow[] }) {
+export function MatchupBrief({ matchups = [] }: { matchups?: MatchupRow[] }) {
   // `bundle.context` is untyped site data: anything that is not a list is nothing.
   const duels = (Array.isArray(matchups) ? matchups : []).filter(drawable);
-  const forms = (Array.isArray(formRows) ? formRows : []).filter(usableForm);
-  
   const pivot = pivotMatchups(duels);
-  
-  if (!pivot && forms.length === 0) return null;
-  
+  if (!pivot) return null;
   return (
     <section aria-labelledby="matchup-heading" data-testid="matchup-section">
       <h3
@@ -111,20 +98,7 @@ export function MatchupBrief({ matchups = [], formRows = [] }: { matchups?: Matc
       >
         Matchup
       </h3>
-      {pivot && <MatchupTable pivot={pivot} />}
-      {forms.length > 0 && (
-        <ul className="divide-y divide-pr-rule border-t border-pr-rule mt-3" data-testid="matchup-form-rows">
-          {forms.map((r) => (
-            <li key={r.id} className="flex items-baseline justify-between gap-3 py-2 text-sm" data-testid={`form-${r.id}`}>
-              <span className="min-w-0 truncate text-pr-text-dim">{r.subject} · {r.label}</span>
-              <span className="shrink-0 tabular-nums font-semibold text-pr-text flex items-center gap-2">
-                {r.value}
-                <FormRankBox rank={r.rank} n={r.n} />
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
+      <MatchupTable pivot={pivot} />
     </section>
   );
 }
