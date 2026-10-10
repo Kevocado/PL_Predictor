@@ -1,58 +1,18 @@
-// Synced from predictor-ui@db5c1a757ce7. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@955449e92e8f. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 /**
- * The summary grouped into Edge, Risk and Price — the grouping a reader scans.
+ * The Matchup section: how the two sides' units meet, as data, with no AI.
  *
- * `FactorList` already marks each row "for the pick" / "against it" / "context"
- * and refuses colour-only meaning. This adds the three labelled groups the AI
- * plan's design puts on one screen, and the `RankDuel` picture on the rows that
- * are about an offence-versus-defence matchup.
+ * Rendered above the AI panel and visible before anything is asked for. It draws
+ * what the fixture's `context` carries: code-computed rank duels (`matchups`)
+ * through `RankDuel`, and F1's labelled form rows (`form_rows`). Either, both or
+ * neither may be present; with neither the component renders NOTHING, not a
+ * heading over an empty list and not a placeholder.
  *
- * ## The rule this component exists to enforce
- *
- * **A figure may only reach the page if the row's own words state it.** `RankDuel`
- * draws two ranks; the headline beside it has to say those same two ranks, written
- * as ranks. `assertStates` refuses the row otherwise — the same rule, and the same
- * decision, as `SignalRows.assertFigureIsStated`, for the same reason: a bar at
- * 94% under words that never said 94% is a number a reader cannot check.
- *
- * "Written as a rank" is the part that is easy to get wrong, so it is a regex
- * rather than a number scan: `#28` states rank 28, and `"28 points allowed"`
- * does not, even though both contain the digits. A row that happened to state the
- * two ranks as some other figure would otherwise pass by accident, and the two
- * kinds of row — a duel row and a scoring row — can share a panel.
- *
- * ## What it does not do
- *
- * It does not rank, cap or reorder. The sport code sorts duels by strength, the
- * service orders the factors, and a cap here would silently drop a row for a
- * reason this component cannot see — the argument `SignalRows` makes about
- * ranking-and-capping in its own header.
- *
- * An empty group is omitted rather than padded: "fewer rows beats a weak row"
- * is the design's rule, and a heading over nothing is a claim the panel cannot
- * support.
- *
- * **The grouped rows do not take `expandable`/`expanded`.** `FactorList` clamps
- * its sentence to one line on a narrow viewport because the sentence is long and
- * the panel is already tall; a duel row is a rank and a rank, and clamping it at
- * 390px would hide the very words `assertStates` just checked — so these rows
- * wrap, and the `context` group below still goes through `FactorList` with the
- * panel's own clamp. The `context` group therefore keeps the old behaviour and the
- * new rows do not, which is the honest split: a clamp is a decision about a long
- * sentence, and these are not long.
+ * Duels stay neutral. `toward_pick` rides along on the row but is not drawn: no
+ * "advantage", no "edge", until a lift-gate run proves a duel type predicts.
+ * NFL player props are a different block and are not touched here.
  */
-import { FactorList, type Factor } from "./FactorList";
 import { RankDuel } from "./RankDuel";
-
-export type Slot = "edge" | "risk" | "price" | "context";
-
-/**
- * A factor, which already carries an optional `slot`. An alias rather than a
- * second type, because two definitions of the same field is how a caller ends up
- * passing a `Factor` where a `SlottedFactor` is wanted and widening at the call
- * site instead of reading what the response already has.
- */
-export type SlottedFactor = Factor;
 
 /** One code-computed duel, in the shape `signals/matchups.to_context` emits. */
 export type MatchupRow = {
@@ -64,164 +24,94 @@ export type MatchupRow = {
   attacker_rank: number;
   defender_rank: number;
   n_teams: number;
-  /** True when the duel favours the pick, false when the other side, null when
-   *  the code has not checked whether it explains anything. The service has
-   *  already turned this into a `slot`; it rides along so the caller can see it. */
   toward_pick: boolean | null;
 };
 
-/** The three named groups. `context` is not a group: it renders as the old list. */
-const TITLES: Record<Exclude<Slot, "context">, string> = {
-  edge: "Edge",
-  risk: "Risk",
-  price: "Price",
+/** One labelled form fact (F1: driver/constructor form, quali pace, track history). */
+export type FormRow = {
+  id: string;
+  subject: string;
+  label: string;
+  value: string;
+  rank: number | null;
+  n: number | null;
 };
 
-/** The four groups, LOOKED UP rather than indexed, and that is the whole point.
- *
- *  The `slot` arrives on the wire, so a renamed value — or one from an explainer
- *  newer than this panel — is a shape this build does not know. Reading
- *  `out[f.slot]` straight off the object gave `undefined.push`, so one
- *  unexpected value took the whole panel down instead of downgrading one row.
- *  This is `FactorList.MARK`'s shape for the same reason: the value is checked
- *  against the vocabulary that exists here, and everything else is the
- *  fail-closed answer.
+/** What `/explain/{sport}/{id}/context` returns; every key optional. */
+export type MatchupContext = { matchups?: MatchupRow[]; form_rows?: FormRow[]; player_context?: unknown[] };
+
+/**
+ * A loader for the context route, next to the site's own explain request.
+ * `baseUrl` is the site's explain base (no trailing slash needed); the id is
+ * encoded per path segment so a slash-bearing id still reaches the route.
+ * Rejects on a non-2xx, a timeout or bad JSON; callers treat any rejection as
+ * "no section".
  */
-const GROUP: Record<string, Slot> = {
-  edge: "edge", risk: "risk", price: "price", context: "context",
-};
-
-/** The factors by the group they are drawn in, keeping order and dropping nothing. */
-export function groupBySlot(factors: SlottedFactor[]): Record<Slot, SlottedFactor[]> {
-  const out: Record<Slot, SlottedFactor[]> = { edge: [], risk: [], price: [], context: [] };
-  for (const f of factors) out[GROUP[f.slot as string] ?? "context"].push(f);
-  return out;
+export function createContextLoader(baseUrl: string, timeoutMs = 10_000) {
+  const base = baseUrl.replace(/\/+$/, "");
+  return async (id: string): Promise<MatchupContext> => {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), timeoutMs);
+    try {
+      const res = await fetch(`${base}/${id.split("/").map(encodeURIComponent).join("/")}/context`, { signal: ctl.signal });
+      if (!res.ok) throw new Error(`context ${res.status}`);
+      return (await res.json()) as MatchupContext;
+    } finally {
+      clearTimeout(timer);
+    }
+  };
 }
 
-/** The row's words do not state the two ranks its duel is about to draw. */
-export class DuelHeadlineMismatchError extends Error {
-  constructor(key: string) {
-    super(
-      `MatchupBrief: the headline of ${key} does not state both ranks its duel draws, ` +
-        `written as ranks ("#3", "#28"). A figure on the page that the row's own words ` +
-        `do not carry is the one thing this component exists to prevent, so the row is ` +
-        `refused rather than drawn beside words that disagree with it.`,
-    );
-    this.name = "DuelHeadlineMismatchError";
-  }
-}
+const isInt = (v: unknown): v is number => typeof v === "number" && Number.isInteger(v);
 
-/** A rank is written with a `#`, and only a `#` counts. See the file header. */
-const STATED_RANK = /#\s?(\d+)/g;
+/** A duel the component can draw: both ranks and the league size are integers.
+ *  Anything else is dropped rather than thrown on: this is context shown on every
+ *  fixture, and one malformed row must not take the page down. */
+const isText = (v: unknown): v is string => typeof v === "string" && v.trim() !== "";
 
-function assertStates(f: SlottedFactor, m: MatchupRow) {
-  const stated = [...f.headline.matchAll(STATED_RANK)].map((x) => Number(x[1]));
-  if (!stated.includes(m.attacker_rank) || !stated.includes(m.defender_rank)) {
-    throw new DuelHeadlineMismatchError(f.key);
-  }
-}
+const drawable = (m: MatchupRow) =>
+  !!m && isText(m.id) && isText(m.attacker) && isText(m.defender) && isText(m.stat) && isText(m.foil) &&
+  isInt(m.attacker_rank) && isInt(m.defender_rank) && isInt(m.n_teams) && m.n_teams >= 2 &&
+  m.attacker_rank >= 1 && m.attacker_rank <= m.n_teams && m.defender_rank >= 1 && m.defender_rank <= m.n_teams;
 
-function Row({ factor, matchup, onSelect, highlighted }: {
-  factor: SlottedFactor;
-  matchup?: MatchupRow;
-  /** §13c's other end: pressing a row lights the figure it names. Passed through
-   *  from the panel rather than reimplemented here, so a brief row and a
-   *  `FactorList` row are the same control. */
-  onSelect?: (key: string) => void;
-  highlighted?: string | null;
-}) {
-  // Checked before anything renders, so a caller that paired a duel with the
-  // wrong words gets a named error rather than a bar under a sentence.
-  if (matchup) assertStates(factor, matchup);
-  const lit = !!highlighted && highlighted === factor.key;
+// Strings only: a truthy object would pass a bare `!!` check and then throw when React renders it.
+const usableForm = (r: FormRow) => !!r && isText(r.id) && isText(r.subject) && isText(r.label) && isText(r.value);
+
+export function MatchupBrief({ matchups = [], formRows = [] }: { matchups?: MatchupRow[]; formRows?: FormRow[] }) {
+  // `bundle.context` is untyped site data: anything that is not a list is nothing.
+  const duels = (Array.isArray(matchups) ? matchups : []).filter(drawable);
+  const forms = (Array.isArray(formRows) ? formRows : []).filter(usableForm);
+  if (duels.length === 0 && forms.length === 0) return null;
   return (
-    <li className="py-2.5">
-      <div className="flex items-baseline gap-2">
-        {onSelect ? (
-          <button
-            type="button"
-            data-testid={`factor-${factor.key}`}
-            data-highlighted={lit ? "true" : "false"}
-            aria-pressed={lit}
-            className="group min-w-0 flex-1 text-left"
-            onClick={() => onSelect(factor.key)}
-          >
-            <span className="font-semibold text-pr-text underline-offset-4 group-hover:underline">
-              {factor.headline}
+    <section aria-labelledby="matchup-heading" data-testid="matchup-section">
+      <h3
+        id="matchup-heading"
+        className="mb-1 font-pr-display text-xs font-semibold uppercase tracking-wide text-pr-text-faint"
+      >
+        Matchup
+      </h3>
+      <ul className="divide-y divide-pr-rule border-t border-pr-rule">
+        {duels.map((m) => (
+          <li key={m.id} className="py-2.5" data-testid={`matchup-${m.id}`}>
+            <RankDuel
+              attacker={m.attacker} attackerStat={m.stat} attackerRank={m.attacker_rank}
+              defender={m.defender} defenderStat={m.foil} defenderRank={m.defender_rank}
+              nTeams={m.n_teams}
+            />
+          </li>
+        ))}
+        {forms.map((r) => (
+          <li key={r.id} className="flex items-baseline justify-between gap-3 py-2 text-sm" data-testid={`form-${r.id}`}>
+            <span className="min-w-0 truncate text-pr-text-dim">{r.subject} · {r.label}</span>
+            <span className="shrink-0 tabular-nums font-semibold text-pr-text">
+              {r.value}
+              {isInt(r.rank) && (
+                <span className="font-normal text-pr-text-faint"> #{r.rank}{isInt(r.n) ? ` of ${r.n}` : ""}</span>
+              )}
             </span>
-          </button>
-        ) : (
-          <p className="min-w-0 flex-1 font-semibold text-pr-text">{factor.headline}</p>
-        )}
-      </div>
-      {matchup && (
-        <div className="mt-2">
-          <RankDuel
-            attacker={matchup.attacker} attackerStat={matchup.stat} attackerRank={matchup.attacker_rank}
-            defender={matchup.defender} defenderStat={matchup.foil} defenderRank={matchup.defender_rank}
-            nTeams={matchup.n_teams}
-          />
-        </div>
-      )}
-      {factor.text && (
-        <p className="mt-1.5 max-w-[70ch] font-pr-body text-sm leading-relaxed text-pr-text-dim">{factor.text}</p>
-      )}
-    </li>
-  );
-}
-
-export function MatchupBrief({
-  factors,
-  matchups = [],
-  onSelect,
-  highlighted,
-}: {
-  factors: SlottedFactor[];
-  matchups?: MatchupRow[];
-  onSelect?: (key: string) => void;
-  highlighted?: string | null;
-}) {
-  const groups = groupBySlot(factors);
-  const byKey = new Map(matchups.map((m) => [`matchup:${m.id}`, m]));
-  // Duels the code did NOT direct (the lift gate has not proven their type) arrive as `context` rows. They are the
-  // offence-versus-defence ratings of the two teams and deserve the rank picture, under their own plain heading, with
-  // no Edge/Risk claim. A context row that is not a known duel stays in the ordinary context list below.
-  const duelContext = groups.context.filter((f) => byKey.has(f.key));
-  const otherContext = groups.context.filter((f) => !byKey.has(f.key));
-  const sections: { id: string; title: string; rows: SlottedFactor[] }[] = [
-    { id: "edge", title: TITLES.edge, rows: groups.edge },
-    { id: "risk", title: TITLES.risk, rows: groups.risk },
-    { id: "matchup", title: "Matchup", rows: duelContext },
-    { id: "price", title: TITLES.price, rows: groups.price },
-  ];
-  return (
-    <div className="flex flex-col gap-4">
-      {sections.map((s) =>
-        s.rows.length === 0 ? null : (
-          <section key={s.id} aria-labelledby={`brief-${s.id}`}>
-            <h3
-              id={`brief-${s.id}`}
-              className="mb-1 font-pr-display text-xs font-semibold uppercase tracking-wide text-pr-text-faint"
-            >
-              {s.title}
-            </h3>
-            <ul className="divide-y divide-pr-rule border-t border-pr-rule">
-              {s.rows.map((f) => (
-                <Row
-                  key={f.key}
-                  factor={f}
-                  matchup={byKey.get(f.key)}
-                  onSelect={onSelect}
-                  highlighted={highlighted}
-                />
-              ))}
-            </ul>
-          </section>
-        ),
-      )}
-      {otherContext.length > 0 && (
-        <FactorList factors={otherContext} onSelect={onSelect} highlighted={highlighted} />
-      )}
-    </div>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { Explanation } from "../predictor-ui";
+import type { Explanation, MatchupContext } from "../predictor-ui";
 import { FixtureExplainer, SignalRows, type Signal } from "../predictor-ui";
 import { panelFacts } from "../predictor-ui/lib/panelFacts";
 import type { FixtureDetail, FixturePlayerReview, FixturePlayers, FixturePostMatch, FixtureValueBetSnapshot, TrackRecordSummary } from "../types";
@@ -24,6 +24,8 @@ interface Props {
   // explainer has nothing for, or a site deployed before the service exists,
   // must still open this modal and show everything else in it.
   explain?: (sport: string, id: string) => Promise<Explanation>;
+  // The Matchup section's data loader, beside `explain`; same optionality.
+  loadContext?: (id: string) => Promise<MatchupContext>;
   sport?: string;
 }
 
@@ -168,7 +170,7 @@ function PlayerCallReview({ review, loading, error }: { review: FixturePlayerRev
   </section>;
 }
 
-export function FixtureModal({ eventId, onClose, explain, sport = "pl" }: Props) {
+export function FixtureModal({ eventId, onClose, explain, loadContext, sport = "pl" }: Props) {
   const [detail, setDetail] = useState<FixtureDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [players, setPlayers] = useState<FixturePlayers | null>(null);
@@ -478,6 +480,8 @@ export function FixtureModal({ eventId, onClose, explain, sport = "pl" }: Props)
                 state={flowState}
                 bundle={flowBundle}
                 request={() => explain(sport, eventId)}
+                loadContext={loadContext}
+                fixtureId={eventId}
                 extras={{ tiles: panel.tiles, segments: panel.segments, legend: panel.legend, record: record ?? undefined, moment: "kickoff" }}
               />
             </div>

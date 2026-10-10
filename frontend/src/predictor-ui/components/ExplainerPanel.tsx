@@ -1,11 +1,10 @@
-// Synced from predictor-ui@db5c1a757ce7. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@955449e92e8f. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 import { useEffect, useId, useState } from "react";
 import { ErrorState, Skeleton } from "./States";
 import { StatusBadge, type Moment } from "./StatusBadge";
 import { BandChip, PanelHeading, type Band } from "./ExplainerVerdict";
 import { KeyNumberTile, type MarketTile } from "./KeyNumberTile";
 import { FactorList, type Factor } from "./FactorList";
-import { MatchupBrief, type MatchupRow, type SlottedFactor } from "./MatchupBrief";
 import { RecordStrip } from "./RecordStrip";
 import { ProbabilityBar, type PickRef, type Segment } from "./ProbabilityBar";
 
@@ -14,7 +13,16 @@ import { ProbabilityBar, type PickRef, type Segment } from "./ProbabilityBar";
  *
  *  `pick` is absent when there is no pick, which is the case the panel has to
  *  honour twice: no bar segment is accented, and nothing says "for the pick". */
-export type Verdict = { verdict: string; band: Band; factors: Factor[]; pick?: PickRef };
+export type Verdict = {
+  verdict: string;
+  band: Band;
+  /** The 2-3 sentence tactical read (v9). Empty when there was nothing to read.
+   *  An answer that carries it renders verdict + read; one without it is a
+   *  pre-v9 answer and falls back to the factor list. */
+  read?: string;
+  factors: Factor[];
+  pick?: PickRef;
+};
 
 /** Everything both shapes of answer carry. Exported so a caller that *builds* an
  *  answer can name the v2 arm (`Common & Verdict`) rather than the union: on
@@ -38,14 +46,6 @@ export type Common = {
 };
 
 export type Explanation = Common & Verdict;
-
-/**
- * The code-computed duels the explainer's factors may be keyed to, from the
- * response's `context.matchups`. Optional in every sense: a response from an
- * explainer that has not been redeployed carries none, and one from a sport whose
- * duel adapter has not landed carries none either.
- */
-export type { MatchupRow };
 
 /** The moment an F1 pick has to beat is the session, not a kick-off. */
 const MOMENT_OF: Record<string, Moment> = { f1: "the session", nba: "tip-off" };
@@ -110,7 +110,6 @@ export function ExplainerPanel({
   expandable = false,
   record,
   players,
-  matchups = [],
 }: {
   data: Explanation | null;
   loading: boolean;
@@ -142,13 +141,6 @@ export function ExplainerPanel({
   /** NFL's top player projections (§6). A list the facts already carry, so it
    *  costs the panel nothing to show. */
   players?: { name: string; projection: string }[];
-  /** `context.matchups` from the response. Each row is a code-computed duel a
-   *  `matchup:<id>` factor is about, and it is what `MatchupBrief` draws the
-   *  `RankDuel` from. A factor with no matching row here renders its words and no
-   *  bars, which is the honest rendering — never an empty duel.
-   *
-   *  **Inert until a response carries a `slot`.** See `slotted` below. */
-  matchups?: MatchupRow[];
 }) {
   const [opened, setOpened] = useState(false);
   const [highlighted, setHighlighted] = useState<string | null>(null);
@@ -219,23 +211,6 @@ export function ExplainerPanel({
     tiles.some((t) => t.market === key) || !!segments?.some((s) => s.market === key);
   const selectFactor = (key: string) =>
     setHighlighted((was) => (linkable(key) ? (was === key ? null : key) : null));
-
-  /* The Edge / Risk / Price grouping is used only when the answer actually
-   * carries slots.
-   *
-   * `MatchupBrief` groups by `slot` and renders everything with no slot — or no
-   * `slot` at all — as `context`, through `FactorList`. So switching on "does
-   * this response have any slot" rather than on "does this response have any
-   * matchups" is what keeps a LEGACY response byte-for-byte what it was: one
-   * ungrouped list, the same headings, the same rows, driven by `FactorList`
-   * exactly as before. Switching on `matchups` instead would put every old row
-   * through a new renderer for no gain, and a site still serving a v7 explainer
-   * would show an "Edge" heading it has no data for.
-   *
-   * Both renderers take the same selection and expansion props, so §13c's
-   * linkage and the narrow-viewport clamp behave identically whichever one is in
-   * use — that is the other reason for one switch rather than two panels. */
-  const slotted: boolean = v2 && data.factors.some((f) => (f as SlottedFactor).slot);
 
   return (
     <section aria-labelledby={headingId} className="flex flex-col gap-3">
@@ -325,30 +300,25 @@ export function ExplainerPanel({
         </div>
       )}
 
-      {showBody && v2 && (
+      {showBody && v2 && typeof data.read === "string" && data.read.trim() && (
+        <p className="max-w-[70ch] border-t border-pr-rule pt-3 font-pr-body text-base leading-relaxed text-pr-text" data-testid="ai-read">
+          {data.read}
+        </p>
+      )}
+
+      {/* A pre-v9 answer has no `read`: keep its factor list rather than show a bare verdict. */}
+      {showBody && v2 && data.read === undefined && data.factors.length > 0 && (
         <div className="flex flex-col gap-2 border-t border-pr-rule pt-3">
           <h4 className="font-pr-display text-xs font-semibold uppercase tracking-wide text-pr-text-dim">
             Why it matters
           </h4>
-          {slotted ? (
-            <MatchupBrief
-              factors={data.factors as SlottedFactor[]}
-              matchups={matchups}
-              onSelect={selectFactor}
-              highlighted={highlighted}
-            />
-          ) : (
-            <FactorList
-              factors={data.factors}
-              onSelect={selectFactor}
-              // The row that asked for the light is the row that is pressed. Not
-              // passed before, so pressing a *why* row changed the tiles and the bar
-              // and left the row itself looking exactly as it had.
-              highlighted={highlighted}
-              expanded={expanded}
-              onToggle={(i) => setExpanded((was) => (was === i ? null : i))}
-            />
-          )}
+          <FactorList
+            factors={data.factors}
+            onSelect={selectFactor}
+            highlighted={highlighted}
+            expanded={expanded}
+            onToggle={(i) => setExpanded((was) => (was === i ? null : i))}
+          />
         </div>
       )}
 

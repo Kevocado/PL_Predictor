@@ -1,5 +1,5 @@
 import { PUBLIC_MODE } from "../lib/publicMode";
-import type { Explanation } from "../predictor-ui";
+import { createContextLoader, type Explanation } from "../predictor-ui";
 import type {
   BacktestResponse,
   CalibrationResponse,
@@ -166,6 +166,8 @@ export const api = {
   // and fetchRead retries once on a non-ApiError. The proxy answers 502 for a
   // missing or slow explainer, so the retry lands on an ApiError and stops.
   explain: (sport: string, id: string) => get<Explanation>(`/explain/${sport}/${encodeURIComponent(id)}`),
+  /** The Matchup section's data: `<base>/explain/pl/<id>/context`, the same base `explain("pl", id)` uses. */
+  loadContext: createContextLoader(`${BASE_URL}/explain/pl`),
   currentGameweek: (gameweek?: number) =>
     get<CurrentGameweekResponse>(gameweek ? `/fixtures/gameweek?gameweek=${gameweek}` : "/fixtures/gameweek"),
   fixtureDetail: (eventId: string) => get<FixtureDetail>(`/fixtures/${eventId}`),
