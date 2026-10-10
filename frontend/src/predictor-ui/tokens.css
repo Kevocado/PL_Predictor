@@ -1,4 +1,4 @@
-/* Synced from predictor-ui@955449e92e8f. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs. */
+/* Synced from predictor-ui@8ca136bc075e. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs. */
 /* Predictor family tokens. Synced into each site; import in this order:
      @import "./predictor-ui/fonts.css";
      @import "tailwindcss";
@@ -38,6 +38,17 @@
   /* Default accent (the Hub); each sport overrides below. */
   --color-pr-accent: #f3f5f8;
   --color-pr-accent-ink: #0b0d10;
+
+  /* Rank tier colours — three discrete tiers by thirds.
+     Each has a background and ink (text) pair that meets 4.5:1 in both themes.
+     Dark theme values (default): dark backgrounds, light ink.
+     Light theme overrides below: light backgrounds, dark ink. */
+  --color-pr-rank-good-bg: #1a5c2e;
+  --color-pr-rank-good-ink: #f3f5f8;
+  --color-pr-rank-mid-bg: #7d5a00;
+  --color-pr-rank-mid-ink: #f3f5f8;
+  --color-pr-rank-bad-bg: #7d1a1a;
+  --color-pr-rank-bad-ink: #f3f5f8;
 
   --radius-pr: 6px;
 }
@@ -158,4 +169,102 @@
    outside focus outline, so the notched card draws its focus ring inside. */
 .pr-notch:focus-visible {
   outline-offset: -3px;
+}
+
+/* Light theme support */
+[data-theme="light"] {
+  color-scheme: light;
+  --color-pr-stage: #f3f5f8;
+  --color-pr-panel: #ffffff;
+  --color-pr-panel-2: #f0f2f5;
+  --color-pr-rule: #d0d5dd;
+  --color-pr-text: #0b0d10;
+  --color-pr-text-dim: #475467;
+  --color-pr-text-faint: #667085;
+  --color-pr-fill-mute: #98a2b3;
+  --color-pr-rank-good-bg: #d4edda;
+  --color-pr-rank-good-ink: #0b0d10;
+  --color-pr-rank-mid-bg: #fff3cd;
+  --color-pr-rank-mid-ink: #0b0d10;
+  --color-pr-rank-bad-bg: #f8d7da;
+  --color-pr-rank-bad-ink: #0b0d10;
+}
+
+/* MatchupTable styles */
+.pr-matchup-table-wrapper {
+  overflow-x: auto;
+  margin: 0 -16px;
+  padding: 0 16px;
+}
+
+.pr-matchup-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.pr-matchup-team {
+  width: 28%;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-pr-text-dim);
+  padding: 0.5rem 0.25rem;
+}
+
+.pr-matchup-label-header {
+  width: 44%;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-pr-text-dim);
+  padding: 0.5rem 0.25rem;
+}
+
+.pr-matchup-label {
+  font-size: 0.8125rem;
+  color: var(--color-pr-text);
+  padding: 0.5rem 0.5rem;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.pr-matchup-rank {
+  width: 28%;
+  text-align: center;
+  padding: 0.25rem 0.25rem;
+}
+
+.pr-rank-box {
+  display: inline-block;
+  min-width: 2.5rem;
+  padding: 0.375rem 0.5rem;
+  border-radius: var(--radius-pr);
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.pr-rank-good {
+  background: var(--color-pr-rank-good-bg);
+  color: var(--color-pr-rank-good-ink);
+}
+
+.pr-rank-mid {
+  background: var(--color-pr-rank-mid-bg);
+  color: var(--color-pr-rank-mid-ink);
+}
+
+.pr-rank-bad {
+  background: var(--color-pr-rank-bad-bg);
+  color: var(--color-pr-rank-bad-ink);
+}
+
+.pr-matchup-missing {
+  color: var(--color-pr-text-faint);
+  font-weight: 400;
 }

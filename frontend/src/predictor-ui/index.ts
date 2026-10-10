@@ -1,4 +1,4 @@
-// Synced from predictor-ui@955449e92e8f. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@8ca136bc075e. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 export * from "./fmt";
 export { contrast, inkFor, luminance } from "./contrast";
 export { AppFrame, type SiteLink, type Sport, type Tab } from "./components/AppFrame";
@@ -12,6 +12,9 @@ export { BandChip, PanelHeading, type Band } from "./components/ExplainerVerdict
 export { KeyNumberTile, type MarketTile } from "./components/KeyNumberTile";
 export { FactorList, type Factor } from "./components/FactorList";
 export { MatchupBrief, createContextLoader, type MatchupRow, type FormRow, type MatchupContext } from "./components/MatchupBrief";
+export { MatchupTable } from "./components/MatchupTable";
+export { pivotMatchups } from "./lib/pivotMatchups";
+export { rankTier } from "./lib/rankTier";
 export { RankDuel, rankFill, RankOutOfRangeError, type RankDuelProps } from "./components/RankDuel";
 export { WeatherChip, weatherSentence, WINDY_MPH, WET_ENOUGH_PCT, type Conditions, type WeatherKind } from "./components/WeatherChip";
 export { RecordStrip } from "./components/RecordStrip";
