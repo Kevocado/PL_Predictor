@@ -225,7 +225,7 @@ const preKickoff = summary.pre_kickoff ?? null;
         ))}
       </div>
 
-      {selected && <FixtureModal eventId={selected} onClose={() => setSelected(null)} explain={api.explain} />}
+      {selected && <FixtureModal eventId={selected} onClose={() => setSelected(null)} explain={api.explain} loadContext={api.loadContext} />}
     </div>
   );
 }

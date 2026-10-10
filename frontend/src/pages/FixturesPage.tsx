@@ -98,7 +98,7 @@ export function FixturesPage() {
         gameweek && <CurrentGameweekSection data={gameweek} onSelect={setSelected} onNavigate={navigate} />
       )}
 
-      {selected && <FixtureModal eventId={selected} onClose={() => setSelected(null)} explain={api.explain} />}
+      {selected && <FixtureModal eventId={selected} onClose={() => setSelected(null)} explain={api.explain} loadContext={api.loadContext} />}
     </div>
   );
 }
