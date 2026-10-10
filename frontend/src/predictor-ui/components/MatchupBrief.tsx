@@ -1,4 +1,4 @@
-// Synced from predictor-ui@0b2120579475. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@db5c1a757ce7. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 /**
  * The summary grouped into Edge, Risk and Price — the grouping a reader scans.
  *
@@ -183,19 +183,30 @@ export function MatchupBrief({
 }) {
   const groups = groupBySlot(factors);
   const byKey = new Map(matchups.map((m) => [`matchup:${m.id}`, m]));
+  // Duels the code did NOT direct (the lift gate has not proven their type) arrive as `context` rows. They are the
+  // offence-versus-defence ratings of the two teams and deserve the rank picture, under their own plain heading, with
+  // no Edge/Risk claim. A context row that is not a known duel stays in the ordinary context list below.
+  const duelContext = groups.context.filter((f) => byKey.has(f.key));
+  const otherContext = groups.context.filter((f) => !byKey.has(f.key));
+  const sections: { id: string; title: string; rows: SlottedFactor[] }[] = [
+    { id: "edge", title: TITLES.edge, rows: groups.edge },
+    { id: "risk", title: TITLES.risk, rows: groups.risk },
+    { id: "matchup", title: "Matchup", rows: duelContext },
+    { id: "price", title: TITLES.price, rows: groups.price },
+  ];
   return (
     <div className="flex flex-col gap-4">
-      {(Object.keys(TITLES) as (keyof typeof TITLES)[]).map((slot) =>
-        groups[slot].length === 0 ? null : (
-          <section key={slot} aria-labelledby={`brief-${slot}`}>
+      {sections.map((s) =>
+        s.rows.length === 0 ? null : (
+          <section key={s.id} aria-labelledby={`brief-${s.id}`}>
             <h3
-              id={`brief-${slot}`}
+              id={`brief-${s.id}`}
               className="mb-1 font-pr-display text-xs font-semibold uppercase tracking-wide text-pr-text-faint"
             >
-              {TITLES[slot]}
+              {s.title}
             </h3>
             <ul className="divide-y divide-pr-rule border-t border-pr-rule">
-              {groups[slot].map((f) => (
+              {s.rows.map((f) => (
                 <Row
                   key={f.key}
                   factor={f}
@@ -208,8 +219,8 @@ export function MatchupBrief({
           </section>
         ),
       )}
-      {groups.context.length > 0 && (
-        <FactorList factors={groups.context} onSelect={onSelect} highlighted={highlighted} />
+      {otherContext.length > 0 && (
+        <FactorList factors={otherContext} onSelect={onSelect} highlighted={highlighted} />
       )}
     </div>
   );
