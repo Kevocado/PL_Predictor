@@ -753,6 +753,16 @@ def _fixture_hit_table() -> pd.DataFrame:
     if resolved.empty:
         return pd.DataFrame()
 
+    # History: fixture identity was (teams, kickoff DATE) until 2026-10-01, when
+    # that was removed after measuring zero duplicates and finding two bugs -- a
+    # kickoff straddling UTC midnight under two ids graded twice, and distinct
+    # fixtures sharing a team pair with unreadable dates collapsed into one.
+    # Duplicates are real now (PL#69: 20 fixtures in data/tracking_picks.jsonl sit
+    # under both an FPL numeric id and an Odds-API opaque id), so we group again,
+    # but on the EXACT commence_time, not the date: the same fixture carries the
+    # identical timestamp under both ids, so there is no midnight straddle to
+    # misjudge, and an unreadable (NaT) time is never grouped -- it falls back to
+    # event_id. Pinned by the *_under_two_ids / straddle / unreadable tests.
     # Split into readable and unreadable commence_time. Unreadable ones
     # (NaT) must NOT be grouped together — each event_id stays separate.
     readable = resolved[resolved["commence_time"].notna()].copy()
