@@ -737,7 +737,13 @@ def _fixture_hit_table() -> pd.DataFrame:
     Shared by `get_track_record`/`get_results_by_gameweek`/
     `get_biggest_upsets` so "correct" is defined exactly once. Only fixtures
     with all three 1x2 rows resolved are included (matches the old
-    `get_recent_results`'s behavior)."""
+    `get_recent_results`'s behavior).
+
+    Groups by (team_home, team_away, commence_time) to deduplicate the same
+    fixture recorded under multiple event_ids (e.g. numeric FPL id and opaque
+    Odds API id). Fixtures with unreadable commence_time are NOT grouped
+    together (fail closed — they stay as separate rows keyed by event_id).
+    """
     with _connect() as conn:
         resolved = pd.read_sql(
             "SELECT * FROM predictions WHERE resolved = 1 AND market = '1x2'",
@@ -747,54 +753,62 @@ def _fixture_hit_table() -> pd.DataFrame:
     if resolved.empty:
         return pd.DataFrame()
 
+    # Split into readable and unreadable commence_time. Unreadable ones
+    # (NaT) must NOT be grouped together — each event_id stays separate.
+    readable = resolved[resolved["commence_time"].notna()].copy()
+    unreadable = resolved[resolved["commence_time"].isna()].copy()
+
     rows = []
-    for event_id, group in resolved.groupby("event_id"):
+
+    def _process_event_id_group(group: pd.DataFrame) -> dict | None:
+        """Process a single event_id's 1x2 rows into one fixture row."""
         probs = {r["outcome_name"]: float(r["predicted_prob"]) for _, r in group.iterrows()}
         if set(probs) != {"home_win", "draw", "away_win"}:
-            continue
-        first = group.iloc[0]
+            return None
+        first = group.iloc[0]  # all rows in this group have same event_id, so same metadata
         hit_row = group[group["actual_outcome"] == 1]
         actual_side = hit_row.iloc[0]["outcome_name"] if not hit_row.empty else None
         predicted_side = max(probs, key=probs.get)
-        rows.append(
-            {
-                "event_id": event_id,
-                "team_home": first["team_home"],
-                "team_away": first["team_away"],
-                "commence_time": first["commence_time"],
-                "resolved_at": first["resolved_at"],
-                "snapshotted_at": pd.to_datetime(group["snapshotted_at"]).min(),
-                "gameweek": _none_if_nan_int(first["gameweek"]),
-                "predicted_scoreline": first["predicted_scoreline"],
-                "actual_goals_home": _none_if_nan_int(first["actual_goals_home"]),
-                "actual_goals_away": _none_if_nan_int(first["actual_goals_away"]),
-                "predicted_home_win": probs["home_win"],
-                "predicted_draw": probs["draw"],
-                "predicted_away_win": probs["away_win"],
-                "predicted_prob_actual": probs.get(actual_side) if actual_side else None,
-                "actual_outcome": actual_side,
-                "hit": bool(actual_side is not None and predicted_side == actual_side),
-                "backfilled": bool(first["backfilled"]),
-            }
-        )
-    # One row per event_id, which IS the fixture key here and in every other
-    # sport (NFL/CFB/NBA group by `game_id`). This used to re-derive identity
-    # from `(team_home, team_away, kickoff date)` on the theory that one match
-    # can be snapshotted under two ids when the fixture feed falls back from
-    # the Odds API hex id to the FPL numeric one. That guess was measured
-    # against the shipped `data/public_snapshot.json` (50 finished fixtures,
-    # 2026-10-01) and found ZERO (teams, date) pairs carrying two ids — so it
-    # bought nothing and cost two real things, so it is gone:
-    #
-    # - a kickoff straddling UTC midnight under two ids became two counted
-    #   picks, i.e. one match graded twice;
-    # - an unreadable `commence_time` yields `kickoff_date=None`, and
-    #   `drop_duplicates` treats every null as equal, so two genuinely distinct
-    #   fixtures sharing a team pair were silently collapsed into one.
-    #
-    # If one match ever really is snapshotted under two ids, the fix is
-    # upstream — de-duplicate the fixture feed — not a date heuristic in the
-    # reader that cannot tell "one match, two ids" from "two matches, no date".
+        return {
+            "event_id": first["event_id"],
+            "team_home": first["team_home"],
+            "team_away": first["team_away"],
+            "commence_time": first["commence_time"],
+            "resolved_at": first["resolved_at"],
+            "snapshotted_at": pd.to_datetime(group["snapshotted_at"]).min(),
+            "gameweek": _none_if_nan_int(first["gameweek"]),
+            "predicted_scoreline": first["predicted_scoreline"],
+            "actual_goals_home": _none_if_nan_int(first["actual_goals_home"]),
+            "actual_goals_away": _none_if_nan_int(first["actual_goals_away"]),
+            "predicted_home_win": probs["home_win"],
+            "predicted_draw": probs["draw"],
+            "predicted_away_win": probs["away_win"],
+            "predicted_prob_actual": probs.get(actual_side) if actual_side else None,
+            "actual_outcome": actual_side,
+            "hit": bool(actual_side is not None and predicted_side == actual_side),
+            "backfilled": bool(first["backfilled"]),
+        }
+
+    # Group readable fixtures by (team_home, team_away, commence_time, event_id)
+    # to get each event_id's complete 1x2 set, then pick the earliest event_id's set.
+    if not readable.empty:
+        for _, group in readable.groupby(["team_home", "team_away", "commence_time"]):
+            # Within this (home, away, commence_time), pick the earliest event_id's complete set
+            event_id_groups = [g for _, g in group.groupby("event_id")]
+            event_id_rows = [_process_event_id_group(g) for g in event_id_groups]
+            event_id_rows = [r for r in event_id_rows if r is not None]
+            if event_id_rows:
+                # Pick the one with earliest snapshotted_at
+                earliest = min(event_id_rows, key=lambda r: r["snapshotted_at"])
+                rows.append(earliest)
+
+    # Unreadable commence_time: fall back to event_id grouping (fail closed)
+    if not unreadable.empty:
+        for _, group in unreadable.groupby("event_id"):
+            row = _process_event_id_group(group)
+            if row:
+                rows.append(row)
+
     table = pd.DataFrame(rows)
     if not table.empty:
         table = table.reset_index(drop=True)
