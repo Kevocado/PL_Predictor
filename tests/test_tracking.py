@@ -110,7 +110,7 @@ def test_reconcile_resolves_against_actual_result(clean_db):
     assert row["predicted_home_win"] == pytest.approx(0.6)
     assert row["predicted_draw"] == pytest.approx(0.25)
     assert row["predicted_away_win"] == pytest.approx(0.15)
-    assert row["hit"] is True
+    assert bool(row["hit"]) is True
     assert row["backfilled"] is False
 
 
@@ -327,7 +327,7 @@ def test_backfill_missing_predictions(clean_db):
     assert row["actual_goals_away"] == 0
     assert row["actual_outcome"] == "home_win"
     assert row["backfilled"] is True
-    assert row["hit"] is True
+    assert bool(row["hit"]) is True
     # Strong should look like a heavy favourite given the lopsided fit data.
     assert row["predicted_home_win"] > 0.7
     # top_scorelines[0] should be a lopsided home win given the fit data.
@@ -1010,3 +1010,121 @@ def test_detail_view_total_agrees_with_the_counting_path_for_the_same_fixture(cl
     review = store.get_fixture_player_review("e1")
     shown = [p["name"] for p in review["correct"] + review["missed"] + review["overperformed"]]
     assert sorted(shown) == ["Odegaard", "Rice", "Saka"]
+
+
+# --- _fixture_hit_table: one fixture under two ids is ONE pick (PL#69) --------
+#
+# History, because it is easy to re-break. Before 2026-10-01 fixture identity was
+# (teams, kickoff DATE); it was removed after measuring zero duplicates and
+# finding two bugs (a UTC-midnight straddle graded twice; distinct fixtures with
+# an unreadable date collapsed into one). PL#69 (2026-10-10) brought back a
+# grouping, now on the EXACT commence_time, because data/tracking_picks.jsonl
+# really does hold 20 fixtures under two ids (FPL numeric id + Odds-API opaque
+# id) with identical commence_time strings. These tests pin all four edges.
+
+_OPAQUE, _NUMERIC = "6ZpF-Akmp-MYry", "54"  # real pair: Coventry v Newcastle in tracking_picks.jsonl
+
+
+def _two_id_row(event_id, home, away, kickoff, probs):
+    """A row shaped like tracking_picks.jsonl (naive-UTC kickoff, real-looking
+    probabilities), written through the real record_predictions path."""
+    h, d, a = probs
+    return pd.DataFrame([{
+        "event_id": event_id, "team_home": home, "team_away": away,
+        "commence_time": pd.Timestamp(kickoff), "home_win_prob": h, "draw_prob": d,
+        "away_win_prob": a, "over_2_5_prob": 0.5, "under_2_5_prob": 0.5,
+        "btts_yes_prob": 0.5, "top_scoreline": "0-1", "gameweek": 7,
+    }])
+
+
+def _snapshot_at(event_id, ts):
+    with sqlite3.connect(str(store.TRACKING_DB_PATH)) as conn:
+        conn.execute("UPDATE predictions SET snapshotted_at = ? WHERE event_id = ?", (ts, event_id))
+
+
+def _blank_commence(*event_ids):
+    with sqlite3.connect(str(store.TRACKING_DB_PATH)) as conn:
+        conn.executemany("UPDATE predictions SET commence_time = 'TBC' WHERE event_id = ?", [(e,) for e in event_ids])
+
+
+def _resolve(home, away, date, gh, ga, ftr):
+    store.reconcile_predictions(pd.DataFrame([
+        {"team_home": home, "team_away": away, "date": pd.Timestamp(date), "goals_home": gh, "goals_away": ga, "ftr": ftr}
+    ]))
+
+
+def _duplicated_coventry_newcastle():
+    # Real shape: the opaque id was snapshotted first (earlier), the numeric id later.
+    store.record_predictions(_two_id_row(_OPAQUE, "Coventry", "Newcastle", "2020-01-01T19:00:00", (0.2948, 0.2408, 0.4644)))
+    store.record_predictions(_two_id_row(_NUMERIC, "Coventry", "Newcastle", "2020-01-01T19:00:00", (0.2710, 0.2460, 0.4830)))
+    _snapshot_at(_OPAQUE, "2019-12-26T05:34:05.246386+00:00")
+    _snapshot_at(_NUMERIC, "2019-12-30T00:57:41.909716+00:00")
+    _resolve("Coventry", "Newcastle", "2020-01-01", 0, 2, "A")
+
+
+def test_one_fixture_under_two_ids_is_counted_once_and_earliest_snapshot_wins(clean_db):
+    _duplicated_coventry_newcastle()
+
+    table = store._fixture_hit_table()
+
+    assert len(table) == 1, "same teams + same commence_time under two ids is ONE fixture"
+    row = table.iloc[0]
+    assert row["event_id"] == _OPAQUE, "canonical row = the earliest snapshotted_at (the opaque id here, not '54')"
+    assert row["predicted_away_win"] == pytest.approx(0.4644)
+    assert bool(row["hit"]) is True
+
+
+def test_headline_is_identical_with_and_without_the_duplicate_rows(clean_db, tmp_path, monkeypatch):
+    # Same other fixture, same picks; only the second-id duplicate differs.
+    def build(with_duplicate):
+        monkeypatch.setattr(store, "TRACKING_DB_PATH", tmp_path / f"dup_{with_duplicate}.db")
+        store.record_predictions(_two_id_row(_OPAQUE, "Coventry", "Newcastle", "2020-01-01T19:00:00", (0.2948, 0.2408, 0.4644)))
+        store.record_predictions(_two_id_row("e2", "Arsenal", "Chelsea", "2020-01-02T15:00:00", (0.6, 0.25, 0.15)))
+        _snapshot_at(_OPAQUE, "2019-12-26T05:34:05+00:00")
+        if with_duplicate:
+            store.record_predictions(_two_id_row(_NUMERIC, "Coventry", "Newcastle", "2020-01-01T19:00:00", (0.2710, 0.2460, 0.4830)))
+            _snapshot_at(_NUMERIC, "2019-12-30T00:57:41+00:00")
+        _resolve("Coventry", "Newcastle", "2020-01-01", 0, 2, "A")  # hit
+        _resolve("Arsenal", "Chelsea", "2020-01-02", 0, 1, "A")  # miss
+        return store.get_track_record()
+
+    clean, duped = build(False), build(True)
+
+    assert clean["n_resolved_fixtures"] == duped["n_resolved_fixtures"] == 2
+    assert clean["pct_correct_overall"] == duped["pct_correct_overall"] == pytest.approx(0.5)
+    assert clean["all_picks"] == duped["all_picks"]
+
+
+def test_utc_midnight_straddle_is_counted_once_when_kickoffs_match_and_never_merged_when_they_differ(clean_db):
+    # One kickoff exactly at UTC midnight under two ids: identical timestamps -> one pick.
+    store.record_predictions(_two_id_row("a-id", "Spurs", "Villa", "2020-01-02T00:00:00", (0.5, 0.3, 0.2)))
+    store.record_predictions(_two_id_row("77", "Spurs", "Villa", "2020-01-02T00:00:00", (0.5, 0.3, 0.2)))
+    # Same team pair, 23:30 vs 00:30 across midnight: different kickoffs, not the same fixture here.
+    store.record_predictions(_two_id_row("b-id", "Wolves", "Fulham", "2020-01-01T23:30:00", (0.4, 0.3, 0.3)))
+    store.record_predictions(_two_id_row("78", "Wolves", "Fulham", "2020-01-02T00:30:00", (0.4, 0.3, 0.3)))
+    _resolve("Spurs", "Villa", "2020-01-02", 1, 0, "H")
+    store.reconcile_predictions(pd.DataFrame([
+        {"team_home": "Wolves", "team_away": "Fulham", "date": pd.Timestamp("2020-01-02"), "goals_home": 1, "goals_away": 0, "ftr": "H"}
+    ]))
+
+    table = store._fixture_hit_table()
+    by_pair = table.groupby(["team_home", "team_away"]).size().to_dict()
+
+    assert by_pair[("Spurs", "Villa")] == 1
+    assert by_pair[("Wolves", "Fulham")] == 2, "different commence_time strings are never merged"
+
+
+def test_two_distinct_fixtures_with_unreadable_kickoff_stay_two_rows(clean_db):
+    # Same team pair (a real double-header shape: home+away legs never share a pair, but a
+    # cup tie replay or a re-scheduled match can), no readable date on either.
+    store.record_predictions(_two_id_row("x1", "Leeds", "Burnley", "2020-01-01T15:00:00", (0.5, 0.3, 0.2)))
+    store.record_predictions(_two_id_row("x2", "Leeds", "Burnley", "2020-02-01T15:00:00", (0.5, 0.3, 0.2)))
+    _resolve("Leeds", "Burnley", "2020-01-01", 1, 0, "H")
+    _resolve("Leeds", "Burnley", "2020-02-01", 0, 1, "A")
+    _blank_commence("x1", "x2")  # stage the unreadable/NaT date after resolution
+
+    table = store._fixture_hit_table()
+
+    assert table["commence_time"].isna().all(), "staging check: both kickoffs really are unreadable (NaT)"
+    assert len(table) == 2, "NaT commence_time falls back to event_id; it must not collapse into one"
+    assert set(table["event_id"]) == {"x1", "x2"}
