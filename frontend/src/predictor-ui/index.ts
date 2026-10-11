@@ -1,4 +1,4 @@
-// Synced from predictor-ui@8ca136bc075e. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@5a224096fc01. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 export * from "./fmt";
 export { contrast, inkFor, luminance } from "./contrast";
 export { AppFrame, type SiteLink, type Sport, type Tab } from "./components/AppFrame";
@@ -29,3 +29,5 @@ export { PicksList, MAX_ROWS_PER_CATEGORY, DEFAULT_DETAIL_LABEL, detailAddsToHea
 export { SignalRows, SPEC_MIN_N, MAX_HEADLINE_WORDS, DEFAULT_SIGNAL_TITLE, clipHeadline, rateIsDrawable, signalIsDrawn, signalFigure, headlineStatesFigure, figureRange, assertFigureIsStated, UndrawableSignalVisualError, SignalFigureError, HeadlineFigureMismatchError, type Signal, type SignalKind, type SignalVisual, type SignalRowsProps } from "./components/SignalRows";
 export * from "./lib/bundleFacts";
 export { InstantBlock, type InstantBlockProps, AI_PROMISE } from "./components/InstantBlock";
+export { StickyStatTable, type StickyColumn, type StickyRow, type StickySection, type StickyStatTableProps } from "./components/StickyStatTable";
+export { TeamSwitch, TeamToggle, type TeamOption } from "./components/TeamSwitch";
