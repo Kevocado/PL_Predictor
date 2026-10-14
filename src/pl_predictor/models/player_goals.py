@@ -485,9 +485,9 @@ def fit_sub_rate_prior(seasons: list[str] | None = None) -> dict:
             prior_weight = best_weight
             prior_sub_rate = fit_rate  # Use fit_rate from fit_seasons only (no leak)
         else:
-            # Fallback: use all data with default weight
-            mask = (train["minutes_last10"] > 0) & (train["sub_rate_last5"] == 0)
-            prior_sub_rate = float(train[mask]["sub_appearance"].mean())
+            # Fallback: use fit_seasons only (no validation leak), with default weight
+            fit_mask = (train["season"].isin(fit_seasons)) & (train["minutes_last10"] > 0) & (train["sub_rate_last5"] == 0)
+            prior_sub_rate = float(train[fit_mask]["sub_appearance"].mean())
             prior_weight = 10.0
 
     return {"prior_sub_rate": prior_sub_rate, "prior_weight": prior_weight}
