@@ -1,4 +1,4 @@
-// Synced from predictor-ui@5a224096fc01. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@302e81061654. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 import type { MatchupRow } from "../components/MatchupBrief";
 
 const isText = (v: unknown): v is string => typeof v === "string" && v.trim() !== "";

@@ -1,4 +1,4 @@
-// Synced from predictor-ui@5a224096fc01. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@302e81061654. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 /**
  * The model's own top calls, ranked per category.
  *
@@ -33,6 +33,26 @@
  */
 import { pct, stat } from "../fmt";
 import { StatusBadge } from "./StatusBadge";
+
+/** Direction for NFL over/under picks. */
+export type Direction = "over" | "under" | "toss";
+
+/** Badge for NFL over/under direction. Colour only reinforces words. */
+const DIRECTION_LOOK: Record<Direction, { words: string; tone: string }> = {
+  over: { words: "Over", tone: "bg-pr-win text-pr-win-ink" },
+  under: { words: "Under", tone: "bg-pr-loss text-pr-loss-ink" },
+  toss: { words: "Toss", tone: "border border-pr-rule text-pr-text-dim" },
+};
+
+/** Badge for NFL over/under direction. */
+export function DirectionBadge({ direction }: { direction: Direction }) {
+  const { words, tone } = DIRECTION_LOOK[direction];
+  return (
+    <span className={`inline-flex items-center whitespace-nowrap rounded-pr px-1.5 py-0.5 font-pr-display text-xs font-semibold uppercase tracking-wide ${tone}`}>
+      {words}
+    </span>
+  );
+}
 
 /** A player out for this fixture, shown once below the lists and never ranked. */
 export type OutPlayer = {
@@ -102,6 +122,14 @@ export type PickRow = {
    *  `out`. The field exists so the mistake can be caught by name instead of
    *  rendering a forbidden ranking. */
   out?: boolean;
+  /** Optional sport identifier (e.g. "NFL", "NBA"). Used to gate direction rendering. */
+  sport?: string;
+  /** Optional direction for NFL over/under picks: "over", "under", or "toss". */
+  direction?: Direction;
+  /** Optional betting line for NFL over/under picks (e.g. 64.5). */
+  line?: number;
+  /** Optional flag for high-mu receptions rows — suppresses direction display. */
+  receptions_mu_flag?: string;
 };
 
 export interface PicksListProps {
@@ -333,6 +361,20 @@ export function PicksList({ title = "Model's top calls", categories, out }: Pick
                         {figure(row)}
                       </span>
                     </div>
+                    {/* NFL over/under direction badge — only for NFL probability rows
+                        with a direction and line, and not for high-mu receptions. */}
+                    {row.sport === "NFL" &&
+                     row.kind === "probability" &&
+                     row.direction &&
+                     row.line != null &&
+                     row.receptions_mu_flag !== "high_mu" && (
+                      <p data-testid="picks-direction" className="pl-6 text-xs leading-snug">
+                        <DirectionBadge direction={row.direction} />
+                        <span className="ml-1 font-pr-display text-xs font-semibold tabular-nums">
+                          {row.line % 1 === 0 ? row.line.toFixed(1) : row.line} · {pct(row.value)}
+                        </span>
+                      </p>
+                    )}
                     {/* Rule 4 — `rowShowsDetail`, and nothing else. A projection row
                         never reaches this branch, so it can never be labelled a
                         call, and `detailLabel` is never read for one. The label is
