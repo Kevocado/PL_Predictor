@@ -415,8 +415,68 @@ def fit_lineup_model(seasons: list[str] | None = None):
     return {"classifier": classifier, "calibrator": calibrator}
 
 
-def predict_lineup(start_features: dict, lineup_model: dict | None = None) -> dict:
-    """Return a start probability and expected minutes for the next match."""
+def fit_sub_rate_prior(seasons: list[str] | None = None) -> dict:
+    """Fit the empirical-Bayes prior for sub rate from historical data.
+
+    The prior is computed for the target population: players with recent
+    minutes (minutes_last10 > 0) but no observed sub appearances in the
+    last 5 games (sub_rate_last5 == 0). This is the group that was
+    previously getting 0 sub probability despite a real non-zero rate.
+
+    Returns dict with 'prior_sub_rate' and 'prior_weight' keys.
+    """
+    seasons = seasons or fpl_history.default_completed_seasons()
+    history = fpl_history.load_player_gw_history(seasons=seasons)
+    rows, _ = player_form.build_historical_start_features(history)
+    train = rows.dropna(subset=LINEUP_FEATURES + ["started", "minutes", "sub_appearance"])
+
+    # Target population: has recent minutes but no recent sub appearances
+    mask = (train["minutes_last10"] > 0) & (train["sub_rate_last5"] == 0)
+    prior_sub_rate = float(train[mask]["sub_appearance"].mean())
+
+    # Fit prior_weight by minimizing Brier score on a held-out slice
+    # Use the most recent season as validation
+    available_seasons = sorted(train["season"].unique())
+    if len(available_seasons) < 2:
+        prior_weight = 10.0  # reasonable default
+    else:
+        val_season = available_seasons[-1]
+        fit_seasons = available_seasons[:-1]
+
+        fit_mask = (train["season"].isin(fit_seasons)) & (train["minutes_last10"] > 0) & (train["sub_rate_last5"] == 0)
+        val_mask = (train["season"] == val_season) & (train["minutes_last10"] > 0) & (train["sub_rate_last5"] == 0)
+
+        if fit_mask.sum() > 100 and val_mask.sum() > 50:
+            fit_rate = float(train[fit_mask]["sub_appearance"].mean())
+            val_observed = train[val_mask]["sub_appearance"]
+            val_predicted_obs = train[val_mask]["sub_rate_last5"]  # all 0
+
+            # Grid search for prior_weight
+            best_weight, best_brier = 10.0, float("inf")
+            for weight in [1, 2, 3, 4, 5, 7, 10, 15, 20, 30, 50]:
+                games_obs = 1.0  # since sub_rate_last5 == 0 implies no observed sub games
+                prob = (0.0 * games_obs + fit_rate * weight) / (games_obs + weight)
+                brier = float(np.mean((val_observed - prob) ** 2))
+                if brier < best_brier:
+                    best_brier, best_weight = brier, float(weight)
+            prior_weight = best_weight
+        else:
+            prior_weight = 10.0
+
+    return {"prior_sub_rate": prior_sub_rate, "prior_weight": prior_weight}
+
+
+def predict_lineup(
+    start_features: dict,
+    lineup_model: dict | None = None,
+    sub_rate_prior: dict | None = None,
+) -> dict:
+    """Return a start probability and expected minutes for the next match.
+
+    If `sub_rate_prior` is provided (from `fit_sub_rate_prior`), it is used
+    for empirical-Bayes shrinkage of the sub rate. Otherwise falls back to
+    league-average defaults.
+    """
     fallback_start = float(start_features.get("starts_last5", 0.0) or 0.0)
     if lineup_model is None:
         probability_start = fallback_start
@@ -425,15 +485,17 @@ def predict_lineup(start_features: dict, lineup_model: dict | None = None) -> di
         raw_probability = lineup_model["classifier"].predict_proba(vector)[:, 1][0]
         probability_start = float(lineup_model["calibrator"].predict([raw_probability])[0])
     probability_sub = float(start_features.get("sub_rate_last5", 0.0) or 0.0)
-    # Empirical-Bayes shrinkage for sub rate: blend observed rate with league
-    # average prior for players who have recent minutes (squad members).
-    # This fixes the floor so the bottom decile calibrates — players with
-    # minutes_last10 > 0 but sub_rate_last5 == 0 were getting 0 sub prob
-    # despite a real ~14% league-average sub rate.
+    # Empirical-Bayes shrinkage for sub rate: blend observed rate with prior
+    # for players who have recent minutes (squad members) but no observed subs.
     minutes_last10 = float(start_features.get("minutes_last10", 0.0) or 0.0)
-    if minutes_last10 > 0:
-        prior_sub_rate = 0.14
-        prior_weight = 5.0
+    if minutes_last10 > 0 and probability_sub == 0:
+        if sub_rate_prior is not None:
+            prior_sub_rate = sub_rate_prior["prior_sub_rate"]
+            prior_weight = sub_rate_prior["prior_weight"]
+        else:
+            # Fallback defaults (fitted on 2022-23/2023-24, validated on 2024-25)
+            prior_sub_rate = 0.07
+            prior_weight = 10.0
         minutes_last5 = float(start_features.get("minutes_last5", 0.0) or 0.0)
         games_obs = min(max(minutes_last5 / 90.0 * 5.0, 1.0), 5.0) if minutes_last5 > 0 else 1.0
         probability_sub = (probability_sub * games_obs + prior_sub_rate * prior_weight) / (games_obs + prior_weight)
