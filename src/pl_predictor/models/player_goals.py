@@ -434,14 +434,13 @@ def fit_sub_rate_prior(seasons: list[str] | None = None) -> dict:
     rows, _ = player_form.build_historical_start_features(history)
     train = rows.dropna(subset=LINEUP_FEATURES + ["started", "minutes", "sub_appearance"])
 
-    # Target population: has recent minutes but no recent sub appearances
-    mask = (train["minutes_last10"] > 0) & (train["sub_rate_last5"] == 0)
-    prior_sub_rate = float(train[mask]["sub_appearance"].mean())
-
     # Fit prior_weight by minimizing MAE of expected_minutes on held-out season
     available_seasons = sorted(train["season"].unique())
     if len(available_seasons) < 2:
-        prior_weight = 10.0  # reasonable default
+        # Not enough seasons for validation; use all data and default weight
+        mask = (train["minutes_last10"] > 0) & (train["sub_rate_last5"] == 0)
+        prior_sub_rate = float(train[mask]["sub_appearance"].mean())
+        prior_weight = 10.0
     else:
         val_season = available_seasons[-1]
         fit_seasons = available_seasons[:-1]
@@ -480,7 +479,11 @@ def fit_sub_rate_prior(seasons: list[str] | None = None) -> dict:
                 if mae < best_mae:
                     best_mae, best_weight = mae, float(weight)
             prior_weight = best_weight
+            prior_sub_rate = fit_rate  # Use fit_rate (no leak)
         else:
+            # Fallback: use all data with default weight
+            mask = (train["minutes_last10"] > 0) & (train["sub_rate_last5"] == 0)
+            prior_sub_rate = float(train[mask]["sub_appearance"].mean())
             prior_weight = 10.0
 
     return {"prior_sub_rate": prior_sub_rate, "prior_weight": prior_weight}
