@@ -410,6 +410,15 @@ def _get_lineup_model():
     return _cached("lineup_model", player_goals.fit_lineup_model, ttl=24 * 3600)
 
 
+@_disk_cache("sub_rate_prior")
+def _get_sub_rate_prior() -> dict:
+    """Return the empirical-Bayes prior for sub rate, fitted on training seasons.
+
+    Cached on disk so the prior is consistent across restarts and matches
+    the lineup model's training data."""
+    return _cached("sub_rate_prior", player_goals.fit_sub_rate_prior, ttl=24 * 3600)
+
+
 @_disk_cache("pos_rates")
 def _get_position_rate_models() -> dict:
     return _cached("position_rate_models", player_goals.fit_position_rate_models, ttl=24 * 3600)
@@ -1395,6 +1404,7 @@ def _rank_fixture_players(
     position_rate_models = _get_position_rate_models()
     contribution_model = _get_ready_goal_contribution_model()
     player_shots_by_element = _get_player_shots_by_element()
+    sub_rate_prior = _get_sub_rate_prior()
 
     def rank(team: str, team_goal_expectation: float, is_home: bool) -> list[PlayerPrediction]:
         ranked = player_goals.rank_team_players(
@@ -1404,6 +1414,7 @@ def _rank_fixture_players(
             is_home=is_home, confirmed_starters=confirmed_lineups.get(team),
             confirmed_starter_ids=confirmed_starter_ids,
             player_shots_by_element=player_shots_by_element,
+            sub_rate_prior=sub_rate_prior,
             # `context` is what `predict_player` reads its `shots_scale` from.
             # Omitting it left shots_scale at 1.0 on every live call, so
             # expected_shots / expected_shots_on_target were never scaled by

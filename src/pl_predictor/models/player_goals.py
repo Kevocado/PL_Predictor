@@ -423,6 +423,10 @@ def fit_sub_rate_prior(seasons: list[str] | None = None) -> dict:
     last 5 games (sub_rate_last5 == 0). This is the group that was
     previously getting 0 sub probability despite a real non-zero rate.
 
+    The prior weight is selected by minimizing MAE of expected_minutes
+    vs actual_minutes on a held-out validation season, using the same
+    lineup model that will be used in production.
+
     Returns dict with 'prior_sub_rate' and 'prior_weight' keys.
     """
     seasons = seasons or fpl_history.default_completed_seasons()
@@ -434,8 +438,7 @@ def fit_sub_rate_prior(seasons: list[str] | None = None) -> dict:
     mask = (train["minutes_last10"] > 0) & (train["sub_rate_last5"] == 0)
     prior_sub_rate = float(train[mask]["sub_appearance"].mean())
 
-    # Fit prior_weight by minimizing Brier score on a held-out slice
-    # Use the most recent season as validation
+    # Fit prior_weight by minimizing MAE of expected_minutes on held-out season
     available_seasons = sorted(train["season"].unique())
     if len(available_seasons) < 2:
         prior_weight = 10.0  # reasonable default
@@ -448,17 +451,34 @@ def fit_sub_rate_prior(seasons: list[str] | None = None) -> dict:
 
         if fit_mask.sum() > 100 and val_mask.sum() > 50:
             fit_rate = float(train[fit_mask]["sub_appearance"].mean())
-            val_observed = train[val_mask]["sub_appearance"]
-            val_predicted_obs = train[val_mask]["sub_rate_last5"]  # all 0
 
-            # Grid search for prior_weight
-            best_weight, best_brier = 10.0, float("inf")
+            # Train lineup model on fit_seasons (same as production)
+            fit_history = fpl_history.load_player_gw_history(seasons=fit_seasons)
+            fit_rows, _ = player_form.build_historical_start_features(fit_history)
+            fit_train = fit_rows.dropna(subset=LINEUP_FEATURES + ["started", "minutes"])
+            lineup_model = fit_lineup_model(seasons=fit_seasons)
+
+            val_df = train[val_mask].copy()
+
+            # Grid search for prior_weight that minimizes MAE of expected_minutes
+            best_weight, best_mae = 10.0, float("inf")
             for weight in [1, 2, 3, 4, 5, 7, 10, 15, 20, 30, 50]:
-                games_obs = 1.0  # since sub_rate_last5 == 0 implies no observed sub games
-                prob = (0.0 * games_obs + fit_rate * weight) / (games_obs + weight)
-                brier = float(np.mean((val_observed - prob) ** 2))
-                if brier < best_brier:
-                    best_brier, best_weight = brier, float(weight)
+                # For each row in val_df, compute expected_minutes with this weight
+                # using the same lineup model that production uses
+                predictions = []
+                for _, row in val_df.iterrows():
+                    start_features = {f: row[f] for f in LINEUP_FEATURES}
+                    games_obs = 1.0
+                    prob_sub = (0.0 * games_obs + fit_rate * weight) / (games_obs + weight)
+                    # Use the lineup model to predict probability_start
+                    vector = np.array([[float(start_features.get(f, 0.0) or 0.0) for f in LINEUP_FEATURES]])
+                    raw_prob = lineup_model["classifier"].predict_proba(vector)[:, 1][0]
+                    prob_start = float(lineup_model["calibrator"].predict([raw_prob])[0])
+                    exp_min = prob_start * STARTER_MINUTES + (1 - prob_start) * prob_sub * SUBSTITUTE_MINUTES
+                    predictions.append(exp_min)
+                mae = float(np.mean(np.abs(np.array(predictions) - val_df["minutes"].values)))
+                if mae < best_mae:
+                    best_mae, best_weight = mae, float(weight)
             prior_weight = best_weight
         else:
             prior_weight = 10.0
@@ -493,9 +513,9 @@ def predict_lineup(
             prior_sub_rate = sub_rate_prior["prior_sub_rate"]
             prior_weight = sub_rate_prior["prior_weight"]
         else:
-            # Fallback defaults (fitted on 2022-23/2023-24, validated on 2024-25)
-            prior_sub_rate = 0.07
-            prior_weight = 10.0
+            # Fallback defaults (fitted on 2022-23, validated on 2023-24)
+            prior_sub_rate = 0.0678
+            prior_weight = 1.0
         minutes_last5 = float(start_features.get("minutes_last5", 0.0) or 0.0)
         games_obs = min(max(minutes_last5 / 90.0 * 5.0, 1.0), 5.0) if minutes_last5 > 0 else 1.0
         probability_sub = (probability_sub * games_obs + prior_sub_rate * prior_weight) / (games_obs + prior_weight)
@@ -699,6 +719,7 @@ def rank_team_players(
     player_shots_by_element: dict[int, pd.DataFrame] | None = None,
     context: object | None = None,
     opponent_defence: dict | None = None,
+    sub_rate_prior: dict | None = None,
 ) -> list[dict]:
     """Ranked (by anytime-goal probability) list of a team's players for one
     fixture, given that fixture's team expected goals from the scoreline
@@ -713,7 +734,12 @@ def rank_team_players(
     `blended_current_form` never sees a `shots`/`shots_on_target` column to
     compute a rate from -- `predict_player`'s `rates.get("shots_per90",
     0.0)` then silently returns 0.0, indistinguishable from "genuinely no
-    shots" (confirmed live: every player in every fixture)."""
+    shots" (confirmed live: every player in every fixture).
+
+    `sub_rate_prior` (from `fit_sub_rate_prior`) is optional — pass it to
+    apply empirical-Bayes shrinkage to the sub rate for players with recent
+    minutes but no observed sub appearances. If omitted, defaults to the
+    league-average fitted values."""
     teams_by_id = {t["id"]: t["name"] for t in bootstrap["teams"]}
     team_id = next(
         (tid for tid, name in teams_by_id.items() if to_canonical(name, source="fpl") == team),
@@ -751,7 +777,7 @@ def rank_team_players(
         lineup = (
             {"predicted_starter": True, "expected_minutes": 90.0}
             if lineup_confirmed
-            else predict_lineup(start_features, lineup_model)
+            else predict_lineup(start_features, lineup_model, sub_rate_prior=sub_rate_prior)
         )
         player_data.append((el, position, history, rates, confidence, start_features, lineup))
 
