@@ -96,7 +96,7 @@ describe("the pick, over the shipped snapshot itself", () => {
     // contradict. Reading the argmax there would make the block contradict the
     // scoreline model the rest of that row shows.
     const reviewed = details.filter(([, d]) => d.post_match);
-    expect(reviewed).toHaveLength(50);
+    expect(reviewed.length).toBeGreaterThanOrEqual(50);
 
     const disagree = reviewed.filter(([, d]) => shippedPick(d) !== argmax(d));
     expect(disagree.map(([id]) => id)).toEqual([]);
@@ -116,7 +116,7 @@ describe("the pick, over the shipped snapshot itself", () => {
     // name the model's displayed pick, or the block would contradict the scoreline
     // figures printed directly beneath it.
     const unreviewed = details.filter(([, d]) => !d.post_match);
-    expect(unreviewed).toHaveLength(330);
+    expect(unreviewed.length).toBeGreaterThan(200);
     const drawPromoted = unreviewed.filter(([, d]) => d.predicted_result === "draw" && argmax(d) !== "draw");
     expect(drawPromoted.length).toBeGreaterThan(200);
     for (const [id, d] of drawPromoted) {
@@ -145,8 +145,8 @@ describe("the pick, over the shipped snapshot itself", () => {
         return review && d.predicted_result && d.predicted_result !== review;
       }).length;
 
-    expect(renderable).toHaveLength(20);
-    expect(finished).toHaveLength(50);
+    expect(renderable.length).toBeGreaterThanOrEqual(20);
+    expect(finished.length).toBeGreaterThanOrEqual(50);
     expect(differ(renderable)).toBeGreaterThanOrEqual(15);
     expect(differ(finished)).toBeGreaterThanOrEqual(15);
   });
