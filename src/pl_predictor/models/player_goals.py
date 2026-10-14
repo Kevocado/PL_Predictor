@@ -425,6 +425,18 @@ def predict_lineup(start_features: dict, lineup_model: dict | None = None) -> di
         raw_probability = lineup_model["classifier"].predict_proba(vector)[:, 1][0]
         probability_start = float(lineup_model["calibrator"].predict([raw_probability])[0])
     probability_sub = float(start_features.get("sub_rate_last5", 0.0) or 0.0)
+    # Empirical-Bayes shrinkage for sub rate: blend observed rate with league
+    # average prior for players who have recent minutes (squad members).
+    # This fixes the floor so the bottom decile calibrates — players with
+    # minutes_last10 > 0 but sub_rate_last5 == 0 were getting 0 sub prob
+    # despite a real ~14% league-average sub rate.
+    minutes_last10 = float(start_features.get("minutes_last10", 0.0) or 0.0)
+    if minutes_last10 > 0:
+        prior_sub_rate = 0.14
+        prior_weight = 5.0
+        minutes_last5 = float(start_features.get("minutes_last5", 0.0) or 0.0)
+        games_obs = min(max(minutes_last5 / 90.0 * 5.0, 1.0), 5.0) if minutes_last5 > 0 else 1.0
+        probability_sub = (probability_sub * games_obs + prior_sub_rate * prior_weight) / (games_obs + prior_weight)
     expected_minutes = probability_start * STARTER_MINUTES + (1 - probability_start) * probability_sub * SUBSTITUTE_MINUTES
     return {
         "probability_start": min(max(probability_start, 0.0), 1.0),
