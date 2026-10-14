@@ -427,6 +427,10 @@ def fit_sub_rate_prior(seasons: list[str] | None = None) -> dict:
     vs actual_minutes on a held-out validation season, using the same
     lineup model that will be used in production.
 
+    Both prior_sub_rate and prior_weight are fitted on fit_seasons only
+    (no validation-season leakage). The validation season is used only
+    for selecting the weight.
+
     Returns dict with 'prior_sub_rate' and 'prior_weight' keys.
     """
     seasons = seasons or fpl_history.default_completed_seasons()
@@ -434,7 +438,6 @@ def fit_sub_rate_prior(seasons: list[str] | None = None) -> dict:
     rows, _ = player_form.build_historical_start_features(history)
     train = rows.dropna(subset=LINEUP_FEATURES + ["started", "minutes", "sub_appearance"])
 
-    # Fit prior_weight by minimizing MAE of expected_minutes on held-out season
     available_seasons = sorted(train["season"].unique())
     if len(available_seasons) < 2:
         # Not enough seasons for validation; use all data and default weight
@@ -449,6 +452,7 @@ def fit_sub_rate_prior(seasons: list[str] | None = None) -> dict:
         val_mask = (train["season"] == val_season) & (train["minutes_last10"] > 0) & (train["sub_rate_last5"] == 0)
 
         if fit_mask.sum() > 100 and val_mask.sum() > 50:
+            # Prior rate from fit_seasons only (no validation leak)
             fit_rate = float(train[fit_mask]["sub_appearance"].mean())
 
             # Train lineup model on fit_seasons (same as production)
@@ -479,7 +483,7 @@ def fit_sub_rate_prior(seasons: list[str] | None = None) -> dict:
                 if mae < best_mae:
                     best_mae, best_weight = mae, float(weight)
             prior_weight = best_weight
-            prior_sub_rate = fit_rate  # Use fit_rate (no leak)
+            prior_sub_rate = fit_rate  # Use fit_rate from fit_seasons only (no leak)
         else:
             # Fallback: use all data with default weight
             mask = (train["minutes_last10"] > 0) & (train["sub_rate_last5"] == 0)
