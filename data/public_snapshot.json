@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-14T15:50:26.398347+00:00",
+  "generated_at": "2026-10-14T20:10:17.173097+00:00",
   "model_fingerprint": "38d8e310d6f6316d0951a40c95e0f4ed51eebba2ee04dd34a0c17d27ad09a9ad",
   "current_gameweek": 6,
   "min_gameweek": 1,
@@ -8572,7 +8572,7 @@
         "btts_no"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-14T15:45:56.945002Z",
+      "odds_fetched_at": "2026-10-14T20:04:40.873074Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "home_win",
@@ -9994,40 +9994,40 @@
       "team_home": "Aston Villa",
       "team_away": "Fulham",
       "home_win": {
-        "prob": 0.5328007116599662,
+        "prob": 0.5426694949771257,
         "implied": null,
         "edge": null
       },
       "draw": {
-        "prob": 0.24398350344238018,
+        "prob": 0.2438942432260506,
         "implied": null,
         "edge": null
       },
       "away_win": {
-        "prob": 0.2232157848976536,
+        "prob": 0.21343626179682362,
         "implied": null,
         "edge": null
       },
       "over_2_5": {
-        "prob": 0.4926348230374594,
+        "prob": 0.48262808379811845,
         "implied": null,
         "edge": null
       },
       "under_2_5": {
-        "prob": 0.5073651769625406,
+        "prob": 0.5173719162018815,
         "implied": null,
         "edge": null
       },
-      "btts_yes_prob": 0.5069481601599176,
+      "btts_yes_prob": 0.4945468826806766,
       "top_scoreline": "1-0",
       "predicted_result": "home_win",
       "draw_signal": false,
       "is_fallback_prediction": false,
       "data_confidence": "established",
-      "predicted_total_goals": 2.6443063616752625,
-      "predicted_margin": 0.678617537021637,
+      "predicted_total_goals": 2.6042181253433228,
+      "predicted_margin": 0.7187057733535767,
       "home_2plus_prob": 0.4946908733610932,
-      "away_2plus_prob": 0.2579302356380453,
+      "away_2plus_prob": 0.24319412351391917,
       "value_bet_flags": [],
       "has_live_odds": false,
       "odds_fetched_at": null,
@@ -10035,79 +10035,79 @@
       "recommended_bet": null,
       "score_grid": [
         [
-          0.07117740594978718,
-          0.06995631572166557,
-          0.03437808700700468,
-          0.01126277024043985,
-          0.0027673876995342544,
-          0.0005439823074458391
+          0.07408749156548497,
+          0.06984644023732903,
+          0.03292408145249937,
+          0.01034646037610068,
+          0.002438547354813789,
+          0.00045979111584133184
         ],
         [
-          0.11825855163889938,
-          0.1162297566881541,
-          0.05711788345352862,
-          0.018712664198744906,
-          0.004597909361871105,
-          0.0009038059049400319
+          0.12309354815872751,
+          0.1160472027517627,
+          0.05470210855057676,
+          0.017190250225332736,
+          0.0040515536417074244,
+          0.0007639254436188382
         ],
         [
-          0.09824104186654502,
-          0.09655565905969825,
-          0.04744959499267861,
-          0.015545189768574828,
-          0.003819625725650926,
-          0.0007508195603271524
+          0.10225762323800834,
+          0.09640400585018921,
+          0.04544273595295588,
+          0.014280473324584474,
+          0.0033657511057205132,
+          0.0006346165283559171
         ],
         [
-          0.054407917641870834,
-          0.053474517840650174,
-          0.026278565530776742,
-          0.008609247098629301,
-          0.0021153876013071575,
-          0.0004158193767700321
+          0.05663238334692021,
+          0.053390529161618225,
+          0.02516712555337498,
+          0.00790882101582755,
+          0.0018640224643773678,
+          0.0003514637380969891
         ],
         [
-          0.022599171226313157,
-          0.022211469162998772,
-          0.010915209178211326,
-          0.0035759841167277806,
-          0.0008786590019238329,
-          0.00017271701807629875
+          0.02352313750795568,
+          0.022176583164401867,
+          0.010453555370351893,
+          0.003285051295501207,
+          0.0007742505993234306,
+          0.00014598590685597915
         ],
         [
-          0.007509532615865933,
-          0.007380702170689786,
-          0.0036270409437554173,
-          0.001188272308283527,
-          0.000291971699629787,
-          5.739255070773977e-05
+          0.007816559579751938,
+          0.00736910981884303,
+          0.0034736368966493633,
+          0.0010915975458266176,
+          0.00025727758200722256,
+          4.8510005876467276e-05
         ]
       ],
       "top_scorelines": [
         {
           "home": 1,
           "away": 0,
-          "prob": 0.11825855163889938
+          "prob": 0.12309354815872751
         },
         {
           "home": 1,
           "away": 1,
-          "prob": 0.1162297566881541
+          "prob": 0.1160472027517627
         },
         {
           "home": 2,
           "away": 0,
-          "prob": 0.09824104186654502
+          "prob": 0.10225762323800834
         },
         {
           "home": 2,
           "away": 1,
-          "prob": 0.09655565905969825
+          "prob": 0.09640400585018921
         },
         {
           "home": 0,
           "away": 0,
-          "prob": 0.07117740594978718
+          "prob": 0.07408749156548497
         }
       ],
       "corners": {
@@ -13188,40 +13188,40 @@
       "team_home": "Aston Villa",
       "team_away": "Sunderland",
       "home_win": {
-        "prob": 0.4248285578481639,
+        "prob": 0.44135400735932606,
         "implied": null,
         "edge": null
       },
       "draw": {
-        "prob": 0.2489814004904863,
+        "prob": 0.2514536245807276,
         "implied": null,
         "edge": null
       },
       "away_win": {
-        "prob": 0.3261900416613499,
+        "prob": 0.3071923680599465,
         "implied": null,
         "edge": null
       },
       "over_2_5": {
-        "prob": 0.5403916982316076,
+        "prob": 0.522314372217683,
         "implied": null,
         "edge": null
       },
       "under_2_5": {
-        "prob": 0.45960830176839246,
+        "prob": 0.4776856277823171,
         "implied": null,
         "edge": null
       },
-      "btts_yes_prob": 0.5723741925158236,
+      "btts_yes_prob": 0.5557173807770154,
       "top_scoreline": "1-1",
       "predicted_result": "draw",
       "draw_signal": true,
       "is_fallback_prediction": false,
       "data_confidence": "established",
-      "predicted_total_goals": 2.841552257537842,
-      "predicted_margin": 0.21933484077453613,
-      "home_2plus_prob": 0.4523113313756225,
-      "away_2plus_prob": 0.3771074142833836,
+      "predicted_total_goals": 2.7656354904174805,
+      "predicted_margin": 0.29525160789489746,
+      "home_2plus_prob": 0.4523113313756226,
+      "away_2plus_prob": 0.3500531926485544,
       "value_bet_flags": [],
       "has_live_odds": false,
       "odds_fetched_at": null,
@@ -13229,79 +13229,79 @@
       "recommended_bet": null,
       "score_grid": [
         [
-          0.05842047383774191,
-          0.07659559199644594,
-          0.05021257384509415,
-          0.021944714279519918,
-          0.007192976498706444,
-          0.0018861548253277182
+          0.06302031391617612,
+          0.07784218388501757,
+          0.048075019112476636,
+          0.019793958727904574,
+          0.00611233457659158,
+          0.001509981282259734
         ],
         [
-          0.08940923732362002,
-          0.11722522966476012,
-          0.07684750972775313,
-          0.03358514640716697,
-          0.011008444481677348,
-          0.0028866534851326254
+          0.09644903289880975,
+          0.11913306817905499,
+          0.07357610287625037,
+          0.0302935364473854,
+          0.009354583023028908,
+          0.002310941112781
         ],
         [
-          0.06841789524845453,
-          0.08970329826939243,
-          0.05880538776577863,
-          0.025700085333157416,
-          0.008423901421613573,
-          0.0022089301024852286
+          0.0738049001111682,
+          0.09116321784290958,
+          0.056302036009504744,
+          0.023181273718514438,
+          0.007158330621320297,
+          0.0017683824592677536
         ],
         [
-          0.034903242143280354,
-          0.04576194472480838,
-          0.029999442120588055,
-          0.013110843270298116,
-          0.004297435196478712,
-          0.0011268809419618122
+          0.037651411090418085,
+          0.046506719556000435,
+          0.028722362605035325,
+          0.011825876941241438,
+          0.003651806974042287,
+          0.0009021365090757634
         ],
         [
-          0.013354360445704962,
-          0.017509018275231266,
-          0.011478113167934612,
-          0.0050163513767563965,
-          0.0016442454935919012,
-          0.0004311569170731263
+          0.014405839804989537,
+          0.017793977234224212,
+          0.010989488641350315,
+          0.00452470926945947,
+          0.0013972211065466501,
+          0.0003451672501933214
         ],
         [
-          0.004087618959447145,
-          0.005359312814277102,
-          0.0035133208508700466,
-          0.0015354485209715186,
-          0.0005032849817793718,
-          0.00013197226448172718
+          0.004409464919944738,
+          0.005446535534390106,
+          0.0033637583999359603,
+          0.0013849624226502915,
+          0.0004276736058518385,
+          0.00010565179828766981
         ]
       ],
       "top_scorelines": [
         {
           "home": 1,
           "away": 1,
-          "prob": 0.11722522966476012
-        },
-        {
-          "home": 2,
-          "away": 1,
-          "prob": 0.08970329826939243
+          "prob": 0.11913306817905499
         },
         {
           "home": 1,
           "away": 0,
-          "prob": 0.08940923732362002
+          "prob": 0.09644903289880975
         },
         {
-          "home": 1,
-          "away": 2,
-          "prob": 0.07684750972775313
+          "home": 2,
+          "away": 1,
+          "prob": 0.09116321784290958
         },
         {
           "home": 0,
           "away": 1,
-          "prob": 0.07659559199644594
+          "prob": 0.07784218388501757
+        },
+        {
+          "home": 2,
+          "away": 0,
+          "prob": 0.0738049001111682
         }
       ],
       "corners": {
@@ -68403,7 +68403,7 @@
         "btts_yes"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-14T15:45:56.945002Z",
+      "odds_fetched_at": "2026-10-14T20:04:40.873074Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "btts_yes",
@@ -68910,7 +68910,7 @@
         "under_2_5"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-14T15:45:56.945002Z",
+      "odds_fetched_at": "2026-10-14T20:04:40.873074Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "under_2_5",
@@ -69827,7 +69827,7 @@
         "over_2_5"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-14T15:45:56.945002Z",
+      "odds_fetched_at": "2026-10-14T20:04:40.873074Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "home_win",
@@ -70053,7 +70053,7 @@
       "away_2plus_prob": 0.2532506052052202,
       "value_bet_flags": [],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-14T15:45:56.945002Z",
+      "odds_fetched_at": "2026-10-14T20:04:40.873074Z",
       "odds_is_stale": false,
       "recommended_bet": null,
       "score_grid": [
@@ -70921,7 +70921,7 @@
         "away_win"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-14T15:45:56.945002Z",
+      "odds_fetched_at": "2026-10-14T20:04:40.873074Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "away_win",
@@ -71477,7 +71477,7 @@
         "btts_no"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-14T15:45:56.945002Z",
+      "odds_fetched_at": "2026-10-14T20:04:40.873074Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "btts_no",
@@ -71724,7 +71724,7 @@
       "away_2plus_prob": 0.4142256397955939,
       "value_bet_flags": [],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-14T15:45:56.945002Z",
+      "odds_fetched_at": "2026-10-14T20:04:40.873074Z",
       "odds_is_stale": false,
       "recommended_bet": null,
       "score_grid": [
@@ -72372,7 +72372,7 @@
         "away_win"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-14T15:45:56.945002Z",
+      "odds_fetched_at": "2026-10-14T20:04:40.873074Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "away_win",
@@ -72583,84 +72583,84 @@
       "away_2plus_prob": 0.4033389154248326,
       "value_bet_flags": [],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-14T15:45:56.945002Z",
+      "odds_fetched_at": "2026-10-14T20:04:40.873074Z",
       "odds_is_stale": false,
       "recommended_bet": null,
       "score_grid": [
         [
-          0.055040227862692206,
-          0.07203811897251816,
-          0.04714270622248152,
-          0.020567210634942077,
-          0.006729728528509069,
-          0.001761609656118793
+          0.05466016532704724,
+          0.07192015524536244,
+          0.04731515811897432,
+          0.020751940631810576,
+          0.006826190439383114,
+          0.0017963380578796487
         ],
         [
-          0.08765631824380744,
-          0.11472692842212093,
-          0.07507883270071247,
-          0.032755059904574314,
-          0.01071767411757526,
-          0.0028055155771399107
+          0.08705103581910248,
+          0.11453906099478064,
+          0.0753534772453977,
+          0.033049258384912704,
+          0.010871298044770382,
+          0.002860823557412859
         ],
         [
-          0.06980013007238865,
-          0.09135627285184765,
-          0.05978476387311713,
-          0.02608263143689232,
-          0.008534411009591727,
-          0.0022340129739399877
+          0.06931814779408413,
+          0.09120667529713124,
+          0.060003461456209564,
+          0.02631689968596026,
+          0.008656740698030452,
+          0.0022780543424852115
         ],
         [
-          0.03705424591354022,
-          0.048497585842406966,
-          0.031737467253141007,
-          0.013846281351231424,
-          0.004530595629960477,
-          0.001185952891843641
+          0.0367983797733519,
+          0.04841817016546228,
+          0.03185356551851958,
+          0.013970645493557452,
+          0.004595535829258591,
+          0.0012093327866769478
         ],
         [
-          0.014753022008667922,
-          0.019309148888625522,
-          0.012636164664570066,
-          0.0055128498361446945,
-          0.001803841243919559,
-          0.00047218311109170733
+          0.014651149775016779,
+          0.019277529806900527,
+          0.012682388794142015,
+          0.005562364996515414,
+          0.00182969696344298,
+          0.00048149173671698485
         ],
         [
-          0.004699092436447762,
-          0.006150297575877918,
-          0.004024836793851639,
-          0.0017559379327895999,
-          0.0005745546058885244,
-          0.00015039848002977105
+          0.004666644369715884,
+          0.006140226351982634,
+          0.004039559977855928,
+          0.001771709366971074,
+          0.0005827900993338698,
+          0.00015336343814098145
         ]
       ],
       "top_scorelines": [
         {
           "home": 1,
           "away": 1,
-          "prob": 0.11472692842212093
+          "prob": 0.11453906099478064
         },
         {
           "home": 2,
           "away": 1,
-          "prob": 0.09135627285184765
+          "prob": 0.09120667529713124
         },
         {
           "home": 1,
           "away": 0,
-          "prob": 0.08765631824380744
+          "prob": 0.08705103581910248
         },
         {
           "home": 1,
           "away": 2,
-          "prob": 0.07507883270071247
+          "prob": 0.0753534772453977
         },
         {
           "home": 0,
           "away": 1,
-          "prob": 0.07203811897251816
+          "prob": 0.07192015524536244
         }
       ],
       "corners": {
@@ -86297,7 +86297,7 @@
         "btts_no"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-14T15:45:56.945002Z",
+      "odds_fetched_at": "2026-10-14T20:04:40.873074Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "away_win",
@@ -86546,7 +86546,7 @@
         "home_win"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-14T15:45:56.945002Z",
+      "odds_fetched_at": "2026-10-14T20:04:40.873074Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "home_win",
@@ -86781,7 +86781,7 @@
         "btts_no"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-14T15:45:56.945002Z",
+      "odds_fetched_at": "2026-10-14T20:04:40.873074Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "btts_no",
@@ -87031,7 +87031,7 @@
         "btts_yes"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-14T15:45:56.945002Z",
+      "odds_fetched_at": "2026-10-14T20:04:40.873074Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "btts_yes",
@@ -87278,84 +87278,84 @@
       "away_2plus_prob": 0.5401477534174675,
       "value_bet_flags": [],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-14T15:45:56.945002Z",
+      "odds_fetched_at": "2026-10-14T20:04:40.873074Z",
       "odds_is_stale": false,
       "recommended_bet": null,
       "score_grid": [
         [
-          0.045643198460609775,
-          0.08395006205512381,
-          0.07720332006466697,
-          0.04733252509961366,
-          0.02176429650721933,
-          0.008006073649479162
+          0.04698467400063143,
+          0.0850450185503947,
+          0.07696823841046317,
+          0.046439010185328915,
+          0.021014333751789946,
+          0.007607435580892375
         ],
         [
-          0.057092749541969294,
-          0.10500885189021728,
-          0.09656969636044299,
-          0.05920584209350162,
-          0.027223848708065105,
-          0.010014389286910797
+          0.05877073289121312,
+          0.10637847713674338,
+          0.0962756447063515,
+          0.05808818984883481,
+          0.026285758538979197,
+          0.00951575325404467
         ],
         [
-          0.03570720458027351,
-          0.06567510913846059,
-          0.0603970544747089,
-          0.03702878444181356,
-          0.017026462082837802,
-          0.0062632444554340345
+          0.03675665648466458,
+          0.06653170632931867,
+          0.060213147364715995,
+          0.036329777340735295,
+          0.016439757503867218,
+          0.005951385261762546
         ],
         [
-          0.014888107149230223,
-          0.02738321505097503,
-          0.025182531903214955,
-          0.015439139435743715,
-          0.007099177738535058,
-          0.0026114577058165707
+          0.015325675773943276,
+          0.02774037296661512,
+          0.025105851894481026,
+          0.015147688655956957,
+          0.006854551458227368,
+          0.0024814281180784506
         ],
         [
-          0.004655693516738089,
-          0.00856306684942558,
-          0.007874886266042883,
-          0.004828008064055601,
-          0.0022199998589597695,
-          0.0008166348205543749
+          0.004792526586837929,
+          0.008674754505595038,
+          0.007850907487817577,
+          0.004736867834320512,
+          0.00214350222391211,
+          0.000775972975327946
         ],
         [
-          0.0011647139239143803,
-          0.0021422207357677083,
-          0.0019700587356807856,
-          0.0012078218200489018,
-          0.0005553769245167141,
-          0.00020429737112923226
+          0.0011989454259289066,
+          0.002170161614565303,
+          0.0019640599694868643,
+          0.0011850212868480849,
+          0.0005362395263254012,
+          0.000194125005371691
         ]
       ],
       "top_scorelines": [
         {
           "home": 1,
           "away": 1,
-          "prob": 0.10500885189021728
+          "prob": 0.10637847713674338
         },
         {
           "home": 1,
           "away": 2,
-          "prob": 0.09656969636044299
+          "prob": 0.0962756447063515
         },
         {
           "home": 0,
           "away": 1,
-          "prob": 0.08395006205512381
+          "prob": 0.0850450185503947
         },
         {
           "home": 0,
           "away": 2,
-          "prob": 0.07720332006466697
+          "prob": 0.07696823841046317
         },
         {
           "home": 2,
           "away": 1,
-          "prob": 0.06567510913846059
+          "prob": 0.06653170632931867
         }
       ],
       "corners": {
@@ -87490,7 +87490,7 @@
         "btts_no"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-14T15:45:56.945002Z",
+      "odds_fetched_at": "2026-10-14T20:04:40.873074Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "under_2_5",
@@ -87703,7 +87703,7 @@
         "home_win"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-14T15:45:56.945002Z",
+      "odds_fetched_at": "2026-10-14T20:04:40.873074Z",
       "odds_is_stale": false,
       "recommended_bet": null,
       "score_grid": [
@@ -87928,7 +87928,7 @@
       "away_2plus_prob": 0.32242725615076956,
       "value_bet_flags": [],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-14T15:45:56.945002Z",
+      "odds_fetched_at": "2026-10-14T20:04:40.873074Z",
       "odds_is_stale": false,
       "recommended_bet": null,
       "score_grid": [
@@ -89162,7 +89162,7 @@
         "home_win"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-14T15:45:56.945002Z",
+      "odds_fetched_at": "2026-10-14T20:04:40.873074Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "home_win",
@@ -89360,7 +89360,7 @@
         "away_win"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-14T15:45:56.945002Z",
+      "odds_fetched_at": "2026-10-14T20:04:40.873074Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "away_win",
@@ -92122,10 +92122,10 @@
           "player_id": 569,
           "name": "Gonzalo",
           "position": "FWD",
-          "anytime_goal_prob": 0.3494821927273697,
-          "anytime_goal_prob_pre_availability": 0.3494821927273697,
-          "anytime_assist_prob": 0.07734338475912705,
-          "anytime_goal_contribution_prob": 0.39979544178792037,
+          "anytime_goal_prob": 0.34113745565708187,
+          "anytime_goal_prob_pre_availability": 0.34113745565708187,
+          "anytime_assist_prob": 0.07430899533735047,
+          "anytime_goal_contribution_prob": 0.3900968693926147,
           "status": "a",
           "news": "",
           "confidence": "position_avg",
@@ -92134,19 +92134,19 @@
           "expected_minutes": 70.49174193548387,
           "is_penalty_taker": true,
           "is_set_piece_taker": false,
-          "expected_shots": 0.2713940445674028,
-          "expected_shots_on_target": 0.0904646815224676,
-          "anytime_shot_on_target_prob": 0.08649340300657049,
+          "expected_shots": 0.2603244302304376,
+          "expected_shots_on_target": 0.08677481007681254,
+          "anytime_shot_on_target_prob": 0.08311645467777196,
           "expected_saves": 0.0
         },
         {
           "player_id": 635,
           "name": "Larsson",
           "position": "MID",
-          "anytime_goal_prob": 0.22180240984813415,
-          "anytime_goal_prob_pre_availability": 0.22180240984813415,
-          "anytime_assist_prob": 0.09103069343809256,
-          "anytime_goal_contribution_prob": 0.29264227611151106,
+          "anytime_goal_prob": 0.21380169149034478,
+          "anytime_goal_prob_pre_availability": 0.21380169149034478,
+          "anytime_assist_prob": 0.0874852102682454,
+          "anytime_goal_contribution_prob": 0.2825824158228508,
           "status": "a",
           "news": "",
           "confidence": "position_avg",
@@ -92164,10 +92164,10 @@
           "player_id": 268,
           "name": "King",
           "position": "MID",
-          "anytime_goal_prob": 0.18052015766481955,
-          "anytime_goal_prob_pre_availability": 0.18052015766481955,
-          "anytime_assist_prob": 0.1491613166797363,
-          "anytime_goal_contribution_prob": 0.30275484994003776,
+          "anytime_goal_prob": 0.17383864911436908,
+          "anytime_goal_prob_pre_availability": 0.17383864911436908,
+          "anytime_assist_prob": 0.14353697862345982,
+          "anytime_goal_contribution_prob": 0.2924233532759686,
           "status": "a",
           "news": "",
           "confidence": "prior_season",
@@ -92185,10 +92185,10 @@
           "player_id": 264,
           "name": "Bobb",
           "position": "MID",
-          "anytime_goal_prob": 0.1437149772425187,
-          "anytime_goal_prob_pre_availability": 0.1437149772425187,
-          "anytime_assist_prob": 0.13777605132486992,
-          "anytime_goal_contribution_prob": 0.2616905464866708,
+          "anytime_goal_prob": 0.1382789356084232,
+          "anytime_goal_prob_pre_availability": 0.1382789356084232,
+          "anytime_assist_prob": 0.13254689054455215,
+          "anytime_goal_contribution_prob": 0.2524973832102684,
           "status": "a",
           "news": "",
           "confidence": "prior_season",
@@ -92206,10 +92206,10 @@
           "player_id": 271,
           "name": "Muniz",
           "position": "FWD",
-          "anytime_goal_prob": 0.10907801516460891,
-          "anytime_goal_prob_pre_availability": 0.10907801516460891,
-          "anytime_assist_prob": 0.05787658172075971,
-          "anytime_goal_contribution_prob": 0.16064153422675587,
+          "anytime_goal_prob": 0.10487102742807242,
+          "anytime_goal_prob_pre_availability": 0.10487102742807242,
+          "anytime_assist_prob": 0.05558279631884944,
+          "anytime_goal_contribution_prob": 0.15462479878963886,
           "status": "a",
           "news": "",
           "confidence": "prior_season",
@@ -92218,19 +92218,19 @@
           "expected_minutes": 40.38141078838174,
           "is_penalty_taker": false,
           "is_set_piece_taker": false,
-          "expected_shots": 0.509260345220601,
-          "expected_shots_on_target": 0.509260345220601,
-          "anytime_shot_on_target_prob": 0.39906009746003024,
+          "expected_shots": 0.4884886454300342,
+          "expected_shots_on_target": 0.4884886454300342,
+          "anytime_shot_on_target_prob": 0.3864470100840819,
           "expected_saves": 0.0
         },
         {
           "player_id": 263,
           "name": "Kevin",
           "position": "MID",
-          "anytime_goal_prob": 0.09580329890367612,
-          "anytime_goal_prob_pre_availability": 0.09580329890367612,
-          "anytime_assist_prob": 0.059757066610217846,
-          "anytime_goal_contribution_prob": 0.1498354413998283,
+          "anytime_goal_prob": 0.09208150032450224,
+          "anytime_goal_prob_pre_availability": 0.09208150032450224,
+          "anytime_assist_prob": 0.05739104535492434,
+          "anytime_goal_contribution_prob": 0.14418789211795358,
           "status": "a",
           "news": "",
           "confidence": "prior_season",
@@ -92248,10 +92248,10 @@
           "player_id": 265,
           "name": "Berge",
           "position": "MID",
-          "anytime_goal_prob": 0.07910122893128346,
-          "anytime_goal_prob_pre_availability": 0.07910122893128346,
-          "anytime_assist_prob": 0.10729997301636818,
-          "anytime_goal_contribution_prob": 0.1779136422177634,
+          "anytime_goal_prob": 0.07600075168818232,
+          "anytime_goal_prob_pre_availability": 0.07600075168818232,
+          "anytime_assist_prob": 0.10315752415354573,
+          "anytime_goal_contribution_prob": 0.17131822646376682,
           "status": "a",
           "news": "",
           "confidence": "prior_season",
@@ -92260,7 +92260,7 @@
           "expected_minutes": 71.68616774193549,
           "is_penalty_taker": false,
           "is_set_piece_taker": false,
-          "expected_shots": 0.10708596631820591,
+          "expected_shots": 0.10271814627287923,
           "expected_shots_on_target": 0.0,
           "anytime_shot_on_target_prob": 0.0,
           "expected_saves": 0.0
@@ -92269,10 +92269,10 @@
           "player_id": 580,
           "name": "Charles",
           "position": "MID",
-          "anytime_goal_prob": 0.06975830594400079,
-          "anytime_goal_prob_pre_availability": 0.06975830594400079,
-          "anytime_assist_prob": 0.09344188540769827,
-          "anytime_goal_contribution_prob": 0.15668184372144456,
+          "anytime_goal_prob": 0.06701058893563161,
+          "anytime_goal_prob_pre_availability": 0.06701058893563161,
+          "anytime_assist_prob": 0.08980720169016432,
+          "anytime_goal_contribution_prob": 0.15079975714987692,
           "status": "a",
           "news": "",
           "confidence": "position_avg",
@@ -97594,10 +97594,10 @@
           "player_id": 553,
           "name": "Isidor",
           "position": "FWD",
-          "anytime_goal_prob": 0.33572268711694153,
-          "anytime_goal_prob_pre_availability": 0.33572268711694153,
-          "anytime_assist_prob": 0.15586717622298152,
-          "anytime_goal_contribution_prob": 0.43926171610501386,
+          "anytime_goal_prob": 0.3198011820398984,
+          "anytime_goal_prob_pre_availability": 0.3198011820398984,
+          "anytime_assist_prob": 0.14754432976322462,
+          "anytime_goal_contribution_prob": 0.4201606607415592,
           "status": "a",
           "news": "",
           "confidence": "prior_season",
@@ -97615,10 +97615,10 @@
           "player_id": 542,
           "name": "E.Le F\u00e9e",
           "position": "MID",
-          "anytime_goal_prob": 0.1393182788386922,
-          "anytime_goal_prob_pre_availability": 0.1393182788386922,
-          "anytime_assist_prob": 0.22179161455131047,
-          "anytime_goal_contribution_prob": 0.3302102673898595,
+          "anytime_goal_prob": 0.13180881525937405,
+          "anytime_goal_prob_pre_availability": 0.13180881525937405,
+          "anytime_assist_prob": 0.214205029958086,
+          "anytime_goal_contribution_prob": 0.31777973399608594,
           "status": "a",
           "news": "",
           "confidence": "prior_season",
@@ -97636,10 +97636,10 @@
           "player_id": 545,
           "name": "Sadiki",
           "position": "MID",
-          "anytime_goal_prob": 0.12604486613612842,
-          "anytime_goal_prob_pre_availability": 0.12604486613612842,
-          "anytime_assist_prob": 0.15140037611049206,
-          "anytime_goal_contribution_prob": 0.25836200210681404,
+          "anytime_goal_prob": 0.11920046589692945,
+          "anytime_goal_prob_pre_availability": 0.11920046589692945,
+          "anytime_assist_prob": 0.14329532843043236,
+          "anytime_goal_contribution_prob": 0.2454149244176007,
           "status": "a",
           "news": "",
           "confidence": "prior_season",
@@ -97648,19 +97648,19 @@
           "expected_minutes": 70.49174193548387,
           "is_penalty_taker": false,
           "is_set_piece_taker": false,
-          "expected_shots": 0.10661100758271659,
-          "expected_shots_on_target": 0.10661100758271659,
-          "anytime_shot_on_target_prob": 0.10112473934709998,
+          "expected_shots": 0.10043793971779916,
+          "expected_shots_on_target": 0.10043793971779916,
+          "anytime_shot_on_target_prob": 0.09555875945028902,
           "expected_saves": 0.0
         },
         {
           "player_id": 551,
           "name": "N.Angulo",
           "position": "MID",
-          "anytime_goal_prob": 0.12343982284090349,
-          "anytime_goal_prob_pre_availability": 0.12343982284090349,
-          "anytime_assist_prob": 0.2158560909606626,
-          "anytime_goal_contribution_prob": 0.312650676174252,
+          "anytime_goal_prob": 0.11672725477417734,
+          "anytime_goal_prob_pre_availability": 0.11672725477417734,
+          "anytime_assist_prob": 0.20775494330036115,
+          "anytime_goal_contribution_prob": 0.3002315338773225,
           "status": "a",
           "news": "",
           "confidence": "prior_season",
@@ -97669,19 +97669,19 @@
           "expected_minutes": 59.08922914466737,
           "is_penalty_taker": false,
           "is_set_piece_taker": true,
-          "expected_shots": 0.23211937906493502,
-          "expected_shots_on_target": 0.11605968953246751,
-          "anytime_shot_on_target_prob": 0.10957792716600101,
+          "expected_shots": 0.21867903446807344,
+          "expected_shots_on_target": 0.10933951723403672,
+          "anytime_shot_on_target_prob": 0.10357398625470593,
           "expected_saves": 0.0
         },
         {
           "player_id": 646,
           "name": "Fofana",
           "position": "MID",
-          "anytime_goal_prob": 0.1184829644888935,
-          "anytime_goal_prob_pre_availability": 0.1184829644888935,
-          "anytime_assist_prob": 0.09357727991685916,
-          "anytime_goal_contribution_prob": 0.2009729308723962,
+          "anytime_goal_prob": 0.11202241991983652,
+          "anytime_goal_prob_pre_availability": 0.11202241991983652,
+          "anytime_assist_prob": 0.08840602356263183,
+          "anytime_goal_contribution_prob": 0.1905249867874923,
           "status": "a",
           "news": "",
           "confidence": "position_avg",
@@ -97699,10 +97699,10 @@
           "player_id": 533,
           "name": "Mukiele",
           "position": "DEF",
-          "anytime_goal_prob": 0.10443169223425153,
-          "anytime_goal_prob_pre_availability": 0.10443169223425153,
-          "anytime_assist_prob": 0.06317544205563874,
-          "anytime_goal_contribution_prob": 0.16100961596837304,
+          "anytime_goal_prob": 0.09869385657499186,
+          "anytime_goal_prob_pre_availability": 0.09869385657499186,
+          "anytime_assist_prob": 0.05962877717623438,
+          "anytime_goal_contribution_prob": 0.15243763976885272,
           "status": "a",
           "news": "",
           "confidence": "prior_season",
@@ -97720,10 +97720,10 @@
           "player_id": 651,
           "name": "J.Angulo",
           "position": "FWD",
-          "anytime_goal_prob": 0.07693661618518122,
-          "anytime_goal_prob_pre_availability": 0.07693661618518122,
-          "anytime_assist_prob": 0.029601632543999834,
-          "anytime_goal_contribution_prob": 0.10426079928768861,
+          "anytime_goal_prob": 0.07264778592414678,
+          "anytime_goal_prob_pre_availability": 0.07264778592414678,
+          "anytime_assist_prob": 0.0279117706020221,
+          "anytime_goal_contribution_prob": 0.09853182819070927,
           "status": "a",
           "news": "",
           "confidence": "position_avg",
@@ -97741,10 +97741,10 @@
           "player_id": 544,
           "name": "Xhaka",
           "position": "MID",
-          "anytime_goal_prob": 0.0579725680687555,
-          "anytime_goal_prob_pre_availability": 0.0579725680687555,
-          "anytime_assist_prob": 0.1589785894934721,
-          "anytime_goal_contribution_prob": 0.20773476046134265,
+          "anytime_goal_prob": 0.05470939662333674,
+          "anytime_goal_prob_pre_availability": 0.05470939662333674,
+          "anytime_assist_prob": 0.1505048011350768,
+          "anytime_goal_contribution_prob": 0.19698017089939823,
           "status": "a",
           "news": "",
           "confidence": "prior_season",
@@ -197800,10 +197800,10 @@
           "player_id": 53,
           "name": "Manzambi",
           "position": "MID",
-          "anytime_goal_prob": 0.19416307459119653,
-          "anytime_goal_prob_pre_availability": 0.19416307459119653,
-          "anytime_assist_prob": 0.183238808678298,
-          "anytime_goal_contribution_prob": 0.34182367279208825,
+          "anytime_goal_prob": 0.1950852756109469,
+          "anytime_goal_prob_pre_availability": 0.1950852756109469,
+          "anytime_assist_prob": 0.1841152396871084,
+          "anytime_goal_contribution_prob": 0.3432823430195202,
           "status": "a",
           "news": "",
           "confidence": "position_avg",
@@ -197821,10 +197821,10 @@
           "player_id": 56,
           "name": "Abraham",
           "position": "FWD",
-          "anytime_goal_prob": 0.18729607910976398,
-          "anytime_goal_prob_pre_availability": 0.18729607910976398,
-          "anytime_assist_prob": 0.07536841781421111,
-          "anytime_goal_contribution_prob": 0.2485482877786669,
+          "anytime_goal_prob": 0.1881896005010517,
+          "anytime_goal_prob_pre_availability": 0.1881896005010517,
+          "anytime_assist_prob": 0.0757526549661457,
+          "anytime_goal_contribution_prob": 0.24968639359222444,
           "status": "a",
           "news": "",
           "confidence": "prior_season",
@@ -197842,10 +197842,10 @@
           "player_id": 166,
           "name": "N.Jackson",
           "position": "FWD",
-          "anytime_goal_prob": 0.18602518800026735,
-          "anytime_goal_prob_pre_availability": 0.18602518800026735,
-          "anytime_assist_prob": 0.09453404157639611,
-          "anytime_goal_contribution_prob": 0.26297351671998925,
+          "anytime_goal_prob": 0.1869133676145437,
+          "anytime_goal_prob_pre_availability": 0.1869133676145437,
+          "anytime_assist_prob": 0.09501086593083707,
+          "anytime_goal_contribution_prob": 0.26416543263427417,
           "status": "a",
           "news": "",
           "confidence": "position_avg",
@@ -197863,10 +197863,10 @@
           "player_id": 41,
           "name": "Buend\u00eda",
           "position": "MID",
-          "anytime_goal_prob": 0.17145351764808447,
-          "anytime_goal_prob_pre_availability": 0.17145351764808447,
-          "anytime_assist_prob": 0.20938806203772142,
-          "anytime_goal_contribution_prob": 0.3449412598959233,
+          "anytime_goal_prob": 0.17183405584607347,
+          "anytime_goal_prob_pre_availability": 0.17183405584607347,
+          "anytime_assist_prob": 0.2100893369185779,
+          "anytime_goal_contribution_prob": 0.34582288991192,
           "status": "a",
           "news": "",
           "confidence": "prior_season",
@@ -197875,7 +197875,7 @@
           "expected_minutes": 60.885062240663906,
           "is_penalty_taker": true,
           "is_set_piece_taker": true,
-          "expected_shots": 0.3379473883610308,
+          "expected_shots": 0.3397399580481311,
           "expected_shots_on_target": 0.0,
           "anytime_shot_on_target_prob": 0.0,
           "expected_saves": 0.0
@@ -197884,10 +197884,10 @@
           "player_id": 631,
           "name": "Mbaye",
           "position": "MID",
-          "anytime_goal_prob": 0.15281830978548094,
-          "anytime_goal_prob_pre_availability": 0.15281830978548094,
-          "anytime_assist_prob": 0.08924334210656204,
-          "anytime_goal_contribution_prob": 0.22842363519171072,
+          "anytime_goal_prob": 0.1535632167851706,
+          "anytime_goal_prob_pre_availability": 0.1535632167851706,
+          "anytime_assist_prob": 0.0896948217516893,
+          "anytime_goal_contribution_prob": 0.22948421317969803,
           "status": "a",
           "news": "",
           "confidence": "position_avg",
@@ -197905,10 +197905,10 @@
           "player_id": 45,
           "name": "McGinn",
           "position": "MID",
-          "anytime_goal_prob": 0.06804363856178341,
-          "anytime_goal_prob_pre_availability": 0.06804363856178341,
-          "anytime_assist_prob": 0.24591416725915627,
-          "anytime_goal_contribution_prob": 0.29722491110673566,
+          "anytime_goal_prob": 0.0683919287569662,
+          "anytime_goal_prob_pre_availability": 0.0683919287569662,
+          "anytime_assist_prob": 0.24670663759896994,
+          "anytime_goal_contribution_prob": 0.2982258235733968,
           "status": "a",
           "news": "",
           "confidence": "prior_season",
@@ -197917,7 +197917,7 @@
           "expected_minutes": 75.61955503512881,
           "is_penalty_taker": false,
           "is_set_piece_taker": true,
-          "expected_shots": 0.12389046889223575,
+          "expected_shots": 0.12454761940354438,
           "expected_shots_on_target": 0.0,
           "anytime_shot_on_target_prob": 0.0,
           "expected_saves": 0.0
@@ -197926,10 +197926,10 @@
           "player_id": 47,
           "name": "Kamara",
           "position": "MID",
-          "anytime_goal_prob": 0.06167045929964665,
-          "anytime_goal_prob_pre_availability": 0.06167045929964665,
-          "anytime_assist_prob": 0.16405959074107346,
-          "anytime_goal_contribution_prob": 0.21561241972720613,
+          "anytime_goal_prob": 0.06198722284675817,
+          "anytime_goal_prob_pre_availability": 0.06198722284675817,
+          "anytime_assist_prob": 0.16485378898484504,
+          "anytime_goal_contribution_prob": 0.21662218327666716,
           "status": "a",
           "news": "",
           "confidence": "prior_season",
@@ -197947,10 +197947,10 @@
           "player_id": 37,
           "name": "Lindel\u00f6f",
           "position": "DEF",
-          "anytime_goal_prob": 0.0600718380806895,
-          "anytime_goal_prob_pre_availability": 0.0600718380806895,
-          "anytime_assist_prob": 0.05765233435069872,
-          "anytime_goal_contribution_prob": 0.11426089073729917,
+          "anytime_goal_prob": 0.060380657357172796,
+          "anytime_goal_prob_pre_availability": 0.060380657357172796,
+          "anytime_assist_prob": 0.057949102460579494,
+          "anytime_goal_contribution_prob": 0.11483075491792438,
           "status": "a",
           "news": "",
           "confidence": "prior_season",
@@ -197959,7 +197959,7 @@
           "expected_minutes": 78.52551903114188,
           "is_penalty_taker": false,
           "is_set_piece_taker": false,
-          "expected_shots": 0.12483952912477737,
+          "expected_shots": 0.1255017137232329,
           "expected_shots_on_target": 0.0,
           "anytime_shot_on_target_prob": 0.0,
           "expected_saves": 0.0
@@ -216610,10 +216610,10 @@
           "player_id": 411,
           "name": "Haaland",
           "position": "FWD",
-          "anytime_goal_prob": 0.5935423720936611,
-          "anytime_goal_prob_pre_availability": 0.5935423720936611,
-          "anytime_assist_prob": 0.20554603380980696,
-          "anytime_goal_contribution_prob": 0.6770881254215514,
+          "anytime_goal_prob": 0.5885059438448971,
+          "anytime_goal_prob_pre_availability": 0.5885059438448971,
+          "anytime_assist_prob": 0.20263765121643407,
+          "anytime_goal_contribution_prob": 0.6718901328736906,
           "status": "a",
           "news": "",
           "confidence": "prior_season",
@@ -216622,19 +216622,19 @@
           "expected_minutes": 74.89033816425122,
           "is_penalty_taker": true,
           "is_set_piece_taker": false,
-          "expected_shots": 2.5766062475750102,
-          "expected_shots_on_target": 1.030642499030004,
-          "anytime_shot_on_target_prob": 0.643222342385372,
+          "expected_shots": 2.535687714414921,
+          "expected_shots_on_target": 1.0142750857659684,
+          "anytime_shot_on_target_prob": 0.6373347642433076,
           "expected_saves": 0.0
         },
         {
           "player_id": 397,
           "name": "Semenyo",
           "position": "MID",
-          "anytime_goal_prob": 0.31336509557206826,
-          "anytime_goal_prob_pre_availability": 0.31336509557206826,
-          "anytime_assist_prob": 0.25975213698118427,
-          "anytime_goal_contribution_prob": 0.49171997932309475,
+          "anytime_goal_prob": 0.3092533329606808,
+          "anytime_goal_prob_pre_availability": 0.3092533329606808,
+          "anytime_assist_prob": 0.25620790960275663,
+          "anytime_goal_contribution_prob": 0.4862280925878961,
           "status": "a",
           "news": "",
           "confidence": "prior_season",
@@ -216643,19 +216643,19 @@
           "expected_minutes": 78.52551903114188,
           "is_penalty_taker": false,
           "is_set_piece_taker": false,
-          "expected_shots": 0.7939922190338812,
-          "expected_shots_on_target": 0.5293281460225875,
-          "anytime_shot_on_target_prob": 0.4109994408573445,
+          "expected_shots": 0.7813829982909104,
+          "expected_shots_on_target": 0.520921998860607,
+          "anytime_shot_on_target_prob": 0.4060273466797072,
           "expected_saves": 0.0
         },
         {
           "player_id": 387,
           "name": "O'Reilly",
           "position": "DEF",
-          "anytime_goal_prob": 0.2279439782476793,
-          "anytime_goal_prob_pre_availability": 0.2279439782476793,
-          "anytime_assist_prob": 0.010667879828574423,
-          "anytime_goal_contribution_prob": 0.2361801791086603,
+          "anytime_goal_prob": 0.22476559266985474,
+          "anytime_goal_prob_pre_availability": 0.22476559266985474,
+          "anytime_assist_prob": 0.0104993580339926,
+          "anytime_goal_contribution_prob": 0.23290505627268399,
           "status": "a",
           "news": "",
           "confidence": "prior_season",
@@ -216664,7 +216664,7 @@
           "expected_minutes": 55.73023529411765,
           "is_penalty_taker": false,
           "is_set_piece_taker": false,
-          "expected_shots": 0.8897417325250243,
+          "expected_shots": 0.8756119342213428,
           "expected_shots_on_target": 0.0,
           "anytime_shot_on_target_prob": 0.0,
           "expected_saves": 0.0
@@ -216673,10 +216673,10 @@
           "player_id": 400,
           "name": "Doku",
           "position": "MID",
-          "anytime_goal_prob": 0.2260306217156962,
-          "anytime_goal_prob_pre_availability": 0.2260306217156962,
-          "anytime_assist_prob": 0.14250394828238555,
-          "anytime_goal_contribution_prob": 0.3363243139708727,
+          "anytime_goal_prob": 0.22287490714022684,
+          "anytime_goal_prob_pre_availability": 0.22287490714022684,
+          "anytime_assist_prob": 0.14040782115705663,
+          "anytime_goal_contribution_prob": 0.3319893481951429,
           "status": "a",
           "news": "",
           "confidence": "prior_season",
@@ -216694,10 +216694,10 @@
           "player_id": 399,
           "name": "Cherki",
           "position": "MID",
-          "anytime_goal_prob": 0.1917134541672474,
-          "anytime_goal_prob_pre_availability": 0.1917134541672474,
-          "anytime_assist_prob": 0.31066790569457137,
-          "anytime_goal_contribution_prob": 0.44282214256220775,
+          "anytime_goal_prob": 0.18897678678662866,
+          "anytime_goal_prob_pre_availability": 0.18897678678662866,
+          "anytime_assist_prob": 0.30730577778953927,
+          "anytime_goal_contribution_prob": 0.438208906128535,
           "status": "a",
           "news": "",
           "confidence": "prior_season",
@@ -216706,19 +216706,19 @@
           "expected_minutes": 59.08922914466737,
           "is_penalty_taker": false,
           "is_set_piece_taker": true,
-          "expected_shots": 0.8230409578220522,
-          "expected_shots_on_target": 0.8230409578220522,
-          "anytime_shot_on_target_prob": 0.5609056452122827,
+          "expected_shots": 0.8099704202665179,
+          "expected_shots_on_target": 0.8099704202665179,
+          "anytime_shot_on_target_prob": 0.555128774799404,
           "expected_saves": 0.0
         },
         {
           "player_id": 237,
           "name": "Ndiaye",
           "position": "MID",
-          "anytime_goal_prob": 0.1629903654372451,
-          "anytime_goal_prob_pre_availability": 0.1629903654372451,
-          "anytime_assist_prob": 0.27431639505268424,
-          "anytime_goal_contribution_prob": 0.3925958310148646,
+          "anytime_goal_prob": 0.1606220465119521,
+          "anytime_goal_prob_pre_availability": 0.1606220465119521,
+          "anytime_assist_prob": 0.27061176555205235,
+          "anytime_goal_contribution_prob": 0.38776759647082115,
           "status": "a",
           "news": "",
           "confidence": "prior_season",
@@ -216727,19 +216727,19 @@
           "expected_minutes": 66.88656488549618,
           "is_penalty_taker": false,
           "is_set_piece_taker": false,
-          "expected_shots": 0.5533426522765117,
-          "expected_shots_on_target": 0.5533426522765117,
-          "anytime_shot_on_target_prob": 0.42497551258133615,
+          "expected_shots": 0.5445551358729565,
+          "expected_shots_on_target": 0.5445551358729565,
+          "anytime_shot_on_target_prob": 0.4199002084663449,
           "expected_saves": 0.0
         },
         {
           "player_id": 481,
           "name": "Anderson",
           "position": "MID",
-          "anytime_goal_prob": 0.16038060990145953,
-          "anytime_goal_prob_pre_availability": 0.16038060990145953,
-          "anytime_assist_prob": 0.2710592095730272,
-          "anytime_goal_contribution_prob": 0.38796717812375714,
+          "anytime_goal_prob": 0.15804653260915458,
+          "anytime_goal_prob_pre_availability": 0.15804653260915458,
+          "anytime_assist_prob": 0.26739005745822597,
+          "anytime_goal_contribution_prob": 0.38317651863194524,
           "status": "a",
           "news": "",
           "confidence": "prior_season",
@@ -216748,19 +216748,19 @@
           "expected_minutes": 75.61955503512881,
           "is_penalty_taker": false,
           "is_set_piece_taker": false,
-          "expected_shots": 0.5472352493514229,
-          "expected_shots_on_target": 0.27361762467571143,
-          "anytime_shot_on_target_prob": 0.2393771369237735,
+          "expected_shots": 0.5385447233084815,
+          "expected_shots_on_target": 0.26927236165424073,
+          "anytime_shot_on_target_prob": 0.23606483933315325,
           "expected_saves": 0.0
         },
         {
           "player_id": 616,
           "name": "Bouaddi",
           "position": "MID",
-          "anytime_goal_prob": 0.15969729502816743,
-          "anytime_goal_prob_pre_availability": 0.15969729502816743,
-          "anytime_assist_prob": 0.08064400370046199,
-          "anytime_goal_contribution_prob": 0.2274626694774241,
+          "anytime_goal_prob": 0.1573722042735901,
+          "anytime_goal_prob_pre_availability": 0.1573722042735901,
+          "anytime_assist_prob": 0.07941558052682096,
+          "anytime_goal_contribution_prob": 0.22428997983923848,
           "status": "a",
           "news": "",
           "confidence": "position_avg",
@@ -230407,8 +230407,8 @@
           "news": "",
           "quality_rating": 71.7,
           "form_rating": 9.2,
-          "live_form_rating": 52.7,
-          "live_form_vs_quality": -19.0,
+          "live_form_rating": 63.5,
+          "live_form_vs_quality": -8.2,
           "overall_rating": 80.9,
           "current_impact_rating": 61.4,
           "rating_driver": "Expected goal involvements",
@@ -231207,8 +231207,8 @@
           "news": "",
           "quality_rating": 64.9,
           "form_rating": 4.6,
-          "live_form_rating": 60.8,
-          "live_form_vs_quality": -4.1,
+          "live_form_rating": 72.5,
+          "live_form_vs_quality": 7.6,
           "overall_rating": 69.5,
           "current_impact_rating": 52.8,
           "rating_driver": "Bonus Point System",
@@ -231335,8 +231335,8 @@
           "news": "Unspecified injury - 50% chance of playing",
           "quality_rating": 69.1,
           "form_rating": 0.0,
-          "live_form_rating": 27.5,
-          "live_form_vs_quality": -41.6,
+          "live_form_rating": 18.5,
+          "live_form_vs_quality": -50.6,
           "overall_rating": 69.1,
           "current_impact_rating": 4.8,
           "rating_driver": "Team Adjusted Prevention",
@@ -231655,8 +231655,8 @@
           "news": "",
           "quality_rating": 67.5,
           "form_rating": 0.0,
-          "live_form_rating": 20.3,
-          "live_form_vs_quality": -47.2,
+          "live_form_rating": 18.5,
+          "live_form_vs_quality": -49.0,
           "overall_rating": 67.5,
           "current_impact_rating": 36.6,
           "rating_driver": "Expected goal involvements",
@@ -231751,8 +231751,8 @@
           "news": "",
           "quality_rating": 60.9,
           "form_rating": 6.1,
-          "live_form_rating": 66.2,
-          "live_form_vs_quality": 5.3,
+          "live_form_rating": 81.5,
+          "live_form_vs_quality": 20.6,
           "overall_rating": 67.0,
           "current_impact_rating": 51.6,
           "rating_driver": "Team Adjusted Prevention",
@@ -231911,8 +231911,8 @@
           "news": "",
           "quality_rating": 66.3,
           "form_rating": 0.0,
-          "live_form_rating": 20.3,
-          "live_form_vs_quality": -46.0,
+          "live_form_rating": 23.0,
+          "live_form_vs_quality": -43.3,
           "overall_rating": 66.3,
           "current_impact_rating": 54.5,
           "rating_driver": "Expected goal involvements",
@@ -231943,8 +231943,8 @@
           "news": "",
           "quality_rating": 66.1,
           "form_rating": 0.0,
-          "live_form_rating": 21.2,
-          "live_form_vs_quality": -44.9,
+          "live_form_rating": 23.0,
+          "live_form_vs_quality": -43.1,
           "overall_rating": 66.1,
           "current_impact_rating": 18.4,
           "rating_driver": "Team Adjusted Prevention",
@@ -232103,8 +232103,8 @@
           "news": "",
           "quality_rating": 57.5,
           "form_rating": 7.5,
-          "live_form_rating": 25.7,
-          "live_form_vs_quality": -31.8,
+          "live_form_rating": 23.0,
+          "live_form_vs_quality": -34.5,
           "overall_rating": 65.0,
           "current_impact_rating": 50.7,
           "rating_driver": "Expected goals",
@@ -232359,8 +232359,8 @@
           "news": "",
           "quality_rating": 52.6,
           "form_rating": 11.0,
-          "live_form_rating": 81.5,
-          "live_form_vs_quality": 28.9,
+          "live_form_rating": 45.5,
+          "live_form_vs_quality": -7.1,
           "overall_rating": 63.6,
           "current_impact_rating": 54.4,
           "rating_driver": "Clean sheets",
@@ -233447,8 +233447,8 @@
           "news": "",
           "quality_rating": 46.6,
           "form_rating": 9.3,
-          "live_form_rating": 56.3,
-          "live_form_vs_quality": 9.7,
+          "live_form_rating": 32.0,
+          "live_form_vs_quality": -14.6,
           "overall_rating": 55.9,
           "current_impact_rating": 44.1,
           "rating_driver": "Expected goals",
@@ -233607,8 +233607,8 @@
           "news": "",
           "quality_rating": 48.5,
           "form_rating": 6.4,
-          "live_form_rating": 57.2,
-          "live_form_vs_quality": 8.7,
+          "live_form_rating": 77.0,
+          "live_form_vs_quality": 28.5,
           "overall_rating": 54.9,
           "current_impact_rating": 41.7,
           "rating_driver": "Bonus Point System",
@@ -234055,8 +234055,8 @@
           "news": "",
           "quality_rating": 51.9,
           "form_rating": 0.0,
-          "live_form_rating": 21.2,
-          "live_form_vs_quality": -30.7,
+          "live_form_rating": 23.0,
+          "live_form_vs_quality": -28.9,
           "overall_rating": 51.9,
           "current_impact_rating": 14.4,
           "rating_driver": "Clean sheets",
@@ -234311,8 +234311,8 @@
           "news": "",
           "quality_rating": 48.4,
           "form_rating": 2.5,
-          "live_form_rating": 29.3,
-          "live_form_vs_quality": -19.1,
+          "live_form_rating": 36.5,
+          "live_form_vs_quality": -11.9,
           "overall_rating": 50.9,
           "current_impact_rating": 43.3,
           "rating_driver": "Bonus Point System",
@@ -234471,8 +234471,8 @@
           "news": "",
           "quality_rating": 50.3,
           "form_rating": 0.0,
-          "live_form_rating": 16.7,
-          "live_form_vs_quality": -33.6,
+          "live_form_rating": 14.0,
+          "live_form_vs_quality": -36.3,
           "overall_rating": 50.3,
           "current_impact_rating": 14.0,
           "rating_driver": "Expected goal involvements",
@@ -235527,8 +235527,8 @@
           "news": "",
           "quality_rating": 41.9,
           "form_rating": 0.0,
-          "live_form_rating": 50.0,
-          "live_form_vs_quality": 8.1,
+          "live_form_rating": 63.5,
+          "live_form_vs_quality": 21.6,
           "overall_rating": 41.9,
           "current_impact_rating": 32.9,
           "rating_driver": "Expected goal involvements",
@@ -236775,10 +236775,10 @@
           "news": "",
           "quality_rating": null,
           "form_rating": 5.8,
-          "live_form_rating": 63.5,
+          "live_form_rating": 54.5,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 48.2,
+          "current_impact_rating": 41.4,
           "rating_driver": "Bps",
           "rating_expected_minutes": 68.3,
           "rating_status": "provisional",
@@ -236807,10 +236807,10 @@
           "news": "",
           "quality_rating": null,
           "form_rating": 4.1,
-          "live_form_rating": 52.7,
+          "live_form_rating": 41.0,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 40.0,
+          "current_impact_rating": 31.1,
           "rating_driver": "Bonus Point System",
           "rating_expected_minutes": 68.3,
           "rating_status": "limited",
@@ -236839,10 +236839,10 @@
           "news": "",
           "quality_rating": null,
           "form_rating": 11.4,
-          "live_form_rating": 63.5,
+          "live_form_rating": 72.5,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 48.2,
+          "current_impact_rating": 55.0,
           "rating_driver": "Bonus Point System",
           "rating_expected_minutes": 68.3,
           "rating_status": "limited",
@@ -236999,10 +236999,10 @@
           "news": "",
           "quality_rating": null,
           "form_rating": 8.3,
-          "live_form_rating": 30.2,
+          "live_form_rating": 32.0,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 22.9,
+          "current_impact_rating": 24.3,
           "rating_driver": "Saves and shot prevention",
           "rating_expected_minutes": 68.3,
           "rating_status": "provisional",
@@ -237127,10 +237127,10 @@
           "news": "",
           "quality_rating": null,
           "form_rating": 5.4,
-          "live_form_rating": 43.7,
+          "live_form_rating": 45.5,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 33.3,
+          "current_impact_rating": 34.7,
           "rating_driver": "Expected goal involvements",
           "rating_expected_minutes": 68.6,
           "rating_status": "limited",
@@ -238471,10 +238471,10 @@
           "news": "",
           "quality_rating": null,
           "form_rating": 3.9,
-          "live_form_rating": 45.5,
+          "live_form_rating": 50.0,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 31.8,
+          "current_impact_rating": 35.0,
           "rating_driver": "Bps",
           "rating_expected_minutes": 63.0,
           "rating_status": "provisional",
@@ -238791,10 +238791,10 @@
           "news": "",
           "quality_rating": null,
           "form_rating": 4.4,
-          "live_form_rating": 56.3,
+          "live_form_rating": 36.5,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 48.7,
+          "current_impact_rating": 31.6,
           "rating_driver": "Expected goal involvements",
           "rating_expected_minutes": 77.8,
           "rating_status": "limited",
@@ -239335,10 +239335,10 @@
           "news": "",
           "quality_rating": null,
           "form_rating": 0.0,
-          "live_form_rating": 66.2,
+          "live_form_rating": 63.5,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 51.9,
+          "current_impact_rating": 49.8,
           "rating_driver": "Bonus Point System",
           "rating_expected_minutes": 70.6,
           "rating_status": "limited",
@@ -239559,10 +239559,10 @@
           "news": "",
           "quality_rating": null,
           "form_rating": 0.0,
-          "live_form_rating": 41.0,
+          "live_form_rating": 27.5,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 33.3,
+          "current_impact_rating": 22.3,
           "rating_driver": "Bonus Point System",
           "rating_expected_minutes": 73.0,
           "rating_status": "limited",
@@ -240263,10 +240263,10 @@
           "news": "",
           "quality_rating": null,
           "form_rating": 0.0,
-          "live_form_rating": 38.3,
+          "live_form_rating": 45.5,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 36.8,
+          "current_impact_rating": 43.7,
           "rating_driver": "Expected goal involvements",
           "rating_expected_minutes": 86.4,
           "rating_status": "provisional",
@@ -240359,10 +240359,10 @@
           "news": "",
           "quality_rating": null,
           "form_rating": 0.0,
-          "live_form_rating": 29.3,
+          "live_form_rating": 32.0,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 23.6,
+          "current_impact_rating": 25.7,
           "rating_driver": "Expected goals",
           "rating_expected_minutes": 72.4,
           "rating_status": "provisional",
@@ -240487,10 +240487,10 @@
           "news": "",
           "quality_rating": null,
           "form_rating": 0.0,
-          "live_form_rating": 29.3,
+          "live_form_rating": 27.5,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 19.5,
+          "current_impact_rating": 18.3,
           "rating_driver": "Creativity",
           "rating_expected_minutes": 60.0,
           "rating_status": "provisional",
@@ -241127,10 +241127,10 @@
           "news": "",
           "quality_rating": null,
           "form_rating": 0.0,
-          "live_form_rating": 21.2,
+          "live_form_rating": 23.0,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 16.8,
+          "current_impact_rating": 18.3,
           "rating_driver": "Team Adjusted Prevention",
           "rating_expected_minutes": 71.4,
           "rating_status": "limited",
@@ -242151,10 +242151,10 @@
           "news": "Unspecified injury - 75% chance of playing",
           "quality_rating": null,
           "form_rating": 0.0,
-          "live_form_rating": 38.3,
+          "live_form_rating": 23.0,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 6.0,
+          "current_impact_rating": 3.6,
           "rating_driver": "Expected goal involvements",
           "rating_expected_minutes": 18.8,
           "rating_status": "provisional",
@@ -242439,10 +242439,10 @@
           "news": "",
           "quality_rating": null,
           "form_rating": 0.0,
-          "live_form_rating": 16.7,
+          "live_form_rating": 18.5,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 15.4,
+          "current_impact_rating": 17.1,
           "rating_driver": "Expected goals",
           "rating_expected_minutes": 83.2,
           "rating_status": "limited",
@@ -242855,7 +242855,7 @@
           "news": "Back injury - Expected back 18 Oct",
           "quality_rating": null,
           "form_rating": 0.0,
-          "live_form_rating": 20.3,
+          "live_form_rating": 18.5,
           "live_form_vs_quality": null,
           "overall_rating": null,
           "current_impact_rating": 0.0,
@@ -243495,10 +243495,10 @@
           "news": "",
           "quality_rating": null,
           "form_rating": 0.0,
-          "live_form_rating": 20.3,
+          "live_form_rating": 18.5,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 5.6,
+          "current_impact_rating": 5.1,
           "rating_driver": "Creativity",
           "rating_expected_minutes": 25.0,
           "rating_status": "provisional",
@@ -243847,10 +243847,10 @@
           "news": "",
           "quality_rating": null,
           "form_rating": 0.0,
-          "live_form_rating": 21.2,
+          "live_form_rating": 18.5,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 5.9,
+          "current_impact_rating": 5.1,
           "rating_driver": "Bps",
           "rating_expected_minutes": 25.0,
           "rating_status": "provisional",
@@ -244519,10 +244519,10 @@
           "news": "",
           "quality_rating": null,
           "form_rating": 0.0,
-          "live_form_rating": 20.3,
+          "live_form_rating": 23.0,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 5.6,
+          "current_impact_rating": 6.4,
           "rating_driver": "Creativity",
           "rating_expected_minutes": 25.0,
           "rating_status": "provisional",
@@ -245334,8 +245334,8 @@
           "name": "Goretzka",
           "team": "Aston Villa",
           "position": "MID",
-          "status": "d",
-          "chance_of_playing": 75,
+          "status": "a",
+          "chance_of_playing": 100,
           "minutes": 0,
           "starts": 0,
           "goals": 0,
@@ -245348,15 +245348,15 @@
           "ict": 0.0,
           "bps": 0,
           "bonus": 0,
-          "news": "Knee injury - 75% chance of playing",
+          "news": "",
           "quality_rating": null,
           "form_rating": 0.0,
           "live_form_rating": 14.0,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 2.2,
+          "current_impact_rating": 3.9,
           "rating_driver": "Expected goal involvements",
-          "rating_expected_minutes": 18.8,
+          "rating_expected_minutes": 25.0,
           "rating_status": "provisional",
           "rating_evidence_minutes": 0.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -251477,6 +251477,38 @@
             "rating_model_source": "data_led_multiseason_role_evidence"
           },
           {
+            "id": 385,
+            "name": "Trafford",
+            "team": "Leeds",
+            "position": "GK",
+            "status": "a",
+            "chance_of_playing": null,
+            "minutes": 540,
+            "starts": 6,
+            "goals": 0,
+            "assists": 0,
+            "xg": 0.0,
+            "xa": 0.01,
+            "xgi": 0.01,
+            "threat": 0.0,
+            "creativity": 0.0,
+            "ict": 18.0,
+            "bps": 132,
+            "bonus": 5,
+            "news": "",
+            "quality_rating": null,
+            "form_rating": 11.4,
+            "live_form_rating": 72.5,
+            "live_form_vs_quality": null,
+            "overall_rating": null,
+            "current_impact_rating": 55.0,
+            "rating_driver": "Bonus Point System",
+            "rating_expected_minutes": 68.3,
+            "rating_status": "limited",
+            "rating_evidence_minutes": 2880.0,
+            "rating_model_source": "data_led_multiseason_role_evidence"
+          },
+          {
             "id": 384,
             "name": "Donnarumma",
             "team": "Man City",
@@ -251506,38 +251538,6 @@
             "rating_expected_minutes": 68.3,
             "rating_status": "limited",
             "rating_evidence_minutes": 3060.0,
-            "rating_model_source": "data_led_multiseason_role_evidence"
-          },
-          {
-            "id": 385,
-            "name": "Trafford",
-            "team": "Leeds",
-            "position": "GK",
-            "status": "a",
-            "chance_of_playing": null,
-            "minutes": 540,
-            "starts": 6,
-            "goals": 0,
-            "assists": 0,
-            "xg": 0.0,
-            "xa": 0.01,
-            "xgi": 0.01,
-            "threat": 0.0,
-            "creativity": 0.0,
-            "ict": 18.0,
-            "bps": 132,
-            "bonus": 5,
-            "news": "",
-            "quality_rating": null,
-            "form_rating": 11.4,
-            "live_form_rating": 63.5,
-            "live_form_vs_quality": null,
-            "overall_rating": null,
-            "current_impact_rating": 48.2,
-            "rating_driver": "Bonus Point System",
-            "rating_expected_minutes": 68.3,
-            "rating_status": "limited",
-            "rating_evidence_minutes": 2880.0,
             "rating_model_source": "data_led_multiseason_role_evidence"
           },
           {
@@ -251703,35 +251703,35 @@
             "rating_model_source": "data_led_multiseason_role_evidence"
           },
           {
-            "id": 330,
-            "name": "Bogle",
+            "id": 332,
+            "name": "Justin",
             "team": "Leeds",
             "position": "DEF",
             "status": "a",
             "chance_of_playing": null,
-            "minutes": 450,
+            "minutes": 528,
             "starts": 6,
-            "goals": 2,
+            "goals": 1,
             "assists": 0,
-            "xg": 1.49,
-            "xa": 0.12,
-            "xgi": 1.61,
-            "threat": 156.0,
-            "creativity": 64.8,
-            "ict": 34.4,
-            "bps": 123,
-            "bonus": 6,
+            "xg": 0.41,
+            "xa": 0.42,
+            "xgi": 0.83,
+            "threat": 64.0,
+            "creativity": 57.5,
+            "ict": 26.5,
+            "bps": 103,
+            "bonus": 4,
             "news": "",
-            "quality_rating": 52.6,
-            "form_rating": 11.0,
+            "quality_rating": 60.9,
+            "form_rating": 6.1,
             "live_form_rating": 81.5,
-            "live_form_vs_quality": 28.9,
-            "overall_rating": 63.6,
-            "current_impact_rating": 54.4,
-            "rating_driver": "Clean sheets",
-            "rating_expected_minutes": 77.0,
+            "live_form_vs_quality": 20.6,
+            "overall_rating": 67.0,
+            "current_impact_rating": 51.6,
+            "rating_driver": "Team Adjusted Prevention",
+            "rating_expected_minutes": 69.3,
             "rating_status": "established",
-            "rating_evidence_minutes": 5582.0,
+            "rating_evidence_minutes": 4805.0,
             "rating_model_source": "data_led_multiseason_role_evidence"
           }
         ],
@@ -270309,7 +270309,7 @@
   "fpl": {
     "projections": {
       "gameweek": 7,
-      "generated_at": "2026-10-14T15:50:26.344594+00:00",
+      "generated_at": "2026-10-14T20:10:17.120870+00:00",
       "model_source": "hybrid_match_context_baseline",
       "data_freshness": "live official FPL API + independent pre-match scoreline model",
       "players": [
@@ -270887,38 +270887,6 @@
             "72 expected minutes",
             "form 6.0",
             "1.55 expected team goals"
-          ]
-        },
-        {
-          "player_id": 330,
-          "name": "Jayden Bogle",
-          "web_name": "Bogle",
-          "team": "Leeds",
-          "team_id": 13,
-          "position": "DEF",
-          "price": 4.7,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 77.0,
-          "projected_points": 4.88,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 4,
-              "expected_goals": 1.26,
-              "clean_sheet_probability": 0.203,
-              "expected_minutes": 77.0,
-              "opponent": "Man Utd",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "77 expected minutes",
-            "form 7.0",
-            "1.26 expected team goals"
           ]
         },
         {
@@ -271594,6 +271562,38 @@
           ]
         },
         {
+          "player_id": 330,
+          "name": "Jayden Bogle",
+          "web_name": "Bogle",
+          "team": "Leeds",
+          "team_id": 13,
+          "position": "DEF",
+          "price": 4.7,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 77.0,
+          "projected_points": 4.38,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 4,
+              "expected_goals": 1.26,
+              "clean_sheet_probability": 0.203,
+              "expected_minutes": 77.0,
+              "opponent": "Man Utd",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "77 expected minutes",
+            "form 3.0",
+            "1.26 expected team goals"
+          ]
+        },
+        {
           "player_id": 75,
           "name": "Ryan Christie",
           "web_name": "Christie",
@@ -271655,6 +271655,38 @@
             "65 expected minutes",
             "form 6.5",
             "1.07 expected team goals"
+          ]
+        },
+        {
+          "player_id": 449,
+          "name": "Lewis Hall",
+          "web_name": "Hall",
+          "team": "Newcastle",
+          "team_id": 17,
+          "position": "DEF",
+          "price": 5.3,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 68.4,
+          "projected_points": 4.37,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 3,
+              "expected_goals": 1.57,
+              "clean_sheet_probability": 0.25,
+              "expected_minutes": 68.4,
+              "opponent": "Aston Villa",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "68 expected minutes",
+            "form 6.5",
+            "1.57 expected team goals"
           ]
         },
         {
@@ -271815,6 +271847,38 @@
             "69 expected minutes",
             "form 4.5",
             "1.60 expected team goals"
+          ]
+        },
+        {
+          "player_id": 460,
+          "name": "Joe Willock",
+          "web_name": "Willock",
+          "team": "Newcastle",
+          "team_id": 17,
+          "position": "MID",
+          "price": 5.0,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 70.6,
+          "projected_points": 4.26,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 3,
+              "expected_goals": 1.57,
+              "clean_sheet_probability": 0.25,
+              "expected_minutes": 70.6,
+              "opponent": "Aston Villa",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "71 expected minutes",
+            "form 5.5",
+            "1.57 expected team goals"
           ]
         },
         {
@@ -272170,38 +272234,6 @@
           ]
         },
         {
-          "player_id": 449,
-          "name": "Lewis Hall",
-          "web_name": "Hall",
-          "team": "Newcastle",
-          "team_id": 17,
-          "position": "DEF",
-          "price": 5.3,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 68.4,
-          "projected_points": 4.1,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 3,
-              "expected_goals": 1.57,
-              "clean_sheet_probability": 0.25,
-              "expected_minutes": 68.4,
-              "opponent": "Aston Villa",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "68 expected minutes",
-            "form 4.3",
-            "1.57 expected team goals"
-          ]
-        },
-        {
           "player_id": 155,
           "name": "Enzo Fern\u00e1ndez",
           "web_name": "Enzo",
@@ -272298,35 +272330,35 @@
           ]
         },
         {
-          "player_id": 460,
-          "name": "Joe Willock",
-          "web_name": "Willock",
-          "team": "Newcastle",
-          "team_id": 17,
-          "position": "MID",
-          "price": 5.0,
+          "player_id": 332,
+          "name": "James Justin",
+          "web_name": "Justin",
+          "team": "Leeds",
+          "team_id": 13,
+          "position": "DEF",
+          "price": 4.5,
           "status": "a",
           "news": "",
           "availability": 1.0,
-          "expected_minutes": 70.6,
+          "expected_minutes": 69.3,
           "projected_points": 4.08,
           "fixture_count": 1,
           "fixtures": [
             {
               "was_home": true,
-              "difficulty": 3,
-              "expected_goals": 1.57,
-              "clean_sheet_probability": 0.25,
-              "expected_minutes": 70.6,
-              "opponent": "Aston Villa",
+              "difficulty": 4,
+              "expected_goals": 1.26,
+              "clean_sheet_probability": 0.203,
+              "expected_minutes": 69.3,
+              "opponent": "Man Utd",
               "model_source": "independent_scoreline"
             }
           ],
           "drivers": [
             "1 fixture",
-            "71 expected minutes",
-            "form 4.0",
-            "1.57 expected team goals"
+            "69 expected minutes",
+            "form 7.0",
+            "1.26 expected team goals"
           ]
         },
         {
@@ -272519,6 +272551,38 @@
             "68 expected minutes",
             "form 7.0",
             "1.07 expected team goals"
+          ]
+        },
+        {
+          "player_id": 447,
+          "name": "Sven Botman",
+          "web_name": "Botman",
+          "team": "Newcastle",
+          "team_id": 17,
+          "position": "DEF",
+          "price": 5.0,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 68.3,
+          "projected_points": 4.01,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 3,
+              "expected_goals": 1.57,
+              "clean_sheet_probability": 0.25,
+              "expected_minutes": 68.3,
+              "opponent": "Aston Villa",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "68 expected minutes",
+            "form 6.0",
+            "1.57 expected team goals"
           ]
         },
         {
@@ -272810,67 +272874,35 @@
           ]
         },
         {
-          "player_id": 346,
-          "name": "Dominic Calvert-Lewin",
-          "web_name": "Calvert-Lewin",
-          "team": "Leeds",
-          "team_id": 13,
-          "position": "FWD",
-          "price": 6.0,
+          "player_id": 453,
+          "name": "Harvey Barnes",
+          "web_name": "Barnes",
+          "team": "Newcastle",
+          "team_id": 17,
+          "position": "MID",
+          "price": 6.1,
           "status": "a",
           "news": "",
           "availability": 1.0,
-          "expected_minutes": 71.0,
-          "projected_points": 3.88,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 4,
-              "expected_goals": 1.26,
-              "clean_sheet_probability": 0.203,
-              "expected_minutes": 71.0,
-              "opponent": "Man Utd",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "71 expected minutes",
-            "form 4.7",
-            "1.26 expected team goals"
-          ]
-        },
-        {
-          "player_id": 332,
-          "name": "James Justin",
-          "web_name": "Justin",
-          "team": "Leeds",
-          "team_id": 13,
-          "position": "DEF",
-          "price": 4.5,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 69.3,
+          "expected_minutes": 68.3,
           "projected_points": 3.87,
           "fixture_count": 1,
           "fixtures": [
             {
               "was_home": true,
-              "difficulty": 4,
-              "expected_goals": 1.26,
-              "clean_sheet_probability": 0.203,
-              "expected_minutes": 69.3,
-              "opponent": "Man Utd",
+              "difficulty": 3,
+              "expected_goals": 1.57,
+              "clean_sheet_probability": 0.25,
+              "expected_minutes": 68.3,
+              "opponent": "Aston Villa",
               "model_source": "independent_scoreline"
             }
           ],
           "drivers": [
             "1 fixture",
-            "69 expected minutes",
-            "form 5.3",
-            "1.26 expected team goals"
+            "68 expected minutes",
+            "form 5.5",
+            "1.57 expected team goals"
           ]
         },
         {
@@ -272903,38 +272935,6 @@
             "73 expected minutes",
             "form 0.5",
             "1.34 expected team goals"
-          ]
-        },
-        {
-          "player_id": 447,
-          "name": "Sven Botman",
-          "web_name": "Botman",
-          "team": "Newcastle",
-          "team_id": 17,
-          "position": "DEF",
-          "price": 5.0,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 68.3,
-          "projected_points": 3.85,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 3,
-              "expected_goals": 1.57,
-              "clean_sheet_probability": 0.25,
-              "expected_minutes": 68.3,
-              "opponent": "Aston Villa",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "68 expected minutes",
-            "form 4.7",
-            "1.57 expected team goals"
           ]
         },
         {
@@ -273354,70 +273354,6 @@
           ]
         },
         {
-          "player_id": 331,
-          "name": "Gabriel Gudmundsson",
-          "web_name": "Gudmundsson",
-          "team": "Leeds",
-          "team_id": 13,
-          "position": "DEF",
-          "price": 4.5,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 70.6,
-          "projected_points": 3.77,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 4,
-              "expected_goals": 1.26,
-              "clean_sheet_probability": 0.203,
-              "expected_minutes": 70.6,
-              "opponent": "Man Utd",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "71 expected minutes",
-            "form 5.3",
-            "1.26 expected team goals"
-          ]
-        },
-        {
-          "player_id": 334,
-          "name": "Tarik Muharemovi\u0107",
-          "web_name": "Muharemovi\u0107",
-          "team": "Leeds",
-          "team_id": 13,
-          "position": "DEF",
-          "price": 5.0,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 68.3,
-          "projected_points": 3.77,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 4,
-              "expected_goals": 1.26,
-              "clean_sheet_probability": 0.203,
-              "expected_minutes": 68.3,
-              "opponent": "Man Utd",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "68 expected minutes",
-            "form 5.0",
-            "1.26 expected team goals"
-          ]
-        },
-        {
           "player_id": 412,
           "name": "Senne Lammens",
           "web_name": "Lammens",
@@ -273578,6 +273514,38 @@
           ]
         },
         {
+          "player_id": 385,
+          "name": "James Trafford",
+          "web_name": "Trafford",
+          "team": "Leeds",
+          "team_id": 13,
+          "position": "GK",
+          "price": 5.0,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 68.3,
+          "projected_points": 3.76,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 4,
+              "expected_goals": 1.26,
+              "clean_sheet_probability": 0.203,
+              "expected_minutes": 68.3,
+              "opponent": "Man Utd",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "68 expected minutes",
+            "form 6.0",
+            "1.26 expected team goals"
+          ]
+        },
+        {
           "player_id": 498,
           "name": "Marcos Senesi Bar\u00f3n",
           "web_name": "Senesi",
@@ -273674,6 +273642,38 @@
           ]
         },
         {
+          "player_id": 331,
+          "name": "Gabriel Gudmundsson",
+          "web_name": "Gudmundsson",
+          "team": "Leeds",
+          "team_id": 13,
+          "position": "DEF",
+          "price": 4.5,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 70.6,
+          "projected_points": 3.73,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 4,
+              "expected_goals": 1.26,
+              "clean_sheet_probability": 0.203,
+              "expected_minutes": 70.6,
+              "opponent": "Man Utd",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "71 expected minutes",
+            "form 5.0",
+            "1.26 expected team goals"
+          ]
+        },
+        {
           "player_id": 526,
           "name": "Dominic Solanke-Mitchell",
           "web_name": "Solanke",
@@ -273767,38 +273767,6 @@
             "68 expected minutes",
             "form 4.0",
             "1.34 expected team goals"
-          ]
-        },
-        {
-          "player_id": 453,
-          "name": "Harvey Barnes",
-          "web_name": "Barnes",
-          "team": "Newcastle",
-          "team_id": 17,
-          "position": "MID",
-          "price": 6.1,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 68.3,
-          "projected_points": 3.72,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 3,
-              "expected_goals": 1.57,
-              "clean_sheet_probability": 0.25,
-              "expected_minutes": 68.3,
-              "opponent": "Aston Villa",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "68 expected minutes",
-            "form 4.3",
-            "1.57 expected team goals"
           ]
         },
         {
@@ -274186,12 +274154,12 @@
           ]
         },
         {
-          "player_id": 385,
-          "name": "James Trafford",
-          "web_name": "Trafford",
+          "player_id": 334,
+          "name": "Tarik Muharemovi\u0107",
+          "web_name": "Muharemovi\u0107",
           "team": "Leeds",
           "team_id": 13,
-          "position": "GK",
+          "position": "DEF",
           "price": 5.0,
           "status": "a",
           "news": "",
@@ -274213,7 +274181,7 @@
           "drivers": [
             "1 fixture",
             "68 expected minutes",
-            "form 5.0",
+            "form 4.0",
             "1.26 expected team goals"
           ]
         },
@@ -274247,6 +274215,38 @@
             "68 expected minutes",
             "form 1.0",
             "1.59 expected team goals"
+          ]
+        },
+        {
+          "player_id": 598,
+          "name": "Nico Elvedi",
+          "web_name": "Elvedi",
+          "team": "Leeds",
+          "team_id": 13,
+          "position": "DEF",
+          "price": 4.5,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 63.0,
+          "projected_points": 3.63,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 4,
+              "expected_goals": 1.26,
+              "clean_sheet_probability": 0.203,
+              "expected_minutes": 63.0,
+              "opponent": "Man Utd",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "63 expected minutes",
+            "form 3.5",
+            "1.26 expected team goals"
           ]
         },
         {
@@ -274698,18 +274698,18 @@
           ]
         },
         {
-          "player_id": 598,
-          "name": "Nico Elvedi",
-          "web_name": "Elvedi",
+          "player_id": 346,
+          "name": "Dominic Calvert-Lewin",
+          "web_name": "Calvert-Lewin",
           "team": "Leeds",
           "team_id": 13,
-          "position": "DEF",
-          "price": 4.5,
+          "position": "FWD",
+          "price": 6.0,
           "status": "a",
           "news": "",
           "availability": 1.0,
-          "expected_minutes": 63.0,
-          "projected_points": 3.57,
+          "expected_minutes": 71.0,
+          "projected_points": 3.55,
           "fixture_count": 1,
           "fixtures": [
             {
@@ -274717,15 +274717,15 @@
               "difficulty": 4,
               "expected_goals": 1.26,
               "clean_sheet_probability": 0.203,
-              "expected_minutes": 63.0,
+              "expected_minutes": 71.0,
               "opponent": "Man Utd",
               "model_source": "independent_scoreline"
             }
           ],
           "drivers": [
             "1 fixture",
-            "63 expected minutes",
-            "form 3.0",
+            "71 expected minutes",
+            "form 2.0",
             "1.26 expected team goals"
           ]
         },
@@ -275050,17 +275050,17 @@
           ]
         },
         {
-          "player_id": 464,
-          "name": "Yoane Wissa",
-          "web_name": "Wissa",
+          "player_id": 465,
+          "name": "William Osula",
+          "web_name": "Osula",
           "team": "Newcastle",
           "team_id": 17,
           "position": "FWD",
-          "price": 6.3,
+          "price": 5.8,
           "status": "a",
           "news": "",
           "availability": 1.0,
-          "expected_minutes": 70.2,
+          "expected_minutes": 83.2,
           "projected_points": 3.49,
           "fixture_count": 1,
           "fixtures": [
@@ -275069,15 +275069,15 @@
               "difficulty": 3,
               "expected_goals": 1.57,
               "clean_sheet_probability": 0.25,
-              "expected_minutes": 70.2,
+              "expected_minutes": 83.2,
               "opponent": "Aston Villa",
               "model_source": "independent_scoreline"
             }
           ],
           "drivers": [
             "1 fixture",
-            "70 expected minutes",
-            "form 1.3",
+            "83 expected minutes",
+            "form 0.5",
             "1.57 expected team goals"
           ]
         },
@@ -275178,38 +275178,6 @@
           ]
         },
         {
-          "player_id": 465,
-          "name": "William Osula",
-          "web_name": "Osula",
-          "team": "Newcastle",
-          "team_id": 17,
-          "position": "FWD",
-          "price": 5.8,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 83.2,
-          "projected_points": 3.47,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 3,
-              "expected_goals": 1.57,
-              "clean_sheet_probability": 0.25,
-              "expected_minutes": 83.2,
-              "opponent": "Aston Villa",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "83 expected minutes",
-            "form 0.3",
-            "1.57 expected team goals"
-          ]
-        },
-        {
           "player_id": 167,
           "name": "Liam Delap",
           "web_name": "Delap",
@@ -275274,6 +275242,38 @@
           ]
         },
         {
+          "player_id": 464,
+          "name": "Yoane Wissa",
+          "web_name": "Wissa",
+          "team": "Newcastle",
+          "team_id": 17,
+          "position": "FWD",
+          "price": 6.3,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 70.2,
+          "projected_points": 3.45,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 3,
+              "expected_goals": 1.57,
+              "clean_sheet_probability": 0.25,
+              "expected_minutes": 70.2,
+              "opponent": "Aston Villa",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "70 expected minutes",
+            "form 1.0",
+            "1.57 expected team goals"
+          ]
+        },
+        {
           "player_id": 256,
           "name": "Kenny Tete",
           "web_name": "Tete",
@@ -275335,6 +275335,38 @@
             "25 expected minutes",
             "form 6.5",
             "2.34 expected team goals"
+          ]
+        },
+        {
+          "player_id": 567,
+          "name": "Luk\u00e1s Horn\u00edcek",
+          "web_name": "Horn\u00ed\u010dek",
+          "team": "Newcastle",
+          "team_id": 17,
+          "position": "GK",
+          "price": 5.0,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 68.3,
+          "projected_points": 3.44,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 3,
+              "expected_goals": 1.57,
+              "clean_sheet_probability": 0.25,
+              "expected_minutes": 68.3,
+              "opponent": "Aston Villa",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "68 expected minutes",
+            "form 1.5",
+            "1.57 expected team goals"
           ]
         },
         {
@@ -275594,38 +275626,6 @@
           ]
         },
         {
-          "player_id": 567,
-          "name": "Luk\u00e1s Horn\u00edcek",
-          "web_name": "Horn\u00ed\u010dek",
-          "team": "Newcastle",
-          "team_id": 17,
-          "position": "GK",
-          "price": 5.0,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 68.3,
-          "projected_points": 3.41,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 3,
-              "expected_goals": 1.57,
-              "clean_sheet_probability": 0.25,
-              "expected_minutes": 68.3,
-              "opponent": "Aston Villa",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "68 expected minutes",
-            "form 1.3",
-            "1.57 expected team goals"
-          ]
-        },
-        {
           "player_id": 581,
           "name": "Ousmane Diomande",
           "web_name": "Diomande",
@@ -275754,6 +275754,70 @@
           ]
         },
         {
+          "player_id": 405,
+          "name": "Nico Gonz\u00e1lez Iglesias",
+          "web_name": "N.Gonzalez",
+          "team": "Newcastle",
+          "team_id": 17,
+          "position": "MID",
+          "price": 5.5,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 86.4,
+          "projected_points": 3.39,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 3,
+              "expected_goals": 1.57,
+              "clean_sheet_probability": 0.25,
+              "expected_minutes": 86.4,
+              "opponent": "Aston Villa",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "86 expected minutes",
+            "form 3.5",
+            "1.57 expected team goals"
+          ]
+        },
+        {
+          "player_id": 457,
+          "name": "Jacob Murphy",
+          "web_name": "J.Murphy",
+          "team": "Newcastle",
+          "team_id": 17,
+          "position": "MID",
+          "price": 5.9,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 74.0,
+          "projected_points": 3.39,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 3,
+              "expected_goals": 1.57,
+              "clean_sheet_probability": 0.25,
+              "expected_minutes": 74.0,
+              "opponent": "Aston Villa",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "74 expected minutes",
+            "form 1.0",
+            "1.57 expected team goals"
+          ]
+        },
+        {
           "player_id": 28,
           "name": "Emiliano Mart\u00ednez Romero",
           "web_name": "Martinez",
@@ -275847,38 +275911,6 @@
             "72 expected minutes",
             "form 2.0",
             "1.50 expected team goals"
-          ]
-        },
-        {
-          "player_id": 457,
-          "name": "Jacob Murphy",
-          "web_name": "J.Murphy",
-          "team": "Newcastle",
-          "team_id": 17,
-          "position": "MID",
-          "price": 5.9,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 74.0,
-          "projected_points": 3.36,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 3,
-              "expected_goals": 1.57,
-              "clean_sheet_probability": 0.25,
-              "expected_minutes": 74.0,
-              "opponent": "Aston Villa",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "74 expected minutes",
-            "form 0.7",
-            "1.57 expected team goals"
           ]
         },
         {
@@ -276074,38 +276106,6 @@
           ]
         },
         {
-          "player_id": 345,
-          "name": "Tanaka Ao",
-          "web_name": "Tanaka",
-          "team": "Leeds",
-          "team_id": 13,
-          "position": "MID",
-          "price": 4.9,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 73.0,
-          "projected_points": 3.31,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 4,
-              "expected_goals": 1.26,
-              "clean_sheet_probability": 0.203,
-              "expected_minutes": 73.0,
-              "opponent": "Man Utd",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "73 expected minutes",
-            "form 3.0",
-            "1.26 expected team goals"
-          ]
-        },
-        {
           "player_id": 597,
           "name": "Zion Suzuki",
           "web_name": "Suzuki",
@@ -276266,38 +276266,6 @@
           ]
         },
         {
-          "player_id": 405,
-          "name": "Nico Gonz\u00e1lez Iglesias",
-          "web_name": "N.Gonzalez",
-          "team": "Newcastle",
-          "team_id": 17,
-          "position": "MID",
-          "price": 5.5,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 86.4,
-          "projected_points": 3.29,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 3,
-              "expected_goals": 1.57,
-              "clean_sheet_probability": 0.25,
-              "expected_minutes": 86.4,
-              "opponent": "Aston Villa",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "86 expected minutes",
-            "form 2.7",
-            "1.57 expected team goals"
-          ]
-        },
-        {
           "player_id": 599,
           "name": "Sidiki Cherif",
           "web_name": "Cherif",
@@ -276327,6 +276295,38 @@
             "61 expected minutes",
             "form 6.0",
             "1.07 expected team goals"
+          ]
+        },
+        {
+          "player_id": 335,
+          "name": "Anton Stach",
+          "web_name": "Stach",
+          "team": "Leeds",
+          "team_id": 13,
+          "position": "MID",
+          "price": 6.0,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 68.6,
+          "projected_points": 3.27,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 4,
+              "expected_goals": 1.26,
+              "clean_sheet_probability": 0.203,
+              "expected_minutes": 68.6,
+              "opponent": "Man Utd",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "69 expected minutes",
+            "form 3.5",
+            "1.26 expected team goals"
           ]
         },
         {
@@ -276519,38 +276519,6 @@
             "58 expected minutes",
             "form 0.0",
             "1.59 expected team goals"
-          ]
-        },
-        {
-          "player_id": 335,
-          "name": "Anton Stach",
-          "web_name": "Stach",
-          "team": "Leeds",
-          "team_id": 13,
-          "position": "MID",
-          "price": 6.0,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 68.6,
-          "projected_points": 3.24,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 4,
-              "expected_goals": 1.26,
-              "clean_sheet_probability": 0.203,
-              "expected_minutes": 68.6,
-              "opponent": "Man Utd",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "69 expected minutes",
-            "form 3.3",
-            "1.26 expected team goals"
           ]
         },
         {
@@ -277162,6 +277130,38 @@
           ]
         },
         {
+          "player_id": 327,
+          "name": "Jaka Bijol",
+          "web_name": "Bijol",
+          "team": "Leeds",
+          "team_id": 13,
+          "position": "DEF",
+          "price": 5.0,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 71.4,
+          "projected_points": 3.14,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 4,
+              "expected_goals": 1.26,
+              "clean_sheet_probability": 0.203,
+              "expected_minutes": 71.4,
+              "opponent": "Man Utd",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "71 expected minutes",
+            "form 0.5",
+            "1.26 expected team goals"
+          ]
+        },
+        {
           "player_id": 452,
           "name": "Bruno Guimar\u00e3es Rodriguez Moura",
           "web_name": "Bruno G.",
@@ -277223,38 +277223,6 @@
             "68 expected minutes",
             "form 0.5",
             "1.60 expected team goals"
-          ]
-        },
-        {
-          "player_id": 336,
-          "name": "Noah Okafor",
-          "web_name": "Okafor",
-          "team": "Leeds",
-          "team_id": 13,
-          "position": "MID",
-          "price": 5.8,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 77.8,
-          "projected_points": 3.13,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 4,
-              "expected_goals": 1.26,
-              "clean_sheet_probability": 0.203,
-              "expected_minutes": 77.8,
-              "opponent": "Man Utd",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "78 expected minutes",
-            "form 4.7",
-            "1.26 expected team goals"
           ]
         },
         {
@@ -277322,17 +277290,17 @@
           ]
         },
         {
-          "player_id": 327,
-          "name": "Jaka Bijol",
-          "web_name": "Bijol",
+          "player_id": 345,
+          "name": "Tanaka Ao",
+          "web_name": "Tanaka",
           "team": "Leeds",
           "team_id": 13,
-          "position": "DEF",
-          "price": 5.0,
+          "position": "MID",
+          "price": 4.9,
           "status": "a",
           "news": "",
           "availability": 1.0,
-          "expected_minutes": 71.4,
+          "expected_minutes": 73.0,
           "projected_points": 3.12,
           "fixture_count": 1,
           "fixtures": [
@@ -277341,15 +277309,15 @@
               "difficulty": 4,
               "expected_goals": 1.26,
               "clean_sheet_probability": 0.203,
-              "expected_minutes": 71.4,
+              "expected_minutes": 73.0,
               "opponent": "Man Utd",
               "model_source": "independent_scoreline"
             }
           ],
           "drivers": [
             "1 fixture",
-            "71 expected minutes",
-            "form 0.3",
+            "73 expected minutes",
+            "form 1.5",
             "1.26 expected team goals"
           ]
         },
@@ -277642,6 +277610,38 @@
           ]
         },
         {
+          "player_id": 634,
+          "name": "Matias Fernandez-Pardo",
+          "web_name": "Fernandez-Pardo",
+          "team": "Newcastle",
+          "team_id": 17,
+          "position": "FWD",
+          "price": 6.0,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 72.4,
+          "projected_points": 3.06,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 3,
+              "expected_goals": 1.57,
+              "clean_sheet_probability": 0.25,
+              "expected_minutes": 72.4,
+              "opponent": "Aston Villa",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "72 expected minutes",
+            "form 2.0",
+            "1.57 expected team goals"
+          ]
+        },
+        {
           "player_id": 529,
           "name": "Robin Roefs",
           "web_name": "Roefs",
@@ -277866,38 +277866,6 @@
           ]
         },
         {
-          "player_id": 634,
-          "name": "Matias Fernandez-Pardo",
-          "web_name": "Fernandez-Pardo",
-          "team": "Newcastle",
-          "team_id": 17,
-          "position": "FWD",
-          "price": 6.0,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 72.4,
-          "projected_points": 3.02,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 3,
-              "expected_goals": 1.57,
-              "clean_sheet_probability": 0.25,
-              "expected_minutes": 72.4,
-              "opponent": "Aston Villa",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "72 expected minutes",
-            "form 1.7",
-            "1.57 expected team goals"
-          ]
-        },
-        {
           "player_id": 627,
           "name": "Bradley Barcola",
           "web_name": "Barcola",
@@ -278055,38 +278023,6 @@
             "61 expected minutes",
             "form 0.0",
             "1.16 expected team goals"
-          ]
-        },
-        {
-          "player_id": 338,
-          "name": "Ethan Ampadu",
-          "web_name": "Ampadu",
-          "team": "Leeds",
-          "team_id": 13,
-          "position": "MID",
-          "price": 5.4,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 68.3,
-          "projected_points": 2.97,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 4,
-              "expected_goals": 1.26,
-              "clean_sheet_probability": 0.203,
-              "expected_minutes": 68.3,
-              "opponent": "Man Utd",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "68 expected minutes",
-            "form 4.3",
-            "1.26 expected team goals"
           ]
         },
         {
@@ -278442,6 +278378,38 @@
           ]
         },
         {
+          "player_id": 336,
+          "name": "Noah Okafor",
+          "web_name": "Okafor",
+          "team": "Leeds",
+          "team_id": 13,
+          "position": "MID",
+          "price": 5.8,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 77.8,
+          "projected_points": 2.86,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 4,
+              "expected_goals": 1.26,
+              "clean_sheet_probability": 0.203,
+              "expected_minutes": 77.8,
+              "opponent": "Man Utd",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "78 expected minutes",
+            "form 2.5",
+            "1.26 expected team goals"
+          ]
+        },
+        {
           "player_id": 432,
           "name": "Kobbie Mainoo",
           "web_name": "Mainoo",
@@ -278570,6 +278538,38 @@
           ]
         },
         {
+          "player_id": 459,
+          "name": "Lewis Miley",
+          "web_name": "L.Miley",
+          "team": "Newcastle",
+          "team_id": 17,
+          "position": "MID",
+          "price": 5.5,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 76.5,
+          "projected_points": 2.82,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 3,
+              "expected_goals": 1.57,
+              "clean_sheet_probability": 0.25,
+              "expected_minutes": 76.5,
+              "opponent": "Aston Villa",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "76 expected minutes",
+            "form 2.5",
+            "1.57 expected team goals"
+          ]
+        },
+        {
           "player_id": 54,
           "name": "Joao Gomes",
           "web_name": "Gomes",
@@ -278663,6 +278663,38 @@
             "68 expected minutes",
             "form 2.0",
             "1.04 expected team goals"
+          ]
+        },
+        {
+          "player_id": 338,
+          "name": "Ethan Ampadu",
+          "web_name": "Ampadu",
+          "team": "Leeds",
+          "team_id": 13,
+          "position": "MID",
+          "price": 5.4,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 68.3,
+          "projected_points": 2.8,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 4,
+              "expected_goals": 1.26,
+              "clean_sheet_probability": 0.203,
+              "expected_minutes": 68.3,
+              "opponent": "Man Utd",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "68 expected minutes",
+            "form 3.0",
+            "1.26 expected team goals"
           ]
         },
         {
@@ -278954,38 +278986,6 @@
           ]
         },
         {
-          "player_id": 459,
-          "name": "Lewis Miley",
-          "web_name": "L.Miley",
-          "team": "Newcastle",
-          "team_id": 17,
-          "position": "MID",
-          "price": 5.5,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 76.5,
-          "projected_points": 2.72,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 3,
-              "expected_goals": 1.57,
-              "clean_sheet_probability": 0.25,
-              "expected_minutes": 76.5,
-              "opponent": "Aston Villa",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "76 expected minutes",
-            "form 1.7",
-            "1.57 expected team goals"
-          ]
-        },
-        {
           "player_id": 184,
           "name": "Matt Grimes",
           "web_name": "Grimes",
@@ -279047,38 +279047,6 @@
             "61 expected minutes",
             "form 0.5",
             "0.97 expected team goals"
-          ]
-        },
-        {
-          "player_id": 462,
-          "name": "Sean Steur",
-          "web_name": "Steur",
-          "team": "Newcastle",
-          "team_id": 17,
-          "position": "MID",
-          "price": 4.9,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 60.0,
-          "projected_points": 2.66,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 3,
-              "expected_goals": 1.57,
-              "clean_sheet_probability": 0.25,
-              "expected_minutes": 60.0,
-              "opponent": "Aston Villa",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "60 expected minutes",
-            "form 1.7",
-            "1.57 expected team goals"
           ]
         },
         {
@@ -279239,6 +279207,38 @@
             "59 expected minutes",
             "form 0.5",
             "1.42 expected team goals"
+          ]
+        },
+        {
+          "player_id": 462,
+          "name": "Sean Steur",
+          "web_name": "Steur",
+          "team": "Newcastle",
+          "team_id": 17,
+          "position": "MID",
+          "price": 4.9,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 60.0,
+          "projected_points": 2.63,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 3,
+              "expected_goals": 1.57,
+              "clean_sheet_probability": 0.25,
+              "expected_minutes": 60.0,
+              "opponent": "Aston Villa",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "60 expected minutes",
+            "form 1.5",
+            "1.57 expected team goals"
           ]
         },
         {
@@ -280170,38 +280170,6 @@
           ]
         },
         {
-          "player_id": 260,
-          "name": "Harry Wilson",
-          "web_name": "Wilson",
-          "team": "Leeds",
-          "team_id": 13,
-          "position": "MID",
-          "price": 6.2,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 48.8,
-          "projected_points": 2.04,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 4,
-              "expected_goals": 1.26,
-              "clean_sheet_probability": 0.203,
-              "expected_minutes": 48.8,
-              "opponent": "Man Utd",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "49 expected minutes",
-            "form 0.7",
-            "1.26 expected team goals"
-          ]
-        },
-        {
           "player_id": 430,
           "name": "Mason Mount",
           "web_name": "Mount",
@@ -280231,6 +280199,38 @@
             "25 expected minutes",
             "form 0.5",
             "1.59 expected team goals"
+          ]
+        },
+        {
+          "player_id": 260,
+          "name": "Harry Wilson",
+          "web_name": "Wilson",
+          "team": "Leeds",
+          "team_id": 13,
+          "position": "MID",
+          "price": 6.2,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 48.8,
+          "projected_points": 2.01,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 4,
+              "expected_goals": 1.26,
+              "clean_sheet_probability": 0.203,
+              "expected_minutes": 48.8,
+              "opponent": "Man Utd",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "49 expected minutes",
+            "form 0.5",
+            "1.26 expected team goals"
           ]
         },
         {
@@ -280743,38 +280743,6 @@
             "25 expected minutes",
             "form 0.5",
             "1.50 expected team goals"
-          ]
-        },
-        {
-          "player_id": 461,
-          "name": "Bazoumana Tour\u00e9",
-          "web_name": "Tour\u00e9",
-          "team": "Newcastle",
-          "team_id": 17,
-          "position": "MID",
-          "price": 5.8,
-          "status": "d",
-          "news": "Unspecified injury - 75% chance of playing",
-          "availability": 0.75,
-          "expected_minutes": 18.8,
-          "projected_points": 1.5,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 3,
-              "expected_goals": 1.57,
-              "clean_sheet_probability": 0.25,
-              "expected_minutes": 18.8,
-              "opponent": "Aston Villa",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "19 expected minutes",
-            "form 2.7",
-            "1.57 expected team goals"
           ]
         },
         {
@@ -281450,6 +281418,38 @@
           ]
         },
         {
+          "player_id": 446,
+          "name": "Fabian Sch\u00e4r",
+          "web_name": "Sch\u00e4r",
+          "team": "Newcastle",
+          "team_id": 17,
+          "position": "DEF",
+          "price": 4.9,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 25.0,
+          "projected_points": 1.41,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 3,
+              "expected_goals": 1.57,
+              "clean_sheet_probability": 0.25,
+              "expected_minutes": 25.0,
+              "opponent": "Aston Villa",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "25 expected minutes",
+            "form 0.5",
+            "1.57 expected team goals"
+          ]
+        },
+        {
           "player_id": 108,
           "name": "Callum Wilson",
           "web_name": "Wilson",
@@ -281642,6 +281642,38 @@
           ]
         },
         {
+          "player_id": 448,
+          "name": "Dan Burn",
+          "web_name": "Burn",
+          "team": "Newcastle",
+          "team_id": 17,
+          "position": "DEF",
+          "price": 4.8,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 25.0,
+          "projected_points": 1.4,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 3,
+              "expected_goals": 1.57,
+              "clean_sheet_probability": 0.25,
+              "expected_minutes": 25.0,
+              "opponent": "Aston Villa",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "25 expected minutes",
+            "form 0.5",
+            "1.57 expected team goals"
+          ]
+        },
+        {
           "player_id": 600,
           "name": "Ibrahim Osman",
           "web_name": "Osman",
@@ -281671,70 +281703,6 @@
             "25 expected minutes",
             "form 0.0",
             "2.11 expected team goals"
-          ]
-        },
-        {
-          "player_id": 446,
-          "name": "Fabian Sch\u00e4r",
-          "web_name": "Sch\u00e4r",
-          "team": "Newcastle",
-          "team_id": 17,
-          "position": "DEF",
-          "price": 4.9,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 25.0,
-          "projected_points": 1.39,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 3,
-              "expected_goals": 1.57,
-              "clean_sheet_probability": 0.25,
-              "expected_minutes": 25.0,
-              "opponent": "Aston Villa",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "25 expected minutes",
-            "form 0.3",
-            "1.57 expected team goals"
-          ]
-        },
-        {
-          "player_id": 448,
-          "name": "Dan Burn",
-          "web_name": "Burn",
-          "team": "Newcastle",
-          "team_id": 17,
-          "position": "DEF",
-          "price": 4.8,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 25.0,
-          "projected_points": 1.38,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 3,
-              "expected_goals": 1.57,
-              "clean_sheet_probability": 0.25,
-              "expected_minutes": 25.0,
-              "opponent": "Aston Villa",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "25 expected minutes",
-            "form 0.3",
-            "1.57 expected team goals"
           ]
         },
         {
@@ -282538,6 +282506,38 @@
           ]
         },
         {
+          "player_id": 461,
+          "name": "Bazoumana Tour\u00e9",
+          "web_name": "Tour\u00e9",
+          "team": "Newcastle",
+          "team_id": 17,
+          "position": "MID",
+          "price": 5.8,
+          "status": "d",
+          "news": "Unspecified injury - 75% chance of playing",
+          "availability": 0.75,
+          "expected_minutes": 18.8,
+          "projected_points": 1.29,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 3,
+              "expected_goals": 1.57,
+              "clean_sheet_probability": 0.25,
+              "expected_minutes": 18.8,
+              "opponent": "Aston Villa",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "19 expected minutes",
+            "form 1.0",
+            "1.57 expected team goals"
+          ]
+        },
+        {
           "player_id": 188,
           "name": "Victor Torp",
           "web_name": "Torp",
@@ -282567,38 +282567,6 @@
             "25 expected minutes",
             "form 0.5",
             "1.07 expected team goals"
-          ]
-        },
-        {
-          "player_id": 641,
-          "name": "Melvin Bard",
-          "web_name": "Bard",
-          "team": "Leeds",
-          "team_id": 13,
-          "position": "DEF",
-          "price": 4.5,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 25.0,
-          "projected_points": 1.28,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 4,
-              "expected_goals": 1.26,
-              "clean_sheet_probability": 0.203,
-              "expected_minutes": 25.0,
-              "opponent": "Man Utd",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "25 expected minutes",
-            "form 0.3",
-            "1.26 expected team goals"
           ]
         },
         {
@@ -282961,6 +282929,38 @@
           "team_id": 13,
           "position": "GK",
           "price": 4.0,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 25.0,
+          "projected_points": 1.25,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 4,
+              "expected_goals": 1.26,
+              "clean_sheet_probability": 0.203,
+              "expected_minutes": 25.0,
+              "opponent": "Man Utd",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "25 expected minutes",
+            "form 0.0",
+            "1.26 expected team goals"
+          ]
+        },
+        {
+          "player_id": 641,
+          "name": "Melvin Bard",
+          "web_name": "Bard",
+          "team": "Leeds",
+          "team_id": 13,
+          "position": "DEF",
+          "price": 4.5,
           "status": "a",
           "news": "",
           "availability": 1.0,
@@ -283594,13 +283594,13 @@
           ]
         },
         {
-          "player_id": 559,
-          "name": "Aladji Bamba",
-          "web_name": "Bamba",
-          "team": "Newcastle",
-          "team_id": 17,
+          "player_id": 648,
+          "name": "Jean-Matt\u00e9o Bahoya",
+          "web_name": "Bahoya",
+          "team": "Leeds",
+          "team_id": 13,
           "position": "MID",
-          "price": 4.8,
+          "price": 4.9,
           "status": "a",
           "news": "",
           "availability": 1.0,
@@ -283610,19 +283610,19 @@
           "fixtures": [
             {
               "was_home": true,
-              "difficulty": 3,
-              "expected_goals": 1.57,
-              "clean_sheet_probability": 0.25,
+              "difficulty": 4,
+              "expected_goals": 1.26,
+              "clean_sheet_probability": 0.203,
               "expected_minutes": 25.0,
-              "opponent": "Aston Villa",
+              "opponent": "Man Utd",
               "model_source": "independent_scoreline"
             }
           ],
           "drivers": [
             "1 fixture",
             "25 expected minutes",
-            "form 0.7",
-            "1.57 expected team goals"
+            "form 1.0",
+            "1.26 expected team goals"
           ]
         },
         {
@@ -283850,6 +283850,38 @@
           ]
         },
         {
+          "player_id": 559,
+          "name": "Aladji Bamba",
+          "web_name": "Bamba",
+          "team": "Newcastle",
+          "team_id": 17,
+          "position": "MID",
+          "price": 4.8,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 25.0,
+          "projected_points": 1.08,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 3,
+              "expected_goals": 1.57,
+              "clean_sheet_probability": 0.25,
+              "expected_minutes": 25.0,
+              "opponent": "Aston Villa",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "25 expected minutes",
+            "form 0.5",
+            "1.57 expected team goals"
+          ]
+        },
+        {
           "player_id": 52,
           "name": "Alysson Edward Franco da Rocha dos Santos",
           "web_name": "Alysson",
@@ -283879,38 +283911,6 @@
             "25 expected minutes",
             "form 0.5",
             "1.39 expected team goals"
-          ]
-        },
-        {
-          "player_id": 648,
-          "name": "Jean-Matt\u00e9o Bahoya",
-          "web_name": "Bahoya",
-          "team": "Leeds",
-          "team_id": 13,
-          "position": "MID",
-          "price": 4.9,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 25.0,
-          "projected_points": 1.07,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 4,
-              "expected_goals": 1.26,
-              "clean_sheet_probability": 0.203,
-              "expected_minutes": 25.0,
-              "opponent": "Man Utd",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "25 expected minutes",
-            "form 0.7",
-            "1.26 expected team goals"
           ]
         },
         {
@@ -284522,38 +284522,6 @@
           ]
         },
         {
-          "player_id": 339,
-          "name": "Sean Longstaff",
-          "web_name": "Longstaff",
-          "team": "Leeds",
-          "team_id": 13,
-          "position": "MID",
-          "price": 4.8,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 25.0,
-          "projected_points": 1.02,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 4,
-              "expected_goals": 1.26,
-              "clean_sheet_probability": 0.203,
-              "expected_minutes": 25.0,
-              "opponent": "Man Utd",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "25 expected minutes",
-            "form 0.3",
-            "1.26 expected team goals"
-          ]
-        },
-        {
           "player_id": 458,
           "name": "Joelinton C\u00e1ssio Apolin\u00e1rio de Lira",
           "web_name": "Joelinton",
@@ -285098,6 +285066,38 @@
           ]
         },
         {
+          "player_id": 618,
+          "name": "Leon Goretzka",
+          "web_name": "Goretzka",
+          "team": "Aston Villa",
+          "team_id": 2,
+          "position": "MID",
+          "price": 5.9,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 25.0,
+          "projected_points": 0.99,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": false,
+              "difficulty": 3,
+              "expected_goals": 1.39,
+              "clean_sheet_probability": 0.208,
+              "expected_minutes": 25.0,
+              "opponent": "Newcastle",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "25 expected minutes",
+            "form 0.0",
+            "1.39 expected team goals"
+          ]
+        },
+        {
           "player_id": 189,
           "name": "George Shepherd",
           "web_name": "Shepherd",
@@ -285351,6 +285351,38 @@
             "25 expected minutes",
             "form 0.0",
             "1.04 expected team goals"
+          ]
+        },
+        {
+          "player_id": 339,
+          "name": "Sean Longstaff",
+          "web_name": "Longstaff",
+          "team": "Leeds",
+          "team_id": 13,
+          "position": "MID",
+          "price": 4.8,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 25.0,
+          "projected_points": 0.98,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 4,
+              "expected_goals": 1.26,
+              "clean_sheet_probability": 0.203,
+              "expected_minutes": 25.0,
+              "opponent": "Man Utd",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "25 expected minutes",
+            "form 0.0",
+            "1.26 expected team goals"
           ]
         },
         {
@@ -285994,38 +286026,6 @@
           ]
         },
         {
-          "player_id": 450,
-          "name": "Tino Livramento",
-          "web_name": "Livramento",
-          "team": "Newcastle",
-          "team_id": 17,
-          "position": "DEF",
-          "price": 4.9,
-          "status": "d",
-          "news": "Unspecified injury - 50% chance of playing",
-          "availability": 0.5,
-          "expected_minutes": 12.5,
-          "projected_points": 0.8,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 3,
-              "expected_goals": 1.57,
-              "clean_sheet_probability": 0.25,
-              "expected_minutes": 12.5,
-              "opponent": "Aston Villa",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "12 expected minutes",
-            "form 1.0",
-            "1.57 expected team goals"
-          ]
-        },
-        {
           "player_id": 77,
           "name": "Amine Adli",
           "web_name": "Adli",
@@ -286058,35 +286058,35 @@
           ]
         },
         {
-          "player_id": 618,
-          "name": "Leon Goretzka",
-          "web_name": "Goretzka",
-          "team": "Aston Villa",
-          "team_id": 2,
-          "position": "MID",
-          "price": 5.9,
+          "player_id": 450,
+          "name": "Tino Livramento",
+          "web_name": "Livramento",
+          "team": "Newcastle",
+          "team_id": 17,
+          "position": "DEF",
+          "price": 4.9,
           "status": "d",
-          "news": "Knee injury - 75% chance of playing",
-          "availability": 0.75,
-          "expected_minutes": 18.8,
-          "projected_points": 0.75,
+          "news": "Unspecified injury - 50% chance of playing",
+          "availability": 0.5,
+          "expected_minutes": 12.5,
+          "projected_points": 0.67,
           "fixture_count": 1,
           "fixtures": [
             {
-              "was_home": false,
+              "was_home": true,
               "difficulty": 3,
-              "expected_goals": 1.39,
-              "clean_sheet_probability": 0.208,
-              "expected_minutes": 18.8,
-              "opponent": "Newcastle",
+              "expected_goals": 1.57,
+              "clean_sheet_probability": 0.25,
+              "expected_minutes": 12.5,
+              "opponent": "Aston Villa",
               "model_source": "independent_scoreline"
             }
           ],
           "drivers": [
             "1 fixture",
-            "19 expected minutes",
+            "12 expected minutes",
             "form 0.0",
-            "1.39 expected team goals"
+            "1.57 expected team goals"
           ]
         },
         {
@@ -286410,38 +286410,6 @@
           ]
         },
         {
-          "player_id": 343,
-          "name": "Daniel James",
-          "web_name": "James",
-          "team": "Leeds",
-          "team_id": 13,
-          "position": "MID",
-          "price": 4.9,
-          "status": "i",
-          "news": "Back injury - Expected back 18 Oct",
-          "availability": 0.0,
-          "expected_minutes": 0.0,
-          "projected_points": 0.09,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 4,
-              "expected_goals": 1.26,
-              "clean_sheet_probability": 0.203,
-              "expected_minutes": 0.0,
-              "opponent": "Man Utd",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "0 expected minutes",
-            "form 0.7",
-            "1.26 expected team goals"
-          ]
-        },
-        {
           "player_id": 577,
           "name": "Takehiro Tomiyasu",
           "web_name": "Tomiyasu",
@@ -286471,6 +286439,38 @@
             "0 expected minutes",
             "form 0.5",
             "0.97 expected team goals"
+          ]
+        },
+        {
+          "player_id": 343,
+          "name": "Daniel James",
+          "web_name": "James",
+          "team": "Leeds",
+          "team_id": 13,
+          "position": "MID",
+          "price": 4.9,
+          "status": "i",
+          "news": "Back injury - Expected back 18 Oct",
+          "availability": 0.0,
+          "expected_minutes": 0.0,
+          "projected_points": 0.06,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 4,
+              "expected_goals": 1.26,
+              "clean_sheet_probability": 0.203,
+              "expected_minutes": 0.0,
+              "opponent": "Man Utd",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "0 expected minutes",
+            "form 0.5",
+            "1.26 expected team goals"
           ]
         },
         {
@@ -291728,6 +291728,38 @@
           ]
         },
         {
+          "player_id": 504,
+          "name": "Luka Vu\u0161kovi\u0107",
+          "web_name": "Vuskovic",
+          "team": "Brighton",
+          "team_id": 5,
+          "position": "DEF",
+          "price": 5.1,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 69.4,
+          "projected_points": 5.33,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 2,
+              "expected_goals": 2.11,
+              "clean_sheet_probability": 0.379,
+              "expected_minutes": 69.4,
+              "opponent": "Crystal Palace",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "69 expected minutes",
+            "form 8.0",
+            "2.11 expected team goals"
+          ]
+        },
+        {
           "player_id": 8,
           "name": "Riccardo Calafiori",
           "web_name": "Calafiori",
@@ -291757,38 +291789,6 @@
             "72 expected minutes",
             "form 5.0",
             "1.50 expected team goals"
-          ]
-        },
-        {
-          "player_id": 330,
-          "name": "Jayden Bogle",
-          "web_name": "Bogle",
-          "team": "Leeds",
-          "team_id": 13,
-          "position": "DEF",
-          "price": 4.7,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 77.0,
-          "projected_points": 4.88,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 4,
-              "expected_goals": 1.26,
-              "clean_sheet_probability": 0.203,
-              "expected_minutes": 77.0,
-              "opponent": "Man Utd",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "77 expected minutes",
-            "form 7.0",
-            "1.26 expected team goals"
           ]
         },
         {
@@ -291920,38 +291920,6 @@
           ]
         },
         {
-          "player_id": 124,
-          "name": "Pascal Gro\u00df",
-          "web_name": "Gro\u00df",
-          "team": "Brighton",
-          "team_id": 5,
-          "position": "MID",
-          "price": 6.0,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 68.3,
-          "projected_points": 5.79,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 2,
-              "expected_goals": 2.11,
-              "clean_sheet_probability": 0.379,
-              "expected_minutes": 68.3,
-              "opponent": "Crystal Palace",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "68 expected minutes",
-            "form 10.0",
-            "2.11 expected team goals"
-          ]
-        },
-        {
           "player_id": 340,
           "name": "Joe Gelhardt",
           "web_name": "Gelhardt",
@@ -292013,6 +291981,38 @@
             "71 expected minutes",
             "form 2.0",
             "1.50 expected team goals"
+          ]
+        },
+        {
+          "player_id": 427,
+          "name": "Bryan Mbeumo",
+          "web_name": "Mbeumo",
+          "team": "Man Utd",
+          "team_id": 16,
+          "position": "MID",
+          "price": 7.9,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 68.3,
+          "projected_points": 5.28,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": false,
+              "difficulty": 3,
+              "expected_goals": 1.59,
+              "clean_sheet_probability": 0.285,
+              "expected_minutes": 68.3,
+              "opponent": "Leeds",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "68 expected minutes",
+            "form 5.0",
+            "1.59 expected team goals"
           ]
         }
       ],
@@ -292210,7 +292210,7 @@
           ]
         }
       ],
-      "projected_points": 65.4
+      "projected_points": 65.34
     },
     "squad": {
       "gameweek": 7,
@@ -292281,6 +292281,38 @@
           ]
         },
         {
+          "player_id": 504,
+          "name": "Luka Vu\u0161kovi\u0107",
+          "web_name": "Vuskovic",
+          "team": "Brighton",
+          "team_id": 5,
+          "position": "DEF",
+          "price": 5.1,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 69.4,
+          "projected_points": 5.33,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 2,
+              "expected_goals": 2.11,
+              "clean_sheet_probability": 0.379,
+              "expected_minutes": 69.4,
+              "opponent": "Crystal Palace",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "69 expected minutes",
+            "form 8.0",
+            "2.11 expected team goals"
+          ]
+        },
+        {
           "player_id": 8,
           "name": "Riccardo Calafiori",
           "web_name": "Calafiori",
@@ -292313,67 +292345,35 @@
           ]
         },
         {
-          "player_id": 330,
-          "name": "Jayden Bogle",
-          "web_name": "Bogle",
-          "team": "Leeds",
-          "team_id": 13,
+          "player_id": 176,
+          "name": "Jay Dasilva",
+          "web_name": "Dasilva",
+          "team": "Coventry City",
+          "team_id": 7,
           "position": "DEF",
-          "price": 4.7,
+          "price": 4.0,
           "status": "a",
           "news": "",
           "availability": 1.0,
-          "expected_minutes": 77.0,
-          "projected_points": 4.88,
+          "expected_minutes": 68.8,
+          "projected_points": 4.58,
           "fixture_count": 1,
           "fixtures": [
             {
-              "was_home": true,
-              "difficulty": 4,
-              "expected_goals": 1.26,
-              "clean_sheet_probability": 0.203,
-              "expected_minutes": 77.0,
-              "opponent": "Man Utd",
+              "was_home": false,
+              "difficulty": 3,
+              "expected_goals": 1.07,
+              "clean_sheet_probability": 0.244,
+              "expected_minutes": 68.8,
+              "opponent": "Spurs",
               "model_source": "independent_scoreline"
             }
           ],
           "drivers": [
             "1 fixture",
-            "77 expected minutes",
-            "form 7.0",
-            "1.26 expected team goals"
-          ]
-        },
-        {
-          "player_id": 649,
-          "name": "Ainsley Maitland-Niles",
-          "web_name": "Maitland-Niles",
-          "team": "Everton",
-          "team_id": 9,
-          "position": "DEF",
-          "price": 4.5,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 71.1,
-          "projected_points": 4.63,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 4,
-              "expected_goals": 1.55,
-              "clean_sheet_probability": 0.247,
-              "expected_minutes": 71.1,
-              "opponent": "Chelsea",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "71 expected minutes",
-            "form 6.0",
-            "1.55 expected team goals"
+            "69 expected minutes",
+            "form 10.0",
+            "1.07 expected team goals"
           ]
         },
         {
@@ -292569,38 +292569,6 @@
           ]
         },
         {
-          "player_id": 124,
-          "name": "Pascal Gro\u00df",
-          "web_name": "Gro\u00df",
-          "team": "Brighton",
-          "team_id": 5,
-          "position": "MID",
-          "price": 6.0,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 68.3,
-          "projected_points": 5.79,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 2,
-              "expected_goals": 2.11,
-              "clean_sheet_probability": 0.379,
-              "expected_minutes": 68.3,
-              "opponent": "Crystal Palace",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "68 expected minutes",
-            "form 10.0",
-            "2.11 expected team goals"
-          ]
-        },
-        {
           "player_id": 340,
           "name": "Joe Gelhardt",
           "web_name": "Gelhardt",
@@ -292695,11 +292663,43 @@
             "form 5.0",
             "1.59 expected team goals"
           ]
+        },
+        {
+          "player_id": 53,
+          "name": "Johan Manzambi",
+          "web_name": "Manzambi",
+          "team": "Aston Villa",
+          "team_id": 2,
+          "position": "MID",
+          "price": 5.9,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 67.6,
+          "projected_points": 5.26,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": false,
+              "difficulty": 3,
+              "expected_goals": 1.39,
+              "clean_sheet_probability": 0.208,
+              "expected_minutes": 67.6,
+              "opponent": "Newcastle",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "68 expected minutes",
+            "form 9.0",
+            "1.39 expected team goals"
+          ]
         }
       ],
       "budget": 100.0,
-      "spent": 100.0,
-      "remaining": 0.0,
+      "spent": 99.8,
+      "remaining": 0.2,
       "starting_xi": [
         {
           "player_id": 115,
@@ -292763,6 +292763,38 @@
             "76 expected minutes",
             "form 3.0",
             "2.34 expected team goals"
+          ]
+        },
+        {
+          "player_id": 504,
+          "name": "Luka Vu\u0161kovi\u0107",
+          "web_name": "Vuskovic",
+          "team": "Brighton",
+          "team_id": 5,
+          "position": "DEF",
+          "price": 5.1,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 69.4,
+          "projected_points": 5.33,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 2,
+              "expected_goals": 2.11,
+              "clean_sheet_probability": 0.379,
+              "expected_minutes": 69.4,
+              "opponent": "Crystal Palace",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "69 expected minutes",
+            "form 8.0",
+            "2.11 expected team goals"
           ]
         },
         {
@@ -292830,38 +292862,6 @@
           ]
         },
         {
-          "player_id": 249,
-          "name": "Thierno Barry",
-          "web_name": "Barry",
-          "team": "Everton",
-          "team_id": 9,
-          "position": "FWD",
-          "price": 5.7,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 71.6,
-          "projected_points": 4.9,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 4,
-              "expected_goals": 1.55,
-              "clean_sheet_probability": 0.247,
-              "expected_minutes": 71.6,
-              "opponent": "Chelsea",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "72 expected minutes",
-            "form 6.0",
-            "1.55 expected team goals"
-          ]
-        },
-        {
           "player_id": 109,
           "name": "Bart Verbruggen",
           "web_name": "Verbruggen",
@@ -292923,38 +292923,6 @@
             "79 expected minutes",
             "form 0.0",
             "2.34 expected team goals"
-          ]
-        },
-        {
-          "player_id": 124,
-          "name": "Pascal Gro\u00df",
-          "web_name": "Gro\u00df",
-          "team": "Brighton",
-          "team_id": 5,
-          "position": "MID",
-          "price": 6.0,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 68.3,
-          "projected_points": 5.79,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 2,
-              "expected_goals": 2.11,
-              "clean_sheet_probability": 0.379,
-              "expected_minutes": 68.3,
-              "opponent": "Crystal Palace",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "68 expected minutes",
-            "form 10.0",
-            "2.11 expected team goals"
           ]
         },
         {
@@ -293051,6 +293019,38 @@
             "68 expected minutes",
             "form 5.0",
             "1.59 expected team goals"
+          ]
+        },
+        {
+          "player_id": 53,
+          "name": "Johan Manzambi",
+          "web_name": "Manzambi",
+          "team": "Aston Villa",
+          "team_id": 2,
+          "position": "MID",
+          "price": 5.9,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 67.6,
+          "projected_points": 5.26,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": false,
+              "difficulty": 3,
+              "expected_goals": 1.39,
+              "clean_sheet_probability": 0.208,
+              "expected_minutes": 67.6,
+              "opponent": "Newcastle",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "68 expected minutes",
+            "form 9.0",
+            "1.39 expected team goals"
           ]
         }
       ],
@@ -293120,50 +293120,18 @@
       },
       "bench": [
         {
-          "player_id": 330,
-          "name": "Jayden Bogle",
-          "web_name": "Bogle",
-          "team": "Leeds",
-          "team_id": 13,
-          "position": "DEF",
-          "price": 4.7,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 77.0,
-          "projected_points": 4.88,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 4,
-              "expected_goals": 1.26,
-              "clean_sheet_probability": 0.203,
-              "expected_minutes": 77.0,
-              "opponent": "Man Utd",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "77 expected minutes",
-            "form 7.0",
-            "1.26 expected team goals"
-          ]
-        },
-        {
-          "player_id": 649,
-          "name": "Ainsley Maitland-Niles",
-          "web_name": "Maitland-Niles",
+          "player_id": 249,
+          "name": "Thierno Barry",
+          "web_name": "Barry",
           "team": "Everton",
           "team_id": 9,
-          "position": "DEF",
-          "price": 4.5,
+          "position": "FWD",
+          "price": 5.7,
           "status": "a",
           "news": "",
           "availability": 1.0,
-          "expected_minutes": 71.1,
-          "projected_points": 4.63,
+          "expected_minutes": 71.6,
+          "projected_points": 4.9,
           "fixture_count": 1,
           "fixtures": [
             {
@@ -293171,16 +293139,48 @@
               "difficulty": 4,
               "expected_goals": 1.55,
               "clean_sheet_probability": 0.247,
-              "expected_minutes": 71.1,
+              "expected_minutes": 71.6,
               "opponent": "Chelsea",
               "model_source": "independent_scoreline"
             }
           ],
           "drivers": [
             "1 fixture",
-            "71 expected minutes",
+            "72 expected minutes",
             "form 6.0",
             "1.55 expected team goals"
+          ]
+        },
+        {
+          "player_id": 176,
+          "name": "Jay Dasilva",
+          "web_name": "Dasilva",
+          "team": "Coventry City",
+          "team_id": 7,
+          "position": "DEF",
+          "price": 4.0,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 68.8,
+          "projected_points": 4.58,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": false,
+              "difficulty": 3,
+              "expected_goals": 1.07,
+              "clean_sheet_probability": 0.244,
+              "expected_minutes": 68.8,
+              "opponent": "Spurs",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "69 expected minutes",
+            "form 10.0",
+            "1.07 expected team goals"
           ]
         },
         {
@@ -293248,7 +293248,7 @@
           ]
         }
       ],
-      "projected_points": 65.08
+      "projected_points": 64.98
     }
   }
 }
