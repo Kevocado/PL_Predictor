@@ -1,4 +1,4 @@
-// Synced from predictor-ui@302e81061654. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@43cd614b30d0. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 /**
  * The model's own top calls, ranked per category.
  *
@@ -130,6 +130,12 @@ export type PickRow = {
   line?: number;
   /** Optional flag for high-mu receptions rows — suppresses direction display. */
   receptions_mu_flag?: string;
+  /** A projection row's comparison with the player's own recent form: his average over the last
+   *  `recentGames` games, and which side of it the model's projection falls on. Rendered as words
+   *  ("Over his 5-game avg 187.4") because this is NOT a sportsbook line and must never read like one. */
+  recentAvg?: number;
+  recentGames?: number;
+  vsRecent?: Direction;
 };
 
 export interface PicksListProps {
@@ -372,6 +378,16 @@ export function PicksList({ title = "Model's top calls", categories, out }: Pick
                         <DirectionBadge direction={row.direction} />
                         <span className="ml-1 font-pr-display text-xs font-semibold tabular-nums">
                           {row.line % 1 === 0 ? row.line.toFixed(1) : row.line} · {pct(row.value)}
+                        </span>
+                      </p>
+                    )}
+                    {/* Projection vs the player's own recent average. Words, not a price: the model's median
+                        against his last-N-games mean. Only a projection row carries it. */}
+                    {row.kind === "projection" && row.recentAvg != null && row.vsRecent && (
+                      <p data-testid="picks-vs-recent" className="pl-6 text-xs leading-snug text-pr-text-dim">
+                        {row.vsRecent !== "toss" && <DirectionBadge direction={row.vsRecent} />}
+                        <span className={`${row.vsRecent !== "toss" ? "ml-1 " : ""}font-pr-display font-semibold tabular-nums`}>
+                          {row.vsRecent === "toss" ? "In line with" : "vs"} his {row.recentGames ?? 5}-game avg {stat(row.recentAvg)}
                         </span>
                       </p>
                     )}
