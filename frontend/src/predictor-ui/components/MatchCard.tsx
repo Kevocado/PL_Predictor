@@ -1,4 +1,4 @@
-// Synced from predictor-ui@ea542ea14782. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@c21db4ee8a52. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 import type { ReactNode } from "react";
 import { pct } from "../fmt";
 import { ProbabilityBar, type Segment } from "./ProbabilityBar";

@@ -1,4 +1,4 @@
-// Synced from predictor-ui@ea542ea14782. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@c21db4ee8a52. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 export * from "./fmt";
 export { contrast, inkFor, luminance } from "./contrast";
 export { AppFrame, type SiteLink, type Sport, type Tab } from "./components/AppFrame";
@@ -31,3 +31,23 @@ export * from "./lib/bundleFacts";
 export { InstantBlock, type InstantBlockProps, AI_PROMISE } from "./components/InstantBlock";
 export { StickyStatTable, type StickyColumn, type StickyRow, type StickySection, type StickyStatTableProps } from "./components/StickyStatTable";
 export { TeamSwitch, TeamToggle, type TeamOption } from "./components/TeamSwitch";
+// The shared Track Record kit: one vocabulary, one view model, five sports.
+export { RIGHT, WRONG, PUSH, MARKET_LABELS, marketLabel, marketRank, SPORT_MOMENT, momentFor } from "./trackRecord/vocabulary";
+export { wilsonInterval } from "./trackRecord/wilson";
+export type {
+  RecordModel,
+  MarketTally,
+  Tally,
+  HeadlineMode,
+  WeekPoint,
+  CalibrationSeries,
+  CalibrationBucket,
+  RecentPick,
+} from "./trackRecord/types";
+export { RecordBlock } from "./trackRecord/RecordBlock";
+export { RecordHeadline, EARLY_SAMPLE } from "./trackRecord/RecordHeadline";
+export { WeekStrip } from "./trackRecord/WeekStrip";
+export { CalibrationChart } from "./trackRecord/CalibrationChart";
+export { RecentPicks } from "./trackRecord/RecentPicks";
+export { HowCounted } from "./trackRecord/HowCounted";
+export { HubTabs, type HubTab } from "./trackRecord/HubTabs";
