@@ -5,7 +5,7 @@ import type {
   WeekPoint,
 } from "../predictor-ui";
 import { marketLabel } from "../predictor-ui";
-import type { TrackRecordResponse } from "../types";
+import type { TrackRecordResponse, TrackRecordSummary } from "../types";
 
 type PlMarket = "exact_score" | "match_result" | "over_under_2_5" | "btts";
 
@@ -31,11 +31,11 @@ function tally(pct: number | null, n: number): { correct: number; n: number } {
   return { correct: Math.round((pct ?? 0) * n), n };
 }
 
-function marketTally(summary: { by_market?: Record<string, { pct_correct: number | null; n_resolved: number }>; pre_kickoff?: { by_market?: Record<string, { pct_correct: number | null; n_resolved: number }> } }, key: PlMarket): MarketTally {
+function marketTally(summary: TrackRecordSummary, key: PlMarket): MarketTally {
   const byMarket = summary.by_market?.[key];
-  const counted = tally(byMarket?.pct_correct, byMarket?.n_resolved ?? 0);
+  const counted = tally(byMarket?.pct_correct ?? null, byMarket?.n_resolved ?? 0);
   const pre = summary.pre_kickoff?.by_market?.[key];
-  const preKickoff = pre && pre.n_resolved > 0 ? tally(pre.pct_correct, pre.n_resolved) : undefined;
+  const preKickoff = pre && pre.n_resolved > 0 ? tally(pre.pct_correct ?? null, pre.n_resolved) : undefined;
   return {
     key,
     label: marketLabelFor(key),
@@ -67,7 +67,7 @@ function calibrationSeries(by_market: { exact_score?: { pct_correct: number | nu
 
 function recentPicks(per_pick: TrackRecordResponse["summary"]["per_pick"] | undefined): { id: string; label: string; pick: string; actual: string; hit: boolean | null; when: string; madeBeforeKickoff: boolean }[] {
   const rows = (per_pick ?? [])
-    .filter((p) => p.counted !== false && p.made_before_kickoff)
+    .filter((p) => p.made_before_kickoff)
     .sort((a, b) => (b.snapshotted_at ?? "").localeCompare(a.snapshotted_at ?? ""))
     .slice(0, 10);
   return rows.map((p) => ({

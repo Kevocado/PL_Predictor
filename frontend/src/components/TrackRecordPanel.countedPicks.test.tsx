@@ -4,7 +4,7 @@
 // whenever it was made; the figure beside it is the subset made before kickoff,
 // with its own n.
 import { describe, expect, it } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render, within } from "@testing-library/react";
 import { TrackRecordPanel } from "./TrackRecordPanel";
 import type { TrackRecordResponse } from "../types";
 

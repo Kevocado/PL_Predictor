@@ -21,7 +21,6 @@ import {
   HowCounted,
   RecordBlock,
   RecordHeadline,
-  RecentPicks,
   StatTile,
   WeekStrip,
   momentFor,
@@ -48,17 +47,14 @@ export function TrackRecordPanel({ data }: { data: TrackRecordResponse }) {
   const moment = momentFor("pl");
 
   const [selected, setSelected] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = async (force = false) => {
     setRefreshing(true);
     try {
-      const next = await api.trackRecord(force);
-      // DataHubPage owns error/retry for this panel; here we just surface a
-      // reload the reader can trigger from the page header.
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      await api.trackRecord(force);
+      // DataHubPage owns error/retry for this panel; the refresh button is a
+      // reader affordance to re-fetch from the page header.
     } finally {
       setRefreshing(false);
     }
@@ -144,7 +140,7 @@ export function TrackRecordPanel({ data }: { data: TrackRecordResponse }) {
 
       <RecordBlock id="tr-reliability" title="Prediction reliability">
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          {["match_result", "over_under_2_5", "exact_score", "btts"].map((key) => {
+          {(["match_result", "over_under_2_5", "exact_score", "btts"] as const).map((key) => {
             const stat = byMarket[key];
             const label = key === "match_result" ? "Match result" : key === "over_under_2_5" ? "Goals O/U 2.5" : key === "exact_score" ? "Exact score" : "BTTS";
             return (
