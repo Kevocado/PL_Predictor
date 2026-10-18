@@ -1,4 +1,4 @@
-// Synced from predictor-ui@c21db4ee8a52. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@130ae20c8e7e. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 /**
  * The Matchup section: how the two sides' units meet, as data, with no AI.
  *

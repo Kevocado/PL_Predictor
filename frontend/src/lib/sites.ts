@@ -7,8 +7,8 @@ const HOST = "40-160-91-131.sslip.io";
 export const SITES: SiteLink[] = [
   { sport: "hub", label: "Home", href: `https://${HOST}` },
   { sport: "pl", label: "PL", href: "/" },
-  { sport: "f1", label: "F1", href: `https://f1.${HOST}` },
   { sport: "nfl", label: "NFL", href: `https://sports.${HOST}/?sport=nfl` },
   { sport: "cfb", label: "CFB", href: `https://sports.${HOST}/?sport=cfb` },
   { sport: "nba", label: "NBA", href: `https://nba.${HOST}` },
+  { sport: "f1", label: "F1", href: `https://f1.${HOST}` },
 ];
