@@ -17,17 +17,18 @@ describe("App family frame", () => {
     const sports = screen.getByRole("navigation", { name: "Sports" });
     expect(within(sports).getByRole("link", { name: "PL" })).toHaveAttribute("aria-current", "page");
     expect(within(sports).getByRole("link", { name: "F1" }).getAttribute("href")).toMatch(/^https:\/\/f1\./);
+    expect(within(sports).getByRole("link", { name: "Paper Trading" })).toBeInTheDocument();
   });
 
   it("switches pages with the page tabs, mounting each page on first visit", () => {
     render(<App />);
-    const pages = screen.getByRole("navigation", { name: "Pages" });
-    const labels = within(pages).getAllByRole("button").map((b) => b.textContent);
-    expect(labels.slice(0, 3)).toEqual(["Fixtures", "Data Hub", "FPL"]);
-    expect(within(pages).getByRole("button", { name: "Fixtures" })).toHaveAttribute("aria-current", "page");
+    const pages = screen.getByRole("tablist", { name: "Pages" });
+    const labels = within(pages).getAllByRole("tab").map((b) => b.textContent);
+    expect(labels.slice(0, 3)).toEqual(["Fixtures", "Teams", "Players"]);
+    expect(within(pages).getByRole("tab", { name: "Fixtures" })).toHaveAttribute("aria-selected", "true");
     expect(screen.queryByTestId("page-fpl")).not.toBeInTheDocument();
-    fireEvent.click(within(pages).getByRole("button", { name: "FPL" }));
-    expect(within(pages).getByRole("button", { name: "FPL" })).toHaveAttribute("aria-current", "page");
+    fireEvent.click(within(pages).getByRole("tab", { name: "FPL" }));
+    expect(within(pages).getByRole("tab", { name: "FPL" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByTestId("page-fpl")).toBeVisible();
     expect(screen.getByTestId("page-fixtures")).not.toBeVisible();
   });

@@ -26,7 +26,7 @@ function PanelUnavailable({ message, onRetry }: { message: string; onRetry: () =
   );
 }
 
-export function DataHubPage() {
+export function DataHubPage({ initialTab }: { initialTab?: string }) {
   const [rankings, setRankings] = useState<RankingsResponse | null>(null);
   const [table, setTable] = useState<ProjectedTableResponse | null>(null);
   const [trackRecord, setTrackRecord] = useState<TrackRecordResponse | null>(null);
@@ -35,7 +35,7 @@ export function DataHubPage() {
   const [errors, setErrors] = useState<Partial<Record<Panel, string>>>({});
   const [refreshError, setRefreshError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [tab, setTab] = useState<Tab>("Team Hub");
+  const [tab, setTab] = useState<Tab>((initialTab ?? "Team Hub") as Tab);
 
   const load = useCallback((force = false) => {
     setRefreshing(true);
