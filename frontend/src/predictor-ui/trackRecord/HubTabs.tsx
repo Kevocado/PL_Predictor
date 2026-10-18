@@ -1,5 +1,5 @@
-// Synced from predictor-ui@c21db4ee8a52. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
-import { useId, useRef, type KeyboardEvent, type ReactNode } from "react";
+// Synced from predictor-ui@130ae20c8e7e. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+import { useId, useRef, useEffect, useState, useCallback, type KeyboardEvent, type ReactNode } from "react";
 
 /** One tab: a stable id and the words on it. */
 export type HubTab = { id: string; label: string };
@@ -31,6 +31,8 @@ export function HubTabs({
 }) {
   const uid = useId();
   const refs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const [overflowing, setOverflowing] = useState(false);
   const tabId = (t: HubTab) => `${uid}-tab-${t.id}`;
   const panelId = (t: HubTab) => `${uid}-panel-${t.id}`;
 
@@ -59,10 +61,46 @@ export function HubTabs({
 
   const currentTab = tabs.find((t) => t.id === active) ?? tabs[0];
 
+  const checkOverflow = useCallback(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    setOverflowing(el.scrollWidth > el.clientWidth + 1);
+  }, []);
+
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    checkOverflow();
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined") {
+      ro = new ResizeObserver(checkOverflow);
+      ro.observe(el);
+    }
+    el.addEventListener("scroll", checkOverflow);
+    window.addEventListener("resize", checkOverflow);
+    return () => {
+      ro?.disconnect();
+      el.removeEventListener("scroll", checkOverflow);
+      window.removeEventListener("resize", checkOverflow);
+    };
+  }, [checkOverflow, tabs]);
+
+  useEffect(() => {
+    if (!currentTab) return;
+    const el = refs.current[currentTab.id];
+    el?.scrollIntoView?.({ inline: "nearest", block: "nearest", behavior: "smooth" });
+  }, [currentTab]);
+
   return (
     <div>
       <div className="relative">
-        <div role="tablist" aria-label={label} className="flex gap-4 overflow-x-auto">
+        <div
+          ref={scrollerRef}
+          data-testid="hub-tabs-scroller"
+          role="tablist"
+          aria-label={label}
+          className="flex gap-4 overflow-x-auto"
+        >
           {tabs.map((tab, index) => {
             const current = tab.id === currentTab?.id;
             return (
@@ -88,7 +126,13 @@ export function HubTabs({
             );
           })}
         </div>
-        <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-pr-stage to-transparent" />
+        {overflowing && (
+          <span
+            aria-hidden="true"
+            data-testid="hub-tabs-fade"
+            className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-pr-stage to-transparent"
+          />
+        )}
       </div>
       {currentTab && (
         <div role="tabpanel" id={panelId(currentTab)} aria-labelledby={tabId(currentTab)} tabIndex={0} className="pt-4">
