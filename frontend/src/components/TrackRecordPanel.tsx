@@ -10,7 +10,7 @@
 // The adapter lives in `lib/recordModel.ts`; the backend contract is unchanged.
 
 import { useState } from "react";
-import type { TrackRecordResponse } from "../types";
+import type { TrackRecordByMarket, TrackRecordResponse } from "../types";
 import { InfoTooltip } from "./InfoTooltip";
 import { MissesTable } from "./MissesTable";
 import { GameweekResultsGrid } from "./GameweekResultsGrid";
@@ -63,7 +63,7 @@ export function TrackRecordPanel({ data }: { data: TrackRecordResponse }) {
   // Defensive: an older public_snapshot.json built before a field existed can
   // still be live for a few minutes after a deploy (the frontend ships
   // instantly; the data it reads is regenerated on its own schedule).
-  const byMarket = summary.by_market ?? {};
+  const byMarket: TrackRecordByMarket = summary.by_market ?? ({} as TrackRecordByMarket);
   const nRebuilt = summary.n_rebuilt_fixtures ?? 0;
   const preKickoff = summary.pre_kickoff ?? null;
 

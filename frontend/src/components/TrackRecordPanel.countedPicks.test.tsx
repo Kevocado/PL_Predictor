@@ -8,13 +8,6 @@ import { render, within } from "@testing-library/react";
 import { TrackRecordPanel } from "./TrackRecordPanel";
 import type { TrackRecordResponse } from "../types";
 
-const fixture = (event_id: string, hit: boolean) => ({
-  event_id, team_home: "Tottenham", team_away: "Aston Villa", commence_time: "2026-09-19T10:30:00Z",
-  predicted_scoreline: "1-1", actual_goals_home: 2, actual_goals_away: 3,
-  predicted_home_win: 0.36, predicted_draw: 0.26, predicted_away_win: 0.38,
-  actual_outcome: "away_win" as const, hit, backfilled: true,
-});
-
 // 3 counted picks, all recorded after their own kickoff. `pre_kickoff` is empty
 // because no pick's own timestamps prove it was made in time.
 const allLate: TrackRecordResponse = {
@@ -113,7 +106,7 @@ describe("TrackRecordPanel counts every recorded pick", () => {
   });
 
   it("never tells a reader a counted pick was held out of the record", () => {
-    const { container } = render(<TrackRecordPanel data={allLate} />);
+    render(<TrackRecordPanel data={allLate} />);
     expect(document.body.textContent).not.toMatch(/not\s+counted/i);
     expect(document.body.textContent).not.toMatch(/not in the headline/i);
     expect(document.body.textContent).not.toMatch(/Rebuilt after/i);
@@ -128,7 +121,7 @@ describe("TrackRecordPanel counts every recorded pick", () => {
   });
 
   it("renders no NaN anywhere", () => {
-    const { container } = render(<TrackRecordPanel data={allLate} />);
+    render(<TrackRecordPanel data={allLate} />);
     expect(document.body.textContent).not.toMatch(/NaN/);
   });
 
