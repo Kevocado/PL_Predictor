@@ -1,4 +1,4 @@
-// Synced from predictor-ui@130ae20c8e7e. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@5386eabd85ce. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 import { useId, useRef, useEffect, useState, useCallback, type KeyboardEvent, type ReactNode } from "react";
 
 /** One tab: a stable id and the words on it. */
@@ -92,8 +92,8 @@ export function HubTabs({
   }, [currentTab]);
 
   return (
-    <div>
-      <div className="relative">
+    <div className="min-w-0 max-w-full">
+      <div className="relative min-w-0 max-w-full">
         <div
           ref={scrollerRef}
           data-testid="hub-tabs-scroller"
