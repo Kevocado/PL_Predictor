@@ -15,7 +15,7 @@ describe("App family frame", () => {
     expect(screen.getByRole("heading", { name: "PL Predictor" })).toBeInTheDocument();
     expect(container.querySelector("[data-sport='pl']")).not.toBeNull();
     const sports = screen.getByRole("navigation", { name: "Sports" });
-    expect(within(sports).getByRole("link", { name: "PL" })).toHaveAttribute("aria-current", "page");
+    expect(within(sports).getByRole("link", { name: "Premier League" })).toHaveAttribute("aria-current", "page");
     expect(within(sports).getByRole("link", { name: "F1" }).getAttribute("href")).toMatch(/^https:\/\/f1\./);
     expect(within(sports).getByRole("link", { name: "Paper Trading" })).toBeInTheDocument();
   });

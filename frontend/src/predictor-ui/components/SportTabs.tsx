@@ -1,4 +1,4 @@
-// Synced from predictor-ui@130ae20c8e7e. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@5386eabd85ce. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 import { HubTabs, type HubTab } from "../trackRecord/HubTabs";
 import type { ReactNode } from "react";
 
@@ -20,7 +20,7 @@ type Props = {
  */
 export function SportTabs({ tabs, active, onChange, panels, label = "Pages", className }: Props) {
   return (
-    <div className={className}>
+    <div className={`min-w-0 max-w-full${className ? ` ${className}` : ""}`}>
       <HubTabs tabs={tabs} active={active} onChange={onChange} panels={panels} label={label} />
     </div>
   );

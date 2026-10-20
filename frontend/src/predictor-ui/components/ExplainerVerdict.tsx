@@ -1,4 +1,4 @@
-// Synced from predictor-ui@130ae20c8e7e. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@5386eabd85ce. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 /** The confidence word, as a word.
  *
  *  `band` arrives from the service already computed from `pick.prob` (spec

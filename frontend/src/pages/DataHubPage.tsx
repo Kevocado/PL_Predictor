@@ -8,8 +8,7 @@ import { TeamHub } from "../components/TeamHub";
 import { PlayerHub } from "../components/PlayerHub";
 import { PUBLIC_MODE } from "../lib/publicMode";
 
-const TABS = ["Team Hub", "Player Hub", "Power Rankings", "Projected Table", "Track Record"] as const;
-type Tab = (typeof TABS)[number];
+type Tab = "Team Hub" | "Player Hub" | "Power Rankings" | "Projected Table" | "Track Record";
 type Panel = "rankings" | "table" | "trackRecord" | "teamHub" | "playerHub";
 
 // The live-results cache is refreshed by the backend every minute. Matching
@@ -35,7 +34,8 @@ export function DataHubPage({ initialTab }: { initialTab?: string }) {
   const [errors, setErrors] = useState<Partial<Record<Panel, string>>>({});
   const [refreshError, setRefreshError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [tab, setTab] = useState<Tab>((initialTab ?? "Team Hub") as Tab);
+  // The page tabs in AppFrame are the only navigation: the panel follows the route, never local state.
+  const tab = (initialTab ?? "Team Hub") as Tab;
 
   const load = useCallback((force = false) => {
     setRefreshing(true);
@@ -88,19 +88,8 @@ export function DataHubPage({ initialTab }: { initialTab?: string }) {
   return (
     <div>
       {refreshError && <p className="mb-3 rounded-lg border border-loss/40 bg-loss/10 px-3 py-2 text-sm text-loss">{refreshError}</p>}
-      <div className="mb-6 flex items-center justify-between gap-3">
-        <div className="flex w-fit max-w-full gap-1 overflow-x-auto rounded-lg border border-pl-border bg-pl-850/50 p-1">
-          {TABS.map((item) => (
-            <button
-              key={item}
-              onClick={() => setTab(item)}
-              className={`whitespace-nowrap rounded-md px-4 py-2 text-sm font-semibold transition ${tab === item ? "bg-pl-pink text-pr-accent-ink" : "text-pl-text-dim hover:text-pl-text"}`}
-            >
-              {item}
-            </button>
-          ))}
-        </div>
-        {!PUBLIC_MODE && (
+      {!PUBLIC_MODE && (
+        <div className="mb-6 flex justify-end">
           <button
             onClick={() => { void refresh(); }}
             disabled={refreshing}
@@ -108,8 +97,8 @@ export function DataHubPage({ initialTab }: { initialTab?: string }) {
           >
             {refreshing ? "Refreshing…" : "Refresh live data"}
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {tab === "Team Hub" && <section><h2 className="mb-3 text-lg font-semibold text-pl-text">Team Hub</h2>{errors.teamHub ? <PanelUnavailable message={errors.teamHub} onRetry={() => { void load(true); }} /> : teamHub ? <TeamHub data={teamHub} /> : <p className="py-10 text-center text-sm text-pl-text-faint">Loading team analytics…</p>}</section>}
       {tab === "Player Hub" && <section><h2 className="mb-3 text-lg font-semibold text-pl-text">Player Hub</h2>{errors.playerHub ? <PanelUnavailable message={errors.playerHub} onRetry={() => { void load(true); }} /> : playerHub ? <PlayerHub data={playerHub} /> : <p className="py-10 text-center text-sm text-pl-text-faint">Loading player analytics…</p>}</section>}

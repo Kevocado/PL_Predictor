@@ -1,4 +1,4 @@
-// Synced from predictor-ui@130ae20c8e7e. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@5386eabd85ce. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Sport } from "./AppFrame";
 
@@ -50,7 +50,7 @@ export function GlobalNav({ entries, activeId, ariaLabel = "Sports" }: Props) {
   }, [activeId]);
 
   return (
-    <nav aria-label={ariaLabel} className="relative">
+    <nav aria-label={ariaLabel} className="relative min-w-0 max-w-full">
       <div
         ref={scrollRef}
         data-testid="global-nav-scroller"
