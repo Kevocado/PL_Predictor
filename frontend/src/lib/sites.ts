@@ -6,9 +6,9 @@ import type { SiteLink } from "../predictor-ui";
 const HOST = "40-160-91-131.sslip.io";
 export const SITES: SiteLink[] = [
   { sport: "hub", label: "Home", href: `https://${HOST}` },
-  { sport: "pl", label: "PL", href: "/" },
+  { sport: "pl", label: "Premier League", href: "/" },
   { sport: "nfl", label: "NFL", href: `https://sports.${HOST}/?sport=nfl` },
-  { sport: "cfb", label: "CFB", href: `https://sports.${HOST}/?sport=cfb` },
+  { sport: "cfb", label: "College football", href: `https://sports.${HOST}/?sport=cfb` },
   { sport: "nba", label: "NBA", href: `https://nba.${HOST}` },
   { sport: "f1", label: "F1", href: `https://f1.${HOST}` },
 ];
