@@ -1,4 +1,4 @@
-// Synced from predictor-ui@5386eabd85ce. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@e5f26af27dc8. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 import type { Moment } from "../components/StatusBadge";
 import { marketRank } from "./vocabulary";
 import { wilsonInterval } from "./wilson";
