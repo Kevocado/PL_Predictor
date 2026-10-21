@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-21T20:04:31.626665+00:00",
+  "generated_at": "2026-10-21T23:15:50.590854+00:00",
   "model_fingerprint": "38d8e310d6f6316d0951a40c95e0f4ed51eebba2ee04dd34a0c17d27ad09a9ad",
   "current_gameweek": 7,
   "min_gameweek": 1,
@@ -8834,7 +8834,7 @@
       "away_2plus_prob": 0.3355497503489235,
       "value_bet_flags": [],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-21T19:59:24.345251Z",
+      "odds_fetched_at": "2026-10-21T23:12:05.482794Z",
       "odds_is_stale": false,
       "recommended_bet": null,
       "score_grid": [
@@ -70643,7 +70643,7 @@
         "over_2_5"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-21T19:59:24.345251Z",
+      "odds_fetched_at": "2026-10-21T23:12:05.482794Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "home_win",
@@ -71513,7 +71513,7 @@
         "btts_no"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-21T19:59:24.345251Z",
+      "odds_fetched_at": "2026-10-21T23:12:05.482794Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "away_win",
@@ -72083,7 +72083,7 @@
         "under_2_5"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-21T19:59:24.345251Z",
+      "odds_fetched_at": "2026-10-21T23:12:05.482794Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "under_2_5",
@@ -72333,7 +72333,7 @@
         "btts_no"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-21T19:59:24.345251Z",
+      "odds_fetched_at": "2026-10-21T23:12:05.482794Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "under_2_5",
@@ -72583,7 +72583,7 @@
         "btts_no"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-21T19:59:24.345251Z",
+      "odds_fetched_at": "2026-10-21T23:12:05.482794Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "btts_no",
@@ -72848,7 +72848,7 @@
         "btts_no"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-21T19:59:24.345251Z",
+      "odds_fetched_at": "2026-10-21T23:12:05.482794Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "away_win",
@@ -73095,7 +73095,7 @@
       "away_2plus_prob": 0.3984261719096024,
       "value_bet_flags": [],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-21T19:59:24.345251Z",
+      "odds_fetched_at": "2026-10-21T23:12:05.482794Z",
       "odds_is_stale": false,
       "recommended_bet": null,
       "score_grid": [
@@ -73712,7 +73712,7 @@
         "home_win"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-21T19:59:24.345251Z",
+      "odds_fetched_at": "2026-10-21T23:12:05.482794Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "home_win",
@@ -87445,7 +87445,7 @@
       "away_2plus_prob": 0.33633434481454316,
       "value_bet_flags": [],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-21T19:59:24.345251Z",
+      "odds_fetched_at": "2026-10-21T23:12:05.482794Z",
       "odds_is_stale": false,
       "recommended_bet": null,
       "score_grid": [
@@ -87673,7 +87673,7 @@
         "btts_no"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-21T19:59:24.345251Z",
+      "odds_fetched_at": "2026-10-21T23:12:05.482794Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "btts_no",
@@ -87923,7 +87923,7 @@
         "btts_no"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-21T19:59:24.345251Z",
+      "odds_fetched_at": "2026-10-21T23:12:05.482794Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "home_win",
@@ -88137,7 +88137,7 @@
         "btts_yes"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-21T19:59:24.345251Z",
+      "odds_fetched_at": "2026-10-21T23:12:05.482794Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "btts_yes",
@@ -88384,7 +88384,7 @@
       "away_2plus_prob": 0.5356367609020926,
       "value_bet_flags": [],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-21T19:59:24.345251Z",
+      "odds_fetched_at": "2026-10-21T23:12:05.482794Z",
       "odds_is_stale": false,
       "recommended_bet": null,
       "score_grid": [
@@ -88595,7 +88595,7 @@
         "btts_no"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-21T19:59:24.345251Z",
+      "odds_fetched_at": "2026-10-21T23:12:05.482794Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "btts_no",
@@ -88808,7 +88808,7 @@
         "home_win"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-21T19:59:24.345251Z",
+      "odds_fetched_at": "2026-10-21T23:12:05.482794Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "home_win",
@@ -89035,7 +89035,7 @@
         "away_win"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-21T19:59:24.345251Z",
+      "odds_fetched_at": "2026-10-21T23:12:05.482794Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "away_win",
@@ -89603,7 +89603,7 @@
       "away_2plus_prob": 0.41853470066931703,
       "value_bet_flags": [],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-21T19:59:24.345251Z",
+      "odds_fetched_at": "2026-10-21T23:12:05.482794Z",
       "odds_is_stale": false,
       "recommended_bet": null,
       "score_grid": [
@@ -90502,7 +90502,7 @@
         "home_win"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-21T19:59:24.345251Z",
+      "odds_fetched_at": "2026-10-21T23:12:05.482794Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "home_win",
@@ -90700,7 +90700,7 @@
         "away_win"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-21T19:59:24.345251Z",
+      "odds_fetched_at": "2026-10-21T23:12:05.482794Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "away_win",
@@ -92347,27 +92347,6 @@
           "expected_saves": 0.0
         },
         {
-          "player_id": 644,
-          "name": "Timber",
-          "position": "MID",
-          "anytime_goal_prob": 0.11672796039242084,
-          "anytime_goal_prob_pre_availability": 0.11672796039242084,
-          "anytime_assist_prob": 0.14162928541419184,
-          "anytime_goal_contribution_prob": 0.24182514818837797,
-          "status": "a",
-          "news": "",
-          "confidence": "position_avg",
-          "predicted_starter": true,
-          "confirmed_starter": false,
-          "expected_minutes": 60.885062240663906,
-          "is_penalty_taker": false,
-          "is_set_piece_taker": false,
-          "expected_shots": 0.0,
-          "expected_shots_on_target": 0.0,
-          "anytime_shot_on_target_prob": 0.0,
-          "expected_saves": 0.0
-        },
-        {
           "player_id": 211,
           "name": "Yeremy",
           "position": "MID",
@@ -92423,6 +92402,27 @@
           "predicted_starter": true,
           "confirmed_starter": false,
           "expected_minutes": 75.61955503512881,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false,
+          "expected_shots": 0.0,
+          "expected_shots_on_target": 0.0,
+          "anytime_shot_on_target_prob": 0.0,
+          "expected_saves": 0.0
+        },
+        {
+          "player_id": 644,
+          "name": "Timber",
+          "position": "MID",
+          "anytime_goal_prob": 0.08888989756554366,
+          "anytime_goal_prob_pre_availability": 0.11672796039242084,
+          "anytime_assist_prob": 0.10822320130783558,
+          "anytime_goal_contribution_prob": 0.18749314959491048,
+          "status": "d",
+          "news": "Hamstring injury - 75% chance of playing",
+          "confidence": "position_avg",
+          "predicted_starter": true,
+          "confirmed_starter": false,
+          "expected_minutes": 45.66379668049793,
           "is_penalty_taker": false,
           "is_set_piece_taker": false,
           "expected_shots": 0.0,
@@ -93973,27 +93973,6 @@
     "560640": {
       "home_players": [
         {
-          "player_id": 12,
-          "name": "Saka",
-          "position": "MID",
-          "anytime_goal_prob": 0.5238728259855903,
-          "anytime_goal_prob_pre_availability": 0.5238728259855903,
-          "anytime_assist_prob": 0.413417138268386,
-          "anytime_goal_contribution_prob": 0.7207119597184414,
-          "status": "a",
-          "news": "",
-          "confidence": "prior_season",
-          "predicted_starter": true,
-          "confirmed_starter": false,
-          "expected_minutes": 74.89033816425122,
-          "is_penalty_taker": true,
-          "is_set_piece_taker": false,
-          "expected_shots": 0.7916123734182924,
-          "expected_shots_on_target": 0.26387079113943085,
-          "anytime_shot_on_target_prob": 0.2319272249463793,
-          "expected_saves": 0.0
-        },
-        {
           "player_id": 26,
           "name": "Havertz",
           "position": "FWD",
@@ -94033,6 +94012,27 @@
           "expected_shots": 0.8008129160988018,
           "expected_shots_on_target": 0.26693763869960063,
           "anytime_shot_on_target_prob": 0.2342791786773526,
+          "expected_saves": 0.0
+        },
+        {
+          "player_id": 12,
+          "name": "Saka",
+          "position": "MID",
+          "anytime_goal_prob": 0.309980308966179,
+          "anytime_goal_prob_pre_availability": 0.5238728259855903,
+          "anytime_assist_prob": 0.23411302287373104,
+          "anytime_goal_contribution_prob": 0.4715229046765048,
+          "status": "d",
+          "news": "Thigh injury - 50% chance of playing",
+          "confidence": "prior_season",
+          "predicted_starter": true,
+          "confirmed_starter": false,
+          "expected_minutes": 37.44516908212561,
+          "is_penalty_taker": true,
+          "is_set_piece_taker": false,
+          "expected_shots": 0.3958061867091462,
+          "expected_shots_on_target": 0.13193539556971542,
+          "anytime_shot_on_target_prob": 0.12360238758105879,
           "expected_saves": 0.0
         },
         {
@@ -97647,27 +97647,6 @@
           "expected_saves": 0.0
         },
         {
-          "player_id": 644,
-          "name": "Timber",
-          "position": "MID",
-          "anytime_goal_prob": 0.08316332618216049,
-          "anytime_goal_prob_pre_availability": 0.08316332618216049,
-          "anytime_assist_prob": 0.11113328376183174,
-          "anytime_goal_contribution_prob": 0.18505439641681243,
-          "status": "a",
-          "news": "",
-          "confidence": "position_avg",
-          "predicted_starter": true,
-          "confirmed_starter": false,
-          "expected_minutes": 60.885062240663906,
-          "is_penalty_taker": false,
-          "is_set_piece_taker": false,
-          "expected_shots": 0.0,
-          "expected_shots_on_target": 0.0,
-          "anytime_shot_on_target_prob": 0.0,
-          "expected_saves": 0.0
-        },
-        {
           "player_id": 211,
           "name": "Yeremy",
           "position": "MID",
@@ -97710,22 +97689,43 @@
           "expected_saves": 0.0
         },
         {
-          "player_id": 214,
-          "name": "Kamada",
+          "player_id": 644,
+          "name": "Timber",
           "position": "MID",
-          "anytime_goal_prob": 0.06191667219486685,
-          "anytime_goal_prob_pre_availability": 0.06191667219486685,
-          "anytime_assist_prob": 0.04486912240424945,
-          "anytime_goal_contribution_prob": 0.10400764785554106,
+          "anytime_goal_prob": 0.0630444615960265,
+          "anytime_goal_prob_pre_availability": 0.08316332618216049,
+          "anytime_assist_prob": 0.0845650625312252,
+          "anytime_goal_contribution_prob": 0.14227816529013626,
+          "status": "d",
+          "news": "Hamstring injury - 75% chance of playing",
+          "confidence": "position_avg",
+          "predicted_starter": true,
+          "confirmed_starter": false,
+          "expected_minutes": 45.66379668049793,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false,
+          "expected_shots": 0.0,
+          "expected_shots_on_target": 0.0,
+          "anytime_shot_on_target_prob": 0.0,
+          "expected_saves": 0.0
+        },
+        {
+          "player_id": 643,
+          "name": "Chilwell",
+          "position": "DEF",
+          "anytime_goal_prob": 0.06268832747729491,
+          "anytime_goal_prob_pre_availability": 0.06268832747729491,
+          "anytime_assist_prob": 0.033535505148964306,
+          "anytime_goal_contribution_prob": 0.09412154789736449,
           "status": "a",
           "news": "",
           "confidence": "prior_season",
-          "predicted_starter": true,
+          "predicted_starter": false,
           "confirmed_starter": false,
-          "expected_minutes": 74.89033816425122,
+          "expected_minutes": 18.899291784702548,
           "is_penalty_taker": false,
           "is_set_piece_taker": false,
-          "expected_shots": 0.07671112209825694,
+          "expected_shots": 0.0,
           "expected_shots_on_target": 0.0,
           "anytime_shot_on_target_prob": 0.0,
           "expected_saves": 0.0
@@ -97905,27 +97905,6 @@
       ],
       "away_players": [
         {
-          "player_id": 12,
-          "name": "Saka",
-          "position": "MID",
-          "anytime_goal_prob": 0.40411585942770456,
-          "anytime_goal_prob_pre_availability": 0.40411585942770456,
-          "anytime_assist_prob": 0.2884294021709647,
-          "anytime_goal_contribution_prob": 0.5759863658561308,
-          "status": "a",
-          "news": "",
-          "confidence": "prior_season",
-          "predicted_starter": true,
-          "confirmed_starter": false,
-          "expected_minutes": 74.89033816425122,
-          "is_penalty_taker": true,
-          "is_set_piece_taker": false,
-          "expected_shots": 0.41737590281313824,
-          "expected_shots_on_target": 0.13912530093771275,
-          "anytime_shot_on_target_prob": 0.12988100509859202,
-          "expected_saves": 0.0
-        },
-        {
           "player_id": 26,
           "name": "Havertz",
           "position": "FWD",
@@ -97986,6 +97965,27 @@
           "expected_shots": 0.0,
           "expected_shots_on_target": 0.0,
           "anytime_shot_on_target_prob": 0.0,
+          "expected_saves": 0.0
+        },
+        {
+          "player_id": 12,
+          "name": "Saka",
+          "position": "MID",
+          "anytime_goal_prob": 0.22806467850454237,
+          "anytime_goal_prob_pre_availability": 0.40411585942770456,
+          "anytime_assist_prob": 0.1564535591746976,
+          "anytime_goal_contribution_prob": 0.3488367070051712,
+          "status": "d",
+          "news": "Thigh injury - 50% chance of playing",
+          "confidence": "prior_season",
+          "predicted_starter": true,
+          "confirmed_starter": false,
+          "expected_minutes": 37.44516908212561,
+          "is_penalty_taker": true,
+          "is_set_piece_taker": false,
+          "expected_shots": 0.20868795140656912,
+          "expected_shots_on_target": 0.06956265046885637,
+          "anytime_shot_on_target_prob": 0.06719830890944034,
           "expected_saves": 0.0
         },
         {
@@ -98761,27 +98761,6 @@
     "560654": {
       "home_players": [
         {
-          "player_id": 12,
-          "name": "Saka",
-          "position": "MID",
-          "anytime_goal_prob": 0.42738223656840524,
-          "anytime_goal_prob_pre_availability": 0.42738223656840524,
-          "anytime_assist_prob": 0.31199845271241844,
-          "anytime_goal_contribution_prob": 0.6060380927547084,
-          "status": "a",
-          "news": "",
-          "confidence": "prior_season",
-          "predicted_starter": true,
-          "confirmed_starter": false,
-          "expected_minutes": 74.89033816425122,
-          "is_penalty_taker": true,
-          "is_set_piece_taker": false,
-          "expected_shots": 0.554952644177966,
-          "expected_shots_on_target": 0.1849842147259887,
-          "anytime_shot_on_target_prob": 0.16888259683547602,
-          "expected_saves": 0.0
-        },
-        {
           "player_id": 26,
           "name": "Havertz",
           "position": "FWD",
@@ -98821,6 +98800,27 @@
           "expected_shots": 0.5614026008232532,
           "expected_shots_on_target": 0.18713420027441777,
           "anytime_shot_on_target_prob": 0.1706675677229451,
+          "expected_saves": 0.0
+        },
+        {
+          "player_id": 12,
+          "name": "Saka",
+          "position": "MID",
+          "anytime_goal_prob": 0.24328488621437283,
+          "anytime_goal_prob_pre_availability": 0.42738223656840524,
+          "anytime_assist_prob": 0.170541413157003,
+          "anytime_goal_contribution_prob": 0.372336151076636,
+          "status": "d",
+          "news": "Thigh injury - 50% chance of playing",
+          "confidence": "prior_season",
+          "predicted_starter": true,
+          "confirmed_starter": false,
+          "expected_minutes": 37.44516908212561,
+          "is_penalty_taker": true,
+          "is_set_piece_taker": false,
+          "expected_shots": 0.277476322088983,
+          "expected_shots_on_target": 0.09249210736299435,
+          "anytime_shot_on_target_prob": 0.08834359369084455,
           "expected_saves": 0.0
         },
         {
@@ -101239,27 +101239,6 @@
           "expected_saves": 0.0
         },
         {
-          "player_id": 644,
-          "name": "Timber",
-          "position": "MID",
-          "anytime_goal_prob": 0.13004980984527392,
-          "anytime_goal_prob_pre_availability": 0.13004980984527392,
-          "anytime_assist_prob": 0.15753054435972358,
-          "anytime_goal_contribution_prob": 0.26709353686619297,
-          "status": "a",
-          "news": "",
-          "confidence": "position_avg",
-          "predicted_starter": true,
-          "confirmed_starter": false,
-          "expected_minutes": 60.885062240663906,
-          "is_penalty_taker": false,
-          "is_set_piece_taker": false,
-          "expected_shots": 0.0,
-          "expected_shots_on_target": 0.0,
-          "anytime_shot_on_target_prob": 0.0,
-          "expected_saves": 0.0
-        },
-        {
           "player_id": 211,
           "name": "Yeremy",
           "position": "MID",
@@ -101315,6 +101294,27 @@
           "predicted_starter": true,
           "confirmed_starter": false,
           "expected_minutes": 75.61955503512881,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false,
+          "expected_shots": 0.0,
+          "expected_shots_on_target": 0.0,
+          "anytime_shot_on_target_prob": 0.0,
+          "expected_saves": 0.0
+        },
+        {
+          "player_id": 644,
+          "name": "Timber",
+          "position": "MID",
+          "anytime_goal_prob": 0.09921573652727778,
+          "anytime_goal_prob_pre_availability": 0.13004980984527392,
+          "anytime_assist_prob": 0.1206421940497413,
+          "anytime_goal_contribution_prob": 0.20788832643810717,
+          "status": "d",
+          "news": "Hamstring injury - 75% chance of playing",
+          "confidence": "position_avg",
+          "predicted_starter": true,
+          "confirmed_starter": false,
+          "expected_minutes": 45.66379668049793,
           "is_penalty_taker": false,
           "is_set_piece_taker": false,
           "expected_shots": 0.0,
@@ -196827,27 +196827,6 @@
           "expected_saves": 0.0
         },
         {
-          "player_id": 644,
-          "name": "Timber",
-          "position": "MID",
-          "anytime_goal_prob": 0.08043673498834769,
-          "anytime_goal_prob_pre_availability": 0.08043673498834769,
-          "anytime_assist_prob": 0.10754472405383952,
-          "anytime_goal_contribution_prob": 0.17933091257407352,
-          "status": "a",
-          "news": "",
-          "confidence": "position_avg",
-          "predicted_starter": true,
-          "confirmed_starter": false,
-          "expected_minutes": 60.885062240663906,
-          "is_penalty_taker": false,
-          "is_set_piece_taker": false,
-          "expected_shots": 0.0,
-          "expected_shots_on_target": 0.0,
-          "anytime_shot_on_target_prob": 0.0,
-          "expected_saves": 0.0
-        },
-        {
           "player_id": 211,
           "name": "Yeremy",
           "position": "MID",
@@ -196890,22 +196869,43 @@
           "expected_saves": 0.0
         },
         {
-          "player_id": 214,
-          "name": "Kamada",
+          "player_id": 644,
+          "name": "Timber",
           "position": "MID",
-          "anytime_goal_prob": 0.05986379590959512,
-          "anytime_goal_prob_pre_availability": 0.05986379590959512,
-          "anytime_assist_prob": 0.04336834777902365,
-          "anytime_goal_contribution_prob": 0.10063594976823897,
+          "anytime_goal_prob": 0.060955420312921005,
+          "anytime_goal_prob_pre_availability": 0.08043673498834769,
+          "anytime_assist_prob": 0.08179459271296474,
+          "anytime_goal_contribution_prob": 0.13776418924774292,
+          "status": "d",
+          "news": "Hamstring injury - 75% chance of playing",
+          "confidence": "position_avg",
+          "predicted_starter": true,
+          "confirmed_starter": false,
+          "expected_minutes": 45.66379668049793,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false,
+          "expected_shots": 0.0,
+          "expected_shots_on_target": 0.0,
+          "anytime_shot_on_target_prob": 0.0,
+          "expected_saves": 0.0
+        },
+        {
+          "player_id": 643,
+          "name": "Chilwell",
+          "position": "DEF",
+          "anytime_goal_prob": 0.0606107015500702,
+          "anytime_goal_prob_pre_availability": 0.0606107015500702,
+          "anytime_assist_prob": 0.03240736327449545,
+          "anytime_goal_contribution_prob": 0.09105383180111037,
           "status": "a",
           "news": "",
           "confidence": "prior_season",
-          "predicted_starter": true,
+          "predicted_starter": false,
           "confirmed_starter": false,
-          "expected_minutes": 74.89033816425122,
+          "expected_minutes": 18.899291784702548,
           "is_penalty_taker": false,
           "is_set_piece_taker": false,
-          "expected_shots": 0.07408755633179911,
+          "expected_shots": 0.0,
           "expected_shots_on_target": 0.0,
           "anytime_shot_on_target_prob": 0.0,
           "expected_saves": 0.0
@@ -198795,27 +198795,6 @@
       ],
       "away_players": [
         {
-          "player_id": 12,
-          "name": "Saka",
-          "position": "MID",
-          "anytime_goal_prob": 0.34600649474540457,
-          "anytime_goal_prob_pre_availability": 0.34600649474540457,
-          "anytime_assist_prob": 0.2287091375138931,
-          "anytime_goal_contribution_prob": 0.49558078527187077,
-          "status": "a",
-          "news": "",
-          "confidence": "prior_season",
-          "predicted_starter": true,
-          "confirmed_starter": false,
-          "expected_minutes": 74.89033816425122,
-          "is_penalty_taker": true,
-          "is_set_piece_taker": false,
-          "expected_shots": 0.3185260019968771,
-          "expected_shots_on_target": 0.10617533399895905,
-          "anytime_shot_on_target_prob": 0.1007330378201321,
-          "expected_saves": 0.0
-        },
-        {
           "player_id": 26,
           "name": "Havertz",
           "position": "FWD",
@@ -198855,6 +198834,27 @@
           "expected_shots": 0.32222808166949446,
           "expected_shots_on_target": 0.10740936055649818,
           "anytime_shot_on_target_prob": 0.1018420727037912,
+          "expected_saves": 0.0
+        },
+        {
+          "player_id": 12,
+          "name": "Saka",
+          "position": "MID",
+          "anytime_goal_prob": 0.19130135077731492,
+          "anytime_goal_prob_pre_availability": 0.34600649474540457,
+          "anytime_assist_prob": 0.12176833210928517,
+          "anytime_goal_contribution_prob": 0.28977523647219317,
+          "status": "d",
+          "news": "Thigh injury - 50% chance of playing",
+          "confidence": "prior_season",
+          "predicted_starter": true,
+          "confirmed_starter": false,
+          "expected_minutes": 37.44516908212561,
+          "is_penalty_taker": true,
+          "is_set_piece_taker": false,
+          "expected_shots": 0.15926300099843854,
+          "expected_shots_on_target": 0.053087666999479526,
+          "anytime_shot_on_target_prob": 0.05170312550348033,
           "expected_saves": 0.0
         },
         {
@@ -216493,27 +216493,6 @@
           "expected_saves": 0.0
         },
         {
-          "player_id": 644,
-          "name": "Timber",
-          "position": "MID",
-          "anytime_goal_prob": 0.13245634218698965,
-          "anytime_goal_prob_pre_availability": 0.13245634218698965,
-          "anytime_assist_prob": 0.1603970824040024,
-          "anytime_goal_contribution_prob": 0.2716078137582927,
-          "status": "a",
-          "news": "",
-          "confidence": "position_avg",
-          "predicted_starter": true,
-          "confirmed_starter": false,
-          "expected_minutes": 60.885062240663906,
-          "is_penalty_taker": false,
-          "is_set_piece_taker": false,
-          "expected_shots": 0.0,
-          "expected_shots_on_target": 0.0,
-          "anytime_shot_on_target_prob": 0.0,
-          "expected_saves": 0.0
-        },
-        {
           "player_id": 211,
           "name": "Yeremy",
           "position": "MID",
@@ -216569,6 +216548,27 @@
           "predicted_starter": true,
           "confirmed_starter": false,
           "expected_minutes": 75.61955503512881,
+          "is_penalty_taker": false,
+          "is_set_piece_taker": false,
+          "expected_shots": 0.0,
+          "expected_shots_on_target": 0.0,
+          "anytime_shot_on_target_prob": 0.0,
+          "expected_saves": 0.0
+        },
+        {
+          "player_id": 644,
+          "name": "Timber",
+          "position": "MID",
+          "anytime_goal_prob": 0.1010852546927904,
+          "anytime_goal_prob_pre_availability": 0.13245634218698965,
+          "anytime_assist_prob": 0.12288718900048867,
+          "anytime_goal_contribution_prob": 0.2115503608946835,
+          "status": "d",
+          "news": "Hamstring injury - 75% chance of playing",
+          "confidence": "position_avg",
+          "predicted_starter": true,
+          "confirmed_starter": false,
+          "expected_minutes": 45.66379668049793,
           "is_penalty_taker": false,
           "is_set_piece_taker": false,
           "expected_shots": 0.0,
@@ -217093,27 +217093,6 @@
     "iyQT-Akyh-x6Cm": {
       "home_players": [
         {
-          "player_id": 12,
-          "name": "Saka",
-          "position": "MID",
-          "anytime_goal_prob": 0.5063747589812999,
-          "anytime_goal_prob_pre_availability": 0.5063747589812999,
-          "anytime_assist_prob": 0.39483268539053673,
-          "anytime_goal_contribution_prob": 0.7012741384692642,
-          "status": "a",
-          "news": "",
-          "confidence": "prior_season",
-          "predicted_starter": true,
-          "confirmed_starter": false,
-          "expected_minutes": 74.89033816425122,
-          "is_penalty_taker": true,
-          "is_set_piece_taker": false,
-          "expected_shots": 0.7453257325532796,
-          "expected_shots_on_target": 0.24844191085109324,
-          "anytime_shot_on_target_prob": 0.21998483006350766,
-          "expected_saves": 0.0
-        },
-        {
           "player_id": 26,
           "name": "Havertz",
           "position": "FWD",
@@ -217153,6 +217132,27 @@
           "expected_shots": 0.7539883071207123,
           "expected_shots_on_target": 0.25132943570690414,
           "anytime_shot_on_target_prob": 0.22223389457707898,
+          "expected_saves": 0.0
+        },
+        {
+          "player_id": 12,
+          "name": "Saka",
+          "position": "MID",
+          "anytime_goal_prob": 0.297415313987915,
+          "anytime_goal_prob_pre_availability": 0.5063747589812999,
+          "anytime_assist_prob": 0.2220749942253667,
+          "anytime_goal_contribution_prob": 0.45344180407687984,
+          "status": "d",
+          "news": "Thigh injury - 50% chance of playing",
+          "confidence": "prior_season",
+          "predicted_starter": true,
+          "confirmed_starter": false,
+          "expected_minutes": 37.44516908212561,
+          "is_penalty_taker": true,
+          "is_set_piece_taker": false,
+          "expected_shots": 0.3726628662766398,
+          "expected_shots_on_target": 0.12422095542554662,
+          "anytime_shot_on_target_prob": 0.11681532512362269,
           "expected_saves": 0.0
         },
         {
@@ -232947,8 +232947,8 @@
           "name": "Saka",
           "team": "Arsenal",
           "position": "MID",
-          "status": "a",
-          "chance_of_playing": null,
+          "status": "d",
+          "chance_of_playing": 50,
           "minutes": 596,
           "starts": 7,
           "goals": 3,
@@ -232961,15 +232961,15 @@
           "ict": 63.0,
           "bps": 162,
           "bonus": 4,
-          "news": "",
+          "news": "Thigh injury - 50% chance of playing",
           "quality_rating": 91.8,
           "form_rating": 11.6,
           "live_form_rating": 36.5,
           "live_form_vs_quality": -55.3,
           "overall_rating": 95.0,
-          "current_impact_rating": 74.7,
+          "current_impact_rating": 18.7,
           "rating_driver": "Expected goal involvements",
-          "rating_expected_minutes": 70.8,
+          "rating_expected_minutes": 35.4,
           "rating_status": "established",
           "rating_evidence_minutes": 6864.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -242003,8 +242003,8 @@
           "name": "Timber",
           "team": "Crystal Palace",
           "position": "MID",
-          "status": "a",
-          "chance_of_playing": null,
+          "status": "d",
+          "chance_of_playing": 75,
           "minutes": 388,
           "starts": 5,
           "goals": 0,
@@ -242017,15 +242017,15 @@
           "ict": 15.1,
           "bps": 75,
           "bonus": 0,
-          "news": "",
+          "news": "Hamstring injury - 75% chance of playing",
           "quality_rating": null,
           "form_rating": 4.4,
           "live_form_rating": 50.0,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 41.8,
+          "current_impact_rating": 23.5,
           "rating_driver": "Expected goal involvements",
-          "rating_expected_minutes": 75.3,
+          "rating_expected_minutes": 56.4,
           "rating_status": "provisional",
           "rating_evidence_minutes": 0.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -243745,7 +243745,7 @@
           "ict": 6.0,
           "bps": 10,
           "bonus": 0,
-          "news": "Calf injury - Expected back 25 Oct",
+          "news": "Calf injury - Expected back 8 Nov",
           "quality_rating": null,
           "form_rating": 0.0,
           "live_form_rating": 18.5,
@@ -246227,8 +246227,8 @@
           "name": "Chilwell",
           "team": "Crystal Palace",
           "position": "DEF",
-          "status": "i",
-          "chance_of_playing": 0,
+          "status": "a",
+          "chance_of_playing": 100,
           "minutes": 29,
           "starts": 0,
           "goals": 1,
@@ -246241,15 +246241,15 @@
           "ict": 5.9,
           "bps": 21,
           "bonus": 0,
-          "news": "Unspecified injury - Unknown return date",
+          "news": "",
           "quality_rating": null,
           "form_rating": 0.0,
           "live_form_rating": 18.5,
           "live_form_vs_quality": null,
           "overall_rating": null,
-          "current_impact_rating": 0.0,
+          "current_impact_rating": 5.1,
           "rating_driver": "Expected goal involvements",
-          "rating_expected_minutes": 0.0,
+          "rating_expected_minutes": 25.0,
           "rating_status": "limited",
           "rating_evidence_minutes": 1006.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -272520,7 +272520,7 @@
   "fpl": {
     "projections": {
       "gameweek": 8,
-      "generated_at": "2026-10-21T20:04:31.559138+00:00",
+      "generated_at": "2026-10-21T23:15:50.417831+00:00",
       "model_source": "hybrid_match_context_baseline",
       "data_freshness": "live official FPL API + independent pre-match scoreline model",
       "players": [
@@ -272586,38 +272586,6 @@
             "68 expected minutes",
             "form 8.0",
             "1.95 expected team goals"
-          ]
-        },
-        {
-          "player_id": 12,
-          "name": "Bukayo Saka",
-          "web_name": "Saka",
-          "team": "Arsenal",
-          "team_id": 1,
-          "position": "MID",
-          "price": 9.6,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 70.8,
-          "projected_points": 6.17,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 3,
-              "expected_goals": 2.2,
-              "clean_sheet_probability": 0.369,
-              "expected_minutes": 70.8,
-              "opponent": "Everton",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "71 expected minutes",
-            "form 2.5",
-            "2.20 expected team goals"
           ]
         },
         {
@@ -274675,7 +274643,7 @@
           "team": "Leeds",
           "team_id": 13,
           "position": "FWD",
-          "price": 6.0,
+          "price": 6.1,
           "status": "a",
           "news": "",
           "availability": 1.0,
@@ -275379,7 +275347,7 @@
           "team": "Fulham",
           "team_id": 10,
           "position": "MID",
-          "price": 5.4,
+          "price": 5.3,
           "status": "a",
           "news": "",
           "availability": 1.0,
@@ -277321,6 +277289,38 @@
             "1 fixture",
             "50 expected minutes",
             "form 1.0",
+            "2.20 expected team goals"
+          ]
+        },
+        {
+          "player_id": 12,
+          "name": "Bukayo Saka",
+          "web_name": "Saka",
+          "team": "Arsenal",
+          "team_id": 1,
+          "position": "MID",
+          "price": 9.6,
+          "status": "d",
+          "news": "Thigh injury - 50% chance of playing",
+          "availability": 0.5,
+          "expected_minutes": 35.4,
+          "projected_points": 3.45,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 3,
+              "expected_goals": 2.2,
+              "clean_sheet_probability": 0.369,
+              "expected_minutes": 35.4,
+              "opponent": "Everton",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "35 expected minutes",
+            "form 2.5",
             "2.20 expected team goals"
           ]
         },
@@ -279437,38 +279437,6 @@
           ]
         },
         {
-          "player_id": 644,
-          "name": "Quinten Timber",
-          "web_name": "Timber",
-          "team": "Crystal Palace",
-          "team_id": 8,
-          "position": "MID",
-          "price": 5.0,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 75.3,
-          "projected_points": 3.11,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 3,
-              "expected_goals": 1.38,
-              "clean_sheet_probability": 0.23,
-              "expected_minutes": 75.3,
-              "opponent": "Newcastle",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "75 expected minutes",
-            "form 4.0",
-            "1.38 expected team goals"
-          ]
-        },
-        {
           "player_id": 620,
           "name": "El Hadji Malick Diouf",
           "web_name": "Diouf",
@@ -280362,6 +280330,38 @@
             "70 expected minutes",
             "form 2.5",
             "1.68 expected team goals"
+          ]
+        },
+        {
+          "player_id": 644,
+          "name": "Quinten Timber",
+          "web_name": "Timber",
+          "team": "Crystal Palace",
+          "team_id": 8,
+          "position": "MID",
+          "price": 5.0,
+          "status": "d",
+          "news": "Hamstring injury - 75% chance of playing",
+          "availability": 0.75,
+          "expected_minutes": 56.4,
+          "projected_points": 2.88,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 3,
+              "expected_goals": 1.38,
+              "clean_sheet_probability": 0.23,
+              "expected_minutes": 56.4,
+              "opponent": "Newcastle",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "56 expected minutes",
+            "form 4.0",
+            "1.38 expected team goals"
           ]
         },
         {
@@ -282314,6 +282314,38 @@
             "81 expected minutes",
             "form 0.0",
             "1.06 expected team goals"
+          ]
+        },
+        {
+          "player_id": 643,
+          "name": "Ben Chilwell",
+          "web_name": "Chilwell",
+          "team": "Crystal Palace",
+          "team_id": 8,
+          "position": "DEF",
+          "price": 4.4,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 25.0,
+          "projected_points": 2.21,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 3,
+              "expected_goals": 1.38,
+              "clean_sheet_probability": 0.23,
+              "expected_minutes": 25.0,
+              "opponent": "Newcastle",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "25 expected minutes",
+            "form 0.0",
+            "1.38 expected team goals"
           ]
         },
         {
@@ -290805,39 +290837,7 @@
           "position": "DEF",
           "price": 4.4,
           "status": "i",
-          "news": "Calf injury - Expected back 25 Oct",
-          "availability": 0.0,
-          "expected_minutes": 0.0,
-          "projected_points": 0.0,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 3,
-              "expected_goals": 1.38,
-              "clean_sheet_probability": 0.23,
-              "expected_minutes": 0.0,
-              "opponent": "Newcastle",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "0 expected minutes",
-            "form 0.0",
-            "1.38 expected team goals"
-          ]
-        },
-        {
-          "player_id": 643,
-          "name": "Ben Chilwell",
-          "web_name": "Chilwell",
-          "team": "Crystal Palace",
-          "team_id": 8,
-          "position": "DEF",
-          "price": 4.4,
-          "status": "i",
-          "news": "Unspecified injury - Unknown return date",
+          "news": "Calf injury - Expected back 8 Nov",
           "availability": 0.0,
           "expected_minutes": 0.0,
           "projected_points": 0.0,
@@ -294163,38 +294163,6 @@
           ]
         },
         {
-          "player_id": 12,
-          "name": "Bukayo Saka",
-          "web_name": "Saka",
-          "team": "Arsenal",
-          "team_id": 1,
-          "position": "MID",
-          "price": 9.6,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 70.8,
-          "projected_points": 6.17,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 3,
-              "expected_goals": 2.2,
-              "clean_sheet_probability": 0.369,
-              "expected_minutes": 70.8,
-              "opponent": "Everton",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "71 expected minutes",
-            "form 2.5",
-            "2.20 expected team goals"
-          ]
-        },
-        {
           "player_id": 483,
           "name": "Dan Ndoye",
           "web_name": "Ndoye",
@@ -294224,6 +294192,38 @@
             "84 expected minutes",
             "form 5.0",
             "1.73 expected team goals"
+          ]
+        },
+        {
+          "player_id": 15,
+          "name": "Martin \u00d8degaard",
+          "web_name": "\u00d8degaard",
+          "team": "Arsenal",
+          "team_id": 1,
+          "position": "MID",
+          "price": 6.8,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 74.1,
+          "projected_points": 5.3,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 3,
+              "expected_goals": 2.2,
+              "clean_sheet_probability": 0.369,
+              "expected_minutes": 74.1,
+              "opponent": "Everton",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "74 expected minutes",
+            "form 2.0",
+            "2.20 expected team goals"
           ]
         },
         {
@@ -294453,7 +294453,7 @@
           ]
         }
       ],
-      "projected_points": 62.98
+      "projected_points": 62.11
     },
     "squad": {
       "gameweek": 8,
@@ -294524,18 +294524,18 @@
           ]
         },
         {
-          "player_id": 395,
-          "name": "Rico Lewis",
-          "web_name": "Lewis",
+          "player_id": 387,
+          "name": "Nico O'Reilly",
+          "web_name": "O'Reilly",
           "team": "Man City",
           "team_id": 15,
           "position": "DEF",
-          "price": 4.3,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 90.0,
-          "projected_points": 5.01,
+          "price": 6.3,
+          "status": "d",
+          "news": "Back injury - 75% chance of playing",
+          "availability": 0.75,
+          "expected_minutes": 59.4,
+          "projected_points": 5.35,
           "fixture_count": 1,
           "fixtures": [
             {
@@ -294543,16 +294543,48 @@
               "difficulty": 3,
               "expected_goals": 1.79,
               "clean_sheet_probability": 0.289,
-              "expected_minutes": 90.0,
+              "expected_minutes": 59.4,
               "opponent": "Aston Villa",
               "model_source": "independent_scoreline"
             }
           ],
           "drivers": [
             "1 fixture",
-            "90 expected minutes",
-            "form 0.0",
+            "59 expected minutes",
+            "form 3.5",
             "1.79 expected team goals"
+          ]
+        },
+        {
+          "player_id": 10,
+          "name": "Benjamin White",
+          "web_name": "White",
+          "team": "Arsenal",
+          "team_id": 1,
+          "position": "DEF",
+          "price": 5.4,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 77.9,
+          "projected_points": 4.85,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 3,
+              "expected_goals": 2.2,
+              "clean_sheet_probability": 0.369,
+              "expected_minutes": 77.9,
+              "opponent": "Everton",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "78 expected minutes",
+            "form 5.5",
+            "2.20 expected team goals"
           ]
         },
         {
@@ -294588,38 +294620,6 @@
           ]
         },
         {
-          "player_id": 504,
-          "name": "Luka Vu\u0161kovi\u0107",
-          "web_name": "Vuskovic",
-          "team": "Brighton",
-          "team_id": 5,
-          "position": "DEF",
-          "price": 5.1,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 69.2,
-          "projected_points": 4.75,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": false,
-              "difficulty": 4,
-              "expected_goals": 1.48,
-              "clean_sheet_probability": 0.213,
-              "expected_minutes": 69.2,
-              "opponent": "Liverpool",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "69 expected minutes",
-            "form 9.5",
-            "1.48 expected team goals"
-          ]
-        },
-        {
           "player_id": 411,
           "name": "Erling Haaland",
           "web_name": "Haaland",
@@ -294652,6 +294652,38 @@
           ]
         },
         {
+          "player_id": 165,
+          "name": "Jo\u00e3o Pedro Junqueira de Jesus",
+          "web_name": "Jo\u00e3o Pedro",
+          "team": "Chelsea",
+          "team_id": 6,
+          "position": "FWD",
+          "price": 7.9,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 69.9,
+          "projected_points": 4.64,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 2,
+              "expected_goals": 1.68,
+              "clean_sheet_probability": 0.338,
+              "expected_minutes": 69.9,
+              "opponent": "Spurs",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "70 expected minutes",
+            "form 7.0",
+            "1.68 expected team goals"
+          ]
+        },
+        {
           "player_id": 79,
           "name": "Francisco Evanilson de Lima Barbosa",
           "web_name": "Evanilson",
@@ -294681,38 +294713,6 @@
             "71 expected minutes",
             "form 9.5",
             "1.19 expected team goals"
-          ]
-        },
-        {
-          "player_id": 224,
-          "name": "Eddie Nketiah",
-          "web_name": "Nketiah",
-          "team": "Crystal Palace",
-          "team_id": 8,
-          "position": "FWD",
-          "price": 5.4,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 80.5,
-          "projected_points": 4.22,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 3,
-              "expected_goals": 1.38,
-              "clean_sheet_probability": 0.23,
-              "expected_minutes": 80.5,
-              "opponent": "Newcastle",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "80 expected minutes",
-            "form 1.0",
-            "1.38 expected team goals"
           ]
         },
         {
@@ -294844,38 +294844,6 @@
           ]
         },
         {
-          "player_id": 12,
-          "name": "Bukayo Saka",
-          "web_name": "Saka",
-          "team": "Arsenal",
-          "team_id": 1,
-          "position": "MID",
-          "price": 9.6,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 70.8,
-          "projected_points": 6.17,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 3,
-              "expected_goals": 2.2,
-              "clean_sheet_probability": 0.369,
-              "expected_minutes": 70.8,
-              "opponent": "Everton",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "71 expected minutes",
-            "form 2.5",
-            "2.20 expected team goals"
-          ]
-        },
-        {
           "player_id": 483,
           "name": "Dan Ndoye",
           "web_name": "Ndoye",
@@ -294938,11 +294906,43 @@
             "form 3.0",
             "1.48 expected team goals"
           ]
+        },
+        {
+          "player_id": 340,
+          "name": "Joe Gelhardt",
+          "web_name": "Gelhardt",
+          "team": "Hull City",
+          "team_id": 11,
+          "position": "MID",
+          "price": 5.0,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 66.9,
+          "projected_points": 4.93,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 3,
+              "expected_goals": 1.29,
+              "clean_sheet_probability": 0.225,
+              "expected_minutes": 66.9,
+              "opponent": "Brentford",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "67 expected minutes",
+            "form 4.5",
+            "1.29 expected team goals"
+          ]
         }
       ],
       "budget": 100.0,
-      "spent": 99.4,
-      "remaining": 0.6,
+      "spent": 99.6,
+      "remaining": 0.4,
       "starting_xi": [
         {
           "player_id": 8,
@@ -295009,18 +295009,18 @@
           ]
         },
         {
-          "player_id": 395,
-          "name": "Rico Lewis",
-          "web_name": "Lewis",
+          "player_id": 387,
+          "name": "Nico O'Reilly",
+          "web_name": "O'Reilly",
           "team": "Man City",
           "team_id": 15,
           "position": "DEF",
-          "price": 4.3,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 90.0,
-          "projected_points": 5.01,
+          "price": 6.3,
+          "status": "d",
+          "news": "Back injury - 75% chance of playing",
+          "availability": 0.75,
+          "expected_minutes": 59.4,
+          "projected_points": 5.35,
           "fixture_count": 1,
           "fixtures": [
             {
@@ -295028,48 +295028,48 @@
               "difficulty": 3,
               "expected_goals": 1.79,
               "clean_sheet_probability": 0.289,
-              "expected_minutes": 90.0,
+              "expected_minutes": 59.4,
               "opponent": "Aston Villa",
               "model_source": "independent_scoreline"
             }
           ],
           "drivers": [
             "1 fixture",
-            "90 expected minutes",
-            "form 0.0",
+            "59 expected minutes",
+            "form 3.5",
             "1.79 expected team goals"
           ]
         },
         {
-          "player_id": 201,
-          "name": "Daniel Mu\u00f1oz Mej\u00eda",
-          "web_name": "Mu\u00f1oz",
-          "team": "Nott'm Forest",
-          "team_id": 18,
+          "player_id": 10,
+          "name": "Benjamin White",
+          "web_name": "White",
+          "team": "Arsenal",
+          "team_id": 1,
           "position": "DEF",
-          "price": 5.3,
+          "price": 5.4,
           "status": "a",
           "news": "",
           "availability": 1.0,
-          "expected_minutes": 69.6,
-          "projected_points": 4.82,
+          "expected_minutes": 77.9,
+          "projected_points": 4.85,
           "fixture_count": 1,
           "fixtures": [
             {
-              "was_home": false,
-              "difficulty": 2,
-              "expected_goals": 1.73,
-              "clean_sheet_probability": 0.346,
-              "expected_minutes": 69.6,
-              "opponent": "Ipswich Town",
+              "was_home": true,
+              "difficulty": 3,
+              "expected_goals": 2.2,
+              "clean_sheet_probability": 0.369,
+              "expected_minutes": 77.9,
+              "opponent": "Everton",
               "model_source": "independent_scoreline"
             }
           ],
           "drivers": [
             "1 fixture",
-            "70 expected minutes",
-            "form 1.5",
-            "1.73 expected team goals"
+            "78 expected minutes",
+            "form 5.5",
+            "2.20 expected team goals"
           ]
         },
         {
@@ -295201,38 +295201,6 @@
           ]
         },
         {
-          "player_id": 12,
-          "name": "Bukayo Saka",
-          "web_name": "Saka",
-          "team": "Arsenal",
-          "team_id": 1,
-          "position": "MID",
-          "price": 9.6,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 70.8,
-          "projected_points": 6.17,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 3,
-              "expected_goals": 2.2,
-              "clean_sheet_probability": 0.369,
-              "expected_minutes": 70.8,
-              "opponent": "Everton",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "71 expected minutes",
-            "form 2.5",
-            "2.20 expected team goals"
-          ]
-        },
-        {
           "player_id": 483,
           "name": "Dan Ndoye",
           "web_name": "Ndoye",
@@ -295294,6 +295262,38 @@
             "73 expected minutes",
             "form 3.0",
             "1.48 expected team goals"
+          ]
+        },
+        {
+          "player_id": 340,
+          "name": "Joe Gelhardt",
+          "web_name": "Gelhardt",
+          "team": "Hull City",
+          "team_id": 11,
+          "position": "MID",
+          "price": 5.0,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 66.9,
+          "projected_points": 4.93,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 3,
+              "expected_goals": 1.29,
+              "clean_sheet_probability": 0.225,
+              "expected_minutes": 66.9,
+              "opponent": "Brentford",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "67 expected minutes",
+            "form 4.5",
+            "1.29 expected team goals"
           ]
         }
       ],
@@ -295363,35 +295363,67 @@
       },
       "bench": [
         {
-          "player_id": 504,
-          "name": "Luka Vu\u0161kovi\u0107",
-          "web_name": "Vuskovic",
-          "team": "Brighton",
-          "team_id": 5,
+          "player_id": 201,
+          "name": "Daniel Mu\u00f1oz Mej\u00eda",
+          "web_name": "Mu\u00f1oz",
+          "team": "Nott'm Forest",
+          "team_id": 18,
           "position": "DEF",
-          "price": 5.1,
+          "price": 5.3,
           "status": "a",
           "news": "",
           "availability": 1.0,
-          "expected_minutes": 69.2,
-          "projected_points": 4.75,
+          "expected_minutes": 69.6,
+          "projected_points": 4.82,
           "fixture_count": 1,
           "fixtures": [
             {
               "was_home": false,
-              "difficulty": 4,
-              "expected_goals": 1.48,
-              "clean_sheet_probability": 0.213,
-              "expected_minutes": 69.2,
-              "opponent": "Liverpool",
+              "difficulty": 2,
+              "expected_goals": 1.73,
+              "clean_sheet_probability": 0.346,
+              "expected_minutes": 69.6,
+              "opponent": "Ipswich Town",
               "model_source": "independent_scoreline"
             }
           ],
           "drivers": [
             "1 fixture",
-            "69 expected minutes",
-            "form 9.5",
-            "1.48 expected team goals"
+            "70 expected minutes",
+            "form 1.5",
+            "1.73 expected team goals"
+          ]
+        },
+        {
+          "player_id": 165,
+          "name": "Jo\u00e3o Pedro Junqueira de Jesus",
+          "web_name": "Jo\u00e3o Pedro",
+          "team": "Chelsea",
+          "team_id": 6,
+          "position": "FWD",
+          "price": 7.9,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 69.9,
+          "projected_points": 4.64,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": true,
+              "difficulty": 2,
+              "expected_goals": 1.68,
+              "clean_sheet_probability": 0.338,
+              "expected_minutes": 69.9,
+              "opponent": "Spurs",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "70 expected minutes",
+            "form 7.0",
+            "1.68 expected team goals"
           ]
         },
         {
@@ -295427,38 +295459,6 @@
           ]
         },
         {
-          "player_id": 224,
-          "name": "Eddie Nketiah",
-          "web_name": "Nketiah",
-          "team": "Crystal Palace",
-          "team_id": 8,
-          "position": "FWD",
-          "price": 5.4,
-          "status": "a",
-          "news": "",
-          "availability": 1.0,
-          "expected_minutes": 80.5,
-          "projected_points": 4.22,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": true,
-              "difficulty": 3,
-              "expected_goals": 1.38,
-              "clean_sheet_probability": 0.23,
-              "expected_minutes": 80.5,
-              "opponent": "Newcastle",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "80 expected minutes",
-            "form 1.0",
-            "1.38 expected team goals"
-          ]
-        },
-        {
           "player_id": 250,
           "name": "Bernd Leno",
           "web_name": "Leno",
@@ -295491,7 +295491,7 @@
           ]
         }
       ],
-      "projected_points": 62.64
+      "projected_points": 61.77
     }
   }
 }
