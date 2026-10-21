@@ -1,4 +1,4 @@
-// Synced from predictor-ui@5386eabd85ce. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@e5f26af27dc8. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 import type { ReactNode } from "react";
 import { GlobalNav, type NavEntry } from "./GlobalNav";
 import { SportTabs } from "./SportTabs";
@@ -49,19 +49,19 @@ export function AppFrame({
   return (
     <div data-sport={sport} className="min-h-screen">
       <header className="border-b border-pr-rule">
-        <div className="mx-auto flex max-w-screen-xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 pt-3 sm:px-6">
+        <div className="mx-auto flex max-w-screen-xl flex-nowrap items-center justify-between gap-x-6 px-4 pt-3 sm:px-6">
           <a
             href={resolvedHome}
             aria-current={activeNav === null ? "page" : undefined}
-            className="font-pr-display text-sm font-bold uppercase tracking-[0.2em] text-pr-text-dim"
+            className="shrink-0 font-pr-display text-sm font-bold uppercase tracking-[0.2em] text-pr-text-dim"
           >
             Predictor
           </a>
           <GlobalNav entries={entries} activeId={activeNav} />
         </div>
-        <div className="mx-auto flex max-w-screen-xl flex-wrap items-end justify-between gap-x-6 gap-y-3 px-4 pb-0 pt-3 sm:px-6">
-          <h1 className="pb-3 font-pr-display text-3xl font-bold uppercase tracking-wide text-pr-text">{sportName} Predictor</h1>
-          <SportTabs tabs={hubTabs} active={activeTab} onChange={onTab} label="Pages" />
+        <div className="mx-auto flex max-w-screen-xl flex-nowrap items-end justify-between gap-x-6 px-4 pb-0 pt-3 sm:px-6">
+          <h1 className="shrink-0 whitespace-nowrap pb-2.5 font-pr-display text-2xl font-bold uppercase tracking-wide text-pr-text sm:pb-3 sm:text-3xl">{sportName} Predictor</h1>
+          <SportTabs tabs={hubTabs} active={activeTab} onChange={onTab} label="Pages" className="max-sm:flex-1" />
         </div>
       </header>
       <main className="mx-auto max-w-screen-xl px-4 py-6 sm:px-6">{children}</main>

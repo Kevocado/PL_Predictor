@@ -1,4 +1,4 @@
-// Synced from predictor-ui@5386eabd85ce. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@e5f26af27dc8. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Sport } from "./AppFrame";
 
@@ -50,7 +50,7 @@ export function GlobalNav({ entries, activeId, ariaLabel = "Sports" }: Props) {
   }, [activeId]);
 
   return (
-    <nav aria-label={ariaLabel} className="relative min-w-0 max-w-full">
+    <nav aria-label={ariaLabel} className="relative min-w-0 max-w-full max-sm:flex-1">
       <div
         ref={scrollRef}
         data-testid="global-nav-scroller"
@@ -64,7 +64,7 @@ export function GlobalNav({ entries, activeId, ariaLabel = "Sports" }: Props) {
               href={entry.href}
               data-nav-id={entry.id}
               aria-current={current ? "page" : undefined}
-              className={`whitespace-nowrap rounded-pr px-2.5 py-1 font-pr-display text-sm font-semibold uppercase tracking-wide transition-colors ${
+              className={`inline-flex items-center whitespace-nowrap rounded-pr px-2.5 py-1 font-pr-display text-sm font-semibold uppercase tracking-wide transition-colors max-sm:min-h-10 ${
                 current ? "bg-pr-accent text-pr-accent-ink" : "text-pr-text-dim hover:text-pr-text"
               }`}
             >

@@ -1,4 +1,4 @@
-// Synced from predictor-ui@5386eabd85ce. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@e5f26af27dc8. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 /**
  * A presentational box score. It renders a structure the caller has already
  * built; it never fetches, never reorders, and does not know what a touchdown

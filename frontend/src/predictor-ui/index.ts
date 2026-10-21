@@ -1,4 +1,4 @@
-// Synced from predictor-ui@5386eabd85ce. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@e5f26af27dc8. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 export * from "./fmt";
 export { contrast, inkFor, luminance } from "./contrast";
 export { AppFrame, type SiteLink, type Sport, type Tab } from "./components/AppFrame";
@@ -53,3 +53,6 @@ export { CalibrationChart } from "./trackRecord/CalibrationChart";
 export { RecentPicks } from "./trackRecord/RecentPicks";
 export { HowCounted } from "./trackRecord/HowCounted";
 export { HubTabs, type HubTab } from "./trackRecord/HubTabs";
+
+// The one family switcher list, shared by every site.
+export { SPORT_SITES, siteLinks } from "./lib/sites";
