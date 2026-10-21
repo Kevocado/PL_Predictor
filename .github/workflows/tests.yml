@@ -65,7 +65,7 @@ jobs:
         # The `id` is load-bearing: without it every run pays the warm step's
         # cost even when there is nothing to warm.
         id: cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: data/cache
           key: pl-upstream-caches-${{ steps.date.outputs.stamp }}
@@ -155,7 +155,7 @@ jobs:
         id: date
         run: echo "stamp=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
       - name: Restore the cache warmed above
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: data/cache
           key: pl-upstream-caches-${{ steps.date.outputs.stamp }}

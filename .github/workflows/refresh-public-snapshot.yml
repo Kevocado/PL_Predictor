@@ -90,7 +90,7 @@ jobs:
       # it is restored with a prefix. Run ids grow without bound and a per-run
       # key for a file that must persist is the same bug one level down.
       - name: Restore data cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: data/cache
           key: data-cache-${{ github.run_id }}
@@ -106,7 +106,7 @@ jobs:
       # which is committed; this step only avoids re-deriving what is already
       # known. Deleting this step would slow the workflow and lose nothing.
       - name: Restore tracking database
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: data/tracking.db
           # `github.run_attempt`, not `github.run_id`. actions/cache does not
