@@ -1,4 +1,4 @@
-// Synced from predictor-ui@e5f26af27dc8. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@1b23d40bf08d. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 import { Fragment, useState, type ReactNode } from "react";
 
 export type Column<T> = {
@@ -16,6 +16,21 @@ export type Column<T> = {
 
 type Sort = { key: string; dir: "asc" | "desc" };
 
+/**
+ * A labelled rule drawn after a row.
+ *
+ * Some tables have a line in them that is not a row: the cut between the
+ * teams that make the playoffs and the teams that do not. The rule says where
+ * it falls, in words, because a reader who cannot see the hairline still needs
+ * to know which side of it their team is on.
+ */
+export type Separator = {
+  /** The key of the row the rule is drawn AFTER. */
+  after: string;
+  /** What the rule means, in words. */
+  label: string;
+};
+
 type Props<T> = {
   rows: T[];
   columns: Column<T>[];
@@ -25,6 +40,8 @@ type Props<T> = {
   caption: string;
   /** Optional detail row, opened by a toggle in the first cell. */
   expand?: (row: T) => ReactNode;
+  /** Optional labelled rules, drawn after the rows they name. */
+  separators?: Separator[];
 };
 
 const MISSING = "—";
@@ -39,7 +56,7 @@ function compare(a: number | string | null, b: number | string | null, dir: "asc
 }
 
 /** The family data table: sortable headers, missing values last, optional row detail, scrolls in its own box. */
-export function StatTable<T>({ rows, columns, rowKey, initialSort, caption, expand }: Props<T>) {
+export function StatTable<T>({ rows, columns, rowKey, initialSort, caption, expand, separators = [] }: Props<T>) {
   const [sort, setSort] = useState<Sort | null>(initialSort ?? null);
   const [open, setOpen] = useState<string | null>(null);
 
@@ -93,6 +110,7 @@ export function StatTable<T>({ rows, columns, rowKey, initialSort, caption, expa
           {sorted.map((row) => {
             const key = rowKey(row);
             const isOpen = open === key;
+            const separator = separators.find((s) => s.after === key);
             return (
               <Fragment key={key}>
                 <tr className="border-b border-pr-rule last:border-0">
@@ -124,6 +142,16 @@ export function StatTable<T>({ rows, columns, rowKey, initialSort, caption, expa
                     <td colSpan={columns.length} className="px-3 py-3">
                       {/* Pinned to the visible part of a wide table on a phone. */}
                       <div className="sticky left-3 max-w-[calc(100vw-4rem)]">{expand(row)}</div>
+                    </td>
+                  </tr>
+                )}
+                {separator && (
+                  <tr data-testid="table-separator" className="border-t border-pr-rule bg-pr-panel-2/40">
+                    <td
+                      colSpan={columns.length}
+                      className="px-3 py-1 text-xs font-semibold uppercase tracking-wide text-pr-text-faint"
+                    >
+                      {separator.label}
                     </td>
                   </tr>
                 )}
