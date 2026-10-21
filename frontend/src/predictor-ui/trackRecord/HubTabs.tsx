@@ -1,4 +1,4 @@
-// Synced from predictor-ui@e5f26af27dc8. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@1b23d40bf08d. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 import { useId, useRef, useEffect, useState, useCallback, type KeyboardEvent, type ReactNode } from "react";
 
 /** One tab: a stable id and the words on it. */

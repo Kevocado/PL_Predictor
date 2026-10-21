@@ -1,4 +1,4 @@
-// Synced from predictor-ui@e5f26af27dc8. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@1b23d40bf08d. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 export * from "./fmt";
 export { contrast, inkFor, luminance } from "./contrast";
 export { AppFrame, type SiteLink, type Sport, type Tab } from "./components/AppFrame";
@@ -23,7 +23,7 @@ export { RecordStrip } from "./components/RecordStrip";
 export { FixtureFlow, type FixtureFlowProps, type FlowState } from "./components/FixtureFlow";
 export { SummaryButton, type SummaryButtonProps } from "./components/SummaryButton";
 export { FixtureExplainer, type FixtureExplainerProps, type FixtureExtras, type Summary } from "./components/FixtureExplainer";
-export { StatTable, type Column } from "./components/StatTable";
+export { StatTable, type Column, type Separator } from "./components/StatTable";
 export { StatusBadge, statusWords, type Moment, type Status } from "./components/StatusBadge";
 export { TeamChip } from "./components/TeamChip";
 export { BoxScore, type BoxScoreRow, type BoxScoreColumn, type BoxScoreGroup, type BoxScoreTotal, type BoxScoreProps } from "./components/BoxScore";
