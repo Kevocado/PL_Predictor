@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-21T13:44:08.365574+00:00",
+  "generated_at": "2026-10-21T15:56:36.335220+00:00",
   "model_fingerprint": "38d8e310d6f6316d0951a40c95e0f4ed51eebba2ee04dd34a0c17d27ad09a9ad",
   "current_gameweek": 7,
   "min_gameweek": 1,
@@ -8834,7 +8834,7 @@
       "away_2plus_prob": 0.3355497503489235,
       "value_bet_flags": [],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-21T13:39:51.831553Z",
+      "odds_fetched_at": "2026-10-21T15:53:41.238654Z",
       "odds_is_stale": false,
       "recommended_bet": null,
       "score_grid": [
@@ -70643,7 +70643,7 @@
         "over_2_5"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-21T13:39:51.831553Z",
+      "odds_fetched_at": "2026-10-21T15:53:41.238654Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "home_win",
@@ -71513,7 +71513,7 @@
         "btts_no"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-21T13:39:51.831553Z",
+      "odds_fetched_at": "2026-10-21T15:53:41.238654Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "away_win",
@@ -72083,7 +72083,7 @@
         "under_2_5"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-21T13:39:51.831553Z",
+      "odds_fetched_at": "2026-10-21T15:53:41.238654Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "under_2_5",
@@ -72333,7 +72333,7 @@
         "btts_no"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-21T13:39:51.831553Z",
+      "odds_fetched_at": "2026-10-21T15:53:41.238654Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "under_2_5",
@@ -72583,7 +72583,7 @@
         "btts_no"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-21T13:39:51.831553Z",
+      "odds_fetched_at": "2026-10-21T15:53:41.238654Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "btts_no",
@@ -72848,7 +72848,7 @@
         "btts_no"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-21T13:39:51.831553Z",
+      "odds_fetched_at": "2026-10-21T15:53:41.238654Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "away_win",
@@ -73095,7 +73095,7 @@
       "away_2plus_prob": 0.3984261719096024,
       "value_bet_flags": [],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-21T13:39:51.831553Z",
+      "odds_fetched_at": "2026-10-21T15:53:41.238654Z",
       "odds_is_stale": false,
       "recommended_bet": null,
       "score_grid": [
@@ -73712,7 +73712,7 @@
         "home_win"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-21T13:39:51.831553Z",
+      "odds_fetched_at": "2026-10-21T15:53:41.238654Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "home_win",
@@ -87445,7 +87445,7 @@
       "away_2plus_prob": 0.33633434481454316,
       "value_bet_flags": [],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-21T13:39:51.831553Z",
+      "odds_fetched_at": "2026-10-21T15:53:41.238654Z",
       "odds_is_stale": false,
       "recommended_bet": null,
       "score_grid": [
@@ -87673,7 +87673,7 @@
         "btts_no"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-21T13:39:51.831553Z",
+      "odds_fetched_at": "2026-10-21T15:53:41.238654Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "btts_no",
@@ -87923,7 +87923,7 @@
         "btts_no"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-21T13:39:51.831553Z",
+      "odds_fetched_at": "2026-10-21T15:53:41.238654Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "home_win",
@@ -88137,7 +88137,7 @@
         "btts_yes"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-21T13:39:51.831553Z",
+      "odds_fetched_at": "2026-10-21T15:53:41.238654Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "btts_yes",
@@ -88384,7 +88384,7 @@
       "away_2plus_prob": 0.5356367609020926,
       "value_bet_flags": [],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-21T13:39:51.831553Z",
+      "odds_fetched_at": "2026-10-21T15:53:41.238654Z",
       "odds_is_stale": false,
       "recommended_bet": null,
       "score_grid": [
@@ -88595,7 +88595,7 @@
         "btts_no"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-21T13:39:51.831553Z",
+      "odds_fetched_at": "2026-10-21T15:53:41.238654Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "btts_no",
@@ -88808,7 +88808,7 @@
         "home_win"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-21T13:39:51.831553Z",
+      "odds_fetched_at": "2026-10-21T15:53:41.238654Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "home_win",
@@ -89035,7 +89035,7 @@
         "away_win"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-21T13:39:51.831553Z",
+      "odds_fetched_at": "2026-10-21T15:53:41.238654Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "away_win",
@@ -89603,7 +89603,7 @@
       "away_2plus_prob": 0.41853470066931703,
       "value_bet_flags": [],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-21T13:39:51.831553Z",
+      "odds_fetched_at": "2026-10-21T15:53:41.238654Z",
       "odds_is_stale": false,
       "recommended_bet": null,
       "score_grid": [
@@ -90502,7 +90502,7 @@
         "home_win"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-21T13:39:51.831553Z",
+      "odds_fetched_at": "2026-10-21T15:53:41.238654Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "home_win",
@@ -90700,7 +90700,7 @@
         "away_win"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-21T13:39:51.831553Z",
+      "odds_fetched_at": "2026-10-21T15:53:41.238654Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "away_win",
@@ -94399,6 +94399,27 @@
           "expected_saves": 0.0
         },
         {
+          "player_id": 480,
+          "name": "Gibbs-White",
+          "position": "MID",
+          "anytime_goal_prob": 0.0957839232415979,
+          "anytime_goal_prob_pre_availability": 0.0957839232415979,
+          "anytime_assist_prob": 0.08481797343138531,
+          "anytime_goal_contribution_prob": 0.17247769841632354,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": false,
+          "confirmed_starter": false,
+          "expected_minutes": 40.533977900552486,
+          "is_penalty_taker": true,
+          "is_set_piece_taker": true,
+          "expected_shots": 0.18256748164874034,
+          "expected_shots_on_target": 0.0,
+          "anytime_shot_on_target_prob": 0.0,
+          "expected_saves": 0.0
+        },
+        {
           "player_id": 493,
           "name": "Kalimuendo",
           "position": "FWD",
@@ -94457,27 +94478,6 @@
           "is_penalty_taker": false,
           "is_set_piece_taker": false,
           "expected_shots": 0.0,
-          "expected_shots_on_target": 0.0,
-          "anytime_shot_on_target_prob": 0.0,
-          "expected_saves": 0.0
-        },
-        {
-          "player_id": 480,
-          "name": "Gibbs-White",
-          "position": "MID",
-          "anytime_goal_prob": 0.0727343576510634,
-          "anytime_goal_prob_pre_availability": 0.0957839232415979,
-          "anytime_assist_prob": 0.06431296526238672,
-          "anytime_goal_contribution_prob": 0.13236956069645534,
-          "status": "d",
-          "news": "Muscular injury - 75% chance of playing",
-          "confidence": "prior_season",
-          "predicted_starter": false,
-          "confirmed_starter": false,
-          "expected_minutes": 30.400483425414365,
-          "is_penalty_taker": true,
-          "is_set_piece_taker": true,
-          "expected_shots": 0.13692561123655525,
           "expected_shots_on_target": 0.0,
           "anytime_shot_on_target_prob": 0.0,
           "expected_saves": 0.0
@@ -96642,6 +96642,27 @@
           "expected_saves": 0.0
         },
         {
+          "player_id": 480,
+          "name": "Gibbs-White",
+          "position": "MID",
+          "anytime_goal_prob": 0.08251596176046194,
+          "anytime_goal_prob_pre_availability": 0.08251596176046194,
+          "anytime_assist_prob": 0.07509260503184567,
+          "anytime_goal_contribution_prob": 0.1514122282670063,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": false,
+          "confirmed_starter": false,
+          "expected_minutes": 40.533977900552486,
+          "is_penalty_taker": true,
+          "is_set_piece_taker": true,
+          "expected_shots": 0.18063279100910443,
+          "expected_shots_on_target": 0.0,
+          "anytime_shot_on_target_prob": 0.0,
+          "expected_saves": 0.0
+        },
+        {
           "player_id": 482,
           "name": "Hudson-Odoi",
           "position": "MID",
@@ -96658,27 +96679,6 @@
           "is_penalty_taker": false,
           "is_set_piece_taker": false,
           "expected_shots": 0.0,
-          "expected_shots_on_target": 0.0,
-          "anytime_shot_on_target_prob": 0.0,
-          "expected_saves": 0.0
-        },
-        {
-          "player_id": 480,
-          "name": "Gibbs-White",
-          "position": "MID",
-          "anytime_goal_prob": 0.06254832784173359,
-          "anytime_goal_prob_pre_availability": 0.08251596176046194,
-          "anytime_assist_prob": 0.05686537589029561,
-          "anytime_goal_contribution_prob": 0.11585686955799956,
-          "status": "d",
-          "news": "Muscular injury - 75% chance of playing",
-          "confidence": "prior_season",
-          "predicted_starter": false,
-          "confirmed_starter": false,
-          "expected_minutes": 30.400483425414365,
-          "is_penalty_taker": true,
-          "is_set_piece_taker": true,
-          "expected_shots": 0.1354745932568283,
           "expected_shots_on_target": 0.0,
           "anytime_shot_on_target_prob": 0.0,
           "expected_saves": 0.0
@@ -100234,6 +100234,27 @@
           "expected_saves": 0.0
         },
         {
+          "player_id": 480,
+          "name": "Gibbs-White",
+          "position": "MID",
+          "anytime_goal_prob": 0.10738416532071426,
+          "anytime_goal_prob_pre_availability": 0.10738416532071426,
+          "anytime_assist_prob": 0.10023589290436596,
+          "anytime_goal_contribution_prob": 0.19685631053036834,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": false,
+          "confirmed_starter": false,
+          "expected_minutes": 40.533977900552486,
+          "is_penalty_taker": true,
+          "is_set_piece_taker": true,
+          "expected_shots": 0.2537205708469246,
+          "expected_shots_on_target": 0.0,
+          "anytime_shot_on_target_prob": 0.0,
+          "expected_saves": 0.0
+        },
+        {
           "player_id": 486,
           "name": "McAtee",
           "position": "MID",
@@ -100268,27 +100289,6 @@
           "predicted_starter": false,
           "confirmed_starter": false,
           "expected_minutes": 25.45503546099291,
-          "is_penalty_taker": false,
-          "is_set_piece_taker": false,
-          "expected_shots": 0.0,
-          "expected_shots_on_target": 0.0,
-          "anytime_shot_on_target_prob": 0.0,
-          "expected_saves": 0.0
-        },
-        {
-          "player_id": 472,
-          "name": "Murillo",
-          "position": "DEF",
-          "anytime_goal_prob": 0.09838094075215054,
-          "anytime_goal_prob_pre_availability": 0.09838094075215054,
-          "anytime_assist_prob": 0.10291271505399324,
-          "anytime_goal_contribution_prob": 0.19116900608377385,
-          "status": "a",
-          "news": "",
-          "confidence": "prior_season",
-          "predicted_starter": true,
-          "confirmed_starter": false,
-          "expected_minutes": 78.52551903114188,
           "is_penalty_taker": false,
           "is_set_piece_taker": false,
           "expected_shots": 0.0,
@@ -196206,22 +196206,22 @@
           "expected_saves": 0.0
         },
         {
-          "player_id": 201,
-          "name": "Mu\u00f1oz",
-          "position": "DEF",
-          "anytime_goal_prob": 0.0879556648742037,
-          "anytime_goal_prob_pre_availability": 0.0879556648742037,
-          "anytime_assist_prob": 0.09895656251661622,
-          "anytime_goal_contribution_prob": 0.17820843714100532,
+          "player_id": 480,
+          "name": "Gibbs-White",
+          "position": "MID",
+          "anytime_goal_prob": 0.09264271866225493,
+          "anytime_goal_prob_pre_availability": 0.09264271866225493,
+          "anytime_assist_prob": 0.09317545670415273,
+          "anytime_goal_contribution_prob": 0.17718614774473773,
           "status": "a",
           "news": "",
           "confidence": "prior_season",
-          "predicted_starter": true,
+          "predicted_starter": false,
           "confirmed_starter": false,
-          "expected_minutes": 71.68616774193549,
-          "is_penalty_taker": false,
-          "is_set_piece_taker": false,
-          "expected_shots": 0.0,
+          "expected_minutes": 40.533977900552486,
+          "is_penalty_taker": true,
+          "is_set_piece_taker": true,
+          "expected_shots": 0.2886311729720585,
           "expected_shots_on_target": 0.0,
           "anytime_shot_on_target_prob": 0.0,
           "expected_saves": 0.0
@@ -218757,6 +218757,27 @@
           "expected_saves": 0.0
         },
         {
+          "player_id": 480,
+          "name": "Gibbs-White",
+          "position": "MID",
+          "anytime_goal_prob": 0.08738378087156284,
+          "anytime_goal_prob_pre_availability": 0.08738378087156284,
+          "anytime_assist_prob": 0.08380434300006068,
+          "anytime_goal_contribution_prob": 0.163864983526821,
+          "status": "a",
+          "news": "",
+          "confidence": "prior_season",
+          "predicted_starter": false,
+          "confirmed_starter": false,
+          "expected_minutes": 40.533977900552486,
+          "is_penalty_taker": true,
+          "is_set_piece_taker": true,
+          "expected_shots": 0.2323968216525802,
+          "expected_shots_on_target": 0.0,
+          "anytime_shot_on_target_prob": 0.0,
+          "expected_saves": 0.0
+        },
+        {
           "player_id": 472,
           "name": "Murillo",
           "position": "DEF",
@@ -218770,27 +218791,6 @@
           "predicted_starter": true,
           "confirmed_starter": false,
           "expected_minutes": 78.52551903114188,
-          "is_penalty_taker": false,
-          "is_set_piece_taker": false,
-          "expected_shots": 0.0,
-          "expected_shots_on_target": 0.0,
-          "anytime_shot_on_target_prob": 0.0,
-          "expected_saves": 0.0
-        },
-        {
-          "player_id": 201,
-          "name": "Mu\u00f1oz",
-          "position": "DEF",
-          "anytime_goal_prob": 0.07144829942459652,
-          "anytime_goal_prob_pre_availability": 0.07144829942459652,
-          "anytime_assist_prob": 0.08047684257019094,
-          "anytime_goal_contribution_prob": 0.14617520845008636,
-          "status": "a",
-          "news": "",
-          "confidence": "prior_season",
-          "predicted_starter": true,
-          "confirmed_starter": false,
-          "expected_minutes": 71.68616774193549,
           "is_penalty_taker": false,
           "is_set_piece_taker": false,
           "expected_shots": 0.0,
@@ -233555,8 +233555,8 @@
           "name": "Gibbs-White",
           "team": "Nott'm Forest",
           "position": "MID",
-          "status": "d",
-          "chance_of_playing": 75,
+          "status": "a",
+          "chance_of_playing": 100,
           "minutes": 540,
           "starts": 6,
           "goals": 1,
@@ -233569,15 +233569,15 @@
           "ict": 49.2,
           "bps": 139,
           "bonus": 6,
-          "news": "Muscular injury - 75% chance of playing",
+          "news": "",
           "quality_rating": 64.1,
           "form_rating": 10.4,
           "live_form_rating": 23.0,
           "live_form_vs_quality": -41.1,
           "overall_rating": 74.5,
-          "current_impact_rating": 31.8,
+          "current_impact_rating": 56.6,
           "rating_driver": "Expected goal involvements",
-          "rating_expected_minutes": 51.2,
+          "rating_expected_minutes": 68.3,
           "rating_status": "established",
           "rating_evidence_minutes": 9063.0,
           "rating_model_source": "data_led_multiseason_role_evidence"
@@ -245345,7 +245345,7 @@
           "ict": 8.2,
           "bps": 39,
           "bonus": 0,
-          "news": "Shin injury - Expected back 31 Oct",
+          "news": "Shin injury - Unknown return date",
           "quality_rating": null,
           "form_rating": 0.0,
           "live_form_rating": 14.0,
@@ -272520,7 +272520,7 @@
   "fpl": {
     "projections": {
       "gameweek": 8,
-      "generated_at": "2026-10-21T13:44:08.306044+00:00",
+      "generated_at": "2026-10-21T15:56:36.277178+00:00",
       "model_source": "hybrid_match_context_baseline",
       "data_freshness": "live official FPL API + independent pre-match scoreline model",
       "players": [
@@ -273577,6 +273577,38 @@
             "1 fixture",
             "68 expected minutes",
             "form 2.0",
+            "1.73 expected team goals"
+          ]
+        },
+        {
+          "player_id": 480,
+          "name": "Morgan Gibbs-White",
+          "web_name": "Gibbs-White",
+          "team": "Nott'm Forest",
+          "team_id": 18,
+          "position": "MID",
+          "price": 7.9,
+          "status": "a",
+          "news": "",
+          "availability": 1.0,
+          "expected_minutes": 68.3,
+          "projected_points": 4.44,
+          "fixture_count": 1,
+          "fixtures": [
+            {
+              "was_home": false,
+              "difficulty": 2,
+              "expected_goals": 1.73,
+              "clean_sheet_probability": 0.346,
+              "expected_minutes": 68.3,
+              "opponent": "Ipswich Town",
+              "model_source": "independent_scoreline"
+            }
+          ],
+          "drivers": [
+            "1 fixture",
+            "68 expected minutes",
+            "form 1.0",
             "1.73 expected team goals"
           ]
         },
@@ -276362,38 +276394,6 @@
             "69 expected minutes",
             "form 2.5",
             "1.12 expected team goals"
-          ]
-        },
-        {
-          "player_id": 480,
-          "name": "Morgan Gibbs-White",
-          "web_name": "Gibbs-White",
-          "team": "Nott'm Forest",
-          "team_id": 18,
-          "position": "MID",
-          "price": 7.9,
-          "status": "d",
-          "news": "Muscular injury - 75% chance of playing",
-          "availability": 0.75,
-          "expected_minutes": 51.2,
-          "projected_points": 3.61,
-          "fixture_count": 1,
-          "fixtures": [
-            {
-              "was_home": false,
-              "difficulty": 2,
-              "expected_goals": 1.73,
-              "clean_sheet_probability": 0.346,
-              "expected_minutes": 51.2,
-              "opponent": "Ipswich Town",
-              "model_source": "independent_scoreline"
-            }
-          ],
-          "drivers": [
-            "1 fixture",
-            "51 expected minutes",
-            "form 1.0",
-            "1.73 expected team goals"
           ]
         },
         {
@@ -292661,7 +292661,7 @@
           "position": "FWD",
           "price": 6.9,
           "status": "i",
-          "news": "Shin injury - Expected back 31 Oct",
+          "news": "Shin injury - Unknown return date",
           "availability": 0.0,
           "expected_minutes": 0.0,
           "projected_points": 0.0,
