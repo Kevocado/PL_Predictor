@@ -21,7 +21,10 @@ Paired match-cluster bootstrap (2000). Research only: no src/ changes.
 - **Verdict: NO-SHIP** — floor breaks on assist and shots-on-target legs. Floor stays behind a flag OFF (research-only; no src/ change).
 
 ## Gate
-**CONDITIONAL PASS** — minutes MAE improves with CI excluding zero; scorer/assist invariance pending full re-run.
+**NO-SHIP** — minutes MAE improves (CI excludes zero), but the full walk-forward
+invariance re-run (docs/c3_minutes_floor_invariance.md) shows the assist and
+shots-on-target legs worsening (dNLL CI entirely > 0). Floor stays behind a flag
+OFF. See docs/c3_minutes_floor_invariance.md.
 
 ## Reviewer live-data leads — tested on MODEL walk-forward (public_snapshot.json, n=70 finished fixtures)
 

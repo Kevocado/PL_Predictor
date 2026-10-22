@@ -10,8 +10,11 @@ Re-run the model-probability calibration audit once **at least 300 finished fixt
 count = number of fixtures where
         fixture["finished"] is True
         AND fixture["event_id"] is present in snapshot["fixture_detail_by_event_id"]
-        AND fixture_detail[event_id] contains the model's 1X2 / O-U / BTTS probabilities
 ```
+
+(The script's eligibility check is exactly `finished and event_id in fixture_detail`;
+every such fixture_detail carries the model's 1X2 / O-U / BTTS probabilities,
+so the count is identical to "finished fixtures with model probabilities".)
 
 Current count: **70** (as of the `docs/pl_model_calibration.md` audit, 2026-08 to 2026-10). Expected to cross 300 around **gameweek 20** of the 2026-27 season. Re-run when `count >= 300`.
 

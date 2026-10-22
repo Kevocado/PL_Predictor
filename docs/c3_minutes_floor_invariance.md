@@ -40,7 +40,9 @@ that excludes zero on both legs. Scorer and shots legs are not significantly wor
 
 ## Action
 
-- **Ship nothing.** Floor stays **behind a flag OFF** (research-only; no `src/` change).
+- **Ship nothing.** Floor stays **behind a flag OFF** (research-only; scoring code
+  unchanged, but the research harness `src/pl_predictor/evaluate/player_shots_backtest.py`
+  was extended to emit floored vs raw lambdas).
 - Documented where it broke: assist leg dNLL +0.0011 [+0.0005,+0.0018] and
   shots-on-target leg dNLL +0.0012 [+0.0003,+0.0021].
 - Follow-up: a per-leg (or per-position) floor, or a floor that only applies to
