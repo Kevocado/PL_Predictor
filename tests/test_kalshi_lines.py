@@ -64,7 +64,10 @@ def test_collect_pages_through_cursors_and_asks_for_open_and_recently_settled():
     statuses = {(c["series_ticker"], c["status"]) for c in s.calls}
     assert ("KXEPLGAME", "open") in statuses and ("KXEPLTOTAL", "settled") in statuses
     assert any(c.get("cursor") == "p2" for c in s.calls)
-    assert len(rows) == 2 * 2 + 1                       # 2 series x (open, settled) + the extra page
+    # Every series is asked for twice (open and recently settled), plus the one
+    # extra page the cursor walk fetches. Derived from SERIES rather than
+    # written as a number, so adding a series does not silently break it.
+    assert len(rows) == len(kl.SERIES) * 2 + 1
     assert all(r["snapshot_ts"].startswith("2026-10-18") for r in rows)
 
 
