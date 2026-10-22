@@ -1,4 +1,4 @@
-// Synced from predictor-ui@f95392a8c905. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@a141469b1a04. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 import { useEffect, useRef, useState } from "react";
 import type { CalibrationBucket, CalibrationSeries } from "./types";
 import type { MarketTally } from "./types";
@@ -93,16 +93,16 @@ function ChartBody({
             aria-pressed={pressed}
             onClick={() => setPick(s.key)}
             disabled={n < TOO_EARLY}
-            className={`inline-flex items-center gap-1.5 rounded-pr border border-pr-rule bg-pr-panel-2 px-3 py-1.5 text-xs font-semibold transition-colors ${
+            className={`inline-flex items-center gap-1.5 rounded-pr border px-3 py-1.5 text-sm font-semibold transition-colors ${
               pressed
-                ? "bg-pr-accent text-pr-accent-ink border-pr-accent"
+                ? "border-pr-accent bg-pr-accent text-pr-accent-ink"
                 : n < TOO_EARLY
-                  ? "opacity-50 text-pr-text-faint border-transparent"
-                  : "text-pr-text hover:bg-pr-panel hover:border-pr-rule"
+                  ? "border-transparent bg-pr-panel-2 text-pr-text-faint opacity-50"
+                  : "border-pr-rule bg-pr-panel-2 text-pr-text hover:bg-pr-panel"
             }`}
           >
             {s.label}
-            {n > 0 && <span className="tabular-nums text-pr-text-faint">· {n} settled</span>}
+            {n > 0 && <span className={`tabular-nums ${pressed ? "opacity-80" : "text-pr-text-faint"}`}>· {n} settled</span>}
           </button>
         );
       })}
