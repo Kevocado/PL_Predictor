@@ -22,11 +22,19 @@ Paired match-cluster bootstrap (2000). Research only: no src/ changes.
 ## Gate
 **CONDITIONAL PASS** — minutes MAE improves with CI excluding zero; scorer/assist invariance pending full re-run.
 
-## Reviewer live-data leads — tested on full walk-forward (closing odds, 2022-23 to 2024-25)
+## Reviewer live-data leads — tested on MODEL walk-forward (public_snapshot.json, n=70 finished fixtures)
 
-*Full-sample paired-bootstrap (2000 resamples) on closing odds (Bet365). Propose fix only if CI excludes zero.*
+*Full-sample paired-bootstrap (2000 resamples) on OUR MODEL's own predicted probabilities (from fixture_detail + fixtures_by_gameweek). Propose fix only if CI excludes zero.*
 
-- **match_result (1X2) home win**: bias -0.0076, 95% CI [-0.0349, +0.0178] — **no problem** (CI straddles zero). Reliability slope 1.053, CI [-0.150, 0.148] includes 1.0. Decile calibration (min n=5): 0.08→0.06 (n=18) | 0.16→0.12 (n=121) | 0.25→0.25 (n=162) | 0.35→0.38 (n=213) | 0.45→0.44 (n=195) | 0.55→0.61 (n=168) | 0.65→0.66 (n=130) | 0.74→0.68 (n=88) | 0.84→0.91 (n=45). The 50-60% bucket (reviewer spot-check: 8/23 = 35%) is not an outlier in full walk-forward — overall calibration is fair.
-- **O/U 2.5**: bias -0.0094, 95% CI [-0.0373, +0.0185] — **no problem**. Slope 1.130, CI [-0.363, 0.368]. Deciles: 0.39→0.40 (n=5) | 0.46→0.45 (n=206) | 0.55→0.56 (n=512) | 0.64→0.65 (n=332) | 0.72→0.72 (n=85). The 50-60% bucket (reviewer: 42/79 = 53%) is consistent with full walk-forward — no problem.
-- **BTTS**: no closing odds available in data source.
-- **Verdict**: neither match_result nor O/U 2.5 shows a calibration problem on full walk-forward; reviewer's spot-checks (8/23 and 42/79) are consistent with small-sample noise. No fix proposed.
+See **docs/pl_model_calibration.md** for full model calibration audit (1X2 home/draw/away, O/U 2.5, BTTS, per-decile tables, paired-bootstrap CIs).
+
+**Summary of model calibration (n=70 finished fixtures):**
+- **1X2 Home win**: bias +0.0363 CI [-0.066, +0.144] — no problem; slope 1.181 CI [0.454, 1.849] contains 1.0.
+- **1X2 Draw**: bias -0.0532 CI [-0.164, +0.047] — no problem; slope 1.546 CI [-2.136, 4.438] contains 1.0.
+- **1X2 Away win**: bias +0.0170 CI [-0.088, +0.115] — no problem; slope 1.310 CI [0.597, 1.934] contains 1.0.
+- **O/U 2.5**: bias +0.0158 CI [-0.101, +0.141] — no problem; slope 1.564 CI [-2.025, 6.776] contains 1.0.
+- **BTTS**: bias +0.0195 CI [-0.095, +0.144] — no problem; slope 3.282 CI [0.578, 5.938] contains 1.0.
+
+**Reviewer 50-60% bucket lead**: The spot-check (8/23 = 35% for match_result 50-60%) is consistent with small-sample noise — full model walk-forward shows no calibration problem in any market. All bias CIs straddle zero; all slope CIs contain 1.0. Per-decile tables in pl_model_calibration.md show no outlier buckets.
+
+**Verdict**: No calibration problem found in our model's own probabilities. No fix proposed.
