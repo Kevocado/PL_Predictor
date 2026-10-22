@@ -1,4 +1,4 @@
-// Synced from predictor-ui@ce75d5295eb7. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@f95392a8c905. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 export * from "./fmt";
 export { contrast, inkFor, luminance } from "./contrast";
 export { AppFrame, type SiteLink, type Sport, type Tab } from "./components/AppFrame";
@@ -50,6 +50,7 @@ export { RecordBlock } from "./trackRecord/RecordBlock";
 export { RecordHeadline, EARLY_SAMPLE } from "./trackRecord/RecordHeadline";
 export { WeekStrip } from "./trackRecord/WeekStrip";
 export { CalibrationChart } from "./trackRecord/CalibrationChart";
+export { CalibrationBlock } from "./trackRecord/CalibrationBlock";
 export { RecentPicks } from "./trackRecord/RecentPicks";
 export { HowCounted } from "./trackRecord/HowCounted";
 export { HubTabs, type HubTab } from "./trackRecord/HubTabs";
