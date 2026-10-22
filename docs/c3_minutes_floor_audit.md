@@ -21,3 +21,10 @@ Paired match-cluster bootstrap (2000). Research only: no src/ changes.
 
 ## Gate
 **CONDITIONAL PASS** — minutes MAE improves with CI excluding zero; scorer/assist invariance pending full re-run.
+
+## Reviewer live-data leads (to test against full walk-forward)
+*Small-n spot-checks; test at full sample size with paired-bootstrap. Propose fix only if CI excludes zero.*
+
+- **match_result 50-60% bucket**: 8/23 right (35%) vs 60-70%: 10/11, 70%+: 4/4 → possible overconfidence in middle bucket.
+- **O/U 2.5 50-60%**: 42/79 (53%) — looks fine, no lead.
+- **Test**: run scoreline model walk-forward (e.g., 2019-2025 held-out), bucket predicted home/draw/away probs and O/U 2.5 probs into deciles, compute actual hit rates per bucket, paired-bootstrap CI on calibration gap. If 50-60% bucket gap CI excludes zero → fix warranted (e.g., isotonic recalibration on that bucket).
