@@ -1,4 +1,4 @@
-// Synced from predictor-ui@ce75d5295eb7. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@f95392a8c905. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 /**
  * The model's own top calls, ranked per category.
  *
