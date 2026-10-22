@@ -4,7 +4,7 @@ Research only: no `src/` changes. Companion to `docs/pl_model_calibration.md`.
 
 ## Checkable condition
 
-Re-run the model-probability calibration audit once **at least 300 finished fixtures carry model probabilities** in the snapshot. Concretely:
+Re-run the model-probability calibration audit once **at least 300 finished fixtures have a matching detail record** in the snapshot. Concretely (this is the script's actual eligibility predicate in `scripts/pl_model_calibration.py`):
 
 ```
 count = number of fixtures where
@@ -12,9 +12,10 @@ count = number of fixtures where
         AND fixture["event_id"] is present in snapshot["fixture_detail_by_event_id"]
 ```
 
-(The script's eligibility check is exactly `finished and event_id in fixture_detail`;
-every such fixture_detail carries the model's 1X2 / O-U / BTTS probabilities,
-so the count is identical to "finished fixtures with model probabilities".)
+The script reads 1X2 probabilities from the fixture record (`predicted_home_win` /
+`predicted_draw` / `predicted_away_win`) and O/U 2.5 + BTTS from the matching
+`fixture_detail` entry, so a fixture is eligible exactly when it is finished and
+has a detail record -- no probability-field presence check is performed.
 
 Current count: **70** (as of the `docs/pl_model_calibration.md` audit, 2026-08 to 2026-10). Expected to cross 300 around **gameweek 20** of the 2026-27 season. Re-run when `count >= 300`.
 
