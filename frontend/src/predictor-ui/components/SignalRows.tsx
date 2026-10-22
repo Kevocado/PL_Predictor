@@ -1,4 +1,4 @@
-// Synced from predictor-ui@1b23d40bf08d. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@ce75d5295eb7. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 /**
  * `Signal[]` as the facts block renders it: one compact row per finding, a
  * headline of at most 12 words, and a collapsed evidence line a keyboard can
@@ -1044,7 +1044,7 @@ function SignalRow({ signal, rowId }: { signal: Signal; rowId: string }) {
           // direction is never carried by colour.
           <span
             data-testid="signal-delta"
-            className="shrink-0 rounded-pr border border-pr-rule px-1.5 py-0.5 font-pr-display text-xs font-semibold tabular-nums text-pr-text"
+            className="shrink-0 rounded-pr border border-pr-rule px-1.5 py-0.5 font-pr-display text-sm font-semibold tabular-nums text-pr-text"
           >
             {signed(figure)}
           </span>
@@ -1057,7 +1057,7 @@ function SignalRow({ signal, rowId }: { signal: Signal; rowId: string }) {
           // colour. Same neutral chip as `delta_chip` for the same reason.
           <span
             data-testid="signal-absence"
-            className="shrink-0 rounded-pr border border-pr-rule px-1.5 py-0.5 font-pr-display text-xs font-semibold tabular-nums text-pr-text"
+            className="shrink-0 rounded-pr border border-pr-rule px-1.5 py-0.5 font-pr-display text-sm font-semibold tabular-nums text-pr-text"
           >
             {drawnText(signal, figure)}
           </span>
@@ -1125,7 +1125,7 @@ function SignalRow({ signal, rowId }: { signal: Signal; rowId: string }) {
         >
           {open ? "Hide source" : "Source"}
         </button>
-        <p data-testid="signal-evidence" className="min-w-0 text-xs leading-snug text-pr-text-faint">
+        <p data-testid="signal-evidence" className="min-w-0 text-sm leading-snug text-pr-text-faint">
           {[count, kickoff(signal.as_of)].filter(Boolean).join(" · ")}
           {open && signal.source ? ` · ${signal.source}` : ""}
         </p>

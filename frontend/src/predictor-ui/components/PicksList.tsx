@@ -1,4 +1,4 @@
-// Synced from predictor-ui@1b23d40bf08d. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@ce75d5295eb7. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 /**
  * The model's own top calls, ranked per category.
  *
@@ -355,7 +355,7 @@ export function PicksList({ title = "Model's top calls", categories, out }: Pick
                     className="flex flex-col gap-1.5 border-t border-pr-rule pt-2 first:border-t-0 first:pt-0"
                   >
                     <div className="flex items-baseline gap-2">
-                      <span data-testid="picks-rank" className="w-4 shrink-0 font-pr-display text-xs font-semibold text-pr-text-faint tabular-nums">
+                      <span data-testid="picks-rank" className="w-4 shrink-0 font-pr-display text-sm font-semibold text-pr-text-faint tabular-nums">
                         {i + 1}
                       </span>
                       <p className="min-w-0 flex-1 truncate text-sm font-medium leading-snug text-pr-text">
@@ -376,9 +376,9 @@ export function PicksList({ title = "Model's top calls", categories, out }: Pick
                      row.direction &&
                      row.line != null &&
                      row.receptions_mu_flag !== "high_mu" && (
-                      <p data-testid="picks-direction" className="pl-6 text-xs leading-snug">
+                      <p data-testid="picks-direction" className="pl-6 text-sm leading-snug">
                         <DirectionBadge direction={row.direction} />
-                        <span className="ml-1 font-pr-display text-xs font-semibold tabular-nums">
+                        <span className="ml-1 font-pr-display text-sm font-semibold tabular-nums">
                           {row.line % 1 === 0 ? row.line.toFixed(1) : row.line} · {pct(row.value)}
                         </span>
                       </p>
@@ -386,7 +386,7 @@ export function PicksList({ title = "Model's top calls", categories, out }: Pick
                     {/* Projection vs the player's own recent average. Words, not a price: the model's median
                         against his last-N-games mean. Only a projection row carries it. */}
                     {row.kind === "projection" && row.recentAvg != null && row.vsRecent && (
-                      <p data-testid="picks-vs-recent" className="pl-6 text-xs leading-snug text-pr-text-dim">
+                      <p data-testid="picks-vs-recent" className="pl-6 text-sm leading-snug text-pr-text-dim">
                         {row.vsRecent !== "toss" && <DirectionBadge direction={row.vsRecent} />}
                         <span className={`${row.vsRecent !== "toss" ? "ml-1 " : ""}font-pr-display font-semibold tabular-nums`}>
                           {row.vsRecent === "toss" ? "In line with" : "vs"} his {row.recentGames ?? 5}-game avg {stat(row.recentAvg)}
@@ -394,14 +394,14 @@ export function PicksList({ title = "Model's top calls", categories, out }: Pick
                       </p>
                     )}
                     {row.kind === "projection" && row.recentAvg != null && row.recentNote && (
-                      <p data-testid="picks-recent-note" className="pl-6 text-xs leading-snug text-pr-text-faint">{row.recentNote}</p>
+                      <p data-testid="picks-recent-note" className="pl-6 text-sm leading-snug text-pr-text-faint">{row.recentNote}</p>
                     )}
                     {/* Rule 4 — `rowShowsDetail`, and nothing else. A projection row
                         never reaches this branch, so it can never be labelled a
                         call, and `detailLabel` is never read for one. The label is
                         visible text rather than a `title`: see `detailLabel`. */}
                     {rowShowsDetail(row, category) && (
-                      <p data-testid="picks-detail" className="pl-6 text-xs leading-snug text-pr-text-dim">
+                      <p data-testid="picks-detail" className="pl-6 text-sm leading-snug text-pr-text-dim">
                         {row.detail}
                         <span className="text-pr-text-faint"> · {row.detailLabel ?? DEFAULT_DETAIL_LABEL}</span>
                       </p>
@@ -420,7 +420,7 @@ export function PicksList({ title = "Model's top calls", categories, out }: Pick
       {!!out?.length && (
         <div data-testid="picks-out" className="flex flex-col gap-1 border-t border-pr-rule pt-2">
           {out.map((p) => (
-            <p key={`${p.name}-${p.dated}`} className="text-xs leading-snug text-pr-text-faint">
+            <p key={`${p.name}-${p.dated}`} className="text-sm leading-snug text-pr-text-faint">
               Out: {p.name}
               {p.team && ` · ${p.team}`} — not ranked. {p.source} · {p.dated}
             </p>

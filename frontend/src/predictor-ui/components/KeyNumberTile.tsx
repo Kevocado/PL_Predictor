@@ -1,4 +1,4 @@
-// Synced from predictor-ui@1b23d40bf08d. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@ce75d5295eb7. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 import type { ReactNode } from "react";
 
 /**
@@ -73,7 +73,7 @@ export function KeyNumberTile({ tile, highlighted }: { tile: MarketTile; highlig
        *  anywhere. A key printed where a label belongs is the general shape of
        *  this bug; the words are the fix and they come from the caller's
        *  `label`, which is what that field is for. */}
-      <dt className="text-xs leading-snug text-pr-text-dim">{sub ?? tile.label}</dt>
+      <dt className="text-sm leading-snug text-pr-text-dim">{sub ?? tile.label}</dt>
     </dl>
   );
 }
