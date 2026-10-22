@@ -1,6 +1,6 @@
 """Collect Kalshi's EPL match markets as a free, public record of what the market thought.
 
-Kalshi lists a binary market for each outcome of an EPL fixture (home win, tie, away win) and a ladder of "over N goals" totals for each fixture. Every rung is a binary contract whose price is the market's probability of that outcome. Reading them needs no account, key or credits. Snapshots taken before kickoff are the "lines" we had no historical source for; the same markets settle afterwards with a yes/no `result`, so each snapshot is its own labelled outcome and needs no match-stats join to be scored.
+Kalshi lists a binary market for each outcome of an EPL fixture (home win, tie, away win), a ladder of "over N goals" totals for each fixture, and a "Both Teams To Score" market for each fixture. Every rung is a binary contract whose price is the market's probability of that outcome. Reading them needs no account, key or credits. Snapshots taken before kickoff are the "lines" we had no historical source for; the same markets settle afterwards with a yes/no `result`, so each snapshot is its own labelled outcome and needs no match-stats join to be scored.
 
 `floor_strike` is the real threshold on a total: "over 5.5 goals" has floor_strike 5.5. Prices are dollars in [0, 1] (0.62 = 62%). A missing or zero bid/ask means no quote, not a 0% market. Kalshi's EPL markets use the dollar-denominated quote fields (`yes_ask_dollars` and friends), which is what `normalize` reads, so no cent conversion is needed.
 
@@ -18,9 +18,16 @@ import requests
 
 BASE_URL = "https://api.elections.kalshi.com/trade-api/v2"
 #: Kalshi series ticker -> the market it prices.
+#:
+#: `KXEPLBTTS` ("EPL Both Teams to Score") is a series of its own: one binary
+#: market per fixture, "Both Teams To Score", with no floor_strike. It was
+#: checked against Kalshi's public series list rather than assumed, and it has
+#: open markets. The paper ledger pairs its prices with this site's published
+#: `btts_yes_prob`.
 SERIES = {
     "KXEPLGAME": "moneyline",
     "KXEPLTOTAL": "total",
+    "KXEPLBTTS": "btts",
 }
 LINES_DIR = Path("data/lines")
 PAGE_LIMIT = 1000
