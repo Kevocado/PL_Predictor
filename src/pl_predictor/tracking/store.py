@@ -1120,6 +1120,108 @@ def get_track_record() -> dict:
     }
 
 
+
+def get_calibration() -> dict:
+    """Per-market confidence buckets (50-60/60-70/70%+) over resolved picks.
+
+    Each bucket reports how many picks the model made at that confidence level
+    and how many were right, so a reader can check whether 70% really means
+    70%. One entry per market that has resolved picks; empty list otherwise.
+    """
+    import sqlite3
+    from collections import defaultdict
+
+    conn = _connect()
+    try:
+        result = {}
+
+        # match_result (1x2)
+        rows = conn.execute(
+            "SELECT event_id, outcome_name, predicted_prob, actual_outcome "
+            "FROM predictions WHERE resolved = 1 AND market = '1x2'"
+        ).fetchall()
+        fixtures = defaultdict(dict)
+        for eid, outcome, prob, actual in rows:
+            fixtures[eid][outcome] = (prob, actual)
+        buckets = {"50-60%": [0, 0], "60-70%": [0, 0], "70%+": [0, 0]}
+        for eid, outcomes in fixtures.items():
+            if set(outcomes.keys()) != {"home_win", "draw", "away_win"}:
+                continue
+            probs = {k: v[0] for k, v in outcomes.items()}
+            conf = max(probs.values())
+            pick = max(probs, key=probs.get)
+            hit = outcomes[pick][1] == 1
+            if conf < 0.5:
+                continue
+            if conf < 0.6:
+                b = "50-60%"
+            elif conf < 0.7:
+                b = "60-70%"
+            else:
+                b = "70%+"
+            buckets[b][0] += 1
+            if hit:
+                buckets[b][1] += 1
+        result["match_result"] = [{"bucket": k, "n": v[0], "correct": v[1]} for k, v in buckets.items() if v[0] > 0]
+
+        # over_under_2_5
+        rows = conn.execute(
+            "SELECT event_id, outcome_name, predicted_prob, actual_outcome "
+            "FROM predictions WHERE resolved = 1 AND market = 'totals_2_5'"
+        ).fetchall()
+        fixtures = defaultdict(dict)
+        for eid, outcome, prob, actual in rows:
+            fixtures[eid][outcome] = (prob, actual)
+        buckets = {"50-60%": [0, 0], "60-70%": [0, 0], "70%+": [0, 0]}
+        for eid, outcomes in fixtures.items():
+            if set(outcomes.keys()) != {"over", "under"}:
+                continue
+            probs = {k: v[0] for k, v in outcomes.items()}
+            conf = max(probs.values())
+            pick = max(probs, key=probs.get)
+            hit = outcomes[pick][1] == 1
+            if conf < 0.5:
+                continue
+            if conf < 0.6:
+                b = "50-60%"
+            elif conf < 0.7:
+                b = "60-70%"
+            else:
+                b = "70%+"
+            buckets[b][0] += 1
+            if hit:
+                buckets[b][1] += 1
+        result["over_under_2_5"] = [{"bucket": k, "n": v[0], "correct": v[1]} for k, v in buckets.items() if v[0] > 0]
+
+        # btts (only yes outcome stored; confidence = max(yes, 1-yes))
+        rows = conn.execute(
+            "SELECT event_id, predicted_prob, actual_outcome, actual_goals_home, actual_goals_away "
+            "FROM predictions WHERE resolved = 1 AND market = 'btts' AND outcome_name = 'yes'"
+        ).fetchall()
+        buckets = {"50-60%": [0, 0], "60-70%": [0, 0], "70%+": [0, 0]}
+        for eid, prob, actual, gh, ga in rows:
+            conf = max(prob, 1 - prob)
+            pick_yes = prob >= 0.5
+            actual_btts = gh is not None and ga is not None and gh > 0 and ga > 0
+            hit = pick_yes == actual_btts
+            if conf < 0.5:
+                continue
+            if conf < 0.6:
+                b = "50-60%"
+            elif conf < 0.7:
+                b = "60-70%"
+            else:
+                b = "70%+"
+            buckets[b][0] += 1
+            if hit:
+                buckets[b][1] += 1
+        result["btts"] = [{"bucket": k, "n": v[0], "correct": v[1]} for k, v in buckets.items() if v[0] > 0]
+
+        return result
+    finally:
+        conn.close()
+
+
 def get_biggest_upsets(limit: int = 5) -> list[dict]:
     """Genuine 1x2 upsets only — the side that actually happened, ranked by
     how unlikely the model said it was. Deliberately not "biggest squared

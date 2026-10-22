@@ -2321,8 +2321,10 @@ def get_hub_track_record():
         return _public_snapshot().get("hub", {}).get(
             "track_record", {"summary": {}, "biggest_upsets": [], "gameweeks": []}
         )
+    summary = tracking_store.get_track_record()
+    summary["calibration"] = tracking_store.get_calibration()
     return {
-        "summary": tracking_store.get_track_record(),
+        "summary": summary,
         "biggest_upsets": tracking_store.get_biggest_upsets(),
         "gameweeks": tracking_store.get_results_by_gameweek(),
     }
