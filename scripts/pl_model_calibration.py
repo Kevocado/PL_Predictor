@@ -1,4 +1,4 @@
-"""PL model calibration audit — walk-forward on OUR MODEL's own predictions.
+"""PL model calibration audit — our model's own predictions vs actuals.
 
 Uses public_snapshot.json fixtures_by_gameweek (actuals) + fixture_detail_by_event_id
 (model probabilities). Research only: no src/ changes.
@@ -61,9 +61,48 @@ def max_gap(pred, actual):
     return max(abs(b[1] - b[2]) for b in bins) if bins else np.nan
 
 
-def bin_str(pred, actual):
-    bins = reliability_bins(pred, actual)
+def bin_str(pred, actual, min_n=5):
+    bins = reliability_bins(pred, actual, min_n=min_n)
     return " | ".join(b[0] for b in bins)
+
+
+def verdict_bias(lo, hi):
+    """Return 'problem' if CI excludes 0, 'inconclusive' if CI too wide, else 'no problem'."""
+    if lo > 0 or hi < 0:
+        return "problem"
+    # CI half-width > 0.5 means we can't distinguish from 0 meaningfully
+    if (hi - lo) / 2 > 0.5:
+        return "inconclusive (n=70, interval too wide to judge)"
+    return "no problem"
+
+
+def verdict_slope(lo, hi):
+    """Return 'problem' if CI excludes 1.0, 'inconclusive' if CI too wide, else 'no problem'."""
+    if lo > 1.0 or hi < 1.0:
+        return "problem"
+    # CI half-width > 0.5 around 1.0 means we can't distinguish from 1.0 meaningfully
+    if (hi - lo) / 2 > 0.5:
+        return "inconclusive (n=70, interval too wide to judge)"
+    return "no problem"
+
+
+def max_gap(pred, actual):
+    bins = reliability_bins(pred, actual)
+    return max(abs(b[1] - b[2]) for b in bins) if bins else np.nan
+
+
+def bin_str(pred, actual, min_n=5):
+    bins = reliability_bins(pred, actual, min_n=min_n)
+    return " | ".join(b[0] for b in bins)
+
+
+def bin_str_detailed(pred, actual, min_n=5):
+    """Return bins with n, for filtering n<10 in the doc."""
+    bins = reliability_bins(pred, actual, min_n=min_n)
+    return " | ".join(
+        f"{b[0]}" + (" ⚠" if b[3] < 10 else "")
+        for b in bins
+    )
 
 
 def main():
@@ -160,12 +199,12 @@ def main():
     bs_lo, bs_hi = boot_slope(df["pred_btts"], df["actual_btts"])
     bgap = max_gap(df["pred_btts"], df["actual_btts"])
 
-    # Per-decile calibration tables
-    home_bins = bin_str(df["pred_home"], df["actual_home"])
-    draw_bins = bin_str(df["pred_draw"], df["actual_draw"])
-    away_bins = bin_str(df["pred_away"], df["actual_away"])
-    over_bins = bin_str(df["pred_over"], df["actual_over"])
-    btts_bins = bin_str(df["pred_btts"], df["actual_btts"])
+    # Per-decile calibration tables (min_n=5 for display, flag n<10)
+    home_bins_str = bin_str_detailed(df["pred_home"], df["actual_home"])
+    draw_bins_str = bin_str_detailed(df["pred_draw"], df["actual_draw"])
+    away_bins_str = bin_str_detailed(df["pred_away"], df["actual_away"])
+    over_bins_str = bin_str_detailed(df["pred_over"], df["actual_over"])
+    btts_bins_str = bin_str_detailed(df["pred_btts"], df["actual_btts"])
 
     # Bootstrap slope CIs
     hs_lo, hs_hi = boot_slope(df["pred_home"], df["actual_home"])
@@ -183,34 +222,40 @@ def main():
     print(f"  O/U slope: {ou_slope:.3f} [{ou_sl:.3f}, {ou_sh:.3f}], BTTS slope: {btts_slope:.3f} [{bs_lo:.3f}, {bs_hi:.3f}]")
     print(f"Max gaps: Home {hgap:.4f}, Draw {dgap:.4f}, Away {agap:.4f}, O/U {ogap:.4f}, BTTS {bgap:.4f}")
 
-    # Build doc content
-    hp_reading = "problem" if hb_lo > 0 or hb_hi < 0 else "no problem"
-    dp_reading = "problem" if db_lo > 0 or db_hi < 0 else "no problem"
-    ap_reading = "problem" if ab_lo > 0 or ab_hi < 0 else "no problem"
-    ou_reading = "problem" if ob_lo > 0 or ob_hi < 0 else "no problem"
-    bt_reading = "problem" if bb_lo > 0 or bb_hi < 0 else "no problem"
-    hs_reading = "problem" if hs_lo > 1.0 or hs_hi < 1.0 else "no problem"
-    ds_reading = "problem" if ds_lo > 1.0 or ds_hi < 1.0 else "no problem"
-    as_reading = "problem" if as_lo > 1.0 or as_hi < 1.0 else "no problem"
-    ou_reading = "problem" if ou_sl > 1.0 or ou_sh < 1.0 else "no problem"
-    bt_reading = "problem" if bs_lo > 1.0 or bs_hi < 1.0 else "no problem"
+    # Verdict helpers
+    hp_reading = verdict_bias(hb_lo, hb_hi)
+    dp_reading = verdict_bias(db_lo, db_hi)
+    ap_reading = verdict_bias(ab_lo, ab_hi)
+    ou_reading = verdict_bias(ob_lo, ob_hi)
+    bt_reading = verdict_bias(bb_lo, bb_hi)
+    hs_reading = verdict_slope(hs_lo, hs_hi)
+    ds_reading = verdict_slope(ds_lo, ds_hi)
+    as_reading = verdict_slope(as_lo, as_hi)
+    ou_reading = verdict_slope(ou_sl, ou_sh)
+    bt_reading = verdict_slope(bs_lo, bs_hi)
 
-    hp_text = "problem" if hb_lo > 0 or hb_hi < 0 else "no problem"
-    dp_text = "problem" if db_lo > 0 or db_hi < 0 else "no problem"
-    ap_text = "problem" if ab_lo > 0 or ab_hi < 0 else "no problem"
-    ou_text = "problem" if ob_lo > 0 or ob_hi < 0 else "no problem"
-    bt_text = "problem" if bb_lo > 0 or bb_hi < 0 else "no problem"
-    hs_text = "problem" if hs_lo > 1.0 or hs_hi < 1.0 else "no problem"
-    ds_text = "problem" if ds_lo > 1.0 or ds_hi < 1.0 else "no problem"
-    as_text = "problem" if as_lo > 1.0 or as_hi < 1.0 else "no problem"
-    ou_text = "problem" if ou_sl > 1.0 or ou_sh < 1.0 else "no problem"
-    bt_text = "problem" if bs_lo > 1.0 or bs_hi < 1.0 else "no problem"
+    home_bins_str = bin_str_detailed(df["pred_home"], df["actual_home"])
+    draw_bins_str = bin_str_detailed(df["pred_draw"], df["actual_draw"])
+    away_bins_str = bin_str_detailed(df["pred_away"], df["actual_away"])
+    over_bins_str = bin_str_detailed(df["pred_over"], df["actual_over"])
+    btts_bins_str = bin_str_detailed(df["pred_btts"], df["actual_btts"])
 
-    home_bins_str = bin_str(df["pred_home"], df["actual_home"])
-    draw_bins_str = bin_str(df["pred_draw"], df["actual_draw"])
-    away_bins_str = bin_str(df["pred_away"], df["actual_away"])
-    over_bins_str = bin_str(df["pred_over"], df["actual_over"])
-    btts_bins_str = bin_str(df["pred_btts"], df["actual_btts"])
+    hp_text = verdict_bias(hb_lo, hb_hi)
+    dp_text = verdict_bias(db_lo, db_hi)
+    ap_text = verdict_bias(ab_lo, ab_hi)
+    ou_text = verdict_bias(ob_lo, ob_hi)
+    bt_text = verdict_bias(bb_lo, bb_hi)
+    hs_text = verdict_slope(hs_lo, hs_hi)
+    ds_text = verdict_slope(ds_lo, ds_hi)
+    as_text = verdict_slope(as_lo, as_hi)
+    ou_text = verdict_slope(ou_sl, ou_sh)
+    bt_text = verdict_slope(bs_lo, bs_hi)
+
+    home_bins_str = bin_str_detailed(df["pred_home"], df["actual_home"])
+    draw_bins_str = bin_str_detailed(df["pred_draw"], df["actual_draw"])
+    away_bins_str = bin_str_detailed(df["pred_away"], df["actual_away"])
+    over_bins_str = bin_str_detailed(df["pred_over"], df["actual_over"])
+    btts_bins_str = bin_str_detailed(df["pred_btts"], df["actual_btts"])
 
     out = Path("docs/pl_model_calibration.md")
     out.write_text(
@@ -222,34 +267,36 @@ def main():
         f"## Summary\n\n"
         f"- **Data source**: OUR MODEL's predicted probabilities (not bookmaker odds) from public_snapshot.json: "
         f"`fixtures_by_gameweek` (1X2 probs + actuals) joined with `fixture_detail_by_event_id` (O/U 2.5, BTTS).\n"
-        f"- **Sample**: n={n} finished fixtures with model predictions and actual results.\n"
+        f"- **Sample**: n={n} finished fixtures with model predictions and actual results (2026-08 to 2026-10).\n"
         f"- **Probabilities sum to 1**: 1X2 probs sum to 1.000 for all fixtures.\n\n"
         f"## Per-market results (paired-bootstrap 95% CIs, {N_BOOT} resamples)\n\n"
         f"| Market | Metric | Value | 95% CI | Reading |\n"
         f"|--------|--------|-------|--------|---------|\n"
         f"| Home win (1X2) | Bias (pred − actual) | {home_bias:+.4f} | [{hb_lo:+.4f}, {hb_hi:+.4f}] | {hp_reading} |\n"
         f"| Home win (1X2) | Reliability slope | {hslope:.3f} | [{hs_lo:.3f}, {hs_hi:.3f}] | {hs_reading} |\n"
-        f"| Home win (1X2) | Max calibration gap | {hgap:.4f} | — | <0.03 honest |\n"
+        f"| Home win (1X2) | Max calibration gap | {hgap:.4f} | — | {'<0.03 honest' if hgap < 0.03 else '>0.03'} |\n"
         f"| Draw (1X2) | Bias (pred − actual) | {draw_bias:+.4f} | [{db_lo:+.4f}, {db_hi:+.4f}] | {dp_reading} |\n"
         f"| Draw (1X2) | Reliability slope | {dslope:.3f} | [{ds_lo:.3f}, {ds_hi:.3f}] | {ds_reading} |\n"
-        f"| Draw (1X2) | Max calibration gap | {dgap:.4f} | — | <0.03 honest |\n"
+        f"| Draw (1X2) | Max calibration gap | {dgap:.4f} | — | {'<0.03 honest' if dgap < 0.03 else '>0.03'} |\n"
         f"| Away win (1X2) | Bias (pred − actual) | {away_bias:+.4f} | [{ab_lo:+.4f}, {ab_hi:+.4f}] | {ap_reading} |\n"
         f"| Away win (1X2) | Reliability slope | {aslope:.3f} | [{as_lo:.3f}, {as_hi:.3f}] | {as_reading} |\n"
-        f"| Away win (1X2) | Max calibration gap | {agap:.4f} | — | <0.03 honest |\n"
+        f"| Away win (1X2) | Max calibration gap | {agap:.4f} | — | {'<0.03 honest' if agap < 0.03 else '>0.03'} |\n"
         f"| O/U 2.5 | Bias (pred − actual) | {ou_bias:+.4f} | [{ob_lo:+.4f}, {ob_hi:+.4f}] | {ou_reading} |\n"
         f"| O/U 2.5 | Reliability slope | {ou_slope:.3f} | [{ou_sl:.3f}, {ou_sh:.3f}] | {ou_reading} |\n"
-        f"| O/U 2.5 | Max calibration gap | {ogap:.4f} | — | <0.03 honest |\n"
+        f"| O/U 2.5 | Max calibration gap | {ogap:.4f} | — | {'<0.03 honest' if ogap < 0.03 else '>0.03'} |\n"
         f"| BTTS | Bias (pred − actual) | {btts_bias:+.4f} | [{bb_lo:+.4f}, {bb_hi:+.4f}] | {bt_reading} |\n"
         f"| BTTS | Reliability slope | {btts_slope:.3f} | [{bs_lo:.3f}, {bs_hi:.3f}] | {bt_reading} |\n"
-        f"| BTTS | Max calibration gap | {bgap:.4f} | — | <0.03 honest |\n\n"
-        f"## Per-decile calibration (min n=5)\n\n"
-        "### Home win (1X2)\n" + bin_str(df["pred_home"], df["actual_home"]) + "\n\n"
-        "### Draw (1X2)\n" + bin_str(df["pred_draw"], df["actual_draw"]) + "\n\n"
-        "### Away win (1X2)\n" + bin_str(df["pred_away"], df["actual_away"]) + "\n\n"
-        "### O/U 2.5\n" + bin_str(df["pred_over"], df["actual_over"]) + "\n\n"
-        "### BTTS\n" + bin_str(df["pred_btts"], df["actual_btts"]) + "\n\n"
+        f"| BTTS | Max calibration gap | {bgap:.4f} | — | {'<0.03 honest' if bgap < 0.03 else '>0.03'} |\n\n"
+        f"## Per-decile calibration (min n=5, bins with n<10 flagged ⚠)\n\n"
+        f"### Home win (1X2)\n{home_bins_str}\n\n"
+        f"### Draw (1X2)\n{draw_bins_str}\n\n"
+        f"### Away win (1X2)\n{away_bins_str}\n\n"
+        f"### O/U 2.5\n{over_bins_str}\n\n"
+        f"### BTTS\n{btts_bins_str}\n\n"
         f"## Interpretation\n"
-        f"- A market reads as **no problem** when its bias/slope/coverage interval straddles the ideal value.\n"
+        f"- A market reads as **problem** when its bias/slope CI excludes the ideal value (0 for bias, 1.0 for slope).\n"
+        f"- A market reads as **inconclusive** when the CI is too wide (>±0.5 half-width around ideal) to distinguish from ideal — this happens at small n.\n"
+        f"- A market reads as **no problem** when the CI contains the ideal value and is narrow enough to be informative.\n"
         f"- **Home win**: bias {home_bias:+.4f} CI [{hb_lo:+.4f}, {hb_hi:+.4f}] — {hp_text}; "
         f"slope {hslope:.3f} CI [{hs_lo:.3f}, {hs_hi:.3f}] — {hs_text}.\n"
         f"- **Draw**: bias {draw_bias:+.4f} CI [{db_lo:+.4f}, {db_hi:+.4f}] — {dp_text}; "
@@ -260,8 +307,15 @@ def main():
         f"slope {ou_slope:.3f} CI [{ou_sl:.3f}, {ou_sh:.3f}] — {ou_text}.\n"
         f"- **BTTS**: bias {btts_bias:+.4f} CI [{bb_lo:+.4f}, {bb_hi:+.4f}] — {bt_text}; "
         f"slope {btts_slope:.3f} CI [{bs_lo:.3f}, {bs_hi:.3f}] — {bt_text}.\n"
-        f"- **Reviewer 50-60% bucket lead**: spot-check had 8/23 (35%) — full walk-forward decile analysis above replaces spot-check with full-sample paired-bootstrap.\n"
-        f"- No fix shipped: research only; fix only if paired-bootstrap CI excludes ideal value on re-tested candidate.\n"
+        f"- **Reviewer 50-60% bucket lead**: The spot-check (8/23 = 35% for match_result 50-60%) was a small-n spot-check. "
+        f"This analysis is NOT a multi-season walk-forward — it is a single-season snapshot (n={n} finished fixtures from 2026-08 to 2026-10). "
+        f"No multi-season walk-forward backtest exists for the model's own probabilities. The spot-check concern remains open.\n"
+        f"- **No multi-season walk-forward has been run** for the model's own probabilities. The scoreline model backtest evaluates closing odds, not our model's own probabilities.\n"
+        f"- No fix shipped: research only; fix only if paired-bootstrap CI excludes ideal value on re-tested candidate.\n\n"
+        f"## Verdict\n"
+        f"Not enough 2026 fixtures to judge; re-run at ~300 fixtures or on the multi-season backtest (which does not yet exist for model probabilities). "
+        f"Current n={n} is too small to distinguish calibration from noise — all slope CIs are inconclusive (span >±0.5 around 1.0), "
+        f"and bias CIs straddle zero but are too wide to be informative.\n"
     )
     print(f"\nWrote {out}")
 
