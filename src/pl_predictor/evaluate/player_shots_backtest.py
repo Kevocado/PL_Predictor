@@ -178,22 +178,31 @@ def run_season(season: str, frames: dict, us_shots_fpl: dict, shots_ctx, gexp, l
             rates, _ = player_form.blended_current_form(hist, prior.get(name), position, priors)
             sf = player_form.current_start_features(hist, fallback_minutes=rates["avg_minutes"])
             exp_min = pg.predict_lineup(sf, lineup_model)["expected_minutes"]
+            # C3 minutes floor: GK 60, others 45 if >=6 prior appearances this season
+            games_before = int((hist.minutes > 0).sum())
+            floor = 60.0 if position == "GK" and games_before >= 6 else (45.0 if games_before >= 6 else 0.0)
+            exp_min_f = max(float(exp_min), float(floor))
             d = row.kickoff_time.date()
             is_home = bool(row.was_home)
             gx = gexp.get((row.team, d), pg.LEAGUE_AVERAGE_TEAM_GOALS)
             sh = shots_ctx.get((row.team, d), (np.nan, np.nan))[0 if is_home else 1]
             ctx = types.SimpleNamespace(form=pd.DataFrame({("home_last_10_shots_for" if is_home else "away_last_10_shots_for"): [sh]}, index=["home" if is_home else "away"]))
             kw = dict(expected_minutes=exp_min, position=position, is_home=is_home, team=row.team)
+            kw_f = dict(expected_minutes=exp_min_f, position=position, is_home=is_home, team=row.team)
             full = pg.predict_player(rates, gx, 1.0, context=ctx, **kw)
+            full_f = pg.predict_player(rates, gx, 1.0, context=ctx, **kw_f)
             no_scale = pg.predict_player(rates, gx, 1.0, context=None, **kw)
             no_str = pg.predict_player(rates, pg.LEAGUE_AVERAGE_TEAM_GOALS, 1.0, context=ctx, **kw)
             neither = pg.predict_player(rates, pg.LEAGUE_AVERAGE_TEAM_GOALS, 1.0, context=None, **kw)
             mf = min(row.minutes / 90, 1.0)
             out.append(dict(
-                season=season, element=el, position=position, team=row.team, date=d, minutes=row.minutes, exp_minutes=exp_min,
-                shots=row.shots, sot=row.shots_on_target, games_before=int((hist.minutes > 0).sum()),
+                season=season, element=el, position=position, team=row.team, date=d, minutes=row.minutes, exp_minutes=exp_min, exp_minutes_f=exp_min_f, floor=floor,
+                goals=row.goals_scored, assists=row.assists, shots=row.shots, sot=row.shots_on_target, games_before=games_before,
                 rate_shots90=rates.get("shots_per90", 0.0), rate_sot90=rates.get("shots_on_target_per90", 0.0),
                 pm_shots=full["expected_shots"], pm_sot=full["expected_shots_on_target"],
+                pm_shots_f=full_f["expected_shots"], pm_sot_f=full_f["expected_shots_on_target"],
+                pm_goals=full["expected_goals"], pm_assists=full["expected_assists"],
+                pm_goals_f=full_f["expected_goals"], pm_assists_f=full_f["expected_assists"],
                 noscale_shots=no_scale["expected_shots"], noscale_sot=no_scale["expected_shots_on_target"],
                 nostr_shots=no_str["expected_shots"], nostr_sot=no_str["expected_shots_on_target"],
                 own_shots=neither["expected_shots"], own_sot=neither["expected_shots_on_target"],
