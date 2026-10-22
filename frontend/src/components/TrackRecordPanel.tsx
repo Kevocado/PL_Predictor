@@ -18,6 +18,7 @@ import { FixtureModal } from "./FixtureModal";
 import { api } from "../api/client";
 import { GLOSSARY } from "../lib/glossary";
 import {
+  CalibrationBlock,
   HowCounted,
   RecordBlock,
   RecordHeadline,
@@ -99,6 +100,9 @@ export function TrackRecordPanel({ data }: { data: TrackRecordResponse }) {
           {refreshing ? "Refreshing…" : "Refresh live data"}
         </button>
       </h2>
+
+      {/* Calibration chart as hero: full width under the header, above the record. */}
+      <CalibrationBlock series={model.calibration ?? []} markets={model.markets} />
 
       <RecordBlock id="tr-record" title="Record" caption="Every counted pick, whenever it was made; the figure beside each market is the pre-kickoff subset.">
         {model.markets.length > 0 ? (

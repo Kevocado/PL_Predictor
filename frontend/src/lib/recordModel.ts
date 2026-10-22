@@ -49,20 +49,45 @@ function weekPoint(gw: { gameweek: number | null; n_fixtures: number; pct_correc
   return { weekStart: gw.gameweek != null ? `GW${gw.gameweek}` : "No gameweek", n: gw.n_fixtures, correct, tracked: gw.pct_correct != null };
 }
 
-function calibrationSeries(by_market: { exact_score?: { pct_correct: number | null; n_resolved: number }; match_result?: { pct_correct: number | null; n_resolved: number }; over_under_2_5?: { pct_correct: number | null; n_resolved: number }; btts?: { pct_correct: number | null; n_resolved: number } } | undefined): CalibrationSeries[] {
-  const entries = Object.entries(by_market ?? {}).filter(([, stat]) => stat.n_resolved > 0 && stat.pct_correct != null);
-  if (entries.length === 0) return [];
-  return [
-    {
-      key: "by_market",
-      label: "By market",
-      buckets: entries.map(([key, stat]) => ({
-        bucket: key,
-        n: stat.n_resolved,
-        correct: Math.round((stat.pct_correct ?? 0) * stat.n_resolved),
-      })),
-    },
-  ];
+function calibrationSeries(calibration: Record<string, { bucket: string; n: number; correct: number }[]> | undefined, by_market: { exact_score?: { pct_correct: number | null; n_resolved: number }; match_result?: { pct_correct: number | null; n_resolved: number }; over_under_2_5?: { pct_correct: number | null; n_resolved: number }; btts?: { pct_correct: number | null; n_resolved: number } } | undefined): CalibrationSeries[] {
+  const series: CalibrationSeries[] = [];
+
+  // Per-market confidence buckets from the backend's get_calibration().
+  if (calibration) {
+    const labels: Record<string, string> = {
+      match_result: "Match result",
+      over_under_2_5: "Goals O/U 2.5",
+      btts: "BTTS",
+    };
+    for (const [key, buckets] of Object.entries(calibration)) {
+      const usable = (buckets ?? []).filter((b) => b.n > 0);
+      if (usable.length === 0) continue;
+      series.push({
+        key,
+        label: labels[key] ?? key,
+        buckets: usable.map((b) => ({ bucket: b.bucket, n: b.n, correct: b.correct })),
+      });
+    }
+  }
+
+  // Fallback: if no calibration buckets, use the by_market aggregate as a
+  // single bucket per market (less informative but honest).
+  if (series.length === 0) {
+    const entries = Object.entries(by_market ?? {}).filter(([, stat]) => stat.n_resolved > 0 && stat.pct_correct != null);
+    if (entries.length > 0) {
+      series.push({
+        key: "by_market",
+        label: "By market",
+        buckets: entries.map(([, stat]) => ({
+          bucket: `${Math.round((stat.pct_correct ?? 0) * 100)}%`,
+          n: stat.n_resolved,
+          correct: Math.round((stat.pct_correct ?? 0) * stat.n_resolved),
+        })),
+      });
+    }
+  }
+
+  return series;
 }
 
 function recentPicks(per_pick: TrackRecordResponse["summary"]["per_pick"] | undefined): { id: string; label: string; pick: string; actual: string; hit: boolean | null; when: string; madeBeforeKickoff: boolean }[] {
@@ -97,7 +122,7 @@ export function toRecordModel(response: TrackRecordResponse): RecordModel {
     lead,
     headline: "counted",
     weeks: (summary.gameweek_trend ?? []).map(weekPoint),
-    calibration: calibrationSeries(summary.by_market),
+    calibration: calibrationSeries(summary.calibration, summary.by_market),
     recent: recentPicks(summary.per_pick),
   };
 }

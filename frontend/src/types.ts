@@ -599,6 +599,8 @@ export interface TrackRecordSummary {
   // Optional: absent from a public_snapshot.json baked before this field
   // existed, until the next scheduled snapshot rebuild catches up.
   by_market?: TrackRecordByMarket;
+  // Per-market confidence buckets (50-60/60-70/70%+) from get_calibration().
+  calibration?: Record<string, { bucket: string; n: number; correct: number }[]>;
 }
 
 export interface BiggestUpset {
