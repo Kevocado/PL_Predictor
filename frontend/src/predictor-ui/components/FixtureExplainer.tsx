@@ -1,4 +1,4 @@
-// Synced from predictor-ui@1b23d40bf08d. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@ce75d5295eb7. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 /** FixtureExplainer — the panel, three states.
  *
  *  The default state is the facts plus the flow: the instant block above (timing,
@@ -101,7 +101,7 @@ function SummaryView({ summary, extras }: { summary: Summary; extras?: FixtureEx
         moment={extras?.moment}
       />
       {summary.news_date && (
-        <p className="text-xs text-pr-text-faint" data-testid="news-date">
+        <p className="text-sm text-pr-text-faint" data-testid="news-date">
           Team news from {summary.news_date}
         </p>
       )}
@@ -156,7 +156,7 @@ export function FixtureExplainer({ sport, state, bundle, request, extras, promis
             onUnavailable={handleUnavailable}
             label={panelState === "unavailable" ? "Try again" : "Get the AI summary"}
           />
-          <p className="max-w-[70ch] text-xs text-pr-text-faint" data-testid="ai-promise">{promise}</p>
+          <p className="max-w-[70ch] text-sm text-pr-text-faint" data-testid="ai-promise">{promise}</p>
         </div>
       )}
     </div>

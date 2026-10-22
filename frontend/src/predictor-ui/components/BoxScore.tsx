@@ -1,4 +1,4 @@
-// Synced from predictor-ui@1b23d40bf08d. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@ce75d5295eb7. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 /**
  * A presentational box score. It renders a structure the caller has already
  * built; it never fetches, never reorders, and does not know what a touchdown
@@ -79,7 +79,7 @@ function toRow(row: BoxScoreRow, columns: BoxScoreColumn[]): StickyRow {
     header: (
       <>
         <span>{row.name}</span>
-        {row.team && <span className="ml-1.5 text-xs text-pr-text-dim">{row.team}</span>}
+        {row.team && <span className="ml-1.5 text-sm text-pr-text-dim">{row.team}</span>}
         {row.isStarter === null && <span className="sr-only"> — projected order, no depth-chart data</span>}
       </>
     ),
@@ -105,7 +105,7 @@ export function BoxScore({ columns, groups, title, starterLabel = "Starters", be
         <h3 className="mb-1 text-sm text-pr-text-dim">
           {title}
           {state === "projected" && (
-            <span className="ml-2 text-xs" data-testid="box-score-projected-note">
+            <span className="ml-2 text-sm" data-testid="box-score-projected-note">
               Projected order — no depth-chart feed for this sport
             </span>
           )}
@@ -132,7 +132,7 @@ export function BoxScore({ columns, groups, title, starterLabel = "Starters", be
       />
 
       {state === "known" && (
-        <p className="mt-1 text-xs text-pr-text-dim">
+        <p className="mt-1 text-sm text-pr-text-dim">
           {starterLabel} listed before {benchLabel.toLowerCase()}.
         </p>
       )}

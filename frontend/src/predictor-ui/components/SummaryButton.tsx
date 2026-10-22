@@ -1,4 +1,4 @@
-// Synced from predictor-ui@1b23d40bf08d. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@ce75d5295eb7. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 /** SummaryButton — the only network caller in the panel.
  *
  *  One job: turn a press into a summary or an unavailable state, and nothing
@@ -116,7 +116,7 @@ export function SummaryButton({
       onClick={handleClick}
       disabled={loading}
       aria-busy={loading}
-      className="self-start rounded-pr border border-pr-rule bg-pr-panel-2 px-3 py-1.5 text-xs font-semibold text-pr-text transition-colors hover:border-pr-accent disabled:opacity-60"
+      className="self-start rounded-pr border border-pr-rule bg-pr-panel-2 px-3 py-1.5 text-sm font-semibold text-pr-text transition-colors hover:border-pr-accent disabled:opacity-60"
     >
       {loading ? "Writing…" : label}
     </button>

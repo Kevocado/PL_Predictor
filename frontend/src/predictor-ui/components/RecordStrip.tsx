@@ -1,4 +1,4 @@
-// Synced from predictor-ui@1b23d40bf08d. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@ce75d5295eb7. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 import { record as fmtRecord } from "../fmt";
 
 /**
@@ -84,10 +84,10 @@ export function RecordStrip({
         <span className="font-pr-display text-sm font-semibold text-pr-text-faint">—</span>
       )}
       {rebuilt && rebuilt > 0 && (
-        <span className="text-xs text-pr-text-dim">{rebuilt} of them made after tip-off</span>
+        <span className="text-sm text-pr-text-dim">{rebuilt} of them made after tip-off</span>
       )}
       {preTip && preTip.settled > 0 && (
-        <span className="text-xs text-pr-text-dim">Before tip-off: {preTip.hits} of {preTip.settled}</span>
+        <span className="text-sm text-pr-text-dim">Before tip-off: {preTip.hits} of {preTip.settled}</span>
       )}
     </div>
   );
