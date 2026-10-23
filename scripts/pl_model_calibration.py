@@ -154,7 +154,7 @@ def main():
             continue
         # 1X2 sums to ~1 check per fixture (not just aggregate)
         prob_sum = float(pred_home) + float(pred_draw) + float(pred_away)
-        if not (0.99 <= prob_sum <= 1.01):
+        if not (0.999 <= prob_sum <= 1.001):  # same tolerance as the assertion below
             continue
         matched.append({
             "event_id": f.get("event_id"),
