@@ -245,6 +245,19 @@ def main():
     cache = Path(a.cache_dir)
     tests = a.test_seasons.split(",")
 
+    # Guard: this is a research backtest harness; it must never write served
+    # model artifacts under models/. If --out is given, it must be outside
+    # the models/ tree.
+    if a.out:
+        out_path = Path(a.out).resolve()
+        models_root = (Path(__file__).resolve().parents[2] / "models").resolve()
+        try:
+            out_path.relative_to(models_root)
+            raise SystemExit("ERROR: --out path is under models/; research backtest "
+                             "must not write served model artifacts. Use a temp dir instead.")
+        except ValueError:
+            pass  # not under models/, OK
+
     us = load_shots(cache)
     print(f"understat shooter-rows: {len(us)}")
     fpl, frames = {}, {}
