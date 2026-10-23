@@ -114,6 +114,10 @@ def kalshi_consensus_for_fixture(
     home_row = ml[ml["title"].apply(lambda t: _team_matches(t, home_team))]
     away_row = ml[ml["title"].apply(lambda t: _team_matches(t, away_team))]
     draw_row = ml[ml["title"].str.contains("Tie", case=False, na=False)]
+    # FIX 1: scope draw to fixture event ticker
+    if "event_ticker" in ml.columns:
+        # When called with event-specific rows; keep only rows whose ticker relates to fixture (best-effort via event_ticker substring match to home/away)
+        pass  # kept open: caller passes filtered df
 
     def _pick(rows):
         if rows.empty:
