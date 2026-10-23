@@ -14,13 +14,17 @@ Paired match-cluster bootstrap (2000). Research only: no src/ changes.
 - MAE appearances: base 24.18 -> floored 24.05; paired d -0.1287 [-0.2349, -0.0239].
 - Minutes-calibration max decile gap: base 37.59 -> floored 32.63.
 
-## Scorer/assist invariance
-- Cannot fully evaluate: backtest output lacks goal/assist lambdas and floored exp_minutes for shots/sot.
-- Requires re-running the backtest with floored exp_minutes plugged into predict_player.
-- **Conditional gate**: minutes MAE passes (CI excludes zero), but scorer/assist log-loss invariance NOT YET VERIFIED. Floor should not ship without a full re-run confirming no dNLL worsening (CI > 0) on any leg.
+## Scorer/assist invariance (COMPLETED — see docs/c3_minutes_floor_invariance.md)
+- Re-run with floored exp_minutes plugged into predict_player across 4 seasons (2021-22..2024-25), 44,780 appearances, 3,040 matches.
+- Minutes MAE: base 24.92 -> floored 24.63; d -0.2901 [-0.3730,-0.2117] — improves, CI excludes 0 (PASSES).
+- Leg dNLL (corrected - raw): scorer (goals) +0.0006 [-0.0000,+0.0013] (not worse); assist +0.0011 [+0.0005,+0.0018] (WORSE); shots +0.0009 [-0.0011,+0.0029] (not worse); shots-on-target +0.0012 [+0.0003,+0.0021] (WORSE).
+- **Verdict: NO-SHIP** — floor breaks on assist and shots-on-target legs. Floor stays behind a flag OFF (research-only; no src/ change).
 
 ## Gate
-**CONDITIONAL PASS** — minutes MAE improves with CI excluding zero; scorer/assist invariance pending full re-run.
+**NO-SHIP** — minutes MAE improves (CI excludes zero), but the full walk-forward
+invariance re-run (docs/c3_minutes_floor_invariance.md) shows the assist and
+shots-on-target legs worsening (dNLL CI entirely > 0). Floor stays behind a flag
+OFF. See docs/c3_minutes_floor_invariance.md.
 
 ## Reviewer live-data leads — tested on MODEL walk-forward (public_snapshot.json, n=70 finished fixtures)
 

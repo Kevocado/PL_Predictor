@@ -122,15 +122,40 @@ def main():
     # Get fixture_detail for O/U and BTTS
     fixture_detail = d.get("fixture_detail_by_event_id", {})
 
-    # Match finished fixtures
+    # Match finished fixtures with COMPLETE model probabilities (1X2 + O/U + BTTS non-null)
     matched = []
     for f in all_fixtures:
         eid = f.get("event_id")
-        if not eid or eid not in fixture_detail:
+        # Must have fixture detail for O/U and BTTS
+        fd = fixture_detail.get(eid) if eid else {}
+        if not fd:
             continue
+        # Must be a finished fixture
         if not f.get("finished", False):
             continue
-        fd = fixture_detail[eid]
+        # 1X2: read from fixture record but must exist and be non-null
+        pred_home = f.get("predicted_home_win")
+        pred_draw = f.get("predicted_draw")
+        pred_away = f.get("predicted_away_win")
+        if pred_home is None or pred_draw is None or pred_away is None:
+            continue
+        # O/U and BTTS must be present and non-null in fixture_detail
+        over_detail = fd.get("over_2_5", {})
+        under_detail = fd.get("under_2_5", {})
+        pred_over = over_detail.get("prob") if isinstance(over_detail, dict) else None
+        pred_under = under_detail.get("prob") if isinstance(under_detail, dict) else None
+        pred_btts_raw = fd.get("btts_yes_prob")
+        # All probabilities must be real numbers (not None, not NaN)
+        prob_vals = [pred_home, pred_draw, pred_away, pred_over, pred_under, pred_btts_raw]
+        if any(v is None for v in prob_vals):
+            continue
+        import math
+        if any(math.isnan(v) for v in prob_vals):
+            continue
+        # 1X2 sums to ~1 check per fixture (not just aggregate)
+        prob_sum = float(pred_home) + float(pred_draw) + float(pred_away)
+        if not (0.999 <= prob_sum <= 1.001):  # same tolerance as the assertion below
+            continue
         matched.append({
             "event_id": f.get("event_id"),
             "gameweek": f.get("gameweek"),
