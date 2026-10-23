@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 from pl_predictor.odds import value_bets
 from pl_predictor.odds import kalshi_fees
-from pl_predictor.data import kalshi_consensus
+from pl_predictor.odds import kalshi_consensus
 from pl_predictor.data import kalshi_lines as kl
 
 
@@ -46,6 +46,7 @@ def test_ledger_old_rows_readable():
     pass
 
 
-def test_kalshi_lines_loaded():
-    df = kl.collect()
-    assert isinstance(df, pd.DataFrame)
+def test_load_kalshi_lines_from_an_empty_dir_is_an_empty_frame(tmp_path):
+    # offline: the old test called the live collector, which the suite blocks
+    df = kalshi_consensus.load_kalshi_lines(tmp_path)
+    assert isinstance(df, pd.DataFrame) and df.empty

@@ -133,7 +133,7 @@ def build_value_bet_backtest(
     model,
     start_date: str,
     end_date: str,
-    edge_threshold: float = value_bets.VALUE_BET_EDGE_THRESHOLD,
+    edge_threshold: float = 0.05,
     bankroll: float = 100.0,
     staking: str = "kelly",
     flat_stake: float = 1.0,
@@ -176,17 +176,16 @@ def build_value_bet_backtest(
             odds = fixture[odds_col]
             if max_odds is not None and odds > max_odds:
                 continue
+            # Same minimum-probability floor as odds/value_bets.py's live
+            # flagging (see MIN_VALUE_BET_PROBABILITY there for the backtest
+            # evidence behind 30%) -- this offline replay should reflect the
+            # same qualification rule production actually applies, not a
+            # looser one that would make the two numbers incomparable.
             if pred[side] < value_bets.MIN_VALUE_BET_PROBABILITY:
                 continue
-            market = value_bets.side_market(side)
-            if not value_bets.is_market_calibrated(market):
-                continue
-            err = value_bets.market_calibration_error(market)
-            shrink = max(0.0, min(1.0, 1.0 - err))
-            shrunk_prob = implied[side] + (pred[side] - implied[side]) * shrink
-            edge = shrunk_prob - implied[side]
+            edge = pred[side] - implied[side]
             if edge > required_edge and (best is None or edge > best["edge"]):
-                best = {"side": side, "odds": float(odds), "edge": float(edge), "prob": float(shrunk_prob), "implied": float(implied[side])}
+                best = {"side": side, "odds": float(odds), "edge": float(edge), "prob": float(pred[side]), "implied": float(implied[side])}
 
         if best is None:
             return

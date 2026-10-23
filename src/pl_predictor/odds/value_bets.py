@@ -259,7 +259,7 @@ def _build_value_bet_table_redesign(
                 edge = None
             elif consensus_source == "kalshi":
                 # Net edge vs Kalshi consensus (buyable ask price), net of fee; not the raw bookmaker-implied edge
-            edge = kalshi_fees.net_edge_pct(shrunk_model * 100.0, consensus_prob * 100.0) / 100.0
+                edge = kalshi_fees.net_edge_pct(shrunk_model * 100.0, consensus_prob * 100.0) / 100.0
             else:
                 edge = shrunk_model - consensus_prob
 
