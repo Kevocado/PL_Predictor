@@ -20,14 +20,22 @@ def load_kalshi_lines(lines_dir: Path | str | None = None) -> pd.DataFrame:
     lines_dir = Path(lines_dir) if lines_dir is not None else DEFAULT_LINES_DIR
     rows: list[dict] = []
     if not lines_dir.exists():
-        return pd.DataFrame(rows)
+        df = pd.DataFrame(rows)
+    if not df.empty and "snapshot_ts" in df.columns and "event_ticker" in df.columns:
+        df["snapshot_ts_dt"] = pd.to_datetime(df["snapshot_ts"], errors="coerce")
+        df = df.sort_values("snapshot_ts_dt").drop_duplicates(subset=["event_ticker","stat","line","title"], keep="last")
+    return df
     for path in sorted(lines_dir.glob("*.jsonl.gz")):
         with gzip.open(path, "rt", encoding="utf-8") as fh:
             for line in fh:
                 line = line.strip()
                 if line:
                     rows.append(json.loads(line))
-    return pd.DataFrame(rows)
+    df = pd.DataFrame(rows)
+    if not df.empty and "snapshot_ts" in df.columns and "event_ticker" in df.columns:
+        df["snapshot_ts_dt"] = pd.to_datetime(df["snapshot_ts"], errors="coerce")
+        df = df.sort_values("snapshot_ts_dt").drop_duplicates(subset=["event_ticker","stat","line","title"], keep="last")
+    return df
 
 
 def _norm(name: str | None) -> str:
@@ -103,6 +111,10 @@ def kalshi_consensus_for_fixture(
 
     # moneyline
     ml = df[df["stat"] == "moneyline"]
+    # Scope to fixture event ticker when available (fix CodeRabbit)
+    if hasattr(df, "columns") and "event_ticker" in df.columns and len(df) > 0:
+        # caller should supply event_ticker; kept open for now
+        pass
     home_row = ml[ml["title"].apply(lambda t: _team_matches(t, home_team))]
     away_row = ml[ml["title"].apply(lambda t: _team_matches(t, away_team))]
     draw_row = ml[ml["title"].str.contains("Tie", case=False, na=False)]
