@@ -167,7 +167,16 @@ def build_rolling_form(matches_df: pd.DataFrame) -> tuple[pd.DataFrame, list[str
     long_df, home_cols = _add_rolling(long_df, ["team", "was_home"], prefix="split_")
 
     # split_ columns mix in both was_home=True and was_home=False groups;
-    # relabel into home_/away_ and null out the irrelevant side per row.
+    # relabel into home_/away_ venue-specific form.  Previously the
+    # cross-venue side was forced to NaN on every row (a home match carried
+    # no away-venue form and vice versa), which made `home_away_*` /
+    # `away_home_*` constant-zero in training (the "venue-split bug"): the
+    # value exists in the team's other-venue rows but was dropped by the
+    # was_home filter in build_training_frame.  Carry the most recent
+    # venue-specific form forward within the team instead, so a home match
+    # also exposes the team's latest away-venue form (and vice versa).
+    # Rolling already uses shift(1) within venue, so forward-filling only
+    # re-uses already-past values -> no lookahead.
     feature_cols = list(overall_cols)
     relabeled_cols = {}
     for col in home_cols:
@@ -178,6 +187,12 @@ def build_rolling_form(matches_df: pd.DataFrame) -> tuple[pd.DataFrame, list[str
         feature_cols += [home_col, away_col]
     long_df = long_df.drop(columns=home_cols)
     long_df = pd.concat([long_df, pd.DataFrame(relabeled_cols, index=long_df.index)], axis=1)
+
+    # Forward-fill venue-specific form within team so cross-venue columns
+    # carry real signal on every row (no lookahead: only prior rows used).
+    long_df = long_df.sort_values(["team", "date"]).reset_index(drop=True)
+    venue_cols = [c for c in long_df.columns if c.startswith("home_last_") or c.startswith("away_last_")]
+    long_df[venue_cols] = long_df.groupby("team", sort=False)[venue_cols].ffill()
 
     return long_df, feature_cols
 
