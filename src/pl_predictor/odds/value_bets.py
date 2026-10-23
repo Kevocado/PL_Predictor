@@ -206,22 +206,12 @@ def _build_value_bet_table_redesign(
 
         # Kalshi consensus
         kalshi_consensus = None
-        if kalshi_df is not None and kalshi_consensus is None:
-            try:
-                if kalshi_consensus is None and "kalshi_consensus" in globals():
-                    pass
-            except Exception:
-                pass
         if kalshi_df is not None:
             try:
-                import pl_predictor.data.kalshi_consensus as _kc
+                import pl_predictor.odds.kalshi_consensus as _kc
                 kalshi_consensus = _kc.kalshi_consensus_for_fixture(kalshi_df, home, away, fixture["commence_time"])
             except Exception:
-                try:
-                    import pl_predictor.odds.kalshi_consensus as _kc
-                    kalshi_consensus = _kc.kalshi_consensus_for_fixture(kalshi_df, home, away, fixture["commence_time"])
-                except Exception:
-                    kalshi_consensus = None
+                kalshi_consensus = None
 
         _SIDES = ["home_win", "draw", "away_win", "over_2_5", "under_2_5", "btts_yes", "btts_no"]
         row["value_bet_tiers"] = {}
@@ -469,10 +459,7 @@ def _build_value_bet_table_legacy(
 
 
 def build_value_bet_table(*args, **kwargs):
-    redesign = kwargs.pop("redesign", None)
-    if redesign is None:
-        import os
-        redesign = os.getenv("PL_VALUE_BETS_REDESIGN", "1") not in ("0", "false", "False", "")
+    redesign = kwargs.pop("redesign", False)
     if redesign:
         return _build_value_bet_table_redesign(*args, **kwargs)
     return _build_value_bet_table_legacy(*args, **kwargs)
