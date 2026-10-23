@@ -128,8 +128,9 @@ function PreMatchValueBets({ bets }: { bets: FixtureValueBetSnapshot[] }) {
                 <span className={`rounded px-2 py-1 text-xs font-semibold uppercase ${statusClass}`}>{status}</span>
               </div>
               <p className="mt-1 text-sm text-pl-text-dim">
-                {americanOdds(bet.price)}{bet.bookmaker ? ` at ${bet.bookmaker}` : ""}, model {(bet.probability * 100).toFixed(1)}% vs market {(bet.implied_probability * 100).toFixed(1)}%
+                {americanOdds(bet.price)}{bet.bookmaker ? ` at ${bet.bookmaker}` : ""}, model {(bet.probability * 100).toFixed(1)}% vs market {(bet.implied_probability * 100).toFixed(1)}%{bet.source ? ` (${bet.source === "kalshi" ? "vs Kalshi" : "vs bookmakers"})` : ""}
               </p>
+              {bet.confidence_tier && <p className="mt-1 text-xs font-semibold text-pl-text-faint">{bet.confidence_tier} · net edge +{(bet.edge * 100).toFixed(1)}%</p>}
               <div className="mt-2 flex items-center justify-between text-sm">
                 <span className="font-semibold text-pl-cyan">+{(bet.edge * 100).toFixed(1)}% edge</span>
                 {bet.clv_pct !== null && (
@@ -576,7 +577,7 @@ export function FixtureModal({ eventId, onClose, explain, loadContext, sport = "
                 detail.pre_match_value_bets?.length > 0 ? <PreMatchValueBets bets={detail.pre_match_value_bets} /> : (
                   <section>
                     <h3 className="mb-2 text-sm font-semibold text-pl-text-dim">Pre-match value bets</h3>
-                    <p className="rounded-lg bg-pl-850/60 px-3 py-2 text-sm text-pl-text-faint">No value bet qualified before kickoff for this fixture, so no pre-match bet was recorded.</p>
+                    <p className="rounded-lg bg-pl-850/60 px-3 py-2 text-sm text-pl-text-faint">No reliable value signal for this market (model not calibrated or no edge).</p>
                   </section>
                 )
               )}

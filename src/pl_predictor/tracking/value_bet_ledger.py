@@ -78,6 +78,9 @@ def _connect() -> sqlite3.Connection:
             model_trained_at TEXT,
             quote_fetched_at TEXT,
             odds_source TEXT,
+            consensus_source TEXT,
+            consensus_prob REAL,
+            confidence_tier TEXT,
             quote_snapshot TEXT,
             model_manifest_hash TEXT,
             UNIQUE(event_id, market)
@@ -94,6 +97,9 @@ def _connect() -> sqlite3.Connection:
         "odds_source": "TEXT",
         "quote_snapshot": "TEXT",
         "model_manifest_hash": "TEXT",
+        "consensus_source": "TEXT",
+        "consensus_prob": "REAL",
+        "confidence_tier": "TEXT",
         "closing_price": "REAL",
         "closing_implied_prob": "REAL",
         "closing_captured_at": "TEXT",
@@ -130,6 +136,14 @@ def record_value_bets(
             if price is None or pd.isna(price):
                 continue  # shouldn't happen for a flagged side, but a flag with no price can't be tracked as a real bet
             market, outcome_name = _SIDE_TO_MARKET[side]
+            consensus_source = fixture.get(f"{side}_consensus_source")
+            consensus_prob = fixture.get(f"{side}_consensus_prob")
+            if consensus_prob is None or pd.isna(consensus_prob):
+                consensus_prob = fixture.get(f"{side}_implied")
+            confidence_tier = None
+            tiers = fixture.get("value_bet_tiers")
+            if isinstance(tiers, dict):
+                confidence_tier = tiers.get(side)
             quote_snapshot = {
                 name: {
                     "price": _json_value(fixture.get(f"{name}_price")),
@@ -146,7 +160,7 @@ def record_value_bets(
                     market,
                     outcome_name,
                     float(fixture[f"{side}_prob"]),
-                    float(fixture[f"{side}_implied"]),
+                    float(consensus_prob),
                     float(price),
                     float(fixture[f"{side}_edge"]),
                     _naive(fixture["commence_time"]).isoformat(),
@@ -154,6 +168,9 @@ def record_value_bets(
                     model_trained_at,
                     _timestamp_value(fixture.get("odds_fetched_at")),
                     "the-odds-api",
+                    consensus_source if consensus_source is not None else "bookmakers",
+                    _json_value(consensus_prob),
+                    confidence_tier,
                     json.dumps(quote_snapshot, sort_keys=True),
                     model_manifest_hash,
                 )
@@ -167,8 +184,8 @@ def record_value_bets(
             """
             INSERT OR IGNORE INTO value_bets
                 (event_id, team_home, team_away, market, outcome_name, model_prob, implied_prob, price, edge,
-                 commence_time, snapshotted_at, model_trained_at, quote_fetched_at, odds_source, quote_snapshot, model_manifest_hash)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 commence_time, snapshotted_at, model_trained_at, quote_fetched_at, odds_source, consensus_source, consensus_prob, confidence_tier, quote_snapshot, model_manifest_hash)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             rows,
         )
@@ -338,6 +355,9 @@ def get_fixture_value_bets(event_id: str) -> list[dict]:
                 "edge": float(row["edge"]),
                 "price": float(row["price"]),
                 "bookmaker": quote.get("bookmaker"),
+                "source": row["consensus_source"] if "consensus_source" in row and pd.notna(row.get("consensus_source")) else None,
+                "consensus_probability": None if pd.isna(row.get("consensus_prob")) else float(row["consensus_prob"]),
+                "confidence_tier": row["confidence_tier"] if "confidence_tier" in row and pd.notna(row.get("confidence_tier")) else None,
                 "snapshotted_at": pd.Timestamp(row["snapshotted_at"]).isoformat(),
                 "resolved": resolved,
                 "won": bool(row["won"]) if resolved and pd.notna(row["won"]) else None,
