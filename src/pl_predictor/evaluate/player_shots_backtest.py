@@ -250,7 +250,17 @@ def main():
     # the models/ tree.
     if a.out:
         out_path = Path(a.out).resolve()
-        models_root = (Path(__file__).resolve().parents[2] / "models").resolve()
+        # Find repo root by walking up from this file to locate pyproject.toml
+        # (works both from source tree and when installed in editable mode).
+        here = Path(__file__).resolve()
+        repo_root = None
+        for p in (here, *here.parents):
+            if (p / "pyproject.toml").exists():
+                repo_root = p
+                break
+        if repo_root is None:
+            raise SystemExit("ERROR: could not locate repo root (no pyproject.toml)")
+        models_root = (repo_root / "models").resolve()
         try:
             out_path.relative_to(models_root)
             raise SystemExit("ERROR: --out path is under models/; research backtest "

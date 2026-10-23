@@ -30,28 +30,14 @@ def test_backtest_harness_never_writes_to_models():
     under models/. If --out is given under models/, it must exit with an error."""
     repo_root = Path(__file__).resolve().parents[1]
     bad_out = repo_root / "models" / "bad_output.csv"
-    # Import the module and test the guard logic directly without running the full backtest.
-    import importlib.util
-    spec = importlib.util.spec_from_file_location(
-        "player_shots_backtest", repo_root / "src" / "pl_predictor" / "evaluate" / "player_shots_backtest.py"
-    )
-    module = importlib.util.module_from_spec(spec)
-    # We need to mock the argument parsing to hit the guard
-    import argparse
-    original_argv = sys.argv
-    try:
-        sys.argv = [
-            "player_shots_backtest.py",
-            "--cache-dir", str(repo_root / "data" / "cache"),
-            "--test-seasons", "2023-24",
-            "--out", str(bad_out),
-        ]
-        # The guard is in main(), which calls SystemExit on violation.
-        # We can't easily test it without running the whole thing, so we verify
-        # the guard logic is present in the source instead.
-        source = (repo_root / "src" / "pl_predictor" / "evaluate" / "player_shots_backtest.py").read_text()
-        assert "under models/" in source, "guard message missing"
-        assert "resolve()" in source, "path resolution missing"
-        assert "relative_to" in source, "relative_to check missing"
-    finally:
-        sys.argv = original_argv
+    # Run the script as a subprocess with --out under models/; it should
+    # exit non-zero and print the guard message. This is fast because the
+    # guard triggers before any heavy computation.
+    result = subprocess.run([
+        sys.executable, "-m", "pl_predictor.evaluate.player_shots_backtest",
+        "--cache-dir", str(repo_root / "data" / "cache"),
+        "--test-seasons", "2023-24",
+        "--out", str(bad_out),
+    ], capture_output=True, text=True, timeout=30, cwd=repo_root)
+    assert result.returncode != 0, "harness must reject --out under models/"
+    assert "under models/" in result.stderr or "under models/" in result.stdout
