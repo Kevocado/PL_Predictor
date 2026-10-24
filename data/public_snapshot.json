@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-24T19:53:00.904456+00:00",
+  "generated_at": "2026-10-24T22:24:43.285886+00:00",
   "model_fingerprint": "38d8e310d6f6316d0951a40c95e0f4ed51eebba2ee04dd34a0c17d27ad09a9ad",
   "current_gameweek": 8,
   "min_gameweek": 1,
@@ -8852,7 +8852,7 @@
       "away_2plus_prob": 0.3355497503489235,
       "value_bet_flags": [],
       "has_live_odds": false,
-      "odds_fetched_at": "2026-10-24T19:47:40.927306Z",
+      "odds_fetched_at": "2026-10-24T22:19:51.346633Z",
       "odds_is_stale": false,
       "recommended_bet": null,
       "score_grid": [
@@ -9094,7 +9094,7 @@
         "home_win"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-24T19:47:40.927306Z",
+      "odds_fetched_at": "2026-10-24T22:19:51.346633Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "home_win",
@@ -9906,179 +9906,6 @@
         "corners_last_5": 6.8,
         "cards_last_5": 1.6,
         "set_piece_xg_share_last_5": 0.05185733291235325
-      },
-      "post_match": null,
-      "actual_stats": null,
-      "pre_match_value_bets": []
-    },
-    "560618": {
-      "event_id": "560618",
-      "commence_time": "2026-10-24T14:00:00Z",
-      "team_home": "Coventry",
-      "team_away": "Fulham",
-      "home_win": {
-        "prob": 0.28706927175968244,
-        "implied": null,
-        "edge": null
-      },
-      "draw": {
-        "prob": 0.2595281875326583,
-        "implied": null,
-        "edge": null
-      },
-      "away_win": {
-        "prob": 0.45340254070765923,
-        "implied": null,
-        "edge": null
-      },
-      "over_2_5": {
-        "prob": 0.4790217164700955,
-        "implied": null,
-        "edge": null
-      },
-      "under_2_5": {
-        "prob": 0.5209782835299046,
-        "implied": null,
-        "edge": null
-      },
-      "btts_yes_prob": 0.5184799298285092,
-      "top_scoreline": "1-1",
-      "predicted_result": "draw",
-      "draw_signal": true,
-      "is_fallback_prediction": false,
-      "data_confidence": "limited",
-      "predicted_total_goals": 2.589860439300537,
-      "predicted_margin": -0.35630226135253906,
-      "home_2plus_prob": 0.3071095844384931,
-      "away_2plus_prob": 0.4331247423771856,
-      "value_bet_flags": [],
-      "has_live_odds": false,
-      "odds_fetched_at": null,
-      "odds_is_stale": false,
-      "recommended_bet": null,
-      "score_grid": [
-        [
-          0.07510544279063157,
-          0.1106364270828961,
-          0.08148822870128807,
-          0.04001292999033707,
-          0.014735575235171737,
-          0.004341340213053017
-        ],
-        [
-          0.08387618797671033,
-          0.12355644824497498,
-          0.09100434981112937,
-          0.04468560350178904,
-          0.016456382286642916,
-          0.004848317968059536
-        ],
-        [
-          0.04683558639762121,
-          0.0689926288539431,
-          0.05081587743737208,
-          0.024951973784490645,
-          0.009189071808942462,
-          0.0027072500617128987
-        ],
-        [
-          0.017435001169566148,
-          0.025683175065809277,
-          0.0189167031033076,
-          0.009288614183715526,
-          0.003420721081102474,
-          0.001007800085848178
-        ],
-        [
-          0.004867761180602172,
-          0.007170608212988551,
-          0.005281444614525869,
-          0.002593332521480197,
-          0.0009550474431469433,
-          0.0002813725154353615
-        ],
-        [
-          0.0010872427793231787,
-          0.0016015970614981663,
-          0.0011796413810153672,
-          0.0005792359061490599,
-          0.00021331540269691818,
-          6.284618829004512e-05
-        ]
-      ],
-      "top_scorelines": [
-        {
-          "home": 1,
-          "away": 1,
-          "prob": 0.12355644824497498
-        },
-        {
-          "home": 0,
-          "away": 1,
-          "prob": 0.1106364270828961
-        },
-        {
-          "home": 1,
-          "away": 2,
-          "prob": 0.09100434981112937
-        },
-        {
-          "home": 1,
-          "away": 0,
-          "prob": 0.08387618797671033
-        },
-        {
-          "home": 0,
-          "away": 2,
-          "prob": 0.08148822870128807
-        }
-      ],
-      "corners": {
-        "lambda_": 10.122814178466797,
-        "line": 9.5,
-        "over": 0.5573381802621771,
-        "under": 0.4426618197378229
-      },
-      "cards": {
-        "lambda_": 3.288447380065918,
-        "line": 3.5,
-        "over": 0.4171083683041119,
-        "under": 0.5828916316958881
-      },
-      "home_shots": 11.850645065307617,
-      "away_shots": 15.290143013000488,
-      "home_shots_on_target": 4.080713272094727,
-      "away_shots_on_target": 5.1144118309021,
-      "head_to_head": [],
-      "home_recent_form": [
-        "L",
-        "W",
-        "W",
-        "L",
-        "L"
-      ],
-      "away_recent_form": [
-        "W",
-        "L",
-        "D",
-        "D",
-        "L"
-      ],
-      "home_context": {
-        "rest_days": 5,
-        "xg_for_last_5": 0.558336,
-        "xg_against_last_5": 1.85424,
-        "corners_last_5": 3.6,
-        "cards_last_5": 1.4,
-        "set_piece_xg_share_last_5": 0.0
-      },
-      "away_context": {
-        "rest_days": 7,
-        "xg_for_last_5": 1.3140047999999998,
-        "xg_against_last_5": 1.8824406,
-        "corners_last_5": 6.6,
-        "cards_last_5": 2.2,
-        "set_piece_xg_share_last_5": 0.02723160701189696
       },
       "post_match": null,
       "actual_stats": null,
@@ -70656,7 +70483,7 @@
         "home_win"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-24T19:47:40.927306Z",
+      "odds_fetched_at": "2026-10-24T22:19:51.346633Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "home_win",
@@ -71192,7 +71019,7 @@
         "over_2_5"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-24T19:47:40.927306Z",
+      "odds_fetched_at": "2026-10-24T22:19:51.346633Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "home_win",
@@ -72403,7 +72230,7 @@
         "under_2_5"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-24T19:47:40.927306Z",
+      "odds_fetched_at": "2026-10-24T22:19:51.346633Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "under_2_5",
@@ -72653,7 +72480,7 @@
         "btts_no"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-24T19:47:40.927306Z",
+      "odds_fetched_at": "2026-10-24T22:19:51.346633Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "btts_no",
@@ -72917,7 +72744,7 @@
         "away_win"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-24T19:47:40.927306Z",
+      "odds_fetched_at": "2026-10-24T22:19:51.346633Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "away_win",
@@ -73179,7 +73006,7 @@
       "away_2plus_prob": 0.3984261719096024,
       "value_bet_flags": [],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-24T19:47:40.927306Z",
+      "odds_fetched_at": "2026-10-24T22:19:51.346633Z",
       "odds_is_stale": false,
       "recommended_bet": null,
       "score_grid": [
@@ -73390,7 +73217,7 @@
         "home_win"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-24T19:47:40.927306Z",
+      "odds_fetched_at": "2026-10-24T22:19:51.346633Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "home_win",
@@ -73994,7 +73821,7 @@
         "home_win"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-24T19:47:40.927306Z",
+      "odds_fetched_at": "2026-10-24T22:19:51.346633Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "home_win",
@@ -87727,7 +87554,7 @@
       "away_2plus_prob": 0.33633434481454316,
       "value_bet_flags": [],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-24T19:47:40.927306Z",
+      "odds_fetched_at": "2026-10-24T22:19:51.346633Z",
       "odds_is_stale": false,
       "recommended_bet": null,
       "score_grid": [
@@ -87954,7 +87781,7 @@
         "home_win"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-24T19:47:40.927306Z",
+      "odds_fetched_at": "2026-10-24T22:19:51.346633Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "home_win",
@@ -88153,7 +87980,7 @@
         "btts_no"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-24T19:47:40.927306Z",
+      "odds_fetched_at": "2026-10-24T22:19:51.346633Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "btts_no",
@@ -88403,7 +88230,7 @@
         "btts_no"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-24T19:47:40.927306Z",
+      "odds_fetched_at": "2026-10-24T22:19:51.346633Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "home_win",
@@ -88616,7 +88443,7 @@
         "home_win"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-24T19:47:40.927306Z",
+      "odds_fetched_at": "2026-10-24T22:19:51.346633Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "home_win",
@@ -88843,7 +88670,7 @@
         "away_win"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-24T19:47:40.927306Z",
+      "odds_fetched_at": "2026-10-24T22:19:51.346633Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "away_win",
@@ -89077,7 +88904,7 @@
         "away_win"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-24T19:47:40.927306Z",
+      "odds_fetched_at": "2026-10-24T22:19:51.346633Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "away_win",
@@ -89645,7 +89472,7 @@
       "away_2plus_prob": 0.41853470066931703,
       "value_bet_flags": [],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-24T19:47:40.927306Z",
+      "odds_fetched_at": "2026-10-24T22:19:51.346633Z",
       "odds_is_stale": false,
       "recommended_bet": null,
       "score_grid": [
@@ -90544,7 +90371,7 @@
         "home_win"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-24T19:47:40.927306Z",
+      "odds_fetched_at": "2026-10-24T22:19:51.346633Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "home_win",
@@ -90742,7 +90569,7 @@
         "away_win"
       ],
       "has_live_odds": true,
-      "odds_fetched_at": "2026-10-24T19:47:40.927306Z",
+      "odds_fetched_at": "2026-10-24T22:19:51.346633Z",
       "odds_is_stale": false,
       "recommended_bet": {
         "market": "away_win",
@@ -92541,8 +92368,8 @@
           "position": "MID",
           "anytime_goal_prob": 0.12997956992305737,
           "anytime_goal_prob_pre_availability": 0.12997956992305737,
-          "anytime_assist_prob": 0.21593291669089243,
-          "anytime_goal_contribution_prob": 0.3178456189702362,
+          "anytime_assist_prob": 0.2750008920579994,
+          "anytime_goal_contribution_prob": 0.36923596430290084,
           "status": "a",
           "news": "",
           "confidence": "prior_season",
@@ -92550,7 +92377,7 @@
           "confirmed_starter": false,
           "expected_minutes": 70.49174193548387,
           "is_penalty_taker": false,
-          "is_set_piece_taker": false,
+          "is_set_piece_taker": true,
           "expected_shots": 0.0,
           "expected_shots_on_target": 0.0,
           "anytime_shot_on_target_prob": 0.0,
@@ -92722,348 +92549,6 @@
           "is_penalty_taker": false,
           "is_set_piece_taker": false,
           "expected_shots": 0.11410062982377274,
-          "expected_shots_on_target": 0.0,
-          "anytime_shot_on_target_prob": 0.0,
-          "expected_saves": 0.0
-        }
-      ]
-    },
-    "560618": {
-      "home_players": [
-        {
-          "player_id": 183,
-          "name": "Rudoni",
-          "position": "MID",
-          "anytime_goal_prob": 0.3250664420079271,
-          "anytime_goal_prob_pre_availability": 0.3250664420079271,
-          "anytime_assist_prob": 0.27452228056812156,
-          "anytime_goal_contribution_prob": 0.5103507415798675,
-          "status": "a",
-          "news": "",
-          "confidence": "position_avg",
-          "predicted_starter": true,
-          "confirmed_starter": false,
-          "expected_minutes": 70.67613941018767,
-          "is_penalty_taker": true,
-          "is_set_piece_taker": true,
-          "expected_shots": 0.09113804477291872,
-          "expected_shots_on_target": 0.09113804477291872,
-          "anytime_shot_on_target_prob": 0.0871083177243096,
-          "expected_saves": 0.0
-        },
-        {
-          "player_id": 194,
-          "name": "Thomas-Asante",
-          "position": "FWD",
-          "anytime_goal_prob": 0.205528237161684,
-          "anytime_goal_prob_pre_availability": 0.205528237161684,
-          "anytime_assist_prob": 0.09091970321681819,
-          "anytime_goal_contribution_prob": 0.2777613740530861,
-          "status": "a",
-          "news": "",
-          "confidence": "position_avg",
-          "predicted_starter": true,
-          "confirmed_starter": false,
-          "expected_minutes": 61.3812671594509,
-          "is_penalty_taker": false,
-          "is_set_piece_taker": false,
-          "expected_shots": 0.0,
-          "expected_shots_on_target": 0.0,
-          "anytime_shot_on_target_prob": 0.0,
-          "expected_saves": 0.0
-        },
-        {
-          "player_id": 599,
-          "name": "Cherif",
-          "position": "FWD",
-          "anytime_goal_prob": 0.17938472699364805,
-          "anytime_goal_prob_pre_availability": 0.17938472699364805,
-          "anytime_assist_prob": 0.09463169044723463,
-          "anytime_goal_contribution_prob": 0.2570409374850581,
-          "status": "a",
-          "news": "",
-          "confidence": "position_avg",
-          "predicted_starter": false,
-          "confirmed_starter": false,
-          "expected_minutes": 44.6121546961326,
-          "is_penalty_taker": false,
-          "is_set_piece_taker": false,
-          "expected_shots": 0.0,
-          "expected_shots_on_target": 0.0,
-          "anytime_shot_on_target_prob": 0.0,
-          "expected_saves": 0.0
-        },
-        {
-          "player_id": 492,
-          "name": "Awoniyi",
-          "position": "FWD",
-          "anytime_goal_prob": 0.12035940979975746,
-          "anytime_goal_prob_pre_availability": 0.12035940979975746,
-          "anytime_assist_prob": 0.06834135259248564,
-          "anytime_goal_contribution_prob": 0.1804752375292944,
-          "status": "a",
-          "news": "",
-          "confidence": "prior_season",
-          "predicted_starter": false,
-          "confirmed_starter": false,
-          "expected_minutes": 33.90268041237113,
-          "is_penalty_taker": false,
-          "is_set_piece_taker": false,
-          "expected_shots": 0.0,
-          "expected_shots_on_target": 0.0,
-          "anytime_shot_on_target_prob": 0.0,
-          "expected_saves": 0.0
-        },
-        {
-          "player_id": 184,
-          "name": "Grimes",
-          "position": "MID",
-          "anytime_goal_prob": 0.11774502547197263,
-          "anytime_goal_prob_pre_availability": 0.11774502547197263,
-          "anytime_assist_prob": 0.2059937553141412,
-          "anytime_goal_contribution_prob": 0.2994840408195829,
-          "status": "a",
-          "news": "",
-          "confidence": "prior_season",
-          "predicted_starter": true,
-          "confirmed_starter": false,
-          "expected_minutes": 75.61955503512881,
-          "is_penalty_taker": false,
-          "is_set_piece_taker": true,
-          "expected_shots": 0.0,
-          "expected_shots_on_target": 0.0,
-          "anytime_shot_on_target_prob": 0.0,
-          "expected_saves": 0.0
-        },
-        {
-          "player_id": 185,
-          "name": "Sakamoto",
-          "position": "MID",
-          "anytime_goal_prob": 0.11722663092212948,
-          "anytime_goal_prob_pre_availability": 0.11722663092212948,
-          "anytime_assist_prob": 0.1076555048801715,
-          "anytime_goal_contribution_prob": 0.21226204366497758,
-          "status": "a",
-          "news": "",
-          "confidence": "position_avg",
-          "predicted_starter": true,
-          "confirmed_starter": false,
-          "expected_minutes": 61.3812671594509,
-          "is_penalty_taker": false,
-          "is_set_piece_taker": false,
-          "expected_shots": 0.0,
-          "expected_shots_on_target": 0.0,
-          "anytime_shot_on_target_prob": 0.0,
-          "expected_saves": 0.0
-        },
-        {
-          "player_id": 104,
-          "name": "Onyeka",
-          "position": "MID",
-          "anytime_goal_prob": 0.08870340052969572,
-          "anytime_goal_prob_pre_availability": 0.08870340052969572,
-          "anytime_assist_prob": 0.06838208461473605,
-          "anytime_goal_contribution_prob": 0.15101976170379539,
-          "status": "a",
-          "news": "",
-          "confidence": "position_avg",
-          "predicted_starter": false,
-          "confirmed_starter": false,
-          "expected_minutes": 46.85890243902439,
-          "is_penalty_taker": false,
-          "is_set_piece_taker": false,
-          "expected_shots": 0.0,
-          "expected_shots_on_target": 0.0,
-          "anytime_shot_on_target_prob": 0.0,
-          "expected_saves": 0.0
-        },
-        {
-          "player_id": 186,
-          "name": "Mason-Clark",
-          "position": "MID",
-          "anytime_goal_prob": 0.08690511309582649,
-          "anytime_goal_prob_pre_availability": 0.08690511309582649,
-          "anytime_assist_prob": 0.07529676199910873,
-          "anytime_goal_contribution_prob": 0.1556582014776532,
-          "status": "a",
-          "news": "",
-          "confidence": "position_avg",
-          "predicted_starter": false,
-          "confirmed_starter": false,
-          "expected_minutes": 33.90268041237113,
-          "is_penalty_taker": false,
-          "is_set_piece_taker": false,
-          "expected_shots": 0.0,
-          "expected_shots_on_target": 0.0,
-          "anytime_shot_on_target_prob": 0.0,
-          "expected_saves": 0.0
-        }
-      ],
-      "away_players": [
-        {
-          "player_id": 569,
-          "name": "Gonzalo",
-          "position": "FWD",
-          "anytime_goal_prob": 0.4132863809907176,
-          "anytime_goal_prob_pre_availability": 0.4132863809907176,
-          "anytime_assist_prob": 0.1461458435646925,
-          "anytime_goal_contribution_prob": 0.49903213777172284,
-          "status": "a",
-          "news": "",
-          "confidence": "position_avg",
-          "predicted_starter": true,
-          "confirmed_starter": false,
-          "expected_minutes": 70.49174193548387,
-          "is_penalty_taker": true,
-          "is_set_piece_taker": false,
-          "expected_shots": 0.31116211106714575,
-          "expected_shots_on_target": 0.10372070368904861,
-          "anytime_shot_on_target_prob": 0.098522958523933,
-          "expected_saves": 0.0
-        },
-        {
-          "player_id": 268,
-          "name": "King",
-          "position": "MID",
-          "anytime_goal_prob": 0.26189875373072713,
-          "anytime_goal_prob_pre_availability": 0.26189875373072713,
-          "anytime_assist_prob": 0.24506224129996124,
-          "anytime_goal_contribution_prob": 0.44277949944776973,
-          "status": "a",
-          "news": "",
-          "confidence": "prior_season",
-          "predicted_starter": true,
-          "confirmed_starter": false,
-          "expected_minutes": 70.49174193548387,
-          "is_penalty_taker": false,
-          "is_set_piece_taker": false,
-          "expected_shots": 0.0,
-          "expected_shots_on_target": 0.0,
-          "anytime_shot_on_target_prob": 0.0,
-          "expected_saves": 0.0
-        },
-        {
-          "player_id": 261,
-          "name": "Iwobi",
-          "position": "MID",
-          "anytime_goal_prob": 0.20824628061122075,
-          "anytime_goal_prob_pre_availability": 0.20824628061122075,
-          "anytime_assist_prob": 0.25883104139906754,
-          "anytime_goal_contribution_prob": 0.41317672033220365,
-          "status": "a",
-          "news": "",
-          "confidence": "prior_season",
-          "predicted_starter": true,
-          "confirmed_starter": false,
-          "expected_minutes": 70.49174193548387,
-          "is_penalty_taker": false,
-          "is_set_piece_taker": true,
-          "expected_shots": 0.0,
-          "expected_shots_on_target": 0.0,
-          "anytime_shot_on_target_prob": 0.0,
-          "expected_saves": 0.0
-        },
-        {
-          "player_id": 635,
-          "name": "Larsson",
-          "position": "MID",
-          "anytime_goal_prob": 0.19673352574576863,
-          "anytime_goal_prob_pre_availability": 0.19673352574576863,
-          "anytime_assist_prob": 0.10659510099977643,
-          "anytime_goal_contribution_prob": 0.2823577966986327,
-          "status": "a",
-          "news": "",
-          "confidence": "position_avg",
-          "predicted_starter": false,
-          "confirmed_starter": false,
-          "expected_minutes": 49.86206896551724,
-          "is_penalty_taker": false,
-          "is_set_piece_taker": false,
-          "expected_shots": 0.0,
-          "expected_shots_on_target": 0.0,
-          "anytime_shot_on_target_prob": 0.0,
-          "expected_saves": 0.0
-        },
-        {
-          "player_id": 271,
-          "name": "Muniz",
-          "position": "FWD",
-          "anytime_goal_prob": 0.17705292975396525,
-          "anytime_goal_prob_pre_availability": 0.17705292975396525,
-          "anytime_assist_prob": 0.08493249619441845,
-          "anytime_goal_contribution_prob": 0.24694787866584444,
-          "status": "a",
-          "news": "",
-          "confidence": "prior_season",
-          "predicted_starter": false,
-          "confirmed_starter": false,
-          "expected_minutes": 39.2527397260274,
-          "is_penalty_taker": false,
-          "is_set_piece_taker": false,
-          "expected_shots": 0.5673678676742209,
-          "expected_shots_on_target": 0.5673678676742209,
-          "anytime_shot_on_target_prob": 0.43298406277806967,
-          "expected_saves": 0.0
-        },
-        {
-          "player_id": 264,
-          "name": "Bobb",
-          "position": "MID",
-          "anytime_goal_prob": 0.1614258848332918,
-          "anytime_goal_prob_pre_availability": 0.1614258848332918,
-          "anytime_assist_prob": 0.19180967430133133,
-          "anytime_goal_contribution_prob": 0.32227251274094515,
-          "status": "a",
-          "news": "",
-          "confidence": "prior_season",
-          "predicted_starter": true,
-          "confirmed_starter": false,
-          "expected_minutes": 64.57955801104973,
-          "is_penalty_taker": false,
-          "is_set_piece_taker": false,
-          "expected_shots": 0.0,
-          "expected_shots_on_target": 0.0,
-          "anytime_shot_on_target_prob": 0.0,
-          "expected_saves": 0.0
-        },
-        {
-          "player_id": 580,
-          "name": "Charles",
-          "position": "MID",
-          "anytime_goal_prob": 0.12494374283751597,
-          "anytime_goal_prob_pre_availability": 0.12494374283751597,
-          "anytime_assist_prob": 0.12304510829864923,
-          "anytime_goal_contribution_prob": 0.2326151347674844,
-          "status": "a",
-          "news": "",
-          "confidence": "position_avg",
-          "predicted_starter": true,
-          "confirmed_starter": false,
-          "expected_minutes": 70.49174193548387,
-          "is_penalty_taker": false,
-          "is_set_piece_taker": false,
-          "expected_shots": 0.0,
-          "expected_shots_on_target": 0.0,
-          "anytime_shot_on_target_prob": 0.0,
-          "expected_saves": 0.0
-        },
-        {
-          "player_id": 263,
-          "name": "Kevin",
-          "position": "MID",
-          "anytime_goal_prob": 0.09973532287143994,
-          "anytime_goal_prob_pre_availability": 0.09973532287143994,
-          "anytime_assist_prob": 0.062260842661013505,
-          "anytime_goal_contribution_prob": 0.15578656028740934,
-          "status": "a",
-          "news": "",
-          "confidence": "prior_season",
-          "predicted_starter": false,
-          "confirmed_starter": false,
-          "expected_minutes": 29.172380952380948,
-          "is_penalty_taker": false,
-          "is_set_piece_taker": false,
-          "expected_shots": 0.0,
           "expected_shots_on_target": 0.0,
           "anytime_shot_on_target_prob": 0.0,
           "expected_saves": 0.0
@@ -94935,8 +94420,8 @@
           "position": "MID",
           "anytime_goal_prob": 0.1256310754449933,
           "anytime_goal_prob_pre_availability": 0.1256310754449933,
-          "anytime_assist_prob": 0.20907353810425344,
-          "anytime_goal_contribution_prob": 0.30843848011011965,
+          "anytime_assist_prob": 0.2686582672211535,
+          "anytime_goal_contribution_prob": 0.3605375156279649,
           "status": "a",
           "news": "",
           "confidence": "prior_season",
@@ -94944,7 +94429,7 @@
           "confirmed_starter": false,
           "expected_minutes": 70.49174193548387,
           "is_penalty_taker": false,
-          "is_set_piece_taker": false,
+          "is_set_piece_taker": true,
           "expected_shots": 0.0,
           "expected_shots_on_target": 0.0,
           "anytime_shot_on_target_prob": 0.0,
@@ -102801,8 +102286,8 @@
           "position": "MID",
           "anytime_goal_prob": 0.14528284059762353,
           "anytime_goal_prob_pre_availability": 0.14528284059762353,
-          "anytime_assist_prob": 0.23986900594560756,
-          "anytime_goal_contribution_prob": 0.35030299598812487,
+          "anytime_assist_prob": 0.29713374743058885,
+          "anytime_goal_contribution_prob": 0.3992481531640796,
           "status": "a",
           "news": "",
           "confidence": "prior_season",
@@ -102810,7 +102295,7 @@
           "confirmed_starter": false,
           "expected_minutes": 70.49174193548387,
           "is_penalty_taker": false,
-          "is_set_piece_taker": false,
+          "is_set_piece_taker": true,
           "expected_shots": 0.0,
           "expected_shots_on_target": 0.0,
           "anytime_shot_on_target_prob": 0.0,
@@ -197877,8 +197362,8 @@
           "position": "MID",
           "anytime_goal_prob": 0.11879475529417716,
           "anytime_goal_prob_pre_availability": 0.11879475529417716,
-          "anytime_assist_prob": 0.19823821598940405,
-          "anytime_goal_contribution_prob": 0.2934833109251658,
+          "anytime_assist_prob": 0.25863922798999994,
+          "anytime_goal_contribution_prob": 0.34670899948563016,
           "status": "a",
           "news": "",
           "confidence": "prior_season",
@@ -197886,7 +197371,7 @@
           "confirmed_starter": false,
           "expected_minutes": 70.49174193548387,
           "is_penalty_taker": false,
-          "is_set_piece_taker": false,
+          "is_set_piece_taker": true,
           "expected_shots": 0.0,
           "expected_shots_on_target": 0.0,
           "anytime_shot_on_target_prob": 0.0,
@@ -228824,24 +228309,14 @@
           "position_delta": 0
         },
         {
-          "team": "Fulham",
-          "played": 8,
-          "current_points": 8.0,
-          "current_position": 13,
-          "projected_points": 45.9,
-          "projected_goal_diff": -9.9,
-          "projected_position": 13,
-          "position_delta": 0
-        },
-        {
           "team": "Newcastle",
           "played": 7,
           "current_points": 8.0,
           "current_position": 14,
           "projected_points": 45.4,
           "projected_goal_diff": -12.8,
-          "projected_position": 14,
-          "position_delta": 0
+          "projected_position": 13,
+          "position_delta": -1
         },
         {
           "team": "Nott'm Forest",
@@ -228850,8 +228325,18 @@
           "current_position": 18,
           "projected_points": 44.7,
           "projected_goal_diff": -8.5,
+          "projected_position": 14,
+          "position_delta": -4
+        },
+        {
+          "team": "Fulham",
+          "played": 8,
+          "current_points": 8.0,
+          "current_position": 13,
+          "projected_points": 44.2,
+          "projected_goal_diff": -10.3,
           "projected_position": 15,
-          "position_delta": -3
+          "position_delta": 2
         },
         {
           "team": "Hull",
@@ -228898,8 +228383,8 @@
           "played": 8,
           "current_points": 6.0,
           "current_position": 19,
-          "projected_points": 35.3,
-          "projected_goal_diff": -29.8,
+          "projected_points": 34.1,
+          "projected_goal_diff": -29.4,
           "projected_position": 20,
           "position_delta": 1
         }
@@ -272866,7 +272351,7 @@
   "fpl": {
     "projections": {
       "gameweek": 9,
-      "generated_at": "2026-10-24T19:53:00.860233+00:00",
+      "generated_at": "2026-10-24T22:24:43.240505+00:00",
       "model_source": "hybrid_match_context_baseline",
       "data_freshness": "live official FPL API + independent pre-match scoreline model",
       "players": [
