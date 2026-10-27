@@ -32,6 +32,7 @@ export interface FixtureSummary {
   // tracking uses plain marginal argmax, see backend outcomes.py).
   predicted_result: "home_win" | "draw" | "away_win";
   draw_signal: boolean;
+  draw_risk?: boolean;
   is_fallback_prediction: boolean;
   data_confidence: "new" | "limited" | "established" | null;
   // Derived from the scoreline model's own home/away goal expectations

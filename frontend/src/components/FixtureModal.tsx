@@ -532,6 +532,61 @@ export function FixtureModal({ eventId, onClose, explain, loadContext, sport = "
                 </div>
               )}
 
+              <section className="rounded-xl border border-pl-border bg-pl-850/40 p-4">
+                <h3 className="mb-3 text-sm font-semibold text-pl-text-dim">Match result</h3>
+                {(() => {
+                  const home = detail.home_win?.prob ?? 0;
+                  const draw = detail.draw?.prob ?? 0;
+                  const away = detail.away_win?.prob ?? 0;
+                  const total = home + draw + away || 1;
+                  const pick = resolvedPick(detail);
+                  return (
+                    <div className="flex flex-col gap-3">
+                      <div className="flex h-3 w-full overflow-hidden rounded-full bg-pl-800">
+                        <div style={{ width: `${(home / total) * 100}%` }} className="bg-pl-cyan/70" aria-label={`${detail.team_home} ${(home * 100).toFixed(0)}%`} />
+                        <div style={{ width: `${(draw / total) * 100}%` }} className="bg-pl-text-faint/60" aria-label={`Draw ${(draw * 100).toFixed(0)}%`} />
+                        <div style={{ width: `${(away / total) * 100}%` }} className="bg-pl-700" aria-label={`${detail.team_away} ${(away * 100).toFixed(0)}%`} />
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                        <div>
+                          <div className="font-semibold text-pl-text">{detail.team_home}</div>
+                          <div className="font-mono text-pl-text-dim">{(home * 100).toFixed(0)}%</div>
+                        </div>
+                        <div>
+                          <div className="font-semibold text-pl-text">Draw</div>
+                          <div className="font-mono text-pl-text-dim">{(draw * 100).toFixed(0)}%</div>
+                        </div>
+                        <div>
+                          <div className="font-semibold text-pl-text">{detail.team_away}</div>
+                          <div className="font-mono text-pl-text-dim">{(away * 100).toFixed(0)}%</div>
+                        </div>
+                      </div>
+                      {pick && (
+                        <div className="text-sm font-semibold text-pl-text">
+                          Pick: {pick.label} ({(pick.prob * 100).toFixed(0)}%)
+                        </div>
+                      )}
+                      {detail.draw_risk && (
+                        <span className="w-fit rounded-full bg-pl-cyan/10 px-2 py-0.5 text-xs font-semibold text-pl-cyan">
+                          Draw risk
+                        </span>
+                      )}
+                      <div className="flex flex-col gap-1">
+                        {detail.value_bet_flags.length > 0 ? (
+                          detail.value_bet_flags.map((flag) => (
+                            <div key={flag} className="text-xs text-pl-text-dim">
+                              {flag.replace(/_/g, " ")} — value {detail.recommended_bet?.bookmaker?.toLowerCase().includes("kalshi") ? "vs Kalshi" : "vs bookmakers"}
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-xs text-pl-text-faint">No reliable market signal.</p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </section>
+
               {detail.post_match && <PostMatchReview review={detail.post_match} />}
               {detail.post_match && <PlayerCallReview review={playerReview} loading={playerReviewLoading} error={playerReviewError} />}
 
