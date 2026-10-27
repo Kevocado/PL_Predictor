@@ -140,6 +140,10 @@ def record_value_bets(
             consensus_prob = fixture.get(f"{side}_consensus_prob")
             if consensus_prob is None or pd.isna(consensus_prob):
                 consensus_prob = fixture.get(f"{side}_implied")
+            # Use consensus price for Kalshi, else bookmaker price
+            consensus_price = fixture.get(f"{side}_consensus_price")
+            if consensus_source == "kalshi" and consensus_price is not None and not pd.isna(consensus_price):
+                price = consensus_price
             confidence_tier = None
             tiers = fixture.get("value_bet_tiers")
             if isinstance(tiers, dict):

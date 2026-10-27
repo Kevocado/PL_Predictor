@@ -107,17 +107,17 @@ def kalshi_consensus_for_fixture(
 
     # moneyline
     ml = df[df["stat"] == "moneyline"]
-    # Scope to fixture event ticker when available (fix CodeRabbit)
-    if hasattr(df, "columns") and "event_ticker" in df.columns and len(df) > 0:
-        # caller should supply event_ticker; kept open for now
-        pass
     home_row = ml[ml["title"].apply(lambda t: _team_matches(t, home_team))]
     away_row = ml[ml["title"].apply(lambda t: _team_matches(t, away_team))]
+    # Determine event_ticker from home/away rows
+    event_ticker = None
+    if not home_row.empty and "event_ticker" in home_row.columns:
+        event_ticker = home_row.iloc[0]["event_ticker"]
+    elif not away_row.empty and "event_ticker" in away_row.columns:
+        event_ticker = away_row.iloc[0]["event_ticker"]
     draw_row = ml[ml["title"].str.contains("Tie", case=False, na=False)]
-    # FIX 1: scope draw to fixture event ticker
-    if "event_ticker" in ml.columns:
-        # When called with event-specific rows; keep only rows whose ticker relates to fixture (best-effort via event_ticker substring match to home/away)
-        pass  # kept open: caller passes filtered df
+    if event_ticker and "event_ticker" in draw_row.columns:
+        draw_row = draw_row[draw_row["event_ticker"] == event_ticker]
 
     def _pick(rows):
         if rows.empty:

@@ -346,6 +346,7 @@ def _build_value_bet_table_legacy(
     odds_df: pd.DataFrame,
     models: dict,
     edge_threshold: float = 0.05,
+    **kwargs,
 ) -> pd.DataFrame:
     rows = []
     preds = (
@@ -456,11 +457,16 @@ def _build_value_bet_table_legacy(
         row["corners_market_note"] = "No live market (Odds API doesn't cover corners)"
         row["cards_market_note"] = "No live market (Odds API doesn't cover cards)"
 
+        rows.append(row)
 
+    return pd.DataFrame(rows)
 
 
 def build_value_bet_table(*args, **kwargs):
     redesign = kwargs.pop("redesign", False)
+    kalshi_df = kwargs.pop("kalshi_df", None)
     if redesign:
+        kwargs["kalshi_df"] = kalshi_df
         return _build_value_bet_table_redesign(*args, **kwargs)
+    # legacy does not use kalshi_df; ignore it
     return _build_value_bet_table_legacy(*args, **kwargs)
