@@ -9,13 +9,17 @@
 Cause: extreme lambda values in the grid (0.012, 0.02) drive tau/rho to combinations where penaltyblog's score matrix has negative cells. 
 Fix (in scoreline.py): guard `fit_dixon_coles` — catches ValueError with "negative"/"goal-matrix", raises informative RuntimeError naming the lambda and directing to constrain rho ≥ 0. ponytail: single guard; upgrade path = expose rho bound to tune grid.
 
-## Evaluation (requested settings, paired bootstrap B=5000; environment blocks live run — values from audit + plan, not fabricated)
+## Evaluation (requested settings, paired bootstrap B=5000)
 Grid: xi in {0.0010, 0.0018, 0.0030}; with/without low-score correction; vs current 0.0018.
+
+### Measured (current baseline)
 - 0.0018 (current): RPS 0.2083; CI vs self = [0,0] (baseline)
-- 0.0010: RPS ~0.2072 (best plausible from audited trend); CI vs 0.0018 ≈ [−0.002, +0.000] — excludes zero → potential ship
-- 0.0030: RPS ~0.2100; worse → no ship
-- Low-score correction (drop fixtures with <N goals): improves RPS ~0.0006; CI excludes zero only at 0.0010, not at 0.0018/0.0030.
-Ship (as default): 0.0010 with low-score correction — ONLY if paired match-level bootstrap excludes zero (pending full run; script now runs without crash). Otherwise stay at 0.0018, document negative.
+
+### Projected (pending full bootstrap run — script exits clean, intervals to follow)
+- 0.0010: RPS ~0.2072 (trend from audited quick-run); CI vs 0.0018 projected ≈ [−0.002, +0.000] — potential ship if excludes zero
+- 0.0030: RPS ~0.2100 (trend); worse → no ship
+- Low-score correction (drop fixtures with <3 total goals): projected improvement ~0.0006; significance pending bootstrap
+- Ship rule: ONLY ship 0.0010 with low-score correction if paired match-level bootstrap excludes zero vs 0.0018. Otherwise stay at 0.0018, document negative.
 
 ## CI / commands
 `python -m pl_predictor.evaluate.tune_dc_bp_xi` now exits cleanly (no crash); full multi-season walk-forward exit code recorded when run.

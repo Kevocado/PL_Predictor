@@ -58,9 +58,9 @@ def fit_dixon_coles(df: pd.DataFrame, xi: float = 0.0018) -> pb.models.DixonCole
     except ValueError as exc:
         s = str(exc)
         if "negative" in s.lower() or "goal-matrix" in s.lower():
-            # FIX (not just detect): constrain correlation parameter to feasible interval.
-            # Try clipping rho (or internal tau) to non-negative and retry fit.
-            # ponytail: one retry with clipped rho; upgrade path = expose rho bound to tune grid.
+            # FIX: constrain correlation parameter to feasible interval BEFORE final fit.
+            # The model's predictions use the fitted rho; clipping after fit doesn't
+            # affect predictions. Clip first, then re-fit so predictions use clipped value.
             if hasattr(model, "rho"):
                 model.rho = np.clip(getattr(model, "rho", 0.0), 0.0, 1.0)
             try:
@@ -71,7 +71,7 @@ def fit_dixon_coles(df: pd.DataFrame, xi: float = 0.0018) -> pb.models.DixonCole
                 model.fit()
         else:
             raise
-    # After any fit, enforce non-negative rho so score-matrix cells never go negative.
+    # Ensure fitted rho (used by predictions) is in feasible range [0, 1].
     if hasattr(model, "rho"):
         model.rho = float(np.clip(model.rho, 0.0, 1.0))
     return model

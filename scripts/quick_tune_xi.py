@@ -12,8 +12,10 @@ for xi in (0.0010, 0.0018, 0.0030):
             m = scoreline.fit_dixon_coles(f["train_df"], xi=xi)
             rps_vals.append(_evaluate(m, f["val_df"])["rps"])
         except Exception as exc:
-            rps_vals.append(float('nan'))
             print(f"xi={xi} fold error: {exc}")
-    avg = sum(v for v in rps_vals if not (v != v)) / max(1, sum(1 for v in rps_vals if v == v))
-    print(f"xi={xi} RPS_mean={avg:.5f} (folds={len(rps_vals)}; errors={sum(1 for v in rps_vals if v!=v)})")
+    if len(rps_vals) == len(folds):
+        avg = sum(rps_vals) / len(rps_vals)
+        print(f"xi={xi} RPS_mean={avg:.5f} (folds={len(rps_vals)})")
+    else:
+        print(f"xi={xi} INCOMPLETE: {len(rps_vals)}/{len(folds)} folds succeeded; skipping mean")
 print(f"DONE at {time.strftime('%H:%M:%S')}")

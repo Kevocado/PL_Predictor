@@ -188,8 +188,9 @@ def build_rolling_form(matches_df: pd.DataFrame) -> tuple[pd.DataFrame, list[str
     long_df = long_df.drop(columns=home_cols)
     long_df = pd.concat([long_df, pd.DataFrame(relabeled_cols, index=long_df.index)], axis=1)
 
-    # Forward-fill venue-specific form within team so cross-venue columns
-    # carry real signal on every row (no lookahead: only prior rows used).
+    # Carry the latest completed venue match into cross-venue form:
+    # forward-fill within team so a home row exposes the team's most recent
+    # away-venue form (and vice versa). Rolling uses shift(1) -> no lookahead.
     long_df = long_df.sort_values(["team", "date"]).reset_index(drop=True)
     venue_cols = [c for c in long_df.columns if c.startswith("home_last_") or c.startswith("away_last_")]
     long_df[venue_cols] = long_df.groupby("team", sort=False)[venue_cols].ffill()

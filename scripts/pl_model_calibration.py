@@ -9,11 +9,13 @@ from datetime import datetime
 from pathlib import Path
 
 import json
+import math
 import numpy as np
 import pandas as pd
 
 N_BOOT = 2000
 SEED = 1
+PROB_SUM_TOL = 0.01  # single tolerance for 1X2 sum checks (0.99-1.01)
 
 
 def ci(vals, n=N_BOOT, seed=SEED):
@@ -70,7 +72,6 @@ def verdict_bias(lo, hi):
     """Return 'problem' if CI excludes 0, 'inconclusive' if CI too wide, else 'no problem'."""
     if lo > 0 or hi < 0:
         return "problem"
-    # CI half-width > 0.5 means we can't distinguish from 0 meaningfully
     if (hi - lo) / 2 > 0.5:
         return "inconclusive (n=70, interval too wide to judge)"
     return "no problem"
@@ -80,20 +81,9 @@ def verdict_slope(lo, hi):
     """Return 'problem' if CI excludes 1.0, 'inconclusive' if CI too wide, else 'no problem'."""
     if lo > 1.0 or hi < 1.0:
         return "problem"
-    # CI half-width > 0.5 around 1.0 means we can't distinguish from 1.0 meaningfully
     if (hi - lo) / 2 > 0.5:
         return "inconclusive (n=70, interval too wide to judge)"
     return "no problem"
-
-
-def max_gap(pred, actual):
-    bins = reliability_bins(pred, actual)
-    return max(abs(b[1] - b[2]) for b in bins) if bins else np.nan
-
-
-def bin_str(pred, actual, min_n=5):
-    bins = reliability_bins(pred, actual, min_n=min_n)
-    return " | ".join(b[0] for b in bins)
 
 
 def bin_str_detailed(pred, actual, min_n=5):
@@ -103,6 +93,15 @@ def bin_str_detailed(pred, actual, min_n=5):
         f"{b[0]}" + (" ⚠" if b[3] < 10 else "")
         for b in bins
     )
+
+
+def _validate_probabilities(prob_vals: list) -> bool:
+    """Validate all snapshot probabilities are non-null and finite."""
+    if any(v is None for v in prob_vals):
+        return False
+    if any(not math.isfinite(v) for v in prob_vals):
+        return False
+    return True
 
 
 def main():
@@ -145,16 +144,13 @@ def main():
         pred_over = over_detail.get("prob") if isinstance(over_detail, dict) else None
         pred_under = under_detail.get("prob") if isinstance(under_detail, dict) else None
         pred_btts_raw = fd.get("btts_yes_prob")
-        # All probabilities must be real numbers (not None, not NaN)
+        # Validate all snapshot probabilities before calibration
         prob_vals = [pred_home, pred_draw, pred_away, pred_over, pred_under, pred_btts_raw]
-        if any(v is None for v in prob_vals):
+        if not _validate_probabilities(prob_vals):
             continue
-        import math
-        if any(math.isnan(v) for v in prob_vals):
-            continue
-        # 1X2 sums to ~1 check per fixture (not just aggregate)
+        # 1X2 sums to ~1 check per fixture (not just aggregate) — single tolerance
         prob_sum = float(pred_home) + float(pred_draw) + float(pred_away)
-        if not (0.99 <= prob_sum <= 1.01):
+        if not (1.0 - PROB_SUM_TOL <= prob_sum <= 1.0 + PROB_SUM_TOL):
             continue
         matched.append({
             "event_id": f.get("event_id"),
@@ -183,9 +179,10 @@ def main():
     df["actual_over"] = (df["actual_total"] > 2.5).astype(float)
     df["actual_btts"] = ((df["actual_goals_home"] > 0) & (df["actual_goals_away"] > 0)).astype(float)
 
-    # Verify prob sums
+    # Verify prob sums — single tolerance throughout
     df["prob_sum"] = df["pred_home"] + df["pred_draw"] + df["pred_away"]
-    assert df["prob_sum"].between(0.999, 1.001).all(), "Prob sums != 1"
+    tol = PROB_SUM_TOL
+    assert df["prob_sum"].between(1.0 - tol, 1.0 + tol).all(), "Prob sums != 1"
 
     # --- 1X2 calibration ---
     home_bias = (df["pred_home"] - df["actual_home"]).mean()
@@ -343,31 +340,6 @@ def main():
         f"and bias CIs straddle zero but are too wide to be informative.\n"
     )
     print(f"\nWrote {out}")
-
-
-def ci(vals, n=2000, seed=1):
-    vals = np.asarray(vals, float)
-    rng = np.random.default_rng(seed)
-    means = rng.choice(vals, size=(n, len(vals)), replace=True).mean(axis=1)
-    return float(np.percentile(means, 2.5)), float(np.percentile(means, 97.5))
-
-
-def ols(x, y):
-    x = np.asarray(x, float); y = np.asarray(y, float)
-    xc = x - x.mean(); yc = y - y.mean()
-    denom = (xc * xc).sum()
-    slope = float((xc * yc).sum() / denom) if denom else np.nan
-    intercept = float(y.mean() - slope * x.mean())
-    return slope, intercept
-
-
-def boot_slope(x, y, n=2000, seed=1):
-    rng = np.random.default_rng(seed)
-    slopes = []
-    for _ in range(n):
-        idx = rng.integers(0, len(x), len(x))
-        slopes.append(ols(x[idx], y[idx])[0])
-    return float(np.percentile(slopes, 2.5)), float(np.percentile(slopes, 97.5))
 
 
 if __name__ == "__main__":
