@@ -63,6 +63,8 @@ class FixtureSummary(BaseModel):
     # record that predates this field.
     predicted_total_goals: float | None = None
     predicted_margin: float | None = None
+    expected_home_goals: float | None = None
+    expected_away_goals: float | None = None
     # P(team scores >=2), same "derived from the grid, not a separate
     # model" reasoning, and the same None-for-pre-existing-tracked-records
     # backward-compatibility caveat as predicted_total_goals/margin above.
