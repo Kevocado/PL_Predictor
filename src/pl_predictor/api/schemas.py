@@ -11,7 +11,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, model_validator
 
-from ..outcomes import predicted_result
+from ..outcomes import draw_risk, predicted_result
 
 
 class MarketEdge(BaseModel):
@@ -53,6 +53,8 @@ class FixtureSummary(BaseModel):
     # raw accuracy, see store.py::get_fixture_post_match).
     predicted_result: str = ""
     draw_signal: bool = False
+    draw_risk: bool = False
+    draw_risk_flag: bool = False
     is_fallback_prediction: bool
     data_confidence: str | None = None
     # Derived from the scoreline model's own home/away goal expectations
@@ -78,6 +80,8 @@ class FixtureSummary(BaseModel):
     def _fill_predicted_result(self) -> "FixtureSummary":
         self.predicted_result = predicted_result(self.top_scoreline, self.home_win.prob, self.draw.prob, self.away_win.prob)
         self.draw_signal = self.predicted_result == "draw"
+        self.draw_risk = draw_risk()
+        self.draw_risk_flag = self.draw_risk
         return self
 
 

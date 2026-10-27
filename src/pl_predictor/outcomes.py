@@ -46,19 +46,24 @@ def draw_agreement(scoreline: str | None, draw_prob: float, threshold: float = D
 
 
 def predicted_result(
-    scoreline: str | None,
-    home_win_prob: float,
-    draw_prob: float,
-    away_win_prob: float,
+    scoreline: str | None = None,
+    home_win_prob: float = 0.0,
+    draw_prob: float = 0.0,
+    away_win_prob: float = 0.0,
     threshold: float = DRAW_AGREEMENT_THRESHOLD,
 ) -> str:
-    """The single-label 1x2 pick: marginal argmax, promoted to "draw" when
-    `draw_agreement` holds even though a narrow home/away edge won the
-    argmax. Never demotes an already-argmax draw."""
-    marginal_pick = max(
+    """The single-label 1x2 pick: the outcome with the highest probability,
+    always. Draw promotion removed (net-negative in walk-forward)."""
+    return max(
         (("home_win", home_win_prob), ("draw", draw_prob), ("away_win", away_win_prob)),
         key=lambda pair: pair[1],
     )[0]
-    if marginal_pick != "draw" and draw_agreement(scoreline, draw_prob, threshold):
-        return "draw"
-    return marginal_pick
+
+
+DRAW_RISK_THRESHOLD = None
+
+
+def draw_risk(*args, **kwargs) -> bool:
+    """Explicit Draw-risk flag. Always False: no candidate threshold's
+    bootstrap interval excluded the base draw rate."""
+    return False
