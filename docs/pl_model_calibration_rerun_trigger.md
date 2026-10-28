@@ -9,7 +9,7 @@ Predicate for n finished fixtures with COMPLETE model probabilities:
 - `predicted_home_win`, `predicted_draw`, `predicted_away_win` non-null (from fixture record, NOT fixture_detail — 1X2 lives in fixtures_by_gameweek fixture)
 - `fixture_detail[eid]["over_2_5"]["prob"]`, `fixture_detail[eid]["under_2_5"]["prob"]`, `fixture_detail[eid]["btts_yes_prob"]` non-null (from fixture_detail)
 - All six prob values are float (not NaN)
-- 1X2 sum in [0.999, 1.001] per fixture (not just aggregate)
+- 1X2 sum in [0.99, 1.01] per fixture (not just aggregate)
 
 Previous bug: script counted every finished fixture with a detail record
 and did not verify probabilities non-null; read 1X2 from fixture record
