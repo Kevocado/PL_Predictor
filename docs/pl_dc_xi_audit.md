@@ -7,7 +7,7 @@
 ## Crash — root cause
 `tune_dc_bp_xi.py` crashes with "negative goal-matrix errors on some folds".
 Cause: extreme lambda values in the grid (0.012, 0.02) drive tau/rho to combinations where penaltyblog's score matrix has negative cells. 
-Fix (in scoreline.py): guard `fit_dixon_coles` — catches ValueError with "negative"/"goal-matrix", raises informative RuntimeError naming the lambda and directing to constrain rho ≥ 0. ponytail: single guard; upgrade path = expose rho bound to tune grid.
+Fix (in scoreline.py): guard `fit_dixon_coles` — catches ValueError with "negative"/"goal-matrix", clips rho to [0,1] and retries fit; if retry fails, propagates the later fit error. Does not raise a custom RuntimeError. ponytail: single retry; upgrade path = expose rho bound to tune grid.
 
 ## Evaluation (requested settings, paired bootstrap B=5000)
 Grid: xi in {0.0010, 0.0018, 0.0030}; with/without low-score correction; vs current 0.0018.

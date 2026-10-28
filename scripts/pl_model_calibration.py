@@ -96,11 +96,16 @@ def bin_str_detailed(pred, actual, min_n=5):
 
 
 def _validate_probabilities(prob_vals: list) -> bool:
-    """Validate all snapshot probabilities are non-null and finite."""
-    if any(v is None for v in prob_vals):
-        return False
-    if any(not math.isfinite(v) for v in prob_vals):
-        return False
+    """Validate all snapshot probabilities are non-null, finite, numeric, and in [0,1]."""
+    for v in prob_vals:
+        if v is None:
+            return False
+        if not isinstance(v, (int, float)):
+            return False
+        if not math.isfinite(v):
+            return False
+        if v < 0.0 or v > 1.0:
+            return False
     return True
 
 

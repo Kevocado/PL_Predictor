@@ -72,8 +72,11 @@ def fit_dixon_coles(df: pd.DataFrame, xi: float = 0.0018) -> pb.models.DixonCole
         else:
             raise
     # Ensure fitted rho (used by predictions) is in feasible range [0, 1].
+    # penaltyblog v1.12.0 uses model._params[-1] for the score matrix; clip both.
     if hasattr(model, "rho"):
         model.rho = float(np.clip(model.rho, 0.0, 1.0))
+    if hasattr(model, "_params") and len(model._params) > 0:
+        model._params[-1] = float(np.clip(model._params[-1], 0.0, 1.0))
     return model
 
 
