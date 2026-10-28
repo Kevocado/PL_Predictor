@@ -17,7 +17,7 @@ Three things here are not obvious and are the reason the test exists:
   any overlap that has not been classified with a reason.
 
 * **The GHCR credential is `GITHUB_TOKEN`, and only because the package is
-  linked.** `ghcr.io/kevocado/pl-predictor` is a *user-scoped* package; if it is
+  linked.** `ghcr.io/kevinsigey/pl-predictor` is a *user-scoped* package; if it is
   not associated with this repository, `GITHUB_TOKEN` may not write to it and the
   push dies with `denied: permission_denied: write_package` **after** the image
   has already built and tagged correctly. NFL and CFB both lost their first VPS
@@ -63,7 +63,7 @@ README = REPO / "README.md"
 
 # Must match `image:` in vps-stack/compose.yml. If either side changes, the
 # deploy pushes a tag the stack never pulls.
-IMAGE = "ghcr.io/kevocado/pl-predictor"
+IMAGE = "ghcr.io/kevinsigey/pl-predictor"
 # Must match the service key in vps-stack/compose.yml, which is what
 # `bin/deploy` is called with: [pl]="PL_TAG 8000 /api/health".
 SERVICE = "pl"
