@@ -602,6 +602,27 @@ export function FixtureModal({ eventId, onClose, explain, loadContext, sport = "
                       Scoreline probability
                       <InfoTooltip text={GLOSSARY.scorelineGrid} align="left" />
                     </h3>
+                     <div className="mb-2 text-xs text-pl-text-dim">
+                       Expected goals: {detail.team_home}{" "}
+                       {detail.expected_home_goals != null
+                         ? detail.expected_home_goals.toFixed(1)
+                         : detail.predicted_total_goals != null && detail.predicted_margin != null
+                           ? ((detail.predicted_total_goals + detail.predicted_margin) / 2).toFixed(1)
+                           : "—"}{" "}
+                       – {detail.team_away}{" "}
+                       {detail.expected_away_goals != null
+                         ? detail.expected_away_goals.toFixed(1)
+                         : detail.predicted_total_goals != null && detail.predicted_margin != null
+                           ? ((detail.predicted_total_goals - detail.predicted_margin) / 2).toFixed(1)
+                           : "—"}
+                     </div>
+                     <div className="mb-2 text-xs text-pl-text-dim">
+                       Most likely scorelines:{" "}
+                       {detail.top_scorelines
+                         .slice(0, 3)
+                         .map((s: { home: number; away: number; prob: number }) => `${s.home}–${s.away} (${(s.prob * 100).toFixed(0)}%)`)
+                         .join(", ")}
+                     </div>
                     <ScorelineHeatmap
                       grid={detail.score_grid}
                       homeTeam={detail.team_home}
