@@ -47,8 +47,8 @@ def test_newest_snapshot_wins_for_market():
     pass  # We'll rely on the existing test in test_kalshi_lines.py
 
 # FIX 3: pass Kalshi lines into API builder (wrapper passes kalshi_df)
-def test_api_builder_receives_kalshi():
-    from pl_predictor.odds import value_bets
+def test_api_builder_receives_kalshi(monkeypatch):
+    from pl_predictor.odds import value_bets as vb
     # The wrapper function build_value_bet_table should accept kalshi_df and pass it to redesign function.
     # We'll test by calling build_value_bet_table with redesign=True and a dummy kalshi_df.
     fixtures_df = pd.DataFrame([{"event_id": "e1", "commence_time": "2026-01-01", "team_home": "A", "team_away": "B"}])
@@ -56,19 +56,18 @@ def test_api_builder_receives_kalshi():
     odds_df["odds_fetched_at"] = pd.Timestamp.now(tz="UTC")
     models = {"scoreline": None}
     kalshi_df = pd.DataFrame([{"event_ticker": "E", "stat": "moneyline", "title": "A wins", "yes_ask": 0.5}])
-    # We need to mock the internal functions to avoid errors
-    import pl_predictor.odds.value_bets as vb
-    vb.scoreline.predict_fixtures_batch = lambda *a, **k: [{
+    # Mock the internal functions to avoid errors
+    monkeypatch.setattr(vb.scoreline, "predict_fixtures_batch", lambda *a, **k: [{
         "home_win": 0.5, "draw": 0.3, "away_win": 0.2,
         "btts_yes": 0.5, "btts_no": 0.5, "over_2_5": 0.5, "under_2_5": 0.5,
         "top_scorelines": [{"home": 1, "away": 0}], "fallback": False,
         "data_confidence": "established", "home_goal_expectation": 1.0,
         "away_goal_expectation": 0.5, "home_2plus_prob": 0.3, "away_2plus_prob": 0.1
-    }]
-    vb._devig_h2h = lambda *_: {"home_win": 0.4, "draw": 0.3, "away_win": 0.3}
-    vb._devig_totals = lambda *_: {"over_2_5": 0.5, "under_2_5": 0.5}
-    vb._devig_btts = lambda *_: {"btts_yes": 0.5, "btts_no": 0.5}
-    vb._best_quote = lambda *a, **k: {"price": 2.0, "bookmaker": "b1"}
+    }])
+    monkeypatch.setattr(vb, "_devig_h2h", lambda *_: {"home_win": 0.4, "draw": 0.3, "away_win": 0.3})
+    monkeypatch.setattr(vb, "_devig_totals", lambda *_: {"over_2_5": 0.5, "under_2_5": 0.5})
+    monkeypatch.setattr(vb, "_devig_btts", lambda *_: {"btts_yes": 0.5, "btts_no": 0.5})
+    monkeypatch.setattr(vb, "_best_quote", lambda *a, **k: {"price": 2.0, "bookmaker": "b1"})
     # Call with redesign=True
     result = vb.build_value_bet_table(fixtures_df, odds_df, models, redesign=True, kalshi_df=kalshi_df)
     assert result is not None
@@ -153,11 +152,7 @@ def test_uncalibrated_market_no_flag():
 # Test that stale or wide-spread Kalshi quote is ignored
 def test_stale_wide_spread_ignored():
     assert not kalshi_consensus._sane(0.50, 0.70, 10)  # spread 0.20 > 0.15
-    assert not kalshi_consensus._sane(0.50, 0.55, 0.0)  # volume 0 < MIN_VOLUME (0.0) -> actually MIN_VOLUME is 0.0, so passes? MIN_VOLUME = 0.0, so volume 0 passes. We'll adjust.
-    # The function requires volume >= MIN_VOLUME (0.0), so volume 0 passes.
-    # But stale quote: we don't have staleness check in _sane. The consensus function filters by time (within 2 hours).
-    # We'll just test the spread condition.
-    assert not kalshi_consensus._sane(0.50, 0.70, 10)
+    assert not kalshi_consensus._sane(0.50, 0.66, 10)  # spread 0.16 > 0.15
 
 # Test that old ledger rows still read (backward compatibility)
 def test_old_ledger_rows_readable():
