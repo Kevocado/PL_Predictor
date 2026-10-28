@@ -81,7 +81,7 @@ jobs:
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ghcr.io
-          # GITHUB_TOKEN, and it is load-bearing that ghcr.io/kevocado/pl-predictor
+          # GITHUB_TOKEN, and it is load-bearing that ghcr.io/kevinsigey/pl-predictor
           # is LINKED to this repository. Checked, not assumed:
           #
           #   gh api /user/packages/container/pl-predictor \
@@ -114,10 +114,10 @@ jobs:
           push: true
           provenance: false
           tags: |
-            ghcr.io/kevocado/pl-predictor:${{ github.sha }}
-            ghcr.io/kevocado/pl-predictor:latest
-          cache-from: type=registry,ref=ghcr.io/kevocado/pl-predictor:buildcache
-          cache-to: type=registry,ref=ghcr.io/kevocado/pl-predictor:buildcache,mode=max
+            ghcr.io/kevinsigey/pl-predictor:${{ github.sha }}
+            ghcr.io/kevinsigey/pl-predictor:latest
+          cache-from: type=registry,ref=ghcr.io/kevinsigey/pl-predictor:buildcache
+          cache-to: type=registry,ref=ghcr.io/kevinsigey/pl-predictor:buildcache,mode=max
 
   # Legacy. Azure is being cut over to the VPS, so this stays off unless the repo
   # sets DEPLOY_AZURE=true. Gated on `== 'true'` and not `!= 'false'`: the
@@ -145,7 +145,7 @@ jobs:
       - name: Create / Update PL Predictor Container App
         env:
           APP_NAME: pl-predictor
-          IMAGE: ghcr.io/kevocado/pl-predictor:${{ github.sha }}
+          IMAGE: ghcr.io/kevinsigey/pl-predictor:${{ github.sha }}
         run: |
           # If the app doesn't exist, create it with external ingress on port 8000
           az containerapp create \
