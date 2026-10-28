@@ -3,6 +3,7 @@ import { kickoffParts } from "../lib/kickoffTime";
 import { TeamBadge } from "./TeamBadge";
 import { ProbabilityBar } from "./ProbabilityBar";
 import { FinishedFixtureCard } from "./FinishedFixtureCard";
+import { pickCall } from "../lib/pick";
 
 function formatKickoff(iso: string): { date: string; time: string } {
   const { day, time } = kickoffParts(iso);
@@ -13,6 +14,9 @@ export function CurrentGameweekCard({ fixture, onClick }: { fixture: CurrentGame
   const { date, time } = formatKickoff(fixture.commence_time);
 
   if (!fixture.finished) {
+    const call = pickCall(fixture.predicted_home_win, fixture.predicted_draw, fixture.predicted_away_win, fixture.team_home, fixture.team_away);
+    const value = fixture.value_bet_flags.length > 0;
+    const likely = fixture.predicted_scoreline?.replace("-", "–");
     return (
       <div
         onClick={onClick}
@@ -21,64 +25,51 @@ export function CurrentGameweekCard({ fixture, onClick }: { fixture: CurrentGame
         onKeyDown={(e) => {
           // Enter and Space, because this is announced as a button and must
           // behave like one. Space's default action is to scroll the page, so
-          // preventDefault is part of the fix rather than a detail: without it
-          // the keypress that opens the fixture also jumps the reader down the
-          // page. `role="button"` on a div is the reason this is worth stating
-          // at all -- a real <button> would give both keys for free.
+          // preventDefault stops the keypress that opens the fixture from
+          // also jumping the reader down the page.
           if (e.key !== "Enter" && e.key !== " ") return;
           e.preventDefault();
           onClick();
         }}
-        className={`clip-corner flex cursor-pointer flex-col gap-3 rounded-xl border bg-pl-850/70 p-4 transition hover:border-pl-pink/40 ${
-          fixture.value_bet_flags.length > 0 ? "border-pl-pink/40 ring-1 ring-pl-pink/20" : "border-pl-border"
-        }`}
+        className="pr-notch flex cursor-pointer flex-col gap-3 rounded-pr border border-pr-rule bg-pr-panel p-4 transition hover:border-pr-text-faint"
       >
-        <div className="flex flex-wrap items-center justify-between gap-1.5 text-xs font-medium uppercase tracking-wide text-pl-text-faint">
+        <div className="flex items-center justify-between gap-2 text-xs font-medium uppercase tracking-wide text-pr-text-faint">
           <span>
             {date} &middot; {time}
           </span>
-          <div className="flex flex-wrap items-center justify-end gap-1.5">
-            {fixture.draw_signal && (
-              <span
-                title="The scoreline model's top pick and the win/draw/loss percentages both lean draw. Informational only — not used to score accuracy."
-                className="rounded bg-pl-cyan/10 px-1.5 py-0.5 font-semibold normal-case tracking-normal text-pl-cyan"
-              >
-                Leans draw
-              </span>
-            )}
-            {fixture.value_bet_flags.length > 0 && (
-              <span
-                title={`Model probability beats the live market's implied odds on: ${fixture.value_bet_flags.join(", ")}`}
-                className="rounded bg-pl-pink/20 px-1.5 py-0.5 font-semibold text-pl-pink"
-              >
-                Value bet
-              </span>
-            )}
-            {!fixture.has_live_odds && (
-              <span title="No live bookmaker line for this fixture yet — model-only prediction." className="text-pl-text-faint">
-                Model only
-              </span>
-            )}
-            <span className="rounded bg-pl-700/60 px-1.5 py-0.5 text-pl-text-dim">Upcoming</span>
-          </div>
+          <span className="normal-case tracking-normal">{fixture.has_live_odds ? "Upcoming" : "Upcoming · model only"}</span>
         </div>
         <div className="flex items-center justify-between gap-2">
           <div className="flex flex-1 flex-col items-center gap-1.5 text-center">
             <TeamBadge team={fixture.team_home} />
-            <span className="text-xs font-semibold leading-tight text-pl-text">{fixture.team_home}</span>
+            <span className="text-xs font-semibold leading-tight text-pr-text">{fixture.team_home}</span>
           </div>
-          <div className="flex flex-col items-center gap-0.5 px-1">
-            <span className="text-xs font-medium uppercase text-pl-text-faint">Likely</span>
-            <span className="rounded-lg bg-pl-700/50 px-2.5 py-1 font-display text-xl font-semibold tracking-wide text-pl-text">
-              {fixture.predicted_scoreline?.replace("-", "–") ?? "?"}
-            </span>
-          </div>
+          <span className="font-display text-sm uppercase tracking-wide text-pr-text-faint">v</span>
           <div className="flex flex-1 flex-col items-center gap-1.5 text-center">
             <TeamBadge team={fixture.team_away} />
-            <span className="text-xs font-semibold leading-tight text-pl-text">{fixture.team_away}</span>
+            <span className="text-xs font-semibold leading-tight text-pr-text">{fixture.team_away}</span>
           </div>
         </div>
-        <ProbabilityBar home={fixture.predicted_home_win} draw={fixture.predicted_draw} away={fixture.predicted_away_win} />
+        <p className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 text-sm">
+          <span className="font-semibold text-pr-text">
+            {call.tossUp ? call.text : `Pick: ${call.text}`}
+            {value && (
+              <span
+                title={`Model probability beats the live market's implied odds on: ${fixture.value_bet_flags.join(", ")}`}
+                className="ml-2 rounded-pr bg-pr-accent px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-pr-accent-ink"
+              >
+                Value
+              </span>
+            )}
+          </span>
+          {likely && <span className="text-pr-text-dim">Most likely score {likely}</span>}
+        </p>
+        <ProbabilityBar
+          home={fixture.predicted_home_win}
+          draw={fixture.predicted_draw}
+          away={fixture.predicted_away_win}
+          pick={call.tossUp ? null : call.side}
+        />
       </div>
     );
   }
