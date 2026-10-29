@@ -25,8 +25,8 @@ def test_predicted_result_is_plain_argmax_when_no_agreement():
     assert predicted_result("2-1", 0.50, 0.25, 0.25) == "home_win"
 
 
-def test_predicted_result_promotes_draw_on_agreement():
-    assert predicted_result("1-1", 0.40, 0.30, 0.30) == "draw"
+def test_predicted_result_is_plain_argmax_even_on_agreement():
+    assert predicted_result("1-1", 0.40, 0.30, 0.30) == "home_win"
 
 
 def test_predicted_result_does_not_promote_below_threshold():
