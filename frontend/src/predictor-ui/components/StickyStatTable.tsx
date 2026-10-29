@@ -1,4 +1,4 @@
-// Synced from predictor-ui@a141469b1a04. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
+// Synced from predictor-ui@0d612c5f11c2. Do not edit here: change predictor-hub/packages/predictor-ui and re-run scripts/sync-ui.mjs.
 import { useState, type ReactNode } from "react";
 
 /**
@@ -24,6 +24,8 @@ export type StickyRow = {
   total?: boolean;
   testId?: string;
   attrs?: Record<string, string>;
+  /** Raw values to sort by, aligned to [header, ...columns]. A row without them keeps its order. */
+  sortValues?: (number | string | null)[];
 };
 
 export type StickySection = { label?: string; rows: StickyRow[] };
@@ -41,6 +43,16 @@ export interface StickyStatTableProps {
   empty?: string;
   testId?: string;
   tableTestId?: string;
+}
+
+type Sort = { index: number; dir: "asc" | "desc" } | null;
+
+/** Missing values sort last whichever way the column is sorted. */
+function compareValues(a: number | string | null | undefined, b: number | string | null | undefined, dir: "asc" | "desc"): number {
+  const missing = (v: unknown) => v === null || v === undefined || v === "" || (typeof v === "number" && !Number.isFinite(v));
+  if (missing(a) || missing(b)) return Number(missing(a)) - Number(missing(b));
+  const order = typeof a === "number" && typeof b === "number" ? a - b : String(a).localeCompare(String(b));
+  return dir === "asc" ? order : -order;
 }
 
 const EM_DASH = "—";
@@ -71,6 +83,7 @@ export function StickyStatTable({
   tableTestId,
 }: StickyStatTableProps) {
   const [pinned, setPinned] = useState(false);
+  const [sort, setSort] = useState<Sort>(null);
   const rowCount = sections.reduce((n, s) => n + s.rows.length, 0) + footer.length;
 
   if (rowCount === 0) {
@@ -87,6 +100,28 @@ export function StickyStatTable({
   };
   const nameStyle = { width: NAME_WIDTH, minWidth: NAME_WIDTH, maxWidth: NAME_WIDTH, ...pin };
   const nameCls = "sticky left-0 z-10 whitespace-normal break-words px-3 py-1.5 text-left align-middle text-[0.8125rem] font-normal leading-tight text-pr-text";
+
+  // Stats start high-to-low, the name column A-Z; a third click puts the caller's order back.
+  const cycle = (index: number) =>
+    setSort((cur) => {
+      const first = index === 0 ? "asc" : "desc";
+      if (!cur || cur.index !== index) return { index, dir: first };
+      return cur.dir === first ? { index, dir: first === "asc" ? "desc" : "asc" } : null;
+    });
+  const sortable = sections.some((sec) => sec.rows.some((r) => r.sortValues));
+  const ordered = (rows: StickyRow[]) =>
+    sort ? [...rows].sort((a, b) => compareValues(a.sortValues?.[sort.index], b.sortValues?.[sort.index], sort.dir)) : rows;
+  const headLabel = (index: number, label: string) => {
+    if (!sortable) return label;
+    const active = sort?.index === index;
+    return (
+      <button type="button" onClick={() => cycle(index)} className="inline-flex items-center gap-1 uppercase tracking-[0.04em] focus-visible:outline focus-visible:outline-2 focus-visible:outline-pr-accent">
+        {label}
+        <span aria-hidden="true">{active ? (sort!.dir === "asc" ? "▲" : "▼") : ""}</span>
+      </button>
+    );
+  };
+  const ariaSort = (index: number) => (sortable ? (sort?.index === index ? (sort.dir === "asc" ? "ascending" : "descending") : "none") : undefined);
 
   const renderRow = (row: StickyRow, i: number) => {
     const bg = row.total ? "bg-pr-panel-2" : bgFor(i);
@@ -131,19 +166,21 @@ export function StickyStatTable({
             <tr>
               <th
                 scope="col"
+                aria-sort={ariaSort(0)}
                 data-pinned={String(pinned)}
                 className="sticky left-0 top-0 z-30 bg-pr-panel px-3 py-1.5 text-left text-[0.6875rem] font-semibold uppercase tracking-[0.04em] text-pr-text-dim"
                 style={nameStyle}
               >
-                {firstColumnLabel}
+                {headLabel(0, firstColumnLabel)}
               </th>
-              {columns.map((column) => (
+              {columns.map((column, c) => (
                 <th
                   key={column.key}
                   scope="col"
+                  aria-sort={ariaSort(c + 1)}
                   className="sticky top-0 z-20 whitespace-nowrap bg-pr-panel px-3 py-1.5 text-right text-[0.6875rem] font-semibold uppercase tracking-[0.04em] text-pr-text-dim"
                 >
-                  {column.label}
+                  {headLabel(c + 1, column.label)}
                 </th>
               ))}
             </tr>
@@ -163,7 +200,7 @@ export function StickyStatTable({
                   <td colSpan={columns.length} className="bg-pr-panel-2" />
                 </tr>
               )}
-              {section.rows.map(renderRow)}
+              {ordered(section.rows).map(renderRow)}
             </tbody>
           ))}
           {footer.length > 0 && <tfoot>{footer.map(renderRow)}</tfoot>}
