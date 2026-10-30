@@ -460,7 +460,7 @@ export function FixtureModal({ eventId, onClose, explain, loadContext, sport = "
       : call
         ? call.tossUp
           ? `Toss-up: ${call.text.replace(/^Toss-up · /, "").replace(/ \d+%/g, "").replace(", ", " or ")}`
-          : `${(resolved?.label ?? call.label)} is the pick`
+          : ""
         : "";
   // The fixture's own meeting never appears in its head-to-head.
   const meetings = detail
@@ -537,7 +537,7 @@ export function FixtureModal({ eventId, onClose, explain, loadContext, sport = "
             {detail && (
               <div className="flex flex-col gap-10">
                 <section id="fx-pick" aria-label="The pick" className="flex scroll-mt-32 flex-col gap-4">
-                  <p className="font-display text-3xl leading-tight tracking-wide text-pr-text sm:text-4xl">{headline}</p>
+                  {headline && <p className="font-display text-3xl leading-tight tracking-wide text-pr-text sm:text-4xl">{headline}</p>}
                   {call?.tossUp && !finished && (
                     <p className="-mt-2 text-sm text-pr-text-dim">The top two outcomes are within two points, so the model is not calling a favourite.</p>
                   )}
