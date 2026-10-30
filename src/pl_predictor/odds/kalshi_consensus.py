@@ -139,7 +139,10 @@ def kalshi_consensus_for_fixture(
         out["away_win"] = {"prob": float(ar["yes_ask"]), "price": float(ar["yes_ask"]), "source": "kalshi"}
 
     # totals 2.5
-    tot = df[(df["stat"] == "total") & (df["line"] == 2.5)]
+    if "line" in df.columns:
+        tot = df[(df["stat"] == "total") & (df["line"] == 2.5)]
+    else:
+        tot = pd.DataFrame()
     if not tot.empty:
         r = _pick(tot)
         if r is not None and _sane(r.get("yes_bid"), r.get("yes_ask"), r.get("volume")):
