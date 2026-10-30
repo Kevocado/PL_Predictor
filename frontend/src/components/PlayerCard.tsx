@@ -11,12 +11,12 @@ export function PlayerCard({ player, marker, size = "md" }: PlayerCardProps) {
   const isSmall = size === "sm";
   return (
     <div
-      className={`relative min-w-0 rounded-xl border border-pl-border bg-pl-900/90 text-center shadow-sm ${
+      className={`relative min-w-0 rounded-pr border border-pr-rule bg-pr-stage/90 text-center shadow-sm ${
         isSmall ? "px-1.5 py-1.5" : "px-3 py-3"
       }`}
     >
       {marker && (
-        <span className="absolute -right-1 -top-1 rounded-full bg-pl-pink px-1.5 py-0.5 text-xs font-bold text-pr-accent-ink">
+        <span className="absolute -right-1 -top-1 rounded-full bg-pr-accent px-1.5 py-0.5 text-xs font-bold text-pr-accent-ink">
           {marker}
         </span>
       )}
@@ -25,17 +25,17 @@ export function PlayerCard({ player, marker, size = "md" }: PlayerCardProps) {
         {/* On the pitch the row already says the position; the label only
             fits (at a readable size) on the full card. */}
         {!isSmall && (
-          <span className="rounded bg-pl-850 px-1 py-0.5 text-xs font-semibold text-pl-text-dim">{player.position}</span>
+          <span className="rounded bg-pr-panel px-1 py-0.5 text-xs font-semibold text-pr-text-dim">{player.position}</span>
         )}
         {player.status !== "a" && <span className="text-loss">●</span>}
       </div>
-      <p className={`mt-1 font-bold text-pl-pink ${isSmall ? "text-sm" : "text-lg"}`}>
+      <p className={`mt-1 font-bold text-pr-accent ${isSmall ? "text-sm" : "text-lg"}`}>
         {player.projected_points.toFixed(1)}
       </p>
       <p className={`truncate font-semibold text-white text-xs`}>
         {player.web_name || player.name}
       </p>
-      {!isSmall && <p className="text-xs text-pl-text-faint">£{player.price.toFixed(1)}</p>}
+      {!isSmall && <p className="text-xs text-pr-text-faint">£{player.price.toFixed(1)}</p>}
     </div>
   );
 }

@@ -31,8 +31,8 @@ export function ModelFreshnessPanel({ manifest }: Props) {
 
   return (
     <div>
-      <h2 className="mb-2 text-lg font-semibold text-pl-text">Model freshness</h2>
-      <p className="mb-3 max-w-2xl text-xs text-pl-text-faint">
+      <h2 className="mb-2 text-lg font-semibold text-pr-text">Model freshness</h2>
+      <p className="mb-3 max-w-2xl text-xs text-pr-text-faint">
         The model’s training coverage and the live results feed are shown separately. The chart only records a
         held-out validation-score change, so repeated retrains do not create fake visual movement.{" "}
         <InfoTooltip
@@ -42,15 +42,15 @@ export function ModelFreshnessPanel({ manifest }: Props) {
         .
       </p>
 
-      <div className="mb-3 clip-corner rounded-xl border border-pl-border bg-pl-850/70 p-4">
-        <span className="text-xs font-semibold uppercase tracking-wide text-pl-text-faint">
+      <div className="mb-3 clip-corner rounded-pr border border-pr-rule bg-pr-panel/70 p-4">
+        <span className="text-xs font-semibold uppercase tracking-wide text-pr-text-faint">
           Current season: live results / this model version
         </span>
-        <p className="mt-1 text-2xl font-bold text-pl-text">
+        <p className="mt-1 text-2xl font-bold text-pr-text">
           {manifest.live_current_season_matches ?? manifest.n_current_season_matches}
-          <span className="mx-2 text-pl-text-faint">/</span>
+          <span className="mx-2 text-pr-text-faint">/</span>
           {manifest.n_current_season_matches}
-          <span className="ml-2 text-xs font-normal text-pl-text-faint">
+          <span className="ml-2 text-xs font-normal text-pr-text-faint">
             {manifest.live_current_season_matches !== undefined && manifest.live_current_season_matches !== manifest.n_current_season_matches
               ? "live results detected / stat-complete results included in this model"
               : "live results and model-training coverage currently match"}
@@ -61,21 +61,21 @@ export function ModelFreshnessPanel({ manifest }: Props) {
       {error && <p className="text-xs text-loss">{error}</p>}
 
       {history && history.length < 2 && (
-        <p className="text-xs text-pl-text-faint">
+        <p className="text-xs text-pr-text-faint">
           Only one held-out score change logged so far — this chart appears once another model update changes Brier or RPS.
         </p>
       )}
 
       {history && history.length >= 2 && (
-        <div className="clip-corner-lg h-56 rounded-xl border border-pl-border bg-pl-850/70 p-4">
+        <div className="clip-corner-lg h-56 rounded-pr border border-pr-rule bg-pr-panel/70 p-4">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData} margin={{ top: 10, right: 20, bottom: 0, left: 0 }}>
-              <CartesianGrid stroke="var(--color-pl-border)" strokeDasharray="3 3" />
-              <XAxis dataKey="update" tick={{ fill: "var(--color-pl-text-faint)", fontSize: 11 }} />
-              <YAxis tick={{ fill: "var(--color-pl-text-faint)", fontSize: 11 }} domain={["auto", "auto"]} />
+              <CartesianGrid stroke="var(--color-pr-rule)" strokeDasharray="3 3" />
+              <XAxis dataKey="update" tick={{ fill: "var(--color-pr-text-faint)", fontSize: 11 }} />
+              <YAxis tick={{ fill: "var(--color-pr-text-faint)", fontSize: 11 }} domain={["auto", "auto"]} />
               <Tooltip
-                contentStyle={{ background: "var(--color-pl-900)", border: "1px solid var(--color-pl-border)", borderRadius: 8 }}
-                labelStyle={{ color: "var(--color-pl-text-faint)" }}
+                contentStyle={{ background: "var(--color-pr-stage)", border: "1px solid var(--color-pr-rule)", borderRadius: 8 }}
+                labelStyle={{ color: "var(--color-pr-text-faint)" }}
                 labelFormatter={(label, payload) => {
                   const point = payload[0]?.payload as { trained_at?: string; n_current_season_matches?: number } | undefined;
                   return point?.trained_at
@@ -86,7 +86,7 @@ export function ModelFreshnessPanel({ manifest }: Props) {
                   typeof value === "number" ? [value.toFixed(4), name === "brier" ? "Brier" : "RPS"] : [value, name]
                 }
               />
-              <Line type="linear" dataKey="brier" name="brier" stroke="var(--color-pl-pink)" strokeWidth={2} dot={{ r: 3 }} />
+              <Line type="linear" dataKey="brier" name="brier" stroke="var(--color-pr-accent)" strokeWidth={2} dot={{ r: 3 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>

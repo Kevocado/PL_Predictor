@@ -5,7 +5,7 @@ import { GLOSSARY } from "../lib/glossary";
 
 const ZONE_STYLE: Record<string, string> = {
   title: "border-l-2 border-l-win",
-  europe: "border-l-2 border-l-pl-cyan",
+  europe: "border-l-2 border-l-pr-lean",
   relegation: "border-l-2 border-l-loss",
 };
 
@@ -33,13 +33,13 @@ function ordinal(n: number): string {
 
 function PositionDelta({ position, delta }: { position: number | null; delta: number | null }) {
   if (position === null || delta === null) {
-    return <span className="text-pl-text-faint">—</span>;
+    return <span className="text-pr-text-faint">—</span>;
   }
   return (
     <span className="inline-flex items-center gap-1.5">
-      <span className="text-pl-text-dim">{ordinal(position)}</span>
+      <span className="text-pr-text-dim">{ordinal(position)}</span>
       {delta === 0 ? (
-        <span className="text-pl-text-faint">on track</span>
+        <span className="text-pr-text-faint">on track</span>
       ) : (
         <span className={`inline-flex items-center gap-0.5 font-semibold ${delta > 0 ? "text-win" : "text-loss"}`}>
           {delta > 0 ? "▲" : "▼"} {Math.abs(delta)}
@@ -52,14 +52,14 @@ function PositionDelta({ position, delta }: { position: number | null; delta: nu
 export function ProjectedTable({ data }: { data: ProjectedTableResponse }) {
   return (
     <div>
-      <h3 className="mb-2 flex items-center gap-1.5 text-sm text-pl-text-dim">
+      <h3 className="mb-2 flex items-center gap-1.5 text-sm text-pr-text-dim">
         {data.season} season
         <InfoTooltip text={GLOSSARY.projectedTable} align="left" />
       </h3>
-      <div className="overflow-x-auto rounded-xl border border-pl-border">
+      <div className="overflow-x-auto rounded-pr border border-pr-rule">
         <table className="w-full min-w-[480px] text-sm">
           <thead>
-            <tr className="border-b border-pl-border bg-pl-850/70 text-left text-xs uppercase tracking-wide text-pl-text-faint">
+            <tr className="border-b border-pr-rule bg-pr-panel/70 text-left text-xs uppercase tracking-wide text-pr-text-faint">
               <th className="px-3 py-2">#</th>
               <th className="px-3 py-2">Team</th>
               <th className="px-3 py-2 text-right">Played</th>
@@ -83,19 +83,19 @@ export function ProjectedTable({ data }: { data: ProjectedTableResponse }) {
               return (
                 <tr
                   key={row.team}
-                  className={`border-b border-pl-border/60 bg-pl-850/40 ${zone ? ZONE_STYLE[zone] : ""}`}
+                  className={`border-b border-pr-rule/60 bg-pr-panel/40 ${zone ? ZONE_STYLE[zone] : ""}`}
                 >
-                  <td className="px-3 py-2 text-pl-text-faint">{row.projected_position}</td>
+                  <td className="px-3 py-2 text-pr-text-faint">{row.projected_position}</td>
                   <td className="px-3 py-2">
                     <div className="flex items-center gap-2">
                       <TeamBadge team={row.team} size="sm" />
-                      <span className="text-pl-text">{row.team}</span>
+                      <span className="text-pr-text">{row.team}</span>
                     </div>
                   </td>
-                  <td className="px-3 py-2 text-right text-pl-text-dim">{row.played}</td>
-                  <td className="px-3 py-2 text-right text-pl-text-dim">{row.current_points}</td>
-                  <td className="px-3 py-2 text-right font-semibold text-pl-text">{row.projected_points}</td>
-                  <td className="px-3 py-2 text-right text-pl-text-dim">
+                  <td className="px-3 py-2 text-right text-pr-text-dim">{row.played}</td>
+                  <td className="px-3 py-2 text-right text-pr-text-dim">{row.current_points}</td>
+                  <td className="px-3 py-2 text-right font-semibold text-pr-text">{row.projected_points}</td>
+                  <td className="px-3 py-2 text-right text-pr-text-dim">
                     {row.projected_goal_diff > 0 ? "+" : ""}
                     {row.projected_goal_diff}
                   </td>
@@ -108,12 +108,12 @@ export function ProjectedTable({ data }: { data: ProjectedTableResponse }) {
           </tbody>
         </table>
       </div>
-      <div className="mt-2 flex gap-4 text-xs text-pl-text-faint">
+      <div className="mt-2 flex gap-4 text-xs text-pr-text-faint">
         <span className="flex items-center gap-1">
           <span className="h-2 w-2 rounded-full bg-win" /> Title
         </span>
         <span className="flex items-center gap-1">
-          <span className="h-2 w-2 rounded-full bg-pl-cyan" /> Europe
+          <span className="h-2 w-2 rounded-full bg-pr-lean" /> Europe
         </span>
         <span className="flex items-center gap-1">
           <span className="h-2 w-2 rounded-full bg-loss" /> Relegation

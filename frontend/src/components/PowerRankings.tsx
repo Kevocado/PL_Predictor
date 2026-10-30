@@ -20,14 +20,14 @@ function TeamCrestDot(props: { cx?: number; cy?: number; index?: number; team: s
   if (crestUrl) {
     return (
       <g>
-        <circle cx={cx} cy={cy} r={half + 2} fill="var(--color-pl-900)" stroke={color} strokeWidth={1.5} />
+        <circle cx={cx} cy={cy} r={half + 2} fill="var(--color-pr-stage)" stroke={color} strokeWidth={1.5} />
         <image href={crestUrl} x={cx - half + 2} y={cy - half + 2} width={CREST_DOT_SIZE - 4} height={CREST_DOT_SIZE - 4} />
       </g>
     );
   }
   return (
     <g>
-      <circle cx={cx} cy={cy} r={half} fill={color} stroke="var(--color-pl-900)" strokeWidth={1.5} />
+      <circle cx={cx} cy={cy} r={half} fill={color} stroke="var(--color-pr-stage)" strokeWidth={1.5} />
       <text x={cx} y={cy} textAnchor="middle" dominantBaseline="central" fontSize={9} fontWeight={700} fill="#fff">
         {teamInitials(team)}
       </text>
@@ -71,7 +71,7 @@ function MetricBar({ score, color, direction }: { score: number; color: string; 
   const position = direction === "left" ? "right-0" : "left-0";
 
   return (
-    <div className="relative flex h-8 items-center justify-center overflow-hidden bg-pl-800">
+    <div className="relative flex h-8 items-center justify-center overflow-hidden bg-pr-panel-2">
       <div className={`absolute inset-y-0 ${position} ${color}`} style={{ width: `${score}%` }} />
       <span className="relative z-10 text-xs font-semibold tabular-nums text-white drop-shadow-sm">{Math.round(score)}</span>
     </div>
@@ -82,19 +82,19 @@ function RankingRow({ rank, team, attackScore, defenceScore, confidence, fitted 
   const badge = badgeFor(confidence, fitted);
 
   return (
-    <div className="grid grid-cols-[1.25rem_1.5rem_minmax(6rem,1fr)_auto_minmax(5rem,1fr)_1px_minmax(5rem,1fr)] items-center gap-2 rounded-lg bg-pl-850/60 px-3 py-2">
-      <span className="text-right text-xs font-semibold text-pl-text-faint">{rank}</span>
+    <div className="grid grid-cols-[1.25rem_1.5rem_minmax(6rem,1fr)_auto_minmax(5rem,1fr)_1px_minmax(5rem,1fr)] items-center gap-2 rounded-lg bg-pr-panel/60 px-3 py-2">
+      <span className="text-right text-xs font-semibold text-pr-text-faint">{rank}</span>
       <TeamBadge team={team} size="sm" />
-      <span className="truncate text-sm text-pl-text">{team}</span>
+      <span className="truncate text-sm text-pr-text">{team}</span>
       {badge && (
-        <span className="flex items-center gap-1 rounded bg-pl-700/60 px-1.5 py-0.5 text-xs font-semibold uppercase text-pl-text-dim">
+        <span className="flex items-center gap-1 rounded bg-pr-panel-2/60 px-1.5 py-0.5 text-xs font-semibold uppercase text-pr-text-dim">
           {badge.label}
           <InfoTooltip text={badge.tooltip} align="left" />
         </span>
       )}
       <MetricBar score={attackScore} color="bg-win" direction="left" />
-      <span className="h-8 bg-pl-text-faint/60" aria-hidden="true" />
-      <MetricBar score={defenceScore} color="bg-pl-pink" direction="right" />
+      <span className="h-8 bg-pr-text-faint/60" aria-hidden="true" />
+      <MetricBar score={defenceScore} color="bg-pr-accent" direction="right" />
     </div>
   );
 }
@@ -153,11 +153,11 @@ export function PowerRankings({ data }: { data: RankingsResponse }) {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h3 className="mb-1 flex items-center gap-1.5 text-sm text-pl-text-dim">
+        <h3 className="mb-1 flex items-center gap-1.5 text-sm text-pr-text-dim">
           By attack and defence strength
           <InfoTooltip text={GLOSSARY.powerRankings} align="left" />
         </h3>
-        <div className="mb-2 grid grid-cols-[1.25rem_1.5rem_minmax(6rem,1fr)_auto_minmax(5rem,1fr)_1px_minmax(5rem,1fr)] gap-2 px-3 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">
+        <div className="mb-2 grid grid-cols-[1.25rem_1.5rem_minmax(6rem,1fr)_auto_minmax(5rem,1fr)_1px_minmax(5rem,1fr)] gap-2 px-3 text-xs font-semibold uppercase tracking-wide text-pr-text-faint">
           <span className="col-start-5 flex items-center justify-center gap-1 text-center">
             Attack
             <InfoTooltip text="Fixed 0–100 conversion of the model's attacking-strength value. 50 is typical league-level attack; higher means stronger." />
@@ -183,19 +183,19 @@ export function PowerRankings({ data }: { data: RankingsResponse }) {
       </div>
 
       <div>
-        <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-pl-text-dim">
+        <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-pr-text-dim">
           Elo rating this season
           <InfoTooltip text={GLOSSARY.ratingsTrend} align="left" />
         </h3>
         {teams.length === 0 ? (
-          <p className="text-xs text-pl-text-faint">
+          <p className="text-xs text-pr-text-faint">
             No matches played yet this season — the trend will fill in once the season kicks off.
           </p>
         ) : (
-          <div className="clip-corner-lg h-96 rounded-xl border border-pl-border bg-pl-850/70 p-4">
+          <div className="clip-corner-lg h-96 rounded-pr border border-pr-rule bg-pr-panel/70 p-4">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 10, right: 30, bottom: 0, left: 0 }}>
-                <CartesianGrid stroke="var(--color-pl-border)" strokeDasharray="3 3" />
+                <CartesianGrid stroke="var(--color-pr-rule)" strokeDasharray="3 3" />
                 {gameweekBands.map(
                   (band, i) =>
                     band.start !== band.end && (
@@ -203,20 +203,20 @@ export function PowerRankings({ data }: { data: RankingsResponse }) {
                         key={band.gameweek}
                         x1={band.start}
                         x2={band.end}
-                        fill={i % 2 === 0 ? "var(--color-pl-text-faint)" : "transparent"}
+                        fill={i % 2 === 0 ? "var(--color-pr-text-faint)" : "transparent"}
                         fillOpacity={i % 2 === 0 ? 0.1 : 0}
-                        stroke="var(--color-pl-border)"
+                        stroke="var(--color-pr-rule)"
                         strokeOpacity={0.6}
                         ifOverflow="visible"
-                        label={{ value: `GW${band.gameweek}`, position: "insideTop", fill: "var(--color-pl-text-faint)", fontSize: 9 }}
+                        label={{ value: `GW${band.gameweek}`, position: "insideTop", fill: "var(--color-pr-text-faint)", fontSize: 9 }}
                       />
                     ),
                 )}
-                <XAxis dataKey="date" tick={{ fill: "var(--color-pl-text-faint)", fontSize: 10 }} />
-                <YAxis domain={["auto", "auto"]} tick={{ fill: "var(--color-pl-text-faint)", fontSize: 11 }} />
+                <XAxis dataKey="date" tick={{ fill: "var(--color-pr-text-faint)", fontSize: 10 }} />
+                <YAxis domain={["auto", "auto"]} tick={{ fill: "var(--color-pr-text-faint)", fontSize: 11 }} />
                 <Tooltip
-                  contentStyle={{ background: "var(--color-pl-900)", border: "1px solid var(--color-pl-border)", borderRadius: 8 }}
-                  labelStyle={{ color: "var(--color-pl-text-faint)" }}
+                  contentStyle={{ background: "var(--color-pr-stage)", border: "1px solid var(--color-pr-rule)", borderRadius: 8 }}
+                  labelStyle={{ color: "var(--color-pr-text-faint)" }}
                 />
                 <Legend wrapperStyle={{ fontSize: 10 }} />
                 {teams.map((team) => (

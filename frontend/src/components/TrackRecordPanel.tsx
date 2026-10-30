@@ -32,12 +32,12 @@ const n0 = (x: number) => x.toLocaleString("en-US");
 
 function StatCard({ label, value, info }: { label: string; value: string; info?: string }) {
   return (
-    <div className="clip-corner rounded-xl border border-pl-border bg-pl-850/70 p-4">
-      <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">
+    <div className="clip-corner rounded-pr border border-pr-rule bg-pr-panel/70 p-4">
+      <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-pr-text-faint">
         {label}
         {info && <InfoTooltip text={info} align="left" />}
       </div>
-      <div className="mt-1 font-display text-3xl font-semibold tracking-wide text-pl-text">{value}</div>
+      <div className="mt-1 font-display text-3xl font-semibold tracking-wide text-pr-text">{value}</div>
     </div>
   );
 }
@@ -75,11 +75,11 @@ export function TrackRecordPanel({ data }: { data: TrackRecordResponse }) {
   if (summary.n_resolved_fixtures === 0 && nRebuilt === 0) {
     return (
       <section aria-labelledby="tr-empty-h">
-        <h3 id="tr-empty-h" className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-pl-text-dim">
+        <h3 id="tr-empty-h" className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-pr-text-dim">
           Live track record
           <InfoTooltip text={GLOSSARY.trackRecordScore} align="left" />
         </h3>
-        <p className="text-xs text-pl-text-faint">
+        <p className="text-xs text-pr-text-faint">
           No scored predictions yet — this builds up automatically as fixtures are predicted and results come in.
         </p>
       </section>
@@ -88,13 +88,13 @@ export function TrackRecordPanel({ data }: { data: TrackRecordResponse }) {
 
   return (
     <section aria-labelledby="tr-h" className="flex flex-col gap-4">
-      <h2 id="tr-h" className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-pl-text-dim">
+      <h2 id="tr-h" className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-pr-text-dim">
         Track Record
         <button
           type="button"
           onClick={() => { void load(true); }}
           disabled={refreshing}
-          className="ml-auto rounded-lg border border-pl-border bg-pl-850/50 px-3 py-2 text-xs font-semibold text-pl-text-dim transition hover:text-pl-text disabled:opacity-50"
+          className="ml-auto rounded-lg border border-pr-rule bg-pr-panel/50 px-3 py-2 text-xs font-semibold text-pr-text-dim transition hover:text-pr-text disabled:opacity-50"
           aria-label={refreshing ? "Refreshing track record…" : "Refresh track record"}
         >
           {refreshing ? "Refreshing…" : "Refresh live data"}
@@ -108,7 +108,7 @@ export function TrackRecordPanel({ data }: { data: TrackRecordResponse }) {
         {model.markets.length > 0 ? (
           <>
             <RecordHeadline markets={model.markets} mode={model.headline} lead={model.lead} moment={moment} />
-            <p className="max-w-prose text-sm text-pl-text-dim" data-testid="rebuilt-note">
+            <p className="max-w-prose text-sm text-pr-text-dim" data-testid="rebuilt-note">
               {nRebuilt > 0
                 ? `${n0(summary.n_resolved_fixtures)} counted picks in this record, of which ${n0(
                     nRebuilt,
@@ -120,7 +120,7 @@ export function TrackRecordPanel({ data }: { data: TrackRecordResponse }) {
             </p>
           </>
         ) : (
-          <p className="text-sm text-pl-text-faint">No scored predictions yet — check back once fixtures are final.</p>
+          <p className="text-sm text-pr-text-faint">No scored predictions yet — check back once fixtures are final.</p>
         )}
       </RecordBlock>
 
@@ -168,16 +168,16 @@ export function TrackRecordPanel({ data }: { data: TrackRecordResponse }) {
       <div className="flex flex-col gap-5">
         {gameweeks.map((group) => (
           <div key={group.gameweek ?? "none"} aria-labelledby={`tr-gw-${group.gameweek ?? "none"}-h`}>
-            <h3 id={`tr-gw-${group.gameweek ?? "none"}-h`} className="mb-1 flex items-center gap-2 text-sm font-semibold text-pl-text-dim">
+            <h3 id={`tr-gw-${group.gameweek ?? "none"}-h`} className="mb-1 flex items-center gap-2 text-sm font-semibold text-pr-text-dim">
               {group.gameweek ? `Gameweek ${group.gameweek}` : "No gameweek data"}
-              <span className="text-xs font-normal text-pl-text-dim">
+              <span className="text-xs font-normal text-pr-text-dim">
                 {group.pct_correct === null
                   ? "No pre-kickoff picks"
                   : `${((group.pct_correct ?? 0) * 100).toFixed(0)}% correct (${Math.round(group.pct_correct * group.n_fixtures)}/${group.n_fixtures})`}
               </span>
             </h3>
             {group.pct_correct !== null && group.pct_correct_by_market && (
-              <p className="mb-2 text-xs text-pl-text-faint">
+              <p className="mb-2 text-xs text-pr-text-faint">
                 Exact score {((group.pct_correct_by_market.exact_score ?? 0) * 100).toFixed(0)}% &middot; Goals O/U 2.5{" "}
                 {((group.pct_correct_by_market.over_under_2_5 ?? 0) * 100).toFixed(0)}% &middot; BTTS {((group.pct_correct_by_market.btts ?? 0) * 100).toFixed(0)}%
               </p>

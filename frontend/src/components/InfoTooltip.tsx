@@ -36,14 +36,14 @@ export function InfoTooltip({ text, align = "center" }: Props) {
       onBlur={() => setOpen(false)}
       tabIndex={0}
     >
-      <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-pl-700 text-xs font-bold leading-none text-pl-text-dim ring-1 ring-pl-border transition hover:bg-pl-pink hover:text-pr-accent-ink">
+      <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-pr-panel-2 text-xs font-bold leading-none text-pr-text-dim ring-1 ring-pr-rule transition hover:bg-pr-accent hover:text-pr-accent-ink">
         ?
       </span>
       {open &&
         pos &&
         createPortal(
           <span
-            className="pointer-events-none fixed z-[100] rounded-lg border border-pl-border bg-pl-950 p-2.5 text-xs font-normal normal-case leading-snug tracking-normal text-pl-text-dim shadow-xl"
+            className="pointer-events-none fixed z-[100] rounded-lg border border-pr-rule bg-pr-stage p-2.5 text-xs font-normal normal-case leading-snug tracking-normal text-pr-text-dim shadow-xl"
             style={{ top: pos.top, left: pos.left, width: WIDTH, transform: "translateY(-100%)" }}
           >
             {text}
