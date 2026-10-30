@@ -7,7 +7,7 @@ const STATUS_COLOR: Record<string, string> = {
   d: "bg-draw",
   i: "bg-loss",
   s: "bg-loss",
-  u: "bg-pl-text-faint",
+  u: "bg-pr-text-faint",
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -35,20 +35,20 @@ function PlayerName({ player }: { player: PlayerPrediction }) {
     <>
       <span className="flex items-start gap-2">
         <span
-          className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${STATUS_COLOR[player.status] ?? "bg-pl-text-faint"}`}
+          className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${STATUS_COLOR[player.status] ?? "bg-pr-text-faint"}`}
           title={`${STATUS_LABEL[player.status] ?? player.status}${player.news ? ` — ${player.news}` : ""}`}
         />
-        <span className="font-semibold text-pl-text">{player.name}</span>
+        <span className="font-semibold text-pr-text">{player.name}</span>
       </span>
-      <span className="mt-0.5 flex flex-wrap items-center gap-1 pl-4 text-[0.6875rem] uppercase text-pl-text-faint">
+      <span className="mt-0.5 flex flex-wrap items-center gap-1 pl-4 text-[0.6875rem] uppercase text-pr-text-faint">
         <span>{player.position}</span>
         {player.confirmed_starter ? (
           <span className="rounded bg-win/20 px-1 font-semibold text-win">Confirmed XI</span>
         ) : player.predicted_starter ? (
           <span className="rounded bg-win/20 px-1 font-semibold text-win">XI</span>
         ) : null}
-        {player.is_penalty_taker && <span className="rounded bg-pl-accent/20 px-1 font-semibold text-pl-accent">PK</span>}
-        {!player.is_penalty_taker && player.is_set_piece_taker && <span className="rounded bg-pl-700 px-1 font-semibold text-pl-text">SP</span>}
+        {player.is_penalty_taker && <span className="rounded bg-pr-accent/20 px-1 font-semibold text-pr-accent">PK</span>}
+        {!player.is_penalty_taker && player.is_set_piece_taker && <span className="rounded bg-pr-panel-2 px-1 font-semibold text-pr-text">SP</span>}
       </span>
     </>
   );
@@ -89,7 +89,7 @@ function TeamPlayerPredictions({ team, players }: { team: string; players: Playe
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2">
-        <span className="text-xs font-semibold text-pl-text-faint">{team}</span>
+        <span className="text-xs font-semibold text-pr-text-faint">{team}</span>
         {confirmed && <span className="text-xs font-semibold uppercase text-win">Official lineup</span>}
         <InfoTooltip
           align="left"

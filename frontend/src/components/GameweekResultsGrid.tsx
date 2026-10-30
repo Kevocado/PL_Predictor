@@ -4,7 +4,7 @@ import { FinishedFixtureCard } from "./FinishedFixtureCard";
 export function GameweekResultsGrid({ results, onSelect }: { results: GameweekResult[]; onSelect: (eventId: string) => void }) {
   if (results.length === 0) {
     return (
-      <p className="text-xs text-pl-text-faint">
+      <p className="text-xs text-pr-text-faint">
         No resolved fixtures yet — this fills in automatically as matches kick off and finish.
       </p>
     );

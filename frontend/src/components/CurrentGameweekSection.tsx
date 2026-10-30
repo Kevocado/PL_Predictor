@@ -69,7 +69,7 @@ export function CurrentGameweekSection({ data, onSelect, onNavigate }: Props) {
         onJumpToCurrent={data.is_current ? undefined : () => onNavigate(undefined)}
         record={tally}
       />
-      {zones && <p className="-mt-2 mb-4 text-xs text-pl-text-dim">Kickoff times in {zones}</p>}
+      {zones && <p className="-mt-2 mb-4 text-xs text-pr-text-dim">Kickoff times in {zones}</p>}
 
       {data.fixtures.length === 0 ? (
         <EmptyState

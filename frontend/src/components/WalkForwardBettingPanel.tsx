@@ -5,31 +5,31 @@ import { InfoTooltip } from "./InfoTooltip";
 
 function StatCard({ label, value, positive, info }: { label: string; value: string; positive?: boolean; info?: string }) {
   return (
-    <div className="clip-corner rounded-xl border border-pl-border bg-pl-850/70 p-4">
-      <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">
+    <div className="clip-corner rounded-pr border border-pr-rule bg-pr-panel/70 p-4">
+      <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-pr-text-faint">
         {label}
         {info && <InfoTooltip text={info} align="left" />}
       </div>
-      <div className={`mt-1 font-display text-3xl font-semibold tracking-wide ${positive === undefined ? "text-pl-text" : positive ? "text-win" : "text-loss"}`}>{value}</div>
+      <div className={`mt-1 font-display text-3xl font-semibold tracking-wide ${positive === undefined ? "text-pr-text" : positive ? "text-win" : "text-loss"}`}>{value}</div>
     </div>
   );
 }
 
 function BreakdownTable({ title, rows }: { title: string; rows: BettingValidationBreakdown[] }) {
   return (
-    <div className="clip-corner rounded-xl border border-pl-border bg-pl-850/70 p-4">
-      <h3 className="text-sm font-semibold text-pl-text">{title}</h3>
+    <div className="clip-corner rounded-pr border border-pr-rule bg-pr-panel/70 p-4">
+      <h3 className="text-sm font-semibold text-pr-text">{title}</h3>
       <div className="mt-3 overflow-x-auto">
         <table className="w-full min-w-[340px] text-left text-xs">
-          <thead className="border-b border-pl-border text-xs uppercase tracking-wide text-pl-text-faint">
+          <thead className="border-b border-pr-rule text-xs uppercase tracking-wide text-pr-text-faint">
             <tr><th className="pb-2 font-semibold">Group</th><th className="pb-2 font-semibold">Bets</th><th className="pb-2 font-semibold">Win rate</th><th className="pb-2 font-semibold">Yield</th></tr>
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={row.label} className="border-b border-pl-border/60 last:border-0">
-                <td className="py-2 text-pl-text">{row.label}</td>
-                <td className="py-2 text-pl-text-dim">{row.bets}</td>
-                <td className="py-2 text-pl-text-dim">{row.win_rate === null ? "—" : `${row.win_rate.toFixed(1)}%`}</td>
+              <tr key={row.label} className="border-b border-pr-rule/60 last:border-0">
+                <td className="py-2 text-pr-text">{row.label}</td>
+                <td className="py-2 text-pr-text-dim">{row.bets}</td>
+                <td className="py-2 text-pr-text-dim">{row.win_rate === null ? "—" : `${row.win_rate.toFixed(1)}%`}</td>
                 <td className={`py-2 font-semibold ${(row.yield ?? 0) >= 0 ? "text-win" : "text-loss"}`}>{row.yield === null ? "—" : `${row.yield >= 0 ? "+" : ""}${row.yield.toFixed(1)}%`}</td>
               </tr>
             ))}
@@ -57,8 +57,8 @@ export function WalkForwardBettingPanel() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <p className="max-w-2xl text-xs text-pl-text-faint">Each season is tested only after training on earlier seasons. Yield uses one unit per pick; the 95% interval shows how uncertain the combined historical yield remains. This is a robustness check, not a forecast.</p>
-        <button onClick={run} disabled={loading} className="rounded-lg bg-pl-pink px-4 py-2 text-sm font-semibold text-pr-accent-ink transition hover:bg-pl-pink-soft disabled:opacity-50">{loading ? "Testing…" : "Run walk-forward test"}</button>
+        <p className="max-w-2xl text-xs text-pr-text-faint">Each season is tested only after training on earlier seasons. Yield uses one unit per pick; the 95% interval shows how uncertain the combined historical yield remains. This is a robustness check, not a forecast.</p>
+        <button onClick={run} disabled={loading} className="rounded-lg bg-pr-accent px-4 py-2 text-sm font-semibold text-pr-accent-ink transition hover:bg-pr-accent disabled:opacity-50">{loading ? "Testing…" : "Run walk-forward test"}</button>
       </div>
       {error && <div className="rounded-lg border border-loss/40 bg-loss/10 px-4 py-3 text-sm text-loss">{error}</div>}
       {data && summary && (

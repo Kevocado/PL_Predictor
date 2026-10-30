@@ -110,24 +110,24 @@ function PreMatchValueBets({ bets }: { bets: FixtureValueBetSnapshot[] }) {
   return (
     <section>
       <div className="mb-2 flex flex-wrap items-end justify-between gap-1">
-        <h3 className="text-sm font-semibold text-pl-text-dim">Pre-match value bets</h3>
-        <p className="text-sm text-pl-text-faint">Saved when first flagged; prices and edges never change afterwards.</p>
+        <h3 className="text-sm font-semibold text-pr-text-dim">Pre-match value bets</h3>
+        <p className="text-sm text-pr-text-faint">Saved when first flagged; prices and edges never change afterwards.</p>
       </div>
       <div className="grid gap-2 sm:grid-cols-2">
         {bets.map((bet) => {
           const status = !bet.resolved ? "Awaiting result" : bet.won ? "Won" : "Lost";
-          const statusClass = !bet.resolved ? "bg-pl-700/60 text-pl-text-dim" : bet.won ? "bg-win/20 text-win" : "bg-loss/15 text-loss";
+          const statusClass = !bet.resolved ? "bg-pr-panel-2/60 text-pr-text-dim" : bet.won ? "bg-win/20 text-win" : "bg-loss/15 text-loss";
           return (
-            <div key={bet.market} className={`rounded-xl border p-3 ${bet.won === true ? "border-win/30 bg-win/5" : bet.won === false ? "border-loss/25 bg-loss/5" : "border-pl-cyan/30 bg-pl-cyan/5"}`}>
+            <div key={bet.market} className={`rounded-pr border p-3 ${bet.won === true ? "border-win/30 bg-win/5" : bet.won === false ? "border-loss/25 bg-loss/5" : "border-pr-lean/30 bg-pr-lean/5"}`}>
               <div className="flex items-center justify-between gap-2">
-                <div><span className="font-semibold text-pl-text">{MARKET_LABELS[bet.market] ?? bet.market}</span><span className="ml-2 text-xs font-semibold uppercase text-pl-text-faint">{marketType(bet.market)}</span></div>
+                <div><span className="font-semibold text-pr-text">{MARKET_LABELS[bet.market] ?? bet.market}</span><span className="ml-2 text-xs font-semibold uppercase text-pr-text-faint">{marketType(bet.market)}</span></div>
                 <span className={`rounded px-2 py-1 text-xs font-semibold uppercase ${statusClass}`}>{status}</span>
               </div>
-              <p className="mt-1 text-sm text-pl-text-dim">
+              <p className="mt-1 text-sm text-pr-text-dim">
                 {americanOdds(bet.price)}{bet.bookmaker ? ` at ${bet.bookmaker}` : ""}, model {(bet.probability * 100).toFixed(1)}% vs market {(bet.implied_probability * 100).toFixed(1)}%
               </p>
               <div className="mt-2 flex items-center justify-between text-sm">
-                <span className="font-semibold text-pl-cyan">+{(bet.edge * 100).toFixed(1)}% edge</span>
+                <span className="font-semibold text-pr-lean">+{(bet.edge * 100).toFixed(1)}% edge</span>
                 {bet.clv_pct !== null && (
                   <span className={`font-semibold ${bet.clv_pct >= 0 ? "text-win" : "text-loss"}`} title={GLOSSARY.clv}>
                     {bet.clv_pct >= 0 ? "+" : ""}{bet.clv_pct.toFixed(1)}% CLV
@@ -150,19 +150,19 @@ function PlayerCallReview({ review, loading, error }: { review: FixturePlayerRev
   };
   const rows = (players: FixturePlayerReview["correct"], state: "hit" | "miss" | "longShot") => players.map((player) => {
     const hit = state !== "miss";
-    const tone = state === "hit" ? "bg-win/10" : state === "miss" ? "bg-loss/10" : "bg-pl-blue/10";
+    const tone = state === "hit" ? "bg-win/10" : state === "miss" ? "bg-loss/10" : "bg-pr-lean/10";
     const signal = `${(player.review_probability * 100).toFixed(0)}% ${player.review_market} chance`;
-    return <div key={`${player.team}-${player.name}`} className={`flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm ${tone}`}><span className="min-w-0 font-semibold text-pl-text">{state === "hit" ? "✓" : state === "miss" ? "×" : "↑"} {player.name} <span className="font-normal text-pl-text-faint">{player.team}</span>{player.is_recommended && <span className="ml-2 rounded bg-pl-pink/20 px-1.5 py-0.5 text-sm font-semibold text-pl-pink">Recommended</span>}</span><span className={`shrink-0 text-right ${hit ? state === "longShot" ? "text-pl-blue" : "text-win" : "text-pl-text-dim"}`}><span className="block">{hit ? outcome(player) : "No goal involvement"}</span><span className="text-pl-text-faint">{signal}</span></span></div>;
+    return <div key={`${player.team}-${player.name}`} className={`flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm ${tone}`}><span className="min-w-0 font-semibold text-pr-text">{state === "hit" ? "✓" : state === "miss" ? "×" : "↑"} {player.name} <span className="font-normal text-pr-text-faint">{player.team}</span>{player.is_recommended && <span className="ml-2 rounded bg-pr-accent/20 px-1.5 py-0.5 text-sm font-semibold text-pr-accent">Recommended</span>}</span><span className={`shrink-0 text-right ${hit ? state === "longShot" ? "text-pr-lean" : "text-win" : "text-pr-text-dim"}`}><span className="block">{hit ? outcome(player) : "No goal involvement"}</span><span className="text-pr-text-faint">{signal}</span></span></div>;
   });
-  return <section className="rounded-xl border border-pl-border bg-pl-850/50 p-4">
+  return <section className="rounded-pr border border-pr-rule bg-pr-panel/50 p-4">
     {/* The heading is not a repeat: it names this block, which the instant
         block's badge does not. The chip beside it was, so it is gone -- the
         badge states the timing once for the whole panel. */}
-    <div className="flex items-center justify-between gap-2"><h3 className="text-sm font-semibold text-pl-text">Player call review</h3></div>
-    {loading && <p className="mt-2 text-sm text-pl-text-faint">Reconstructing confirmed player calls…</p>}
+    <div className="flex items-center justify-between gap-2"><h3 className="text-sm font-semibold text-pr-text">Player call review</h3></div>
+    {loading && <p className="mt-2 text-sm text-pr-text-faint">Reconstructing confirmed player calls…</p>}
     {error && <p className="mt-2 text-sm text-loss">{error}</p>}
-    {!loading && !error && !review && <p className="mt-2 text-sm text-pl-text-faint">Official player outcomes are not available for this fixture yet.</p>}
-    {review && <div className="mt-3 grid gap-3 xl:grid-cols-3"><div><p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">Correct calls</p><div className="flex flex-col gap-1">{review.correct.length ? rows(review.correct, "hit") : <p className="rounded-lg bg-pl-900/50 px-3 py-2 text-xs text-pl-text-faint">No tiered call recorded a goal involvement.</p>}</div></div><div><p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">Confident calls that missed</p><div className="flex flex-col gap-1">{review.missed.length ? rows(review.missed, "miss") : <p className="rounded-lg bg-pl-900/50 px-3 py-2 text-xs text-pl-text-faint">No confident calls missed.</p>}</div></div><div><p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">Overperformers</p><div className="flex flex-col gap-1">{review.overperformed.length ? rows(review.overperformed, "longShot") : <p className="rounded-lg bg-pl-900/50 px-3 py-2 text-xs text-pl-text-faint">No low-probability player outperformed the thresholds.</p>}</div></div></div>}
+    {!loading && !error && !review && <p className="mt-2 text-sm text-pr-text-faint">Official player outcomes are not available for this fixture yet.</p>}
+    {review && <div className="mt-3 grid gap-3 xl:grid-cols-3"><div><p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-pr-text-faint">Correct calls</p><div className="flex flex-col gap-1">{review.correct.length ? rows(review.correct, "hit") : <p className="rounded-lg bg-pr-stage/50 px-3 py-2 text-xs text-pr-text-faint">No tiered call recorded a goal involvement.</p>}</div></div><div><p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-pr-text-faint">Confident calls that missed</p><div className="flex flex-col gap-1">{review.missed.length ? rows(review.missed, "miss") : <p className="rounded-lg bg-pr-stage/50 px-3 py-2 text-xs text-pr-text-faint">No confident calls missed.</p>}</div></div><div><p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-pr-text-faint">Overperformers</p><div className="flex flex-col gap-1">{review.overperformed.length ? rows(review.overperformed, "longShot") : <p className="rounded-lg bg-pr-stage/50 px-3 py-2 text-xs text-pr-text-faint">No low-probability player outperformed the thresholds.</p>}</div></div></div>}
   </section>;
 }
 

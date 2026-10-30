@@ -26,12 +26,12 @@ function ChartTooltip({ active, payload, metric }: { active?: boolean; payload?:
   const entry = payload[0].payload;
   const valueLabel = metric === "shap" ? "Avg. contribution" : metric === "gain" ? "Gain" : "Accuracy drop when shuffled";
   return (
-    <div className="max-w-xs rounded-lg border border-pl-border bg-pl-900 px-3 py-2 text-xs shadow-xl">
-      <div className="mb-1 font-semibold text-pl-text">{entry.name}</div>
-      <div className="mb-1.5 text-pl-text-dim">
-        {valueLabel}: <span className="font-semibold text-pl-text">{entry.value >= 0 && metric === "shap" ? "+" : ""}{entry.value.toFixed(4)}</span>
+    <div className="max-w-xs rounded-lg border border-pr-rule bg-pr-stage px-3 py-2 text-xs shadow-xl">
+      <div className="mb-1 font-semibold text-pr-text">{entry.name}</div>
+      <div className="mb-1.5 text-pr-text-dim">
+        {valueLabel}: <span className="font-semibold text-pr-text">{entry.value >= 0 && metric === "shap" ? "+" : ""}{entry.value.toFixed(4)}</span>
       </div>
-      <p className="leading-snug text-pl-text-faint">{explainFeatureName(entry.raw)}</p>
+      <p className="leading-snug text-pr-text-faint">{explainFeatureName(entry.raw)}</p>
     </div>
   );
 }
@@ -54,17 +54,17 @@ export function FeatureImportanceChart({ title, importance, topN = 10 }: Props) 
   return (
     <div>
       <div className="mb-2 flex items-center justify-between gap-2">
-        <h4 className="flex items-center gap-1.5 text-sm font-semibold text-pl-text-dim">
+        <h4 className="flex items-center gap-1.5 text-sm font-semibold text-pr-text-dim">
           {title}, top {topN} features
           <InfoTooltip text={METRIC_INFO[metric]} align="left" />
         </h4>
-        <div className="flex gap-1 rounded-md border border-pl-border bg-pl-850/60 p-0.5">
+        <div className="flex gap-1 rounded-md border border-pr-rule bg-pr-panel/60 p-0.5">
           {(["shap", "permutation", "gain"] as const).map((m) => (
             <button
               key={m}
               onClick={() => setMetric(m)}
               className={`rounded px-2 py-0.5 text-xs font-medium capitalize transition ${
-                metric === m ? "bg-pl-pink text-pr-accent-ink" : "text-pl-text-faint hover:text-pl-text"
+                metric === m ? "bg-pr-accent text-pr-accent-ink" : "text-pr-text-faint hover:text-pr-text"
               }`}
             >
               {m}
@@ -72,36 +72,36 @@ export function FeatureImportanceChart({ title, importance, topN = 10 }: Props) 
           ))}
         </div>
       </div>
-      <div className="h-72 rounded-xl border border-pl-border bg-pl-850/70 p-3">
+      <div className="h-72 rounded-pr border border-pr-rule bg-pr-panel/70 p-3">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={entries} layout="vertical" margin={{ top: 5, right: 20, bottom: 5, left: 10 }}>
-            <CartesianGrid stroke="var(--color-pl-border)" strokeDasharray="3 3" horizontal={false} />
-            <XAxis type="number" tick={{ fill: "var(--color-pl-text-faint)", fontSize: 10 }} />
+            <CartesianGrid stroke="var(--color-pr-rule)" strokeDasharray="3 3" horizontal={false} />
+            <XAxis type="number" tick={{ fill: "var(--color-pr-text-faint)", fontSize: 10 }} />
             <YAxis
               type="category"
               dataKey="name"
               width={200}
-              tick={{ fill: "var(--color-pl-text-dim)", fontSize: 10 }}
+              tick={{ fill: "var(--color-pr-text-dim)", fontSize: 10 }}
             />
             <Tooltip
               content={(props) => <ChartTooltip active={props.active} payload={props.payload as unknown as TooltipPayloadItem[] | undefined} metric={metric} />}
-              cursor={{ fill: "var(--color-pl-border)", opacity: 0.15 }}
+              cursor={{ fill: "var(--color-pr-rule)", opacity: 0.15 }}
             />
             <Bar dataKey="value" radius={[0, 4, 4, 0]}>
               {entries.map((entry, i) => (
-                <Cell key={i} fill={metric === "shap" && entry.value < 0 ? "var(--color-pl-cyan)" : "var(--color-pl-pink)"} />
+                <Cell key={i} fill={metric === "shap" && entry.value < 0 ? "var(--color-pr-lean)" : "var(--color-pr-accent)"} />
               ))}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
       </div>
       {metric === "shap" && (
-        <div className="mt-2 flex items-center gap-4 text-xs text-pl-text-faint">
+        <div className="mt-2 flex items-center gap-4 text-xs text-pr-text-faint">
           <span className="flex items-center gap-1">
-            <span className="h-2 w-2 rounded-sm" style={{ background: "var(--color-pl-pink)" }} /> pushes prediction up
+            <span className="h-2 w-2 rounded-sm" style={{ background: "var(--color-pr-accent)" }} /> pushes prediction up
           </span>
           <span className="flex items-center gap-1">
-            <span className="h-2 w-2 rounded-sm" style={{ background: "var(--color-pl-cyan)" }} /> pushes prediction down
+            <span className="h-2 w-2 rounded-sm" style={{ background: "var(--color-pr-lean)" }} /> pushes prediction down
           </span>
         </div>
       )}

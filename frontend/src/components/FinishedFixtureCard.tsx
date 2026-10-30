@@ -82,9 +82,9 @@ export function FinishedFixtureCard({
           onClick();
         }}
       title={draw_signal ? "The scoreline model also leaned towards a draw." : undefined}
-      className={`clip-corner flex cursor-pointer flex-col gap-3 rounded-xl border bg-pl-850/70 ${!made_before_kickoff ? "border-pl-border" : hit ? "border-win/30" : "border-loss/30"} p-4 transition hover:border-pl-pink/40`}
+      className={`clip-corner flex cursor-pointer flex-col gap-3 rounded-pr border bg-pr-panel/70 ${!made_before_kickoff ? "border-pr-rule" : hit ? "border-win/30" : "border-loss/30"} p-4 transition hover:border-pr-accent/40`}
     >
-      <div className="flex flex-wrap items-center justify-between gap-1.5 text-xs font-medium uppercase tracking-wide text-pl-text-faint">
+      <div className="flex flex-wrap items-center justify-between gap-1.5 text-xs font-medium uppercase tracking-wide text-pr-text-faint">
         <span>
           {date} &middot; {time}
         </span>
@@ -108,7 +108,7 @@ export function FinishedFixtureCard({
           {!made_before_kickoff && (
             <span
               title="Made from the model after this match finished. Counted in the track record like any other pick."
-              className="rounded border border-pl-border px-1.5 py-0.5 text-xs font-semibold normal-case tracking-normal text-pl-text-dim"
+              className="rounded border border-pr-rule px-1.5 py-0.5 text-xs font-semibold normal-case tracking-normal text-pr-text-dim"
             >
               Made after kickoff
             </span>
@@ -122,28 +122,28 @@ export function FinishedFixtureCard({
       <div className="flex items-center justify-between gap-2">
         <div className="flex flex-1 flex-col items-center gap-1.5 text-center">
           <TeamBadge team={team_home} />
-          <span className="text-xs font-semibold leading-tight text-pl-text">{team_home}</span>
+          <span className="text-xs font-semibold leading-tight text-pr-text">{team_home}</span>
         </div>
         <div className="flex flex-col items-center gap-0.5 px-1">
-          <span className="text-xs font-medium uppercase text-pl-text-faint">Final</span>
-          <span className="rounded-lg bg-pl-700/50 px-2.5 py-1 font-display text-xl font-semibold tracking-wide text-pl-text">
+          <span className="text-xs font-medium uppercase text-pr-text-faint">Final</span>
+          <span className="rounded-lg bg-pr-panel-2/50 px-2.5 py-1 font-display text-xl font-semibold tracking-wide text-pr-text">
             {actual_goals_home}–{actual_goals_away}
           </span>
         </div>
         <div className="flex flex-1 flex-col items-center gap-1.5 text-center">
           <TeamBadge team={team_away} />
-          <span className="text-xs font-semibold leading-tight text-pl-text">{team_away}</span>
+          <span className="text-xs font-semibold leading-tight text-pr-text">{team_away}</span>
         </div>
       </div>
       {(home_player_events.length > 0 || away_player_events.length > 0) && (
-        <div className="grid grid-cols-2 gap-3 border-t border-pl-border/70 pt-2 text-xs leading-relaxed text-pl-text-dim">
+        <div className="grid grid-cols-2 gap-3 border-t border-pr-rule/70 pt-2 text-xs leading-relaxed text-pr-text-dim">
           <div>{playerSummary(home_player_events, "goals", "Goals") && <p>{playerSummary(home_player_events, "goals", "Goals")}</p>}{playerSummary(home_player_events, "assists", "Assists") && <p>{playerSummary(home_player_events, "assists", "Assists")}</p>}</div>
           <div className="text-right">{playerSummary(away_player_events, "goals", "Goals") && <p>{playerSummary(away_player_events, "goals", "Goals")}</p>}{playerSummary(away_player_events, "assists", "Assists") && <p>{playerSummary(away_player_events, "assists", "Assists")}</p>}</div>
         </div>
       )}
-      <div className="flex flex-col gap-1 border-t border-pl-border/70 pt-2.5 text-xs text-pl-text-dim">
+      <div className="flex flex-col gap-1 border-t border-pr-rule/70 pt-2.5 text-xs text-pr-text-dim">
         <div className="flex items-center justify-between gap-2">
-          <span className="font-semibold text-pl-text">Pick: {pick.label} · {pct(pick.prob)}</span>
+          <span className="font-semibold text-pr-text">Pick: {pick.label} · {pct(pick.prob)}</span>
           {predicted_scoreline && <span>Most likely score {predicted_scoreline.replace("-", "–")}</span>}
         </div>
         <span>Home {pct(predicted_home_win)} · Draw {pct(predicted_draw)} · Away {pct(predicted_away_win)}</span>

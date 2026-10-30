@@ -5,13 +5,13 @@ import { GLOSSARY } from "../lib/glossary";
 
 function StatCard({ label, value, sub, info }: { label: string; value: string; sub?: string; info?: string }) {
   return (
-    <div className="clip-corner rounded-xl border border-pl-border bg-pl-850/70 p-4">
-      <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">
+    <div className="clip-corner rounded-pr border border-pr-rule bg-pr-panel/70 p-4">
+      <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-pr-text-faint">
         {label}
         {info && <InfoTooltip text={info} align="left" />}
       </div>
-      <div className="mt-1 font-display text-3xl font-semibold tracking-wide text-pl-text">{value}</div>
-      {sub && <div className="mt-0.5 text-xs text-pl-text-faint">{sub}</div>}
+      <div className="mt-1 font-display text-3xl font-semibold tracking-wide text-pr-text">{value}</div>
+      {sub && <div className="mt-0.5 text-xs text-pr-text-faint">{sub}</div>}
     </div>
   );
 }
@@ -32,26 +32,26 @@ function Row({
   const max = Math.max(model, bookmaker ?? 0, naive);
   const bar = (v: number, color: string) => (
     <div className="flex items-center gap-2">
-      <div className="h-2 flex-1 overflow-hidden rounded-full bg-pl-850">
+      <div className="h-2 flex-1 overflow-hidden rounded-full bg-pr-panel">
         <div className="h-full rounded-full" style={{ width: `${(v / max) * 100}%`, background: color }} />
       </div>
-      <span className="w-14 text-right text-xs font-semibold text-pl-text">{v.toFixed(4)}</span>
+      <span className="w-14 text-right text-xs font-semibold text-pr-text">{v.toFixed(4)}</span>
     </div>
   );
 
   return (
-    <div className="flex flex-col gap-2 rounded-xl border border-pl-border bg-pl-850/70 p-4">
-      <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-pl-text-faint">
+    <div className="flex flex-col gap-2 rounded-pr border border-pr-rule bg-pr-panel/70 p-4">
+      <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-pr-text-faint">
         {label} (lower is better)
         {info && <InfoTooltip text={info} align="left" />}
       </span>
-      <div className="grid grid-cols-[70px_1fr] items-center gap-x-3 gap-y-1.5 text-xs text-pl-text-dim">
+      <div className="grid grid-cols-[70px_1fr] items-center gap-x-3 gap-y-1.5 text-xs text-pr-text-dim">
         <span>Model</span>
-        {bar(model, "var(--color-pl-pink)")}
+        {bar(model, "var(--color-pr-accent)")}
         <span>Bookmaker</span>
-        {bookmaker != null ? bar(bookmaker, "var(--color-pl-cyan)") : <span className="text-pl-text-faint">n/a</span>}
+        {bookmaker != null ? bar(bookmaker, "var(--color-pr-lean)") : <span className="text-pr-text-faint">n/a</span>}
         <span>Naive</span>
-        {bar(naive, "var(--color-pl-text-faint)")}
+        {bar(naive, "var(--color-pr-text-faint)")}
       </div>
     </div>
   );

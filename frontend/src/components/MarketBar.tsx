@@ -20,11 +20,11 @@ const HIGHLIGHT_CLASSES: Record<string, string> = {
   // land on. A thin same-weight ring made the old fold-in of the "Best
   // value bet" callout too easy to miss in a list of 5-7 rows — this is
   // deliberately louder, closer to the standalone box's visual weight.
-  flagged: "bg-pl-pink/15 ring-2 ring-pl-pink/70",
+  flagged: "bg-pr-accent/15 ring-2 ring-pr-accent/70",
   // Deliberately not the pink `flagged` treatment -- that specifically
   // means "there is a live market and the model beats it." This means
   // "the model has a decisive view, no market to compare against."
-  modelCall: "bg-pl-cyan/10 ring-1 ring-pl-cyan/40",
+  modelCall: "bg-pr-lean/10 ring-1 ring-pr-lean/40",
 };
 
 export function MarketBar({ label, prob, marketProb, highlight, valueBet, detail }: MarketBarProps) {
@@ -38,33 +38,33 @@ export function MarketBar({ label, prob, marketProb, highlight, valueBet, detail
     marketProb !== undefined && marketProb !== null ? Math.round((prob - marketProb) * 100) : null;
 
   return (
-    <div className={`rounded-lg px-3 py-2 text-sm ${highlight ? HIGHLIGHT_CLASSES[highlight] : "bg-pl-850/60"}`}>
+    <div className={`rounded-lg px-3 py-2 text-sm ${highlight ? HIGHLIGHT_CLASSES[highlight] : "bg-pr-panel/60"}`}>
       <div className="flex items-center justify-between gap-3">
-        <span className="flex items-center gap-1.5 text-pl-text-dim">
+        <span className="flex items-center gap-1.5 text-pr-text-dim">
           {label}
           {valueBet && (
-            <span className="rounded bg-pl-pink/20 px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-pl-pink">
+            <span className="rounded bg-pr-accent/20 px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-pr-accent">
               Value
             </span>
           )}
         </span>
         <div className="flex items-center gap-2 font-mono">
           {delta !== null && (
-            <span className={`text-xs font-semibold ${delta > 0 ? "text-pl-cyan" : "text-pl-text-faint"}`}>
+            <span className={`text-xs font-semibold ${delta > 0 ? "text-pr-lean" : "text-pr-text-faint"}`}>
               {delta > 0 ? "+" : ""}
               {delta}%
             </span>
           )}
-          <span className="font-semibold text-pl-text">{pct}%</span>
+          <span className="font-semibold text-pr-text">{pct}%</span>
         </div>
       </div>
-      <div className="relative mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-pl-border/60">
-        <div className="absolute inset-y-0 left-0 rounded-full bg-pl-pink" style={{ width: `${pct}%` }} />
+      <div className="relative mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-pr-rule/60">
+        <div className="absolute inset-y-0 left-0 rounded-full bg-pr-accent" style={{ width: `${pct}%` }} />
         {marketPct !== null && (
-          <div className="absolute -inset-y-0.5 w-0.5 bg-pl-text-faint" style={{ left: `${marketPct}%` }} />
+          <div className="absolute -inset-y-0.5 w-0.5 bg-pr-text-faint" style={{ left: `${marketPct}%` }} />
         )}
       </div>
-      {detail && <p className="mt-1.5 text-xs text-pl-text-dim">{detail}</p>}
+      {detail && <p className="mt-1.5 text-xs text-pr-text-dim">{detail}</p>}
     </div>
   );
 }
