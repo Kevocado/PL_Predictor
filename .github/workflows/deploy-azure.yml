@@ -38,9 +38,9 @@ jobs:
 
       - name: Build and push image
         run: |
-          docker build -t ghcr.io/kevocado/pl-predictor:${{ github.sha }} -t ghcr.io/kevocado/pl-predictor:latest .
-          docker push ghcr.io/kevocado/pl-predictor:${{ github.sha }}
-          docker push ghcr.io/kevocado/pl-predictor:latest
+          docker build -t ghcr.io/kevinsigey/pl-predictor:${{ github.sha }} -t ghcr.io/kevinsigey/pl-predictor:latest .
+          docker push ghcr.io/kevinsigey/pl-predictor:${{ github.sha }}
+          docker push ghcr.io/kevinsigey/pl-predictor:latest
 
       - name: Log in to Azure
         if: vars.DEPLOY_AZURE != 'false'
@@ -56,7 +56,7 @@ jobs:
           az containerapp update \
             --name pl-predictor \
             --resource-group predictor-hub-rg \
-            --image ghcr.io/kevocado/pl-predictor:${{ github.sha }}
+            --image ghcr.io/kevinsigey/pl-predictor:${{ github.sha }}
 
   # Deploys the image built above to the VPS stack (/opt/stack; see the
   # vps-stack README). Switched on by the VPS_HOST repo variable.

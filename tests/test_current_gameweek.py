@@ -186,7 +186,9 @@ def test_draw_signal_present_on_both_finished_and_upcoming_fixtures(monkeypatch)
 
     by_team = {(f["team_home"], f["team_away"]): f["draw_signal"] for f in result["fixtures"]}
     assert by_team[("Crystal Palace", "Man City")] is False
-    assert by_team[("Chelsea", "Brighton")] is True
+    # PL-UI-1: the pick is the highest 1X2 probability. 38% home beats 32% draw, so a 1-1 modal scoreline no
+    # longer promotes it to "draw" (the old True here was exactly that promotion, the bug Kevin reported).
+    assert by_team[("Chelsea", "Brighton")] is False
 
 
 def _stub_gameweek(monkeypatch, fixture_feed, tracked_rows):

@@ -31,10 +31,10 @@ def test_predicted_result_and_draw_signal_default_to_plain_argmax():
     assert summary.draw_signal is False
 
 
-def test_draw_signal_true_when_scoreline_and_percentage_models_agree():
+def test_draw_signal_false_when_draw_is_not_the_argmax():
     summary = _summary("1-1", 0.40, 0.30, 0.30)
-    assert summary.predicted_result == "draw"
-    assert summary.draw_signal is True
+    assert summary.predicted_result == "home_win"
+    assert summary.draw_signal is False
 
 
 def test_draw_signal_false_when_draw_probability_below_agreement_threshold():
