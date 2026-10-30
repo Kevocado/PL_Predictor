@@ -25,6 +25,14 @@ describe("pickCall", () => {
     expect(c.tossUp).toBe(true);
     expect(c.text).toBe("Toss-up · Liverpool 38%, Brighton 38%");
   });
+  it("tosses up when the rounded gap is exactly 2.0 points", () => {
+    const c = pickCall(0.39, 0.24, 0.37, "Chelsea", "Man United");
+    expect(c.tossUp).toBe(true);
+  });
+  it("does not toss up when the rounded gap is 3 points", () => {
+    const c = pickCall(0.40, 0.24, 0.37, "Chelsea", "Man United");
+    expect(c.tossUp).toBe(false);
+  });
   it("keeps matchPick's side so a finished verdict never changes", () => {
     expect(pickCall(0.38, 0.24, 0.37, "Palace", "Newcastle").side).toBe("home_win");
   });

@@ -78,7 +78,7 @@ export function resolvedPick(detail: {
   };
 }
 
-/** Two outcomes within this many points of each other is a toss-up, not a pick. */
+/** Two outcomes within this many (rounded) points of each other is a toss-up, not a pick. */
 export const TOSS_UP_POINTS = 2;
 
 export interface PickCall {
@@ -103,7 +103,8 @@ export function pickCall(home: number, draw: number, away: number, teamHome: str
     { name: "Draw", prob: draw },
     { name: teamAway, prob: away },
   ].sort((a, b) => b.prob - a.prob);
-  const tossUp = Math.round((outcomes[0].prob - outcomes[1].prob) * 100) < TOSS_UP_POINTS;
+  const gap = Math.round((outcomes[0].prob - outcomes[1].prob) * 100);
+  const tossUp = gap <= TOSS_UP_POINTS;
   const label = best.side === "draw" ? "Draw" : best.side === "home_win" ? teamHome : teamAway;
   return {
     side: best.side,
