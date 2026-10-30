@@ -253,6 +253,13 @@ export function FixtureModal({ eventId, onClose, explain, loadContext, sport = "
     // `resolvedPick`'s comment carries the measurements and the two fallbacks;
     // this comment only says why the rule is not written out again.
     const pick = resolvedPick(detail);
+    // The flow gets the pick's label and probability, but NOT `was_right`:
+    // the finished headline already says "Called it: …" / "Missed: …" with the
+    // final score. Leaving `was_right` on the bundle made FixtureFlow add its
+    // own "The pick rightness: …" sentence, a second, clumsier copy of the same
+    // fact. The shared component is vendored, so the site withholds the field
+    // rather than rewriting the sentence there.
+    const flowPick = pick && { side: pick.side, label: pick.label, prob: pick.prob };
     const postMatch = detail.post_match;
     const score = postMatch
       ? (() => {
@@ -313,7 +320,7 @@ export function FixtureModal({ eventId, onClose, explain, loadContext, sport = "
       // counted, one per (fixture, market) from the earliest recorded one,
       // whenever it was made (spec 2026-10-01-track-record-counts-every-pick).
       pick_timing: detail.post_match?.provenance === "reconstructed" ? "rebuilt" : undefined,
-      pick,
+      pick: flowPick,
       score,
       result: !score
         ? undefined

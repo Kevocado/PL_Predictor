@@ -417,7 +417,8 @@ describe("FixtureModal's instant block, before any request", () => {
 
     expect(within(screen.getByTestId("instant-block")).getByText("Tottenham is the pick.")).toBeInTheDocument();
     expect(screen.queryByText(/No pick was made/i)).toBeNull();
-    expect(screen.getByText(/the model's pick was right/i)).toBeInTheDocument();
+    expect(screen.getByText("Called it: Tottenham was the pick; it finished 1–0.")).toBeInTheDocument();
+    expect(screen.queryByText(/the model's pick was right/i)).toBeNull();
 
     // And where the two records disagree, the review's side is the pick. The
     // scoreline model promotes a draw the tracked pick was not

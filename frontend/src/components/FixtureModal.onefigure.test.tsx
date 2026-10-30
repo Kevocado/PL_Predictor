@@ -11,8 +11,8 @@
  *                  `post_match.final_score`), so a fixture that has kicked off
  *                  but has no `post_match` yet takes the SAME pre-game branch
  *                  and renders the SAME bare heading. Measured, not assumed.
- *      finished  — TWO real sentences (the result, and the pick's rightness).
- *                  These are live content and they must survive.
+ *      finished  — one real sentence (the result). The pick's rightness is the
+ *                  headline's job, said once as "Called it: …" / "Missed: …".
  *
  *    So this is NOT a blanket deletion of the flow. It is a heading that is
  *    conditional on rows existing beneath it, and the per-state behaviour is
@@ -182,19 +182,17 @@ describe("the flow's name heading is conditional on rows existing beneath it", (
     expect(screen.getByTestId("instant-block")).toBeInTheDocument();
   });
 
-  it("keeps the flow's real sentences once the fixture is finished", async () => {
+  it("keeps the flow's result sentence once the fixture is finished", async () => {
     await openModal(finished);
     const flow = screen.getByTestId("fixture-flow");
 
-    // MEASURED BEFORE THE FIX, and the reason this is not a blanket deletion:
-    // the finished flow carries two genuine sentences. A fix that removed the
-    // whole flow would have taken these with it.
-    expect(flowRows()).toEqual([
-      "P: The result is a win for Tottenham.",
-      "P: The pick rightness: the model's pick was right.",
-    ]);
+    // The finished flow keeps its result sentence. The pick's rightness is said
+    // once, by the headline above, in the reader's words ("Called it: …"), not by
+    // a second "The pick rightness: …" sentence in the flow.
+    expect(flowRows()).toEqual(["P: The result is a win for Tottenham."]);
     expect(flow).toHaveTextContent("The result is a win for Tottenham.");
-    expect(flow).toHaveTextContent("The pick rightness: the model's pick was right.");
+    expect(flow).not.toHaveTextContent("The pick rightness");
+    expect(screen.getByText("Called it: Tottenham was the pick; it finished 1–0.")).toBeInTheDocument();
 
     // The finished rows are sentences, not a name, so there is no heading here
     // either -- and the result sentence still names the side, which is the
