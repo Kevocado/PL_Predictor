@@ -666,7 +666,13 @@ def _value_bet_table() -> pd.DataFrame:
             return fixtures_df
         models = _get_models()
         odds_df = _get_odds_df()
-        return value_bets.build_value_bet_table(fixtures_df, odds_df, models)
+        # FIX 3: load Kalshi lines for flag to actually use Kalshi consensus
+        try:
+            from pl_predictor.odds import kalshi_consensus as kc
+            kalshi_df = kc.load_kalshi_lines() if hasattr(kc, "load_kalshi_lines") else None
+        except Exception:
+            kalshi_df = None
+        return value_bets.build_value_bet_table(fixtures_df, odds_df, models, kalshi_df=kalshi_df)
 
     return _cached("value_bet_table", build, ttl=_LIVE_CACHE_TTL_SECONDS)
 

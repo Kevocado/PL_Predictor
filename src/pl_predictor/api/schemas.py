@@ -155,6 +155,9 @@ class FixtureValueBetSnapshot(BaseModel):
     edge: float
     price: float
     bookmaker: str | None = None
+    source: str | None = None
+    consensus_probability: float | None = None
+    confidence_tier: str | None = None
     snapshotted_at: datetime
     resolved: bool
     won: bool | None = None

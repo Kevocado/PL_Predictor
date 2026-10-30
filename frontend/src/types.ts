@@ -151,6 +151,9 @@ export interface FixtureValueBetSnapshot {
   edge: number;
   price: number;
   bookmaker: string | null;
+  source: string | null;
+  consensus_probability: number | null;
+  confidence_tier: string | null;
   snapshotted_at: string;
   resolved: boolean;
   won: boolean | null;
