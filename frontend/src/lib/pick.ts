@@ -77,3 +77,41 @@ export function resolvedPick(detail: {
     ...(review && review.side === key && typeof review.hit === "boolean" ? { was_right: review.hit } : {}),
   };
 }
+
+/** Two outcomes within this many points of each other is a toss-up, not a pick. */
+export const TOSS_UP_POINTS = 2;
+
+export interface PickCall {
+  side: PickSide;
+  label: string;
+  prob: number;
+  tossUp: boolean;
+  /** One line for a card: "Man City · 60%" or "Toss-up · Liverpool 38%, Brighton 38%". */
+  text: string;
+}
+
+const whole = (p: number) => `${Math.round(p * 100)}%`;
+
+/** The pick line every card answers with ("who does the model like"). When the
+ *  top two outcomes are within two points it says so instead of naming a
+ *  favourite the numbers do not support. The side is still `matchPick`'s, so the
+ *  verdict a finished card is judged on never changes. */
+export function pickCall(home: number, draw: number, away: number, teamHome: string, teamAway: string): PickCall {
+  const best = matchPick(home, draw, away, teamHome, teamAway);
+  const outcomes = [
+    { name: teamHome, prob: home },
+    { name: "Draw", prob: draw },
+    { name: teamAway, prob: away },
+  ].sort((a, b) => b.prob - a.prob);
+  const tossUp = Math.round((outcomes[0].prob - outcomes[1].prob) * 100) < TOSS_UP_POINTS;
+  const label = best.side === "draw" ? "Draw" : best.side === "home_win" ? teamHome : teamAway;
+  return {
+    side: best.side,
+    label,
+    prob: best.prob,
+    tossUp,
+    text: tossUp
+      ? `Toss-up · ${outcomes[0].name} ${whole(outcomes[0].prob)}, ${outcomes[1].name} ${whole(outcomes[1].prob)}`
+      : `${label} · ${whole(best.prob)}`,
+  };
+}

@@ -3,6 +3,7 @@ import { kickoffParts } from "../lib/kickoffTime";
 import { parseKickoff } from "../predictor-ui";
 import { TeamBadge } from "./TeamBadge";
 import { ProbabilityBar } from "./ProbabilityBar";
+import { pickCall } from "../lib/pick";
 
 function formatKickoff(iso: string): { day: string; date: string; time: string } {
   const d = parseKickoff(iso);
@@ -90,6 +91,7 @@ export function NextFixtureHero({ fixture, onClick }: { fixture: CurrentGameweek
           away={fixture.predicted_away_win}
           homeLabel={fixture.team_home}
           awayLabel={fixture.team_away}
+          pick={(() => { const c = pickCall(fixture.predicted_home_win, fixture.predicted_draw, fixture.predicted_away_win, fixture.team_home, fixture.team_away); return c.tossUp ? null : c.side; })()}
         />
       </div>
     </div>

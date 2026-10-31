@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Explanation, MatchupContext } from "../predictor-ui";
-import { FixtureExplainer, SignalRows, type Signal } from "../predictor-ui";
+import { FixtureExplainer, SignalRows, kickoff, type Signal } from "../predictor-ui";
 import { panelFacts } from "../predictor-ui/lib/panelFacts";
 import type { FixtureDetail, FixturePlayerReview, FixturePlayers, FixturePostMatch, FixtureValueBetSnapshot, TrackRecordSummary } from "../types";
 import {
@@ -15,7 +15,9 @@ import { MarketBar } from "./MarketBar";
 import { ModelTopCalls, PlayerScorerList } from "./PlayerScorerList";
 import { GLOSSARY } from "../lib/glossary";
 import { isModelCall } from "../lib/modelCall";
-import { resolvedPick } from "../lib/pick";
+import { pickCall, resolvedPick } from "../lib/pick";
+import { dateShort, overUnderWords, verdictSentence, verdictWords } from "../lib/humanize";
+import { SectionBar, type SectionLink } from "./SectionBar";
 
 interface Props {
   eventId: string;
@@ -45,24 +47,19 @@ function marketType(market: string) {
   return ["home_win", "draw", "away_win"].includes(market) ? "Match result" : "Goals total";
 }
 
-function OverUnderRow({ label, lam, line, over, postMatchHit, modelCall }: { label: string; lam: number; line: number; over: number; postMatchHit?: boolean; modelCall?: boolean }) {
+function OverUnderRow({ label, noun, lam, line, over, postMatchHit, modelCall }: { label: string; noun: string; lam: number; line: number; over: number; postMatchHit?: boolean; modelCall?: boolean }) {
   const rowClass =
     postMatchHit === true
       ? "bg-win/10 ring-1 ring-win/30"
       : postMatchHit === false
         ? "bg-loss/10"
         : modelCall
-          ? "bg-pl-cyan/10 ring-1 ring-pl-cyan/40"
-          : "bg-pl-850/60";
+          ? "bg-pr-panel-2 ring-1 ring-pr-rule"
+          : "bg-pr-panel";
   return (
-    <div className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm ${rowClass}`}>
-      <span className="text-pl-text-dim">{label}</span>
-      <div className="flex items-center gap-3">
-        <span className="text-sm text-pl-text-faint">exp. {lam.toFixed(1)}</span>
-        <span className="font-semibold text-pl-text">
-          O{line} {(over * 100).toFixed(0)}%
-        </span>
-      </div>
+    <div className={`flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 rounded-pr px-3 py-2 text-sm ${rowClass}`}>
+      <span className="text-pr-text-dim">{label}</span>
+      <span className="font-semibold text-pr-text">{overUnderWords(noun, lam, line, over)}</span>
     </div>
   );
 }
@@ -88,23 +85,22 @@ function reportedMetric(value: number | null | undefined, label: string) {
   return label.includes("%") ? `${rounded}%` : rounded;
 }
 
-function PostMatchReview({ review }: { review: FixturePostMatch }) {
+function PostMatchReview({ review, home, away }: { review: FixturePostMatch; home: string; away: string }) {
   const correct = review.verdicts.filter((verdict) => verdict.hit).length;
-  // No provenance chip here any more. The panel's instant block carries the
-  // timing once, as a badge or the quiet chip, and that is the one place a
-  // reader learns how to read every figure below it -- so this review states
-  // only what it reviewed, and the block states the timing. The paragraph that
-  // used to sit under the verdicts went with it: it described a rebuilt pick's
-  // standing in the record, and since the 2026-10-01 reversal a pick made after
-  // the start IS counted (see `TrackRecordSummary` in types.ts), so the block's
-  // own moment badge is the whole of what a reader needs here.
+  // The panel's instant block carries the timing once; this review states only
+  // what it reviewed. Enums are said in words, never printed raw.
   return (
-    <section className="rounded-xl border border-win/30 bg-win/5 p-4">
+    <section className="rounded-pr border border-pr-rule bg-pr-panel p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div><h3 className="text-sm font-semibold text-pl-text">Prediction review, final {review.final_score.replace("-", "–")}</h3><p className="mt-0.5 text-sm text-pl-text-dim">{correct}/{review.verdicts.length} match calls correct</p></div>
+        <div><h3 className="text-sm font-semibold text-pr-text">Prediction review, final {review.final_score.replace("-", "–")}</h3><p className="mt-0.5 text-sm text-pr-text-dim">{correct}/{review.verdicts.length} match calls correct</p></div>
       </div>
       <div className="mt-3 grid gap-1.5 sm:grid-cols-2">
-        {review.verdicts.map((verdict) => <div key={verdict.label} className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm ${verdict.hit ? "bg-win/10 text-win" : "bg-pl-850/70 text-pl-text-dim"}`}><span className="font-semibold">{verdict.hit ? "✓" : "×"} {verdict.label}</span><span><span className="text-pl-text-faint">{verdict.prediction}</span><span className="mx-1">→</span><span>{verdict.actual}</span></span></div>)}
+        {review.verdicts.map((verdict) => (
+          <div key={verdict.label} className={`flex items-center justify-between gap-3 rounded-pr px-3 py-2 text-sm ${verdict.hit ? "bg-win/10 text-win" : "bg-pr-panel-2 text-pr-text-dim"}`}>
+            <span className="font-semibold">{verdict.hit ? "Right" : "Missed"} · {verdict.label}</span>
+            <span className="text-right"><span className="text-pr-text-faint">{verdictWords(verdict.label, verdict.prediction, home, away)}</span><span className="mx-1">→</span><span>{verdictWords(verdict.label, verdict.actual, home, away)}</span></span>
+          </div>
+        ))}
       </div>
     </section>
   );
@@ -452,186 +448,173 @@ export function FixtureModal({ eventId, onClose, explain, loadContext, sport = "
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const finished = Boolean(detail?.post_match);
+  const call = detail
+    ? pickCall(detail.home_win?.prob ?? 0, detail.draw?.prob ?? 0, detail.away_win?.prob ?? 0, detail.team_home, detail.team_away)
+    : null;
+  const resolved = detail ? resolvedPick(detail) : undefined;
+  const headline =
+    detail && detail.post_match && resolved && typeof resolved.was_right === "boolean"
+      ? verdictSentence(resolved.was_right, resolved.label, detail.post_match.final_score)
+      : call
+        ? call.tossUp
+          ? `Toss-up: ${call.text.replace(/^Toss-up · /, "").replace(/ \d+%/g, "").replace(", ", " or ")}`
+          : `${(resolved?.label ?? call.label)} is the pick`
+        : "";
+  // The fixture's own meeting never appears in its head-to-head.
+  const meetings = detail
+    ? detail.head_to_head.filter(
+        (m) => !(m.team_home === detail.team_home && m.team_away === detail.team_away && detail.commence_time.slice(0, 10) === m.date.slice(0, 10)),
+      )
+    : [];
+  const links: SectionLink[] = detail
+    ? [
+        { id: "fx-pick", label: "Pick" },
+        ...(signals.length > 0 ? [{ id: "fx-why", label: "Why" }] : []),
+        { id: "fx-scores", label: "Scores" },
+        { id: "fx-players", label: "Players" },
+        { id: "fx-markets", label: "Markets" },
+        { id: "fx-context", label: "Context" },
+      ]
+    : [];
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+    <div className="fixed inset-0 z-50 flex items-stretch justify-center sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label="Fixture detail">
+      <div className="absolute inset-0 bg-black/70" onClick={onClose} />
 
-      <div className="animate-modal-in relative flex max-h-[90vh] w-full max-w-7xl flex-col overflow-hidden rounded-2xl border border-pl-border bg-pl-900 shadow-2xl">
-        <div className="flex items-center justify-between border-b border-pl-border px-6 py-4">
-          <span className="text-sm font-semibold text-pl-text-dim">Fixture detail</span>
-          <button
-            onClick={onClose}
-            className="rounded-full p-1.5 text-pl-text-dim transition hover:bg-pl-800 hover:text-pl-text"
-            aria-label="Close"
-          >
-            ✕
-          </button>
-        </div>
-
-        <div className="overflow-y-auto px-6 py-6">
-          {/* In plain English, first: it is the one-screen answer the rest of
-              this modal is the evidence for. The flow renders from facts this
-              modal already holds, with no request; the AI summary sits behind
-              the button and costs nothing until a reader asks. */}
-          {explain && detail && (
-            <div className="mb-6">
-              <FixtureExplainer
-                sport={sport}
-                state={flowState}
-                bundle={flowBundle}
-                request={() => explain(sport, eventId)}
-                loadContext={loadContext}
-                fixtureId={eventId}
-                extras={{ tiles: panel.tiles, segments: panel.segments, legend: panel.legend, record: record ?? undefined, moment: "kickoff" }}
-              />
-            </div>
-          )}
-
-          {error && <div className="text-sm text-loss">{error}</div>}
-          {!detail && !error && <div className="flex h-64 items-center justify-center text-pl-text-faint">Loading…</div>}
-
-          {detail && (
-            <div className="flex flex-col gap-6">
-              <div className="flex items-center justify-center gap-10">
-                <div className="flex flex-col items-center gap-2">
-                  <TeamBadge team={detail.team_home} size="lg" />
-                  <span className="text-base font-semibold text-pl-text">{detail.team_home}</span>
-                  <div className="flex items-center gap-1.5">
-                    <FormStrip results={detail.home_recent_form} />
-                    <InfoTooltip text={GLOSSARY.recentForm} />
-                  </div>
-                </div>
-                <div className="flex flex-col items-center gap-1 text-center">
-                  <span className="text-xs font-medium uppercase text-pl-text-faint">
-                    {new Date(detail.commence_time).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}
-                  </span>
-                  {detail.post_match ? (
-                    <><span className="text-xs font-semibold uppercase tracking-wide text-pl-text-faint">Final</span><span className="font-display text-3xl font-semibold tracking-wide text-pl-text">{detail.post_match.final_score.replace("-", "–")}</span></>
-                  ) : <span className="font-display text-2xl font-semibold tracking-wide text-pl-text-faint">vs</span>}
-                  <span className="text-sm text-pl-text-faint">
-                    {new Date(detail.commence_time).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
-                  </span>
-                </div>
-                <div className="flex flex-col items-center gap-2">
-                  <TeamBadge team={detail.team_away} size="lg" />
-                  <span className="text-base font-semibold text-pl-text">{detail.team_away}</span>
-                  <FormStrip results={detail.away_recent_form} />
-                </div>
-              </div>
-
-              {detail.data_confidence === "new" && (
-                <div className="flex items-center gap-2 rounded-lg bg-pl-850/60 px-3 py-2 text-sm text-pl-text-dim">
-                  <span className="rounded bg-pl-700/60 px-1.5 py-0.5 font-semibold text-pl-text-dim">new team</span>
-                  {GLOSSARY.dataConfidenceNew}
-                </div>
-              )}
-              {detail.data_confidence === "limited" && (
-                <div className="flex items-center gap-2 rounded-lg bg-pl-850/60 px-3 py-2 text-sm text-pl-text-dim">
-                  <span className="rounded bg-pl-700/60 px-1.5 py-0.5 font-semibold text-pl-text-dim">limited data</span>
-                  {GLOSSARY.dataConfidenceLimited}
-                </div>
-              )}
-
-              {detail.post_match && <PostMatchReview review={detail.post_match} />}
-              {detail.post_match && <PlayerCallReview review={playerReview} loading={playerReviewLoading} error={playerReviewError} />}
-
-              <section>
-                <h3 className="mb-2 text-sm font-semibold text-pl-text-dim">
-                  {detail.actual_stats ? "Reported match statistics" : detail.post_match ? "Match statistics" : "Rest & match style"}
-                </h3>
-                {detail.post_match && !detail.actual_stats ? (
-                  <p className="rounded-xl border border-pl-border bg-pl-850/50 px-3 py-2 text-sm text-pl-text-faint">
-                    The box score (shots, corners, cards) for this match hasn&apos;t been reported by the match-data feed yet — it
-                    usually lands within a day of kickoff. The final score and result above are already confirmed.
-                  </p>
-                ) : (
-                  <div className="overflow-hidden rounded-xl border border-pl-border bg-pl-850/50 text-sm">
-                    <div className="grid grid-cols-[1fr_auto_1fr] border-b border-pl-border bg-pl-900/60 px-3 py-2 font-semibold text-pl-text">
-                      <span>{detail.team_home}</span><span className="px-4 text-pl-text-faint">{detail.actual_stats ? "Final" : "Context"}</span><span className="text-right">{detail.team_away}</span>
-                    </div>
-                    {(detail.actual_stats ? Object.keys(detail.actual_stats.home).map((label) => [
-                      label,
-                      reportedMetric(detail.actual_stats!.home[label], label),
-                      reportedMetric(detail.actual_stats!.away[label], label),
-                    ]) : [
-                      ["Rest days", fixtureMetric(detail.home_context.rest_days), fixtureMetric(detail.away_context.rest_days)],
-                      ["xG for", fixtureMetric(detail.home_context.xg_for_last_5), fixtureMetric(detail.away_context.xg_for_last_5)],
-                      ["xG against", fixtureMetric(detail.home_context.xg_against_last_5), fixtureMetric(detail.away_context.xg_against_last_5)],
-                      ["Corners", fixtureMetric(detail.home_context.corners_last_5), fixtureMetric(detail.away_context.corners_last_5)],
-                      ["Cards", fixtureMetric(detail.home_context.cards_last_5), fixtureMetric(detail.away_context.cards_last_5)],
-                      ["Set-piece xG", fixtureMetric(detail.home_context.set_piece_xg_share_last_5 === null ? null : detail.home_context.set_piece_xg_share_last_5 * 100, "%"), fixtureMetric(detail.away_context.set_piece_xg_share_last_5 === null ? null : detail.away_context.set_piece_xg_share_last_5 * 100, "%")],
-                    ]).map(([label, homeValue, awayValue]) => (
-                      <div key={label} className="grid grid-cols-[1fr_auto_1fr] border-b border-pl-border/60 px-3 py-2 last:border-0">
-                        <span className="font-semibold text-pl-text">{homeValue}</span><span className="px-4 text-pl-text-faint">{label}</span><span className="text-right font-semibold text-pl-text">{awayValue}</span>
+      <div className="animate-modal-in relative flex h-[100dvh] w-full max-w-[960px] flex-col overflow-hidden border-pr-rule bg-pr-stage sm:h-auto sm:max-h-[92vh] sm:rounded-pr sm:border">
+        <div ref={scrollRef} className="overflow-y-auto">
+          <div className="sticky top-0 z-10 border-b border-pr-rule bg-pr-stage">
+            <div className="flex items-center gap-3 px-3 py-3 sm:px-6">
+              {detail ? (
+                <>
+                  <div className="flex min-w-0 flex-1 items-center justify-center gap-3 sm:gap-6">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <TeamBadge team={detail.team_home} />
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-pr-text">{detail.team_home}</p>
+                        <FormStrip results={detail.home_recent_form} />
                       </div>
-                    ))}
+                    </div>
+                    <div className="flex flex-col items-center text-center">
+                      {detail.post_match ? (
+                        <>
+                          <span className="text-xs font-semibold uppercase tracking-wide text-pr-text-faint">Final</span>
+                          <span className="font-display text-2xl font-semibold tracking-wide text-pr-text">{detail.post_match.final_score.replace("-", "–")}</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-xs font-semibold uppercase tracking-wide text-pr-text-faint">Upcoming</span>
+                          <span className="font-display text-lg tracking-wide text-pr-text-dim">v</span>
+                        </>
+                      )}
+                    </div>
+                    <div className="flex min-w-0 items-center gap-2">
+                      <div className="min-w-0 text-right">
+                        <p className="truncate text-sm font-semibold text-pr-text">{detail.team_away}</p>
+                        <FormStrip results={detail.away_recent_form} />
+                      </div>
+                      <TeamBadge team={detail.team_away} />
+                    </div>
                   </div>
-                )}
-                {!(detail.post_match && !detail.actual_stats) && (
-                  <p className="mt-2 text-sm text-pl-text-faint">{detail.actual_stats ? "Final team totals reported by the match-data feed. Possession is shown whenever the source provides it." : "Rest is fixture congestion; the other rows are each team&apos;s rolling per-match profile, not live betting lines."}</p>
-                )}
-              </section>
+                </>
+              ) : (
+                <span className="flex-1 text-sm font-semibold text-pr-text-dim">Fixture detail</span>
+              )}
+              <button onClick={onClose} className="rounded-pr px-2 py-1.5 text-pr-text-dim transition hover:bg-pr-panel-2 hover:text-pr-text" aria-label="Close">
+                ✕
+              </button>
+            </div>
+            {detail && <p className="px-3 pb-2 text-center text-xs text-pr-text-faint sm:px-6">{kickoff(detail.commence_time)}</p>}
+            {detail && <SectionBar links={links} root={scrollRef} />}
+          </div>
 
+          <div className="px-3 py-5 sm:px-6 sm:py-6">
+            {error && <div className="text-sm text-loss">{error}</div>}
+            {!detail && !error && <div className="flex h-64 items-center justify-center text-pr-text-faint">Loading…</div>}
+
+            {detail && (
+              <div className="flex flex-col gap-10">
+                <section id="fx-pick" aria-label="The pick" className="flex scroll-mt-32 flex-col gap-4">
+                  <p className="font-display text-3xl leading-tight tracking-wide text-pr-text sm:text-4xl">{headline}</p>
+                  {call?.tossUp && !finished && (
+                    <p className="-mt-2 text-sm text-pr-text-dim">The top two outcomes are within two points, so the model is not calling a favourite.</p>
+                  )}
+                  {/* In plain English, first: the one-screen answer the rest of
+                      this detail is the evidence for. Rendered from facts the
+                      modal already holds; the AI summary costs nothing until a
+                      reader asks. */}
+                  {explain && (
+                    <FixtureExplainer
+                      sport={sport}
+                      state={flowState}
+                      bundle={flowBundle}
+                      request={() => explain(sport, eventId)}
+                      loadContext={loadContext}
+                      fixtureId={eventId}
+                      extras={{ tiles: panel.tiles, segments: panel.segments, legend: panel.legend, record: record ?? undefined, moment: "kickoff" }}
+                    />
+                  )}
+                  {detail.data_confidence === "new" && (
+                    <div className="flex items-center gap-2 rounded-pr bg-pr-panel px-3 py-2 text-sm text-pr-text-dim">
+                      <span className="rounded-pr bg-pr-panel-2 px-1.5 py-0.5 font-semibold text-pr-text-dim">new team</span>
+                      {GLOSSARY.dataConfidenceNew}
+                    </div>
+                  )}
+                  {detail.data_confidence === "limited" && (
+                    <div className="flex items-center gap-2 rounded-pr bg-pr-panel px-3 py-2 text-sm text-pr-text-dim">
+                      <span className="rounded-pr bg-pr-panel-2 px-1.5 py-0.5 font-semibold text-pr-text-dim">limited data</span>
+                      {GLOSSARY.dataConfidenceLimited}
+                    </div>
+                  )}
+                  {detail.post_match && <PostMatchReview review={detail.post_match} home={detail.team_home} away={detail.team_away} />}
+                </section>
+
+                {signals.length > 0 && (
+                  <section id="fx-why" aria-label="Why" className="flex scroll-mt-32 flex-col gap-3">
+                    <h2 className="font-display text-xl tracking-wide text-pr-text">Why</h2>
+                    <SignalRows signals={signals} />
+                  </section>
+                )}
+
+                <section id="fx-scores" aria-label="Scores" className="scroll-mt-32">
+                  <h2 className="mb-3 flex items-center gap-1.5 font-display text-xl tracking-wide text-pr-text">
+                    Scoreline probability
+                    <InfoTooltip text={GLOSSARY.scorelineGrid} align="left" />
+                  </h2>
+                  <ScorelineHeatmap grid={detail.score_grid} homeTeam={detail.team_home} awayTeam={detail.team_away} topScorelines={detail.top_scorelines} />
+                </section>
+
+                <section id="fx-players" aria-label="Players" className="flex scroll-mt-32 flex-col gap-4">
+                  <h2 className="flex items-center gap-1.5 font-display text-xl tracking-wide text-pr-text">
+                    Likely scorers &amp; assists
+                    <InfoTooltip text={GLOSSARY.anytimeScorer} align="left" />
+                    <InfoTooltip text={GLOSSARY.playerAvailability} align="left" />
+                  </h2>
+                  {playersError && <p className="text-sm text-loss">{playersError}</p>}
+                  {!players && !playersError && <p className="text-sm text-pr-text-faint">Loading player predictions…</p>}
+                  {players && (
+                    <PlayerScorerList homeTeam={detail.team_home} awayTeam={detail.team_away} homePlayers={players.home_players} awayPlayers={players.away_players} />
+                  )}
+                  {players && (
+                    <ModelTopCalls homeTeam={detail.team_home} awayTeam={detail.team_away} homePlayers={players.home_players} awayPlayers={players.away_players} kickoff={detail.commence_time} />
+                  )}
+                  {detail.post_match && <PlayerCallReview review={playerReview} loading={playerReviewLoading} error={playerReviewError} />}
+                </section>
+
+                <section id="fx-markets" aria-label="Markets and value" className="flex scroll-mt-32 flex-col gap-4">
+                  <h2 className="font-display text-xl tracking-wide text-pr-text">Markets &amp; value</h2>
               {detail.post_match && (
                 detail.pre_match_value_bets?.length > 0 ? <PreMatchValueBets bets={detail.pre_match_value_bets} /> : (
                   <section>
-                    <h3 className="mb-2 text-sm font-semibold text-pl-text-dim">Pre-match value bets</h3>
-                    <p className="rounded-lg bg-pl-850/60 px-3 py-2 text-sm text-pl-text-faint">No value bet qualified before kickoff for this fixture, so no pre-match bet was recorded.</p>
+                    <h3 className="mb-2 text-sm font-semibold text-pr-text-dim">Pre-match value bets</h3>
+                    <p className="rounded-pr bg-pr-panel px-3 py-2 text-sm text-pr-text-faint">No value bet qualified before kickoff for this fixture, so no pre-match bet was recorded.</p>
                   </section>
                 )
               )}
 
-              {/* The signal rows (spec §4), above the explainer and before the
-                  panels -- the same position Sports' `GameDetailModal` puts them,
-                  so a fixture page reads the same way in both places.
 
-                  `{signals.length > 0 && ...}` rather than a guard around the whole
-                  block: `SignalRows` already drops undrawable rows and throws on a
-                  figure it cannot render, and spec §2 says a fixture with nothing to
-                  say renders NO rows -- not an empty section, not a heading. */}
-              {signals.length > 0 && (
-                <section className="flex flex-col gap-2">
-                  <SignalRows signals={signals} />
-                </section>
-              )}
-
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <div className="flex flex-col gap-6">
-                  <section>
-                    <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-pl-text-dim">
-                      Scoreline probability
-                      <InfoTooltip text={GLOSSARY.scorelineGrid} align="left" />
-                    </h3>
-                    <ScorelineHeatmap
-                      grid={detail.score_grid}
-                      homeTeam={detail.team_home}
-                      awayTeam={detail.team_away}
-                      topScorelines={detail.top_scorelines}
-                    />
-                  </section>
-
-                  <section>
-                    <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-pl-text-dim">
-                      Head-to-head
-                    </h3>
-                    {detail.head_to_head.length === 0 ? (
-                      <p className="text-sm text-pl-text-faint">No meetings in the loaded seasons.</p>
-                    ) : (
-                      <div className="flex flex-col gap-1">
-                        {detail.head_to_head.map((m, i) => (
-                          <div key={i} className="flex items-center justify-between rounded-lg bg-pl-850/60 px-3 py-1.5 text-sm">
-                            <span className="text-pl-text-faint">{m.date}</span>
-                            <span className="font-medium text-pl-text">
-                              {m.team_home} {m.goals_home}-{m.goals_away} {m.team_away}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </section>
-                </div>
-
-                <div className="flex flex-col gap-6">
                   {/* The market bars that stood here are gone, and only those.
                       The 1x2 block is the `result` tile and the three-way bar in
                       the instant block above, the O/U 2.5 pair is the same bar's
@@ -642,11 +625,11 @@ export function FixtureModal({ eventId, onClose, explain, loadContext, sport = "
                       request. What is left here is what no tile or bar carries:
                       the team scoring 2+, the margin, corners, cards and shots. */}
                   <section>
-                    <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-pl-text-dim">
+                    <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-pr-text-dim">
                       More model calls
                       {detail.draw_signal && (
                         <span
-                          className="rounded-full bg-pl-cyan/10 px-2 py-0.5 text-sm font-semibold normal-case tracking-normal text-pl-cyan"
+                          className="rounded-pr bg-pr-panel-2 px-2 py-0.5 text-sm font-semibold normal-case tracking-normal text-pr-text"
                           title="The scoreline model's top pick and the win/draw/loss percentages both lean draw. Informational only — not used to score accuracy."
                         >
                           Model leans draw
@@ -655,11 +638,11 @@ export function FixtureModal({ eventId, onClose, explain, loadContext, sport = "
                     </h3>
                     <div className="flex flex-col gap-1.5">
                       {!detail.post_match && detail.recommended_bet && (
-                        <div className="flex flex-col gap-0.5 rounded-lg bg-pl-850/60 px-3 py-2 text-sm">
-                          <span className="text-pl-text-dim">Best observed price</span>
-                          <span className="font-semibold text-pl-text">
+                        <div className="flex flex-col gap-0.5 rounded-pr bg-pr-panel px-3 py-2 text-sm">
+                          <span className="text-pr-text-dim">Best observed price</span>
+                          <span className="font-semibold text-pr-text">
                             {americanOdds(detail.recommended_bet.price)} at {detail.recommended_bet.bookmaker} ·{" "}
-                            <span className="font-mono font-semibold text-pl-cyan">
+                            <span className="font-mono font-semibold text-pr-text">
                               +{(detail.recommended_bet.edge * 100).toFixed(1)}%
                             </span>{" "}
                             edge
@@ -687,9 +670,9 @@ export function FixtureModal({ eventId, onClose, explain, loadContext, sport = "
                         />
                       )}
                       {detail.predicted_margin !== null && (
-                        <div className="flex items-center justify-between rounded-lg bg-pl-850/60 px-3 py-2 text-sm">
-                          <span className="text-pl-text-dim">Predicted margin</span>
-                          <span className="font-semibold text-pl-text">
+                        <div className="flex items-center justify-between rounded-pr bg-pr-panel px-3 py-2 text-sm">
+                          <span className="text-pr-text-dim">Predicted margin</span>
+                          <span className="font-semibold text-pr-text">
                             {detail.predicted_margin === 0
                               ? "Even"
                               : detail.predicted_margin > 0
@@ -698,28 +681,28 @@ export function FixtureModal({ eventId, onClose, explain, loadContext, sport = "
                           </span>
                         </div>
                       )}
-                      <OverUnderRow label="Total corners" lam={detail.corners.lambda_} line={detail.corners.line} over={detail.corners.over} postMatchHit={postMatchVerdict(`Corners O/U ${detail.corners.line}`)?.hit} modelCall={isModelCall(detail.corners.over)} />
-                      <OverUnderRow label="Total cards" lam={detail.cards.lambda_} line={detail.cards.line} over={detail.cards.over} postMatchHit={postMatchVerdict(`Cards O/U ${detail.cards.line}`)?.hit} modelCall={isModelCall(detail.cards.over)} />
+                      <OverUnderRow label="Total corners" noun="corners" lam={detail.corners.lambda_} line={detail.corners.line} over={detail.corners.over} postMatchHit={postMatchVerdict(`Corners O/U ${detail.corners.line}`)?.hit} modelCall={isModelCall(detail.corners.over)} />
+                      <OverUnderRow label="Total cards" noun="cards" lam={detail.cards.lambda_} line={detail.cards.line} over={detail.cards.over} postMatchHit={postMatchVerdict(`Cards O/U ${detail.cards.line}`)?.hit} modelCall={isModelCall(detail.cards.over)} />
                       {hasNumber(detail.home_shots) && hasNumber(detail.away_shots) && (
-                        <div className="flex items-center justify-between rounded-lg bg-pl-850/60 px-3 py-2 text-sm">
-                          <span className="text-pl-text-dim">Predicted shots</span>
-                          <span className="font-semibold text-pl-text">
+                        <div className="flex items-center justify-between rounded-pr bg-pr-panel px-3 py-2 text-sm">
+                          <span className="text-pr-text-dim">Predicted shots</span>
+                          <span className="font-semibold text-pr-text">
                             {detail.team_home} {detail.home_shots.toFixed(1)} · {detail.team_away} {detail.away_shots.toFixed(1)}
                           </span>
                         </div>
                       )}
                       {hasNumber(detail.home_shots_on_target) && hasNumber(detail.away_shots_on_target) && (
-                        <div className="flex items-center justify-between rounded-lg bg-pl-850/60 px-3 py-2 text-sm">
-                          <span className="text-pl-text-dim">Predicted shots on target</span>
-                          <span className="font-semibold text-pl-text">
+                        <div className="flex items-center justify-between rounded-pr bg-pr-panel px-3 py-2 text-sm">
+                          <span className="text-pr-text-dim">Predicted shots on target</span>
+                          <span className="font-semibold text-pr-text">
                             {detail.team_home} {detail.home_shots_on_target.toFixed(1)} · {detail.team_away} {detail.away_shots_on_target.toFixed(1)}
                           </span>
                         </div>
                       )}
                     </div>
-                    {!detail.has_live_odds && <p className="mt-2 text-sm text-pl-text-faint">{GLOSSARY.noLiveMarket}</p>}
+                    {!detail.has_live_odds && <p className="mt-2 text-sm text-pr-text-faint">{GLOSSARY.noLiveMarket}</p>}
                     {!detail.post_match && !detail.recommended_bet && (
-                      <p className="mt-2 text-sm text-pl-text-faint">
+                      <p className="mt-2 text-sm text-pr-text-faint">
                         {new Date(detail.commence_time).getTime() <= Date.now()
                           ? "Kickoff has passed, so pre-match odds can no longer be used to calculate a value bet."
                           : detail.odds_is_stale
@@ -729,42 +712,72 @@ export function FixtureModal({ eventId, onClose, explain, loadContext, sport = "
                             : "Live match-result and goals odds have not loaded yet, so a value bet cannot be calculated."}
                       </p>
                     )}
-                    <p className="mt-2 text-sm text-pl-text-faint">Corners/cards/shots are match-context signals (for example, a high Over chance suggests a busier game), not verified betting edges.</p>
+                    <p className="mt-2 text-sm text-pr-text-faint">Corners/cards/shots are match-context signals (for example, a high Over chance suggests a busier game), not verified betting edges.</p>
                   </section>
-                </div>
-              </div>
 
+                </section>
+
+                <section id="fx-context" aria-label="Context" className="flex scroll-mt-32 flex-col gap-6">
+                  <h2 className="font-display text-xl tracking-wide text-pr-text">Context</h2>
               <section>
-                <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-pl-text-dim">
-                  Likely scorers &amp; assists
-                  <InfoTooltip text={GLOSSARY.anytimeScorer} align="left" />
-                  <InfoTooltip text={GLOSSARY.playerAvailability} align="left" />
+                <h3 className="mb-2 text-sm font-semibold text-pr-text-dim">
+                  {detail.actual_stats ? "Reported match statistics" : detail.post_match ? "Match statistics" : "Rest & match style"}
                 </h3>
-                {playersError && <p className="text-sm text-loss">{playersError}</p>}
-                {!players && !playersError && <p className="text-sm text-pl-text-faint">Loading player predictions…</p>}
-                {players && (
-                  <PlayerScorerList
-                    homeTeam={detail.team_home}
-                    awayTeam={detail.team_away}
-                    homePlayers={players.home_players}
-                    awayPlayers={players.away_players}
-                  />
+                {detail.post_match && !detail.actual_stats ? (
+                  <p className="rounded-pr border border-pr-rule bg-pr-panel px-3 py-2 text-sm text-pr-text-faint">
+                    The box score (shots, corners, cards) for this match hasn&apos;t been reported by the match-data feed yet — it
+                    usually lands within a day of kickoff. The final score and result above are already confirmed.
+                  </p>
+                ) : (
+                  <div className="overflow-hidden rounded-pr border border-pr-rule bg-pr-panel text-sm">
+                    <div className="grid grid-cols-[1fr_auto_1fr] border-b border-pr-rule bg-pr-panel-2 px-3 py-2 font-semibold text-pr-text">
+                      <span>{detail.team_home}</span><span className="px-4 text-pr-text-faint">{detail.actual_stats ? "Final" : "Context"}</span><span className="text-right">{detail.team_away}</span>
+                    </div>
+                    {(detail.actual_stats ? Object.keys(detail.actual_stats.home).map((label) => [
+                      label,
+                      reportedMetric(detail.actual_stats!.home[label], label),
+                      reportedMetric(detail.actual_stats!.away[label], label),
+                    ]) : [
+                      ["Rest days", fixtureMetric(detail.home_context.rest_days), fixtureMetric(detail.away_context.rest_days)],
+                      ["xG for", fixtureMetric(detail.home_context.xg_for_last_5), fixtureMetric(detail.away_context.xg_for_last_5)],
+                      ["xG against", fixtureMetric(detail.home_context.xg_against_last_5), fixtureMetric(detail.away_context.xg_against_last_5)],
+                      ["Corners", fixtureMetric(detail.home_context.corners_last_5), fixtureMetric(detail.away_context.corners_last_5)],
+                      ["Cards", fixtureMetric(detail.home_context.cards_last_5), fixtureMetric(detail.away_context.cards_last_5)],
+                      ["Set-piece xG", fixtureMetric(detail.home_context.set_piece_xg_share_last_5 === null ? null : detail.home_context.set_piece_xg_share_last_5 * 100, "%"), fixtureMetric(detail.away_context.set_piece_xg_share_last_5 === null ? null : detail.away_context.set_piece_xg_share_last_5 * 100, "%")],
+                    ]).map(([label, homeValue, awayValue]) => (
+                      <div key={label} className="grid grid-cols-[1fr_auto_1fr] border-b border-pr-rule px-3 py-2 last:border-0">
+                        <span className="font-semibold text-pr-text">{homeValue}</span><span className="px-4 text-pr-text-faint">{label}</span><span className="text-right font-semibold text-pr-text">{awayValue}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {!(detail.post_match && !detail.actual_stats) && (
+                  <p className="mt-2 text-sm text-pr-text-faint">{detail.actual_stats ? "Final team totals reported by the match-data feed. Possession is shown whenever the source provides it." : "Rest is fixture congestion; the other rows are each team&apos;s rolling per-match profile, not live betting lines."}</p>
                 )}
               </section>
 
-              {players && (
-                <ModelTopCalls
-                  homeTeam={detail.team_home}
-                  awayTeam={detail.team_away}
-                  homePlayers={players.home_players}
-                  awayPlayers={players.away_players}
-                  kickoff={detail.commence_time}
-                />
-              )}
 
-
-            </div>
-          )}
+                  <section>
+                    <h3 className="mb-2 text-sm font-semibold text-pr-text-dim">Head-to-head</h3>
+                    {meetings.length === 0 ? (
+                      <p className="text-sm text-pr-text-faint">No earlier meetings in the loaded seasons.</p>
+                    ) : (
+                      <div className="flex flex-col gap-1">
+                        {meetings.map((m, i) => (
+                          <div key={i} className="flex items-center justify-between gap-3 rounded-pr bg-pr-panel px-3 py-1.5 text-sm">
+                            <span className="text-pr-text-faint">{dateShort(m.date)}</span>
+                            <span className="font-medium text-pr-text">
+                              {m.team_home} {m.goals_home}–{m.goals_away} {m.team_away}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                </section>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
